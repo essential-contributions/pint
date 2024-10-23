@@ -1,10 +1,5 @@
-predicate test {
-    // Find three consecutive integers such that their product is equal to their sum.
-
-    var x0: int;
-    var x1: int;
-    var x2: int;
-
+// Find three consecutive integers such that their product is equal to their sum.
+predicate test(x0: int, x1: int, x2: int) {
     // Make sure the numbers are consecutive
     constraint x1 == x0 + 1 && x2 == x1 + 1;
 
@@ -13,20 +8,22 @@ predicate test {
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::x0: int;
-//     var ::x1: int;
-//     var ::x2: int;
+// predicate ::test(
+//     ::x0: int,
+//     ::x1: int,
+//     ::x2: int,
+// ) {
 //     constraint ((::x1 == (::x0 + 1)) && (::x2 == (::x1 + 1)));
 //     constraint (((::x0 + ::x1) + ::x2) == ((::x0 * ::x1) * ::x2));
 // }
 // >>>
 
 // flattened <<<
-// predicate ::test {
-//     var ::x0: int;
-//     var ::x1: int;
-//     var ::x2: int;
+// predicate ::test(
+//     ::x0: int,
+//     ::x1: int,
+//     ::x2: int,
+// ) {
 //     constraint ((::x1 == (::x0 + 1)) && (::x2 == (::x1 + 1)));
 //     constraint (((::x0 + ::x1) + ::x2) == ((::x0 * ::x1) * ::x2));
 //     constraint __eq_set(__mut_keys(), {0});

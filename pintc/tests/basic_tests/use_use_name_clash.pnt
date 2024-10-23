@@ -1,8 +1,7 @@
 use a::b;
 use c::b;
 
-predicate test {
-    var d: int;
+predicate test(d: int) {
 }
 
 // parse_failure <<<
@@ -11,4 +10,3 @@ predicate test {
 // @17..18: `b` redeclared here
 // `b` must be declared or imported only once in this scope
 // >>>
-

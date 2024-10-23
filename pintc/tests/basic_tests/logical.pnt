@@ -1,14 +1,20 @@
-predicate test {
-    // All the decision variables in this test are known. The only purpose of this test make sure that
+predicate test(
+    x: int,
+    y: int,
+    z: int,
+    t: bool,
+    f: bool,
+) {
+    // All the decision constraintiables in this test are known. The only purpose of this test make sure that
     // all the listed constraints are satisfied and not conflicting. This helps ensure correctness of
-    // logical operators in various forms.
+    // logical operators in constraintious forms.
 
-    var x: int = 10;
-    var y: int = 20;
-    var z: int = 30;
+    constraint x == 10;
+    constraint y == 20;
+    constraint z == 30;
 
-    var t: bool = true;
-    var f: bool = false;
+    constraint t == true;
+    constraint f == false;
 
     constraint true;
     constraint !false;
@@ -33,12 +39,13 @@ predicate test {
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::x: int;
-//     var ::y: int;
-//     var ::z: int;
-//     var ::t: bool;
-//     var ::f: bool;
+// predicate ::test(
+//     ::x: int,
+//     ::y: int,
+//     ::z: int,
+//     ::t: bool,
+//     ::f: bool,
+// ) {
 //     constraint (::x == 10);
 //     constraint (::y == 20);
 //     constraint (::z == 30);
@@ -67,12 +74,13 @@ predicate test {
 // >>>
 
 // flattened <<<
-// predicate ::test {
-//     var ::x: int;
-//     var ::y: int;
-//     var ::z: int;
-//     var ::t: bool;
-//     var ::f: bool;
+// predicate ::test(
+//     ::x: int,
+//     ::y: int,
+//     ::z: int,
+//     ::t: bool,
+//     ::f: bool,
+// ) {
 //     constraint (::x == 10);
 //     constraint (::y == 20);
 //     constraint (::z == 30);

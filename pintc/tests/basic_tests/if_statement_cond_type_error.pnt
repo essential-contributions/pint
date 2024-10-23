@@ -1,9 +1,10 @@
-predicate test {
-    var z: bool;
-    var x: int;
-    var y: int;
-    var xx: int;
-    var yy: int;
+predicate test(
+    z: bool,
+    x: int,
+    y: int,
+    xx: int,
+    yy: int,
+) {
 
     if 0x0000000000000000000000000000000000000000000000000000000000000000 {
         if false {
@@ -31,12 +32,13 @@ predicate test {
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::z: bool;
-//     var ::x: int;
-//     var ::y: int;
-//     var ::xx: int;
-//     var ::yy: int;
+// predicate ::test(
+//     ::z: bool,
+//     ::x: int,
+//     ::y: int,
+//     ::xx: int,
+//     ::yy: int,
+// ) {
 //     if 0x0000000000000000000000000000000000000000000000000000000000000000 {
 //         if false {
 //         } else {
@@ -63,9 +65,9 @@ predicate test {
 
 // typecheck_failure <<<
 // condition for `if` statement must be a `bool`
-// @108..174: invalid type `b256`, expecting `bool`
+// @91..157: invalid type `b256`, expecting `bool`
 // condition for `if` statement must be a `bool`
-// @297..302: invalid type `int`, expecting `bool`
+// @280..285: invalid type `int`, expecting `bool`
 // condition for `if` statement must be a `bool`
-// @412..420: invalid type `{int, int}`, expecting `bool`
+// @395..403: invalid type `{int, int}`, expecting `bool`
 // >>>

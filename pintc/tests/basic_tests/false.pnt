@@ -1,15 +1,17 @@
-predicate test {
+predicate test() {
     constraint false;
 }
 
 // parsed <<<
-// predicate ::test {
+// predicate ::test(
+// ) {
 //     constraint false;
 // }
 // >>>
 
 // flattened <<<
-// predicate ::test {
+// predicate ::test(
+// ) {
 //     constraint false;
 //     constraint __eq_set(__mut_keys(), {0});
 // }

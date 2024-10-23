@@ -1,7 +1,7 @@
 union MyUnion = A | B;
 type MyType = MyUnion;
 
-predicate Foo {
+predicate Foo() {
     pub var x1: bool;
     pub var x2: int;
     pub var x3: b256;
@@ -30,8 +30,9 @@ predicate Foo {
 // parsed <<<
 // union ::MyUnion = A | B;
 // type ::MyType = ::MyUnion;
-//
-// predicate ::Foo {
+// 
+// predicate ::Foo(
+// ) {
 //     pub var ::x1: bool;
 //     pub var ::x2: int;
 //     pub var ::x3: b256;
@@ -74,7 +75,8 @@ predicate Foo {
 // union ::MyUnion = A | B;
 // type ::MyType = ::MyUnion;
 // 
-// predicate ::Foo {
+// predicate ::Foo(
+// ) {
 //     pub var ::x1: bool;
 //     pub var ::x2: int;
 //     pub var ::x3: b256;
