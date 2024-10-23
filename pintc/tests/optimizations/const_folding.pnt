@@ -52,6 +52,14 @@ predicate Test {
     var l = 0 / x;
     var m = x / 1;
     var n = x % 1;
+    var o = (0 + x) + (x - 0);
+    var p = (x + 0) * (0 * x);
+    var q = (x - 0) / (x / 1);
+    var r = (0 * x) + (x % 1);
+    var s = (x * 0) - (0 + x);
+    var t = (0 / x) - (0 * x);
+    var u = (x / 1) + (x - 0);
+    var v = (x % 1) * (0 + x);
 }
 
 // parsed <<<
@@ -76,6 +84,14 @@ predicate Test {
 //     var ::l;
 //     var ::m;
 //     var ::n;
+//     var ::o;
+//     var ::p;
+//     var ::q;
+//     var ::r;
+//     var ::s;
+//     var ::t;
+//     var ::u;
+//     var ::v;
 //     constraint (::a == (1 + 2));
 //     constraint (::b == (1 - ::test_array[0]));
 //     constraint (::c == ((((1 + 2) - 3) + 4) - (2 - ::test_tuple.1)));
@@ -90,6 +106,14 @@ predicate Test {
 //     constraint (::l == (0 / ::x));
 //     constraint (::m == (::x / 1));
 //     constraint (::n == (::x % 1));
+//     constraint (::o == ((0 + ::x) + (::x - 0)));
+//     constraint (::p == ((::x + 0) * (0 * ::x)));
+//     constraint (::q == ((::x - 0) / (::x / 1)));
+//     constraint (::r == ((0 * ::x) + (::x % 1)));
+//     constraint (::s == ((::x * 0) - (0 + ::x)));
+//     constraint (::t == ((0 / ::x) - (0 * ::x)));
+//     constraint (::u == ((::x / 1) + (::x - 0)));
+//     constraint (::v == ((::x % 1) * (0 + ::x)));
 //     if (((((1 + 2) - 3) + 4) - (2 - 5)) < 5) {
 //         constraint (((3 - 4) + 1) == ::y)
 //     } else {
@@ -140,6 +164,14 @@ predicate Test {
 //     var ::l: int;
 //     var ::m: int;
 //     var ::n: int;
+//     var ::o: int;
+//     var ::p: int;
+//     var ::q: int;
+//     var ::r: int;
+//     var ::s: int;
+//     var ::t: int;
+//     var ::u: int;
+//     var ::v: int;
 //     constraint (::a == (1 + 2));
 //     constraint (::b == (1 - 1));
 //     constraint (::c == ((((1 + 2) - 3) + 4) - (2 - 5)));
@@ -154,6 +186,14 @@ predicate Test {
 //     constraint (::l == (0 / ::x));
 //     constraint (::m == (::x / 1));
 //     constraint (::n == (::x % 1));
+//     constraint (::o == ((0 + ::x) + (::x - 0)));
+//     constraint (::p == ((::x + 0) * (0 * ::x)));
+//     constraint (::q == ((::x - 0) / (::x / 1)));
+//     constraint (::r == ((0 * ::x) + (::x % 1)));
+//     constraint (::s == ((::x * 0) - (0 + ::x)));
+//     constraint (::t == ((0 / ::x) - (0 * ::x)));
+//     constraint (::u == ((::x / 1) + (::x - 0)));
+//     constraint (::v == ((::x % 1) * (0 + ::x)));
 //     constraint (!(((((1 + 2) - 3) + 4) - (2 - 5)) < 5) || (((3 - 4) + 1) == ::y));
 //     constraint ((((((1 + 2) - 3) + 4) - (2 - 5)) < 5) || (((::y == 1) || (::y == 4)) || (::y == 7)));
 //     constraint (!(true && (::y == 0)) || (::x == 1));
@@ -190,6 +230,14 @@ predicate Test {
 //     var ::l: int;
 //     var ::m: int;
 //     var ::n: int;
+//     var ::o: int;
+//     var ::p: int;
+//     var ::q: int;
+//     var ::r: int;
+//     var ::s: int;
+//     var ::t: int;
+//     var ::u: int;
+//     var ::v: int;
 //     constraint (::a == 3);
 //     constraint (::b == 0);
 //     constraint (::c == 7);
@@ -204,6 +252,14 @@ predicate Test {
 //     constraint (::l == 0);
 //     constraint (::m == ::x);
 //     constraint (::n == ::x);
+//     constraint (::o == (::x + ::x));
+//     constraint (::p == 0);
+//     constraint (::q == (::x / ::x));
+//     constraint (::r == ::x);
+//     constraint (::s == (0 - ::x));
+//     constraint (::t == 0);
+//     constraint (::u == (::x + ::x));
+//     constraint (::v == (::x * ::x));
 //     constraint (((::y == 1) || (::y == 4)) || (::y == 7));
 //     constraint (!(::y == 0) || (::x == 1));
 //     constraint ((::y == 0) || (::x == 0));

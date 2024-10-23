@@ -153,6 +153,17 @@ pub(crate) fn fold_identities(contract: &mut Contract) {
                         replace_map.insert(expr_key, lhs);
                         Some(lhs)
                     }
+
+                    (Ok(Immediate::Real(0.0)), Err(_)) => {
+                        replace_map.insert(expr_key, rhs);
+                        Some(rhs)
+                    }
+
+                    (Err(_), Ok(Immediate::Real(0.0))) => {
+                        replace_map.insert(expr_key, lhs);
+                        Some(lhs)
+                    }
+
                     _ => None,
                 },
 
@@ -161,6 +172,12 @@ pub(crate) fn fold_identities(contract: &mut Contract) {
                         replace_map.insert(expr_key, lhs);
                         Some(lhs)
                     }
+
+                    (Err(_), Ok(Immediate::Real(0.0))) => {
+                        replace_map.insert(expr_key, lhs);
+                        Some(lhs)
+                    }
+
                     _ => None,
                 },
 
@@ -174,6 +191,17 @@ pub(crate) fn fold_identities(contract: &mut Contract) {
                         replace_map.insert(expr_key, rhs);
                         Some(rhs)
                     }
+
+                    (Ok(Immediate::Real(0.0)), Err(_)) => {
+                        replace_map.insert(expr_key, lhs);
+                        Some(lhs)
+                    }
+
+                    (Err(_), Ok(Immediate::Real(0.0))) => {
+                        replace_map.insert(expr_key, rhs);
+                        Some(rhs)
+                    }
+
                     _ => None,
                 },
 
@@ -187,6 +215,17 @@ pub(crate) fn fold_identities(contract: &mut Contract) {
                         replace_map.insert(expr_key, lhs);
                         Some(lhs)
                     }
+
+                    (Ok(Immediate::Real(0.0)), Err(_)) => {
+                        replace_map.insert(expr_key, lhs);
+                        Some(lhs)
+                    }
+
+                    (Err(_), Ok(Immediate::Real(1.0))) => {
+                        replace_map.insert(expr_key, lhs);
+                        Some(lhs)
+                    }
+
                     _ => None,
                 },
 
@@ -195,6 +234,12 @@ pub(crate) fn fold_identities(contract: &mut Contract) {
                         replace_map.insert(expr_key, lhs);
                         Some(lhs)
                     }
+
+                    (Err(_), Ok(Immediate::Real(1.0))) => {
+                        replace_map.insert(expr_key, lhs);
+                        Some(lhs)
+                    }
+
                     _ => None,
                 },
 
