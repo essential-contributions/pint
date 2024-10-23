@@ -65,6 +65,14 @@ pub enum Expr {
         args: Vec<ExprKey>,
         span: Span,
     },
+    PredicateCall {
+        interface: String,
+        c_addr: ExprKey,
+        predicate: String,
+        p_addr: ExprKey,
+        args: Vec<ExprKey>,
+        span: Span,
+    },
     Select {
         condition: ExprKey,
         then_expr: ExprKey,
@@ -293,6 +301,7 @@ impl Spanned for Expr {
             | Expr::BinaryOp { span, .. }
             | Expr::MacroCall { span, .. }
             | Expr::IntrinsicCall { span, .. }
+            | Expr::PredicateCall { span, .. }
             | Expr::Select { span, .. }
             | Expr::Match { span, .. }
             | Expr::Index { span, .. }
@@ -345,6 +354,7 @@ impl Expr {
                 replace(rhs);
             }
             Expr::IntrinsicCall { args, .. } => args.iter_mut().for_each(replace),
+            Expr::PredicateCall { args, .. } => args.iter_mut().for_each(replace),
             Expr::Select {
                 condition,
                 then_expr,

@@ -1,7 +1,5 @@
 interface I {
-    predicate P {
-        pub var x: int;
-    }
+    predicate P(x: int);
 }
 
 const i_addr = 0x0000000000000000000000000000000000000000000000000000000000000000;
@@ -18,9 +16,9 @@ predicate Q() {
 // const ::p_addr = 0x1111111111111111111111111111111111111111111111111111111111111111;
 // const ::i_addr = 0x0000000000000000000000000000000000000000000000000000000000000000;
 // interface ::I {
-//     predicate P {
-//         pub var x: int;
-//     }
+//     predicate P (
+//         x: int,
+//     );
 // }
 // 
 // predicate ::Q(
@@ -36,9 +34,9 @@ predicate Q() {
 // const ::p_addr: b256 = 0x1111111111111111111111111111111111111111111111111111111111111111;
 // const ::i_addr: b256 = 0x0000000000000000000000000000000000000000000000000000000000000000;
 // interface ::I {
-//     predicate P {
-//         pub var x: int;
-//     }
+//     predicate P (
+//         x: int,
+//     );
 // }
 // 
 // predicate ::Q(

@@ -202,6 +202,7 @@ fn check_expr(
         | Expr::UnaryOp { .. }
         | Expr::BinaryOp { .. }
         | Expr::IntrinsicCall { .. }
+        | Expr::PredicateCall { .. }
         | Expr::Select { .. }
         | Expr::Cast { .. }
         | Expr::TupleFieldAccess { .. }

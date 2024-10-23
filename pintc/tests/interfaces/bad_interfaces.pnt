@@ -4,10 +4,10 @@ interface Foo {
         y: int,
     }
 
-    predicate I1 {
-        pub var x: int;
-        pub var y: b256;
-    }
+    predicate I1(
+        x: int,
+        y: b256,
+    );
 }
 
 predicate Simple(
@@ -37,10 +37,10 @@ predicate Simple(
 //         x: int,
 //         y: int,
 //     }
-//     predicate I1 {
-//         pub var x: int;
-//         pub var y: b256;
-//     }
+//     predicate I1 (
+//         x: int,
+//         y: b256,
+//     );
 // }
 // 
 // predicate ::Simple(
@@ -62,11 +62,11 @@ predicate Simple(
 
 // typecheck_failure <<<
 // cannot find interface declaration `::MissingInterface`
-// @249..294: cannot find interface declaration `::MissingInterface`
+// @233..278: cannot find interface declaration `::MissingInterface`
 // cannot find interface instance `::MissingInterfaceInstance`
-// @375..428: cannot find interface instance `::MissingInterfaceInstance`
+// @359..412: cannot find interface instance `::MissingInterfaceInstance`
 // cannot find predicate `MissingPredicate` in interface `::Foo`
-// @457..513: this predicate instance references predicate `MissingPredicate` which does not exist in interface `::Foo`
+// @441..497: this predicate instance references predicate `MissingPredicate` which does not exist in interface `::Foo`
 // cannot find value `::I1::missing_var` in this scope
-// @606..621: not found in this scope
+// @590..605: not found in this scope
 // >>>

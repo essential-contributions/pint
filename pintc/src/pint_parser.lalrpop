@@ -140,7 +140,7 @@ StorageDecl: () = {
 }
 
 InterfaceVar: InterfaceVar = {
-    <l:@L> "pub" "var" <name:VarName> ":" <ty:Type> ";" <r:@R> => {
+    <l:@L> <name:VarName> ":" <ty:Type> <r:@R> => {
         InterfaceVar {
             name: name.0,
             ty,
@@ -150,20 +150,13 @@ InterfaceVar: InterfaceVar = {
 }
 
 PredicateInterface: PredicateInterface = {
-    <l:@L> "predicate" <name:Ident> "{" <vars:InterfaceVar*> "}" <r:@R> => {
+    <l:@L> "predicate" <name:Ident> "(" <vars:SepList<InterfaceVar, ",">> ")" ";" <r:@R> => {
         PredicateInterface {
             name,
             vars,
             span: (context.span_from)(l, r),
         }
     },
-    <l:@L> "predicate" <name:Ident> ";" <r:@R> => {
-        PredicateInterface {
-            name,
-            vars: vec![],
-            span: (context.span_from)(l, r),
-        }
-    }
 }
 
 InterfaceDecl: InterfaceDecl = {
@@ -854,6 +847,7 @@ TermInner: Expr = {
     },
     GeneratorExpr,
     IntrinsicCallExpr,
+    PredicateCallExpr,
     ArrayExpr,
     TupleExpr,
     UnionExpr,
@@ -1070,6 +1064,21 @@ IntrinsicCallExpr: Expr = {
     },
 }
 
+PredicateCallExpr: Expr = {
+    <l:@L> <interface: Path> "<<" <c_addr: Expr> ">>" 
+           "::" <predicate: Ident> "<<" <p_addr: Expr> ">>" 
+           "(" <args:SepList<Expr, ",">> ")" <r:@R> => {
+        Expr::PredicateCall {
+            interface,
+            c_addr,
+            predicate: predicate.name,
+            p_addr,
+            args,
+            span: (context.span_from)(l, r),
+        }
+    },
+}
+
 ArrayExpr: Expr = {
     <l:@L> "[" <il:@L> <elements:SepList<Expr, ",">> <ir:@R> "]" <r:@R> => {
         let span = (context.span_from)(il, ir);
@@ -1281,6 +1290,8 @@ extern {
         "<=" => lexer::Token::LtEq,
         ">" => lexer::Token::Gt,
         ">=" => lexer::Token::GtEq,
+        "<<" => lexer::Token::DoubleAngledLeft,
+        ">>" => lexer::Token::DoubleAngledRight,
 
         "&&" => lexer::Token::DoubleAmpersand,
         "||" => lexer::Token::DoublePipe,

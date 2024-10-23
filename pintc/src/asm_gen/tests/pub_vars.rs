@@ -76,7 +76,7 @@ fn extern_pub_var() {
             "{}",
             compile(
                 r#"
-interface Foo { predicate Bar { pub var x: int; pub var y: b256;} }
+interface Foo { predicate Bar (x: int, y: b256); }
 predicate Bar(x: int, y: b256) {
     interface FooInstance = Foo(0x0000000000000000000000000000000000000000000000000000000000000000);
     predicate BarInstance1 = FooInstance::Bar(0x1111111111111111111111111111111111111111111111111111111111111111);

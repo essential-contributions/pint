@@ -129,6 +129,19 @@ impl Contract {
                 }
             }
 
+            Expr::PredicateCall {
+                c_addr,
+                p_addr,
+                args,
+                ..
+            } => {
+                self.visitor_from_key(kind, *c_addr, f);
+                self.visitor_from_key(kind, *p_addr, f);
+                for arg in args {
+                    self.visitor_from_key(kind, *arg, f);
+                }
+            }
+
             Expr::Select {
                 condition,
                 then_expr,

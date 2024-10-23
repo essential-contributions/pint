@@ -436,6 +436,12 @@ impl<'a> AsmBuilder<'a> {
             Expr::IntrinsicCall { kind, args, .. } => {
                 self.compile_intrinsic_call(handler, asm, &kind.0, args, contract, pred)
             }
+            Expr::PredicateCall {
+                c_addr,
+                p_addr,
+                args,
+                ..
+            } => self.compile_predicate_call(handler, asm, c_addr, p_addr, args, contract, pred),
             Expr::Select {
                 condition,
                 then_expr,
@@ -886,6 +892,34 @@ impl<'a> AsmBuilder<'a> {
                 Ok(Location::PubVar)
             }
         }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn compile_predicate_call(
+        &mut self,
+        handler: &Handler,
+        asm: &mut Asm,
+        c_addr: &ExprKey,
+        p_addr: &ExprKey,
+        args: &[ExprKey],
+        contract: &Contract,
+        pred: &Predicate,
+    ) -> Result<Location, ErrorEmitted> {
+        let mut data_to_hash_size = 0;
+        for arg in args {
+            let arg_size = arg.get_ty(contract).size(handler, contract)?;
+            data_to_hash_size += 8 + 8 * arg_size;
+            asm.push(ConstraintOp::Stack(Stack::Push(arg_size as i64)));
+            self.compile_expr(handler, asm, arg, contract, pred)?;
+        }
+        self.compile_expr(handler, asm, c_addr, contract, pred)?;
+        self.compile_expr(handler, asm, p_addr, contract, pred)?;
+        data_to_hash_size += 64; // 32 bytes per address
+        asm.push(ConstraintOp::Stack(Stack::Push(data_to_hash_size as i64)));
+        asm.push(ConstraintOp::Crypto(Crypto::Sha256));
+        asm.push(ConstraintOp::Access(Access::PredicateExists));
+
+        Ok(Location::Value)
     }
 
     #[allow(clippy::too_many_arguments)]
