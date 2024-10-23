@@ -1,23 +1,24 @@
 type MyMap = (int => int);
 
-predicate test {
-    var y: MyMap;
-    var x: ( int => int );
-}
+predicate test(
+    y: MyMap,
+    x: ( int => int ),
+) { }
 
 // parsed <<<
 // type ::MyMap = ( int => int );
-//
-// predicate ::test {
-//     var ::y: ::MyMap;
-//     var ::x: ( int => int );
+// 
+// predicate ::test(
+//     ::y: ::MyMap,
+//     ::x: ( int => int ),
+// ) {
 // }
 // >>>
 
 // typecheck_failure <<<
 // variables cannot have storage types
-// @53..54: found variable of storage type ::MyMap (( int => int )) here
+// @48..49: found variable of storage type ::MyMap (( int => int )) here
 // type of variable depends on the storage type `( int => int )`
 // variables cannot have storage types
-// @71..72: found variable of storage type ( int => int ) here
+// @62..63: found variable of storage type ( int => int ) here
 // >>>

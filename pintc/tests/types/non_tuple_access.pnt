@@ -1,19 +1,18 @@
-predicate test {
-    var a: bool;
-
+predicate test(a: bool) {
     constraint a.0 == a.bar;
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::a: bool;
+// predicate ::test(
+//     ::a: bool,
+// ) {
 //     constraint (::a.0 == ::a.bar);
 // }
 // >>>
 
 // typecheck_failure <<<
 // attempt to access tuple field from a non-tuple value
-// @50..53: value must be a tuple; found `bool`
+// @41..44: value must be a tuple; found `bool`
 // attempt to access tuple field from a non-tuple value
-// @57..62: value must be a tuple; found `bool`
+// @48..53: value must be a tuple; found `bool`
 // >>>

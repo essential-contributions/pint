@@ -1,7 +1,7 @@
-predicate test {
-    var a: int[4];
-    var b: int[4];
-
+predicate test(
+    a: int[4],
+    b: int[4],
+) {
     // The inner `i` is shadowing the outer `i` which is probably not what we want to allow, considering
     // we disallow shadowing everywhere else in Pint.
 
@@ -14,17 +14,19 @@ predicate test {
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::a: int[4];
-//     var ::b: int[4];
+// predicate ::test(
+//     ::a: int[4],
+//     ::b: int[4],
+// ) {
 //     constraint forall i in 0..3, { ((::b[::i] == ::i) && forall i in 0..3, { (::a[::i] > ::b[::i]) }) };
 // }
 // >>>
 
 // flattened <<<
-// predicate ::test {
-//     var ::a: int[4];
-//     var ::b: int[4];
+// predicate ::test(
+//     ::a: int[4],
+//     ::b: int[4],
+// ) {
 //     constraint ((((true && ((::b[0] == 0) && ((((true && (::a[0] > ::b[0])) && (::a[1] > ::b[1])) && (::a[2] > ::b[2])) && (::a[3] > ::b[3])))) && ((::b[1] == 1) && ((((true && (::a[0] > ::b[0])) && (::a[1] > ::b[1])) && (::a[2] > ::b[2])) && (::a[3] > ::b[3])))) && ((::b[2] == 2) && ((((true && (::a[0] > ::b[0])) && (::a[1] > ::b[1])) && (::a[2] > ::b[2])) && (::a[3] > ::b[3])))) && ((::b[3] == 3) && ((((true && (::a[0] > ::b[0])) && (::a[1] > ::b[1])) && (::a[2] > ::b[2])) && (::a[3] > ::b[3]))));
 //     constraint __eq_set(__mut_keys(), {0});
 // }

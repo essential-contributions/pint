@@ -3,22 +3,23 @@ type B = C[2];
 type C = { B, B };
 type D = A;
 
-predicate test {
-    var x: A;
-    var y: B;
-    var z: C;
-}
+predicate test(
+    x: A,
+    y: B,
+    z: C,
+) { }
 
 // parsed <<<
 // type ::A = {::A};
 // type ::B = ::C[2];
 // type ::C = {::B, ::B};
 // type ::D = ::A;
-//
-// predicate ::test {
-//     var ::x: ::A;
-//     var ::y: ::B;
-//     var ::z: ::C;
+// 
+// predicate ::test(
+//     ::x: ::A,
+//     ::y: ::B,
+//     ::z: ::C,
+// ) {
 // }
 // >>>
 

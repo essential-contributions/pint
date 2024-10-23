@@ -3,9 +3,7 @@ type B = A[2];
 type C = { A, A };
 type D = { C, C };
 
-predicate test {
-    var x: B;
-    var y: D;
+predicate test(x: B, y: D) {
     constraint x[1] == 11;
     constraint y.1.0 == 22;
 }
@@ -15,10 +13,11 @@ predicate test {
 // type ::B = ::A[2];
 // type ::C = {::A, ::A};
 // type ::D = {::C, ::C};
-//
-// predicate ::test {
-//     var ::x: ::B;
-//     var ::y: ::D;
+// 
+// predicate ::test(
+//     ::x: ::B,
+//     ::y: ::D,
+// ) {
 //     constraint (::x[1] == 11);
 //     constraint (::y.1.0 == 22);
 // }
@@ -29,10 +28,11 @@ predicate test {
 // type ::B = int[2];
 // type ::C = {int, int};
 // type ::D = {{int, int}, {int, int}};
-//
-// predicate ::test {
-//     var ::x: int[2];
-//     var ::y: {{int, int}, {int, int}};
+// 
+// predicate ::test(
+//     ::x: int[2],
+//     ::y: {{int, int}, {int, int}},
+// ) {
 //     constraint (::x[1] == 11);
 //     constraint (::y.1.0 == 22);
 //     constraint __eq_set(__mut_keys(), {0});

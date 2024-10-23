@@ -3,11 +3,11 @@ storage {
     b: bool,
 }
 
-predicate test {
+predicate test() {
     state i1 = storage::i;
     state b1 = storage::b;
 
-    var bad_and = b1 && i1;
+    state bad_and = b1 && i1;
 }
 
 // parsed <<<
@@ -15,17 +15,17 @@ predicate test {
 //     i: int,
 //     b: bool,
 // }
-//
-// predicate ::test {
-//     var ::bad_and;
+// 
+// predicate ::test(
+// ) {
 //     state ::i1 = storage::i;
 //     state ::b1 = storage::b;
-//     constraint (::bad_and == (::b1 && ::i1));
+//     state ::bad_and = (::b1 && ::i1);
 // }
 // >>>
 
 // typecheck_failure <<<
 // binary operator type error
-// @134..136: operator `&&` argument has unexpected type `int`
-// @128..136: expecting type `bool`
+// @138..140: operator `&&` argument has unexpected type `int`
+// @132..140: expecting type `bool`
 // >>>

@@ -1,23 +1,24 @@
 type I = int;
 
-predicate test {
-    var i: I = 11;
-    var j: I = true;
+predicate test(i: I, j: I) {
+    constraint i == 11;
+    constraint j == true;
 }
 
 // parsed <<<
 // type ::I = int;
-//
-// predicate ::test {
-//     var ::i: ::I;
-//     var ::j: ::I;
+// 
+// predicate ::test(
+//     ::i: ::I,
+//     ::j: ::I,
+// ) {
 //     constraint (::i == 11);
 //     constraint (::j == true);
 // }
 // >>>
 
 // typecheck_failure <<<
-// variable initialization type error
-// @66..70: variable initializer has unexpected type `bool`
-// @62..63: expecting type `::I (int)`
+// binary operator type error
+// @88..92: operator `==` argument has unexpected type `bool`
+// @83..84: expecting type `::I (int)`
 // >>>

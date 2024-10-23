@@ -1,12 +1,13 @@
-predicate test {
-    var a = { 11, 22, 33 };
+predicate test(a: {int, int, int}) {
+    constraint a == { 11, 22, 33 };
 
     constraint a.4 == 44;
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::a;
+// predicate ::test(
+//     ::a: {int, int, int},
+// ) {
 //     constraint (::a == {11, 22, 33});
 //     constraint (::a.4 == 44);
 // }
@@ -14,6 +15,6 @@ predicate test {
 
 // typecheck_failure <<<
 // invalid tuple accessor
-// @61..64: unable to get field from tuple using `4`
+// @89..92: unable to get field from tuple using `4`
 // tuple has type `{int, int, int}`
 // >>>

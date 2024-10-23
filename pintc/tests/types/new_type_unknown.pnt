@@ -1,14 +1,15 @@
 type Ambiguous = NonExistentUnion;
 
-predicate test {
-    var a = Ambiguous::MissingVariant;
+predicate test(a: Ambiguous) {
+    constraint a == Ambiguous::MissingVariant;
 }
 
 // parsed <<<
 // type ::Ambiguous = ::NonExistentUnion;
-//
-// predicate ::test {
-//     var ::a;
+// 
+// predicate ::test(
+//     ::a: ::Ambiguous,
+// ) {
 //     constraint (::a == ::Ambiguous::MissingVariant);
 // }
 // >>>
@@ -16,6 +17,8 @@ predicate test {
 // typecheck_failure <<<
 // undefined type
 // @17..33: type is undefined
+// undefined type
+// @17..33: type is undefined
 // cannot find value `::Ambiguous::MissingVariant` in this scope
-// @65..90: not found in this scope
+// @87..112: not found in this scope
 // >>>
