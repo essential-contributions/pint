@@ -2,11 +2,15 @@ storage {
     // storage variables
 }
 
-predicate Foo {
+predicate Foo(
+    // parameters 
+) {
     // variables, constraints, etc.     
 }
 
-predicate Bar {
+predicate Bar(
+    // parameters 
+) {
     // variables, constraints, etc.     
 }
 

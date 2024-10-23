@@ -4,12 +4,11 @@ use pintc::{
     warning::Warnings,
 };
 use std::{
-    env,
     fs::{read_dir, File},
     io::{BufRead, BufReader, Read},
     path::{Path, PathBuf},
 };
-use test_util::{parse_test_data, update_expected, TestData};
+use test_util::{parse_test_data, update_expect, update_expected, TestData};
 use yansi::Paint;
 
 mod cli;
@@ -47,7 +46,7 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
 
         // Parse the file for the expected results for pint parsing, optimising and final output,
         // or errors at any of those stages.
-        let test_data = parse_test_data(&path)?;
+        let test_data = parse_test_data(&path, false /* db_only */)?;
 
         // Parse the project and check its output.
         let program = parse_test_and_check(&path, &test_data, &mut failed_tests)
@@ -117,7 +116,7 @@ fn parse_test_and_check(
                 .collect::<String>()
                 .trim_end()
                 .to_string();
-            if env::var("UPDATE_EXPECT").is_ok() {
+            if update_expect() {
                 update_expected(path, "parse_failure", &errs_str);
             } else if let Some(parse_error_str) = &test_data.parse_failure {
                 similar_asserts::assert_eq!(parse_error_str.trim_end(), errs_str);
@@ -134,7 +133,7 @@ fn parse_test_and_check(
             None
         }
         Ok(pred) => {
-            if env::var("UPDATE_EXPECT").is_ok() {
+            if update_expect() {
                 update_expected(path, "parsed", format!("{pred}").trim());
             } else if let Some(expected_intent_str) = &test_data.parsed {
                 similar_asserts::assert_eq!(expected_intent_str.trim(), format!("{pred}").trim());
@@ -183,7 +182,7 @@ fn type_check(
     // For testing a warning is treated as an error, so *any* output from the handler is a
     // 'failure'.
     if err_output.is_empty() {
-        if env::var("UPDATE_EXPECT").is_err() && test_data.typecheck_failure.is_some() {
+        if !update_expect() && test_data.typecheck_failure.is_some() {
             failed_tests.push(path.display().to_string());
             println!(
                 "{} {}.",
@@ -194,7 +193,7 @@ fn type_check(
 
         res.ok()
     } else {
-        if env::var("UPDATE_EXPECT").is_ok() {
+        if update_expect() {
             update_expected(path, "typecheck_failure", &err_output);
         } else if let Some(typecheck_error_str) = &test_data.typecheck_failure {
             similar_asserts::assert_eq!(typecheck_error_str.trim_end(), err_output);
@@ -222,7 +221,7 @@ fn flatten_and_check(
     let handler = Handler::default();
     pred.flatten(&handler)
         .map(|flattened| {
-            if env::var("UPDATE_EXPECT").is_ok() {
+            if update_expect() {
                 update_expected(path, "flattened", format!("{flattened}").trim());
             } else if let Some(expected_flattened_str) = &test_data.flattened {
                 similar_asserts::assert_eq!(
@@ -248,7 +247,7 @@ fn flatten_and_check(
         })
         .map_err(|_| {
             let err = Errors(handler.consume().0);
-            if env::var("UPDATE_EXPECT").is_ok() {
+            if update_expect() {
                 update_expected(path, "flattening_failure", format!("{err}").trim());
             } else if let Some(flattening_error_str) = &test_data.flattening_failure {
                 similar_asserts::assert_eq!(flattening_error_str.trim_end(), format!("{err}"));
@@ -275,7 +274,7 @@ fn optimize(pred: Contract, test_data: &TestData, path: &Path) -> Contract {
     let optimized = pred.optimize(&handler);
 
     if let Some(expected_optimized_str) = &test_data.optimized {
-        if env::var("UPDATE_EXPECT").is_ok() {
+        if update_expect() {
             update_expected(path, "optimized", format!("{optimized}").trim());
         } else {
             similar_asserts::assert_eq!(
@@ -287,7 +286,7 @@ fn optimize(pred: Contract, test_data: &TestData, path: &Path) -> Contract {
 
     if let Some(expected_warnings_str) = &test_data.warnings {
         let warnings = Warnings(handler.consume().1);
-        if env::var("UPDATE_EXPECT").is_ok() {
+        if update_expect() {
             update_expected(path, "warnings", format!("{warnings}").trim());
         } else {
             similar_asserts::assert_eq!(expected_warnings_str.trim(), format!("{warnings}").trim());

@@ -41,8 +41,8 @@ fn build_contract_one_lib_dep() {
     const BAR_SRC: &str = r#"type Age = int;"#;
     const FOO_SRC: &str = r#"
 use bar::Age;
-predicate test {
-    var bob_age: Age = 42;
+predicate test(bob_age: Age) {
+    constraint bob_age == 42;
 
     constraint bob_age == 6 * 7;
 }
@@ -111,8 +111,8 @@ type Person = {
     const FOO_SRC: &str = r#"
 use bar::Person;
 
-predicate test {
-    var bob = {
+predicate test(bob: { age: int }) {
+    constraint bob == {
         age: 42,
     };
 
@@ -188,20 +188,19 @@ fn build_contract_one_contract_dep() {
     counter: int,
 }
 
-predicate Init {
-    var value: int;
+predicate Init(value: int) {
     state counter: int = mut storage::counter;
     constraint counter' == value;
 }
 
-predicate Increment {
+predicate Increment() {
     state counter: int = mut storage::counter;
     constraint counter' == counter + 1;
 }
 "#;
 
     const FOO_SRC: &str = r#"
-predicate test {
+predicate test() {
     // The top-level contract address.
     constraint bar::ADDRESS != 0x0000000000000000000000000000000000000000000000000000000000000000;
 

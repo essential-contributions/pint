@@ -1,19 +1,19 @@
 union MyUnion = A | B;
 
-predicate test {
-    var h: int[10.0];
+predicate test(h: int[10.0]) {
 }
 
 // parsed <<<
 // union ::MyUnion = A | B;
 // 
-// predicate ::test {
-//     var ::h: int[1e1];
+// predicate ::test(
+//     ::h: int[1e1],
+// ) {
 // }
 // >>>
 
 // typecheck_failure <<<
 // invalid array range type real
-// @56..60: array access must be of type `int` or enumeration `union`
+// @46..50: array access must be of type `int` or enumeration `union`
 // found range type `real`
 // >>>

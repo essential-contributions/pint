@@ -1,7 +1,4 @@
-predicate Simple() {
-    var z: int;
-    var q: int;
-
+predicate Simple(z: int, q: int) {
     predicate FooI = Foo();
 
     constraint FooI::x + z == FooI::y + q;
@@ -75,7 +72,7 @@ predicate Simple() {
     constraint BarI::e[1] == [{ 16, 17 }, { 18, 19 }, { 110, 111 }];
 }
 
-predicate Foo() {
+predicate Foo(nonce: int) {
     pub var x: int;
     pub var y: int;
     pub var w: b256;
@@ -83,10 +80,10 @@ predicate Foo() {
     pub var c: { int, { int, b256 }, bool };
     pub var d: int[3]; 
     pub var e: { int, int }[2][3];
-    var nonce = 0;
+    constraint nonce == 0;
 }
 
-predicate Bar() {
+predicate Bar(nonce: int) {
     pub var x: int;
     pub var y: int;
     pub var w: b256;
@@ -94,5 +91,5 @@ predicate Bar() {
     pub var c: { int, { int, b256 }, bool };
     pub var d: int[3]; 
     pub var e: { int, int }[2][3]; 
-    var nonce = 1;
+    constraint nonce == 1;
 }

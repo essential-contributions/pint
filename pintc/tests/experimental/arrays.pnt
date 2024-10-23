@@ -1,21 +1,24 @@
 union Colour = Red | Green | Blue;
 
-predicate test {
-    var a: real[5];
-    var a1 = a[1];
-
-    var b: real[Colour][3];
-    var b_r_2 = b[Colour::Red][2];
+predicate test(
+    a: real[5],
+    a1: real,
+    b: real[Colour][3],
+    b_r_2: real,
+) {
+    constraint a1 == a[1];
+    constraint b_r_2 == b[Colour::Red][2];
 }
 
 // parsed <<<
 // union ::Colour = Red | Green | Blue;
 // 
-// predicate ::test {
-//     var ::a: real[5];
-//     var ::a1;
-//     var ::b: real[3][::Colour];
-//     var ::b_r_2;
+// predicate ::test(
+//     ::a: real[5],
+//     ::a1: real,
+//     ::b: real[3][::Colour],
+//     ::b_r_2: real,
+// ) {
 //     constraint (::a1 == ::a[1]);
 //     constraint (::b_r_2 == ::b[::Colour::Red][2]);
 // }
@@ -24,11 +27,12 @@ predicate test {
 // flattened <<<
 // union ::Colour = Red | Green | Blue;
 // 
-// predicate ::test {
-//     var ::a: real[5];
-//     var ::a1: real;
-//     var ::b: real[3][::Colour];
-//     var ::b_r_2: real;
+// predicate ::test(
+//     ::a: real[5],
+//     ::a1: real,
+//     ::b: real[3][::Colour],
+//     ::b_r_2: real,
+// ) {
 //     constraint (::a1 == ::a[1]);
 //     constraint (::b_r_2 == ::b[::Colour::Red][2]);
 //     constraint __eq_set(__mut_keys(), {0});

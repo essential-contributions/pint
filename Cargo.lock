@@ -1799,7 +1799,6 @@ dependencies = [
  "num-bigint",
  "num-traits",
  "regex",
- "similar-asserts",
 ]
 
 [[package]]

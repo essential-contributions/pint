@@ -1,68 +1,68 @@
-predicate test {
+predicate test() {
 // ANCHOR: math_ops 
 // addition
-var sum = 1 + 2 + 3;
+state sum = 1 + 2 + 3;
 
 // subtraction
-var difference = 15 - 1;
+state difference = 15 - 1;
 
 // multiplication
-var product = 42 * 42;
+state product = 42 * 42;
 
 // division
-var quotient = 3 / 2;
-var truncated = -5 / 3; // Results is -1
+state quotient = 3 / 2;
+state truncated = -5 / 3; // Results is -1
 
 // remainder
-var remainder = 34 % 3;
+state remainder = 34 % 3;
 // ANCHOR_END: math_ops 
 
 // ANCHOR: bools
-var t = true;
-var f: bool = false;
+state t = true;
+state f: bool = false;
 // ANCHOR_END: bools 
 
 // ANCHOR: b256
-var addr1 = 0x3333333333333333333333333333333333333333333333333333333333333333;
-var addr2: b256 = 0b1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111;
+state addr1 = 0x3333333333333333333333333333333333333333333333333333333333333333;
+state addr2: b256 = 0b1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111;
 // ANCHOR_END: b256
 
 // ANCHOR: simple_tuple 
-var tup_1: { int, int, bool } = { 42, 4, true };
+state tup_1: { int, int, bool } = { 42, 4, true };
 // ANCHOR_END: simple_tuple
 
 // ANCHOR: tuple_access 
-var tup_2: { int, int, bool } = { 42, 4, true };
-var tup_2_first = tup_2.0;
-var tup_2_second = tup_2.1;
-var tup_2_third = tup_2.2;
+state tup_2: { int, int, bool } = { 42, 4, true };
+state tup_2_first = tup_2.0;
+state tup_2_second = tup_2.1;
+state tup_2_third = tup_2.2;
 // ANCHOR_END: tuple_access
 
 // ANCHOR: simple_tuple_named
-var tup_3: { x: int, int, y: bool } = { 42, 4, true };
+state tup_3: { x: int, int, y: bool } = { 42, 4, true };
 // ANCHOR_END: simple_tuple_named
 
 // ANCHOR: tuple_access_named 
-var tup_4: { x: int, int, y: bool } = { 42, 4, true };
-var tup_4_first = tup_4.0;
-var tup_4_first_named = tup_4.x; // same as `tup_4.0`
-var tup_4_second = tup_4.1;
-var tup_4_third = tup_4.2;
-var tup_4_third_named = tup_4.y; // same as `tup_4.y`
+state tup_4: { x: int, int, y: bool } = { 42, 4, true };
+state tup_4_first = tup_4.0;
+state tup_4_first_named = tup_4.x; // same as `tup_4.0`
+state tup_4_second = tup_4.1;
+state tup_4_third = tup_4.2;
+state tup_4_third_named = tup_4.y; // same as `tup_4.y`
 // ANCHOR_END: tuple_access_named
 
 
 // ANCHOR: simple_array
-var a = [1, 2, 3, 4, 5];
+state a = [1, 2, 3, 4, 5];
 // ANCHOR_END: simple_array
 
 // ANCHOR: array_type
-var b: int[5] = [1, 2, 3, 4, 5];
+state b: int[5] = [1, 2, 3, 4, 5];
 // ANCHOR_END: array_type
 
 // ANCHOR: array_access
-var c: int[5] = [1, 2, 3, 4, 5];
-var c_first = c[0];
-var c_second = c[1];
+state c: int[5] = [1, 2, 3, 4, 5];
+state c_first = c[0];
+state c_second = c[1];
 // ANCHOR_END: array_access
 }

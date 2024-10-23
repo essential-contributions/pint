@@ -1,3 +1,6 @@
+// <disabled>
+// TODO: transform vars to arguments
+
 // ANCHOR: in_range
 macro @in_range($v, $num) {
     constraint $v >= $num;

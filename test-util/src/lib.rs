@@ -134,7 +134,9 @@ pub struct TestData {
 // | // parse_failure <<<
 // | // expected `maximize`, `minimize`, or `satisfy`, found `my`
 // | // >>>
-pub fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
+pub fn parse_test_data(path: &Path, db_only: bool) -> anyhow::Result<TestData> {
+    // TODO: if db_only is true, only parse db and ignore everything else... not urgent
+
     let mut test_data = TestData::default();
 
     #[derive(PartialEq)]
@@ -158,7 +160,7 @@ pub fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
     )?;
     let close_sect_re = regex::Regex::new(r"^\s*//\s*>>>")?;
 
-    let mut test_itself = vec![];
+    let mut pint_code_lines = vec![];
 
     let handle = File::open(path)?;
     for line in BufReader::new(handle).lines() {
@@ -166,7 +168,7 @@ pub fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
 
         // Ignore any line which is not a comment.
         if !comment_re.is_match(&line) {
-            test_itself.push(line);
+            pint_code_lines.push(line);
             continue;
         }
 
@@ -251,22 +253,23 @@ pub fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
             continue;
         }
 
-        // Actual code comments are left.. just push them to `test_itself`
-        test_itself.push(line);
+        // Actual code comments are left.. just push them to `pint_code_lines`
+        pint_code_lines.push(line);
     }
 
-    if std::env::var("UPDATE_EXPECT").is_ok() {
+    if update_expect() && !db_only {
         let mut file = OpenOptions::new().write(true).truncate(true).open(path)?;
 
-        while let Some(last) = test_itself.last() {
+        while let Some(last) = pint_code_lines.last() {
             if last.trim().is_empty() {
-                test_itself.pop(); // Remove the trailing empty line
+                pint_code_lines.pop(); // Remove the trailing empty line
             } else {
-                break; // Stop when a non-empty line is found
+                break;
             }
         }
 
-        for line in test_itself {
+        // Print back the pint code only and hope that the test checks will be added later
+        for line in pint_code_lines {
             writeln!(file, "{}", line)?;
         }
     }
@@ -274,6 +277,13 @@ pub fn parse_test_data(path: &Path) -> anyhow::Result<TestData> {
     Ok(test_data)
 }
 
+/// Is the env variable UPDATE_EXPECT set?
+pub fn update_expect() -> bool {
+    std::env::var("UPDATE_EXPECT").is_ok()
+}
+
+/// Append a test check with section name `section_name` and expected string `new_expected` to a
+/// test file with path `test_path`
 pub fn update_expected(test_path: &Path, section_name: &str, new_expected: &str) {
     let mut file = OpenOptions::new().append(true).open(test_path).unwrap();
     writeln!(file, "\n// {section_name} <<<").unwrap();

@@ -1,11 +1,11 @@
-predicate test {
+predicate test() {
 // ANCHOR: initialized 
-var bar: int;
-constraint bar == 42;
+// var bar: int;
+// constraint bar == 42;
 // ANCHOR_END: initialized
 
 // ANCHOR: initialized_unannotated
-var baz: int;
-constraint baz == 43;
+// var baz: int;
+// constraint baz == 43;
 // ANCHOR_END: initialized_unannotated
 }
