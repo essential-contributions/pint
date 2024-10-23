@@ -48,7 +48,7 @@ pub(crate) fn fold_consts(contract: &mut Contract) {
     }
 }
 
-/// In a given contract, simplify any binary ops that consist of boolean or arithmetic identities.
+/// In a given contract, simplify any binary ops that consist of boolean or arithmetic (real and int) identities.
 ///
 /// Ex:
 /// true || <expr> is true
@@ -64,7 +64,6 @@ pub(crate) fn fold_consts(contract: &mut Contract) {
 /// x % 1 is x
 ///
 /// Performs a depth-first search to find all folding opportunities.
-/// // TODO: Update documentation
 pub(crate) fn fold_identities(contract: &mut Contract) {
     fn fold_identity(
         contract: &Contract,
