@@ -23,7 +23,7 @@ impl Contract {
                 Inference::Type(decl_ty.clone())
             } else {
                 handler.emit_internal_err(
-                    "const decl has unknown type *after* evaluation".to_string(),
+                    "const decl has unknown type *after* evaluation",
                     span.clone(),
                 );
                 Inference::Type(Type::Error(span.clone()))
@@ -83,7 +83,7 @@ impl Contract {
                     }
                 } else {
                     handler.emit_internal_err(
-                        "attempting to infer item without required predicate ref".to_string(),
+                        "attempting to infer item without required predicate ref",
                         span.clone(),
                     );
                     Inference::Type(Type::Error(span.clone()))

@@ -199,7 +199,7 @@ impl<'a> ProjectParser<'a> {
             // If the loop has gone for too long then there's an internal error. Arbitrary limit...
             if loop_count > 10_000 {
                 self.handler
-                    .emit_internal_err("Infinite loop in project parser".to_string(), empty_span());
+                    .emit_internal_err("Infinite loop in project parser", empty_span());
                 return self;
             }
         }

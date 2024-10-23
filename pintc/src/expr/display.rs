@@ -1,7 +1,6 @@
 use std::fmt::{Display, Formatter, Result};
 
 use crate::{
-    expr,
     predicate::{Contract, DisplayWithContract},
     util::{write_many_iter, write_many_with_ctrct},
 };
@@ -71,14 +70,14 @@ impl DisplayWithContract for &super::Expr {
             ),
 
             super::Expr::UnaryOp { op, expr, .. } => {
-                if matches!(op, expr::UnaryOp::NextState) {
+                if matches!(op, super::UnaryOp::NextState) {
                     write!(f, "{}'", contract.with_ctrct(expr))
                 } else {
                     match op {
-                        expr::UnaryOp::Error => write!(f, "error"),
-                        expr::UnaryOp::Neg => write!(f, "-"),
-                        expr::UnaryOp::Not => write!(f, "!"),
-                        expr::UnaryOp::NextState => unreachable!(),
+                        super::UnaryOp::Error => write!(f, "error"),
+                        super::UnaryOp::Neg => write!(f, "-"),
+                        super::UnaryOp::Not => write!(f, "!"),
+                        super::UnaryOp::NextState => unreachable!(),
                     }?;
                     expr.fmt(f, contract)
                 }
@@ -239,11 +238,22 @@ impl DisplayWithContract for &super::Expr {
                 write!(f, " {{ {} }}", contract.with_ctrct(body))
             }
 
-            expr::Expr::UnionTag { union_expr, .. } => {
+            super::Expr::Map {
+                param, range, body, ..
+            } => {
+                write!(
+                    f,
+                    "map {param} in {} {{ {} }}",
+                    contract.with_ctrct(range),
+                    contract.with_ctrct(body)
+                )
+            }
+
+            super::Expr::UnionTag { union_expr, .. } => {
                 write!(f, "UnTag({})", contract.with_ctrct(union_expr))
             }
 
-            expr::Expr::UnionValue {
+            super::Expr::UnionValue {
                 union_expr,
                 variant_ty,
                 ..
@@ -328,19 +338,19 @@ impl Display for super::Ident {
 impl Display for super::BinaryOp {
     fn fmt(&self, f: &mut Formatter) -> Result {
         match self {
-            expr::BinaryOp::Add => write!(f, "+"),
-            expr::BinaryOp::Div => write!(f, "/"),
-            expr::BinaryOp::Equal => write!(f, "=="),
-            expr::BinaryOp::GreaterThanOrEqual => write!(f, ">="),
-            expr::BinaryOp::GreaterThan => write!(f, ">"),
-            expr::BinaryOp::LessThanOrEqual => write!(f, "<="),
-            expr::BinaryOp::LessThan => write!(f, "<"),
-            expr::BinaryOp::LogicalAnd => write!(f, "&&"),
-            expr::BinaryOp::LogicalOr => write!(f, "||"),
-            expr::BinaryOp::Mod => write!(f, "%"),
-            expr::BinaryOp::Mul => write!(f, "*"),
-            expr::BinaryOp::NotEqual => write!(f, "!="),
-            expr::BinaryOp::Sub => write!(f, "-"),
+            super::BinaryOp::Add => write!(f, "+"),
+            super::BinaryOp::Div => write!(f, "/"),
+            super::BinaryOp::Equal => write!(f, "=="),
+            super::BinaryOp::GreaterThanOrEqual => write!(f, ">="),
+            super::BinaryOp::GreaterThan => write!(f, ">"),
+            super::BinaryOp::LessThanOrEqual => write!(f, "<="),
+            super::BinaryOp::LessThan => write!(f, "<"),
+            super::BinaryOp::LogicalAnd => write!(f, "&&"),
+            super::BinaryOp::LogicalOr => write!(f, "||"),
+            super::BinaryOp::Mod => write!(f, "%"),
+            super::BinaryOp::Mul => write!(f, "*"),
+            super::BinaryOp::NotEqual => write!(f, "!="),
+            super::BinaryOp::Sub => write!(f, "-"),
         }
     }
 }

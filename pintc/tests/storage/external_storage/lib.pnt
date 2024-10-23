@@ -2,14 +2,14 @@ interface ERC20_1 {
     storage {
         x: int,
         y: bool,
-        map: (int => (int => b256)),
-    } 
+        m: (int => (int => b256)),
+    }
 }
 
 interface ERC20_2 {
     storage {
         x: int,
         y: bool,
-        map: (int => (int => b256)),
-    } 
+        m: (int => (int => b256)),
+    }
 }

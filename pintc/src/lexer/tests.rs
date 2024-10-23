@@ -294,6 +294,13 @@ fn generators() {
 }
 
 #[test]
+fn morphisms() {
+    assert_eq!(lex_one_success("map"), Token::Map);
+    assert_eq!(lex_one_success("fold"), Token::Fold);
+    assert_eq!(lex_one_success("filter"), Token::Filter);
+}
+
+#[test]
 fn with_error() {
     let src = r#"
 let low_val: int = 5.0;

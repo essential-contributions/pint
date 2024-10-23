@@ -19,9 +19,7 @@ fn check_params(pred: &Predicate, handler: &Handler) {
     for param in &pred.params {
         if param.ty.is_unknown() {
             handler.emit_internal_err(
-                "final predicate var_types slotmap is missing corresponding key from \
-                    vars slotmap"
-                    .to_string(),
+                "final predicate var_types slotmap is missing corresponding key from vars slotmap",
                 param.span.clone(),
             );
         }
@@ -33,8 +31,7 @@ fn check_variables(pred: &Predicate, handler: &Handler) {
         if variable_key.get_ty(pred).is_unknown() {
             handler.emit_internal_err(
                 "final predicate variable_types slotmap is missing corresponding key from \
-                    variables slotmap"
-                    .to_string(),
+                    variables slotmap",
                 variable.span.clone(),
             );
         }
@@ -42,21 +39,17 @@ fn check_variables(pred: &Predicate, handler: &Handler) {
 }
 
 fn check_ifs_and_matches(pred: &Predicate, handler: &Handler) {
-    let emit_internal_err = |msg, span: &crate::span::Span| {
-        handler.emit_internal_err(msg, span.clone());
-    };
-
     if !pred.if_decls.is_empty() {
-        emit_internal_err(
-            "final predicate contains if declarations".to_string(),
-            &pred.if_decls[0].span,
+        handler.emit_internal_err(
+            "final predicate contains if declarations",
+            pred.if_decls[0].span.clone(),
         );
     }
 
     if !pred.match_decls.is_empty() {
-        emit_internal_err(
-            "final predicate contains match declarations".to_string(),
-            &pred.match_decls[0].span,
+        handler.emit_internal_err(
+            "final predicate contains match declarations",
+            pred.match_decls[0].span.clone(),
         );
     }
 }
@@ -80,8 +73,7 @@ fn check_expr(
                     " present in final predicate ",
                     $slotmap_str,
                     " slotmap"
-                )
-                .to_string(),
+                ),
                 $span.clone(),
             )
         };
@@ -90,16 +82,13 @@ fn check_expr(
     let expr_type = expr_key.get_ty(contract);
     if expr_type.is_unknown() {
         handler.emit_internal_err(
-            "Unknown expr type found invalid predicate expr_types slotmap key".to_string(),
+            "Unknown expr type found invalid predicate expr_types slotmap key",
             empty_span(),
         );
     }
 
     let expr = expr_key.try_get(contract).ok_or_else(|| {
-        handler.emit_internal_err(
-            "invalid predicate exprs slotmap key".to_string(),
-            empty_span(),
-        )
+        handler.emit_internal_err("invalid predicate exprs slotmap key", empty_span())
     })?;
 
     // validate the expr_type is legal
@@ -197,6 +186,7 @@ fn check_expr(
         | Expr::Cast { .. }
         | Expr::TupleFieldAccess { .. }
         | Expr::Index { .. }
+        | Expr::Map { .. }
         | Expr::UnionTag { .. }
         | Expr::UnionValue { .. } => Ok(()),
     }

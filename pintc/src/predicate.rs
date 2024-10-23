@@ -220,6 +220,11 @@ impl Contract {
                 self.visitor_from_key(kind, *body, f);
             }
 
+            Expr::Map { range, body, .. } => {
+                self.visitor_from_key(kind, *range, f);
+                self.visitor_from_key(kind, *body, f);
+            }
+
             Expr::UnionTag { union_expr, .. } | Expr::UnionValue { union_expr, .. } => {
                 self.visitor_from_key(kind, *union_expr, f)
             }

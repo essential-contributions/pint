@@ -34,7 +34,7 @@ pub(crate) fn lower_casts(handler: &Handler, contract: &mut Contract) -> Result<
                 let from_ty = value.get_ty(contract);
                 if from_ty.is_unknown() {
                     handler.emit_internal_err(
-                        "expression type is `Unknown` while lowering casts".to_string(),
+                        "expression type is `Unknown` while lowering casts",
                         span.clone(),
                     );
                 }
@@ -206,7 +206,7 @@ pub(crate) fn lower_array_ranges(
                             evaluator.evaluate_key(&old_range_expr_key, handler, contract)?;
                         if !matches!(value, Immediate::Int(_) | Immediate::UnionVariant { .. }) {
                             return Err(handler.emit_internal_err(
-                                "array range expression evaluates to non int immediate".to_string(),
+                                "array range expression evaluates to non int immediate",
                                 contract.expr_key_to_span(old_range_expr_key),
                             ));
                         }
@@ -227,7 +227,7 @@ pub(crate) fn lower_array_ranges(
                     let value = evaluator.evaluate_key(&old_range_expr_key, handler, contract)?;
                     if !matches!(value, Immediate::Int(_) | Immediate::UnionVariant { .. }) {
                         return Err(handler.emit_internal_err(
-                            "array range expression evaluates to non int immediate".to_string(),
+                            "array range expression evaluates to non int immediate",
                             contract.expr_key_to_span(old_range_expr_key),
                         ));
                     }
@@ -311,7 +311,7 @@ pub(crate) fn lower_imm_accesses(
                 // We have an array access into an immediate.  Evaluate the index.
                 let Some(idx_expr) = array_idx_key.try_get(contract) else {
                     return Err(handler.emit_internal_err(
-                        "missing array index expression in lower_imm_accesses()".to_string(),
+                        "missing array index expression in lower_imm_accesses()",
                         empty_span(),
                     ));
                 };
@@ -469,10 +469,8 @@ pub(crate) fn lower_imm_accesses(
             }
 
             if loop_check > 10_000 {
-                return Err(handler.emit_internal_err(
-                    "infinite loop in lower_imm_accesses()".to_string(),
-                    empty_span(),
-                ));
+                return Err(handler
+                    .emit_internal_err("infinite loop in lower_imm_accesses()", empty_span()));
             }
         }
     }
@@ -540,16 +538,13 @@ pub(crate) fn lower_ins(handler: &Handler, contract: &mut Contract) -> Result<()
 
                         _ => {
                             handler.emit_internal_err(
-                                "invalid collection (not range or array) in `in` expr".to_string(),
+                                "invalid collection (not range or array) in `in` expr",
                                 span.clone(),
                             );
                         }
                     }
                 } else {
-                    handler.emit_internal_err(
-                        "missing collection in `in` expr".to_string(),
-                        span.clone(),
-                    );
+                    handler.emit_internal_err("missing collection in `in` expr", span.clone());
                 }
             }
         }
@@ -1031,6 +1026,7 @@ pub(super) fn coalesce_prime_ops(contract: &mut Contract) {
                 | Expr::In { .. }
                 | Expr::Range { .. }
                 | Expr::Generator { .. }
+                | Expr::Map { .. }
                 | Expr::UnionTag { .. }
                 | Expr::UnionValue { .. } => Coalescence::None,
             };
@@ -1197,7 +1193,7 @@ fn convert_match_to_if_decl(
                     .get_union_variant_ty(contract, &name)
                     .map_err(|_| {
                         handler.emit_internal_err(
-                            "match can't be converted to if -- missing union type".to_string(),
+                            "match can't be converted to if -- missing union type",
                             name_span.clone(),
                         );
                         handler.cancel()
@@ -1212,7 +1208,7 @@ fn convert_match_to_if_decl(
                         // There's a mismatch.
                         _ => {
                             handler.emit_internal_err(
-                                "match can't be converted to if -- bindings mismatch".to_string(),
+                                "match can't be converted to if -- bindings mismatch",
                                 span.clone(),
                             );
                             Err(handler.cancel())
@@ -1473,7 +1469,7 @@ fn convert_match_expr(
             // Replace the bound values within the constraint exprs, if there is a binding.
             let bound_ty = union_ty.get_union_variant_ty(contract, name).map_err(|_| {
                 handler.emit_internal_err(
-                    "match can't be converted to if -- missing union type".to_string(),
+                    "match can't be converted to if -- missing union type",
                     name_span.clone(),
                 );
                 handler.cancel()
@@ -1643,7 +1639,7 @@ fn convert_match_expr(
             // There are no then branches and no else branch which makes it impossible to create an
             // expression. (NOTE: Currently the parser makes this impossible.)
             Err(handler.emit_internal_err(
-                "Unable to convert a completely empty match expression.".to_string(),
+                "Unable to convert a completely empty match expression.",
                 contract.expr_key_to_span(match_expr_key),
             ))
         })?;
@@ -1684,7 +1680,7 @@ fn build_compare_tag_expr(
         .get_union_variant_as_num(contract, tag)
         .ok_or_else(|| {
             handler.emit_internal_err(
-                "Union tag not found in union decl".to_string(),
+                "Union tag not found in union decl",
                 contract.expr_key_to_span(union_expr),
             )
         })?;

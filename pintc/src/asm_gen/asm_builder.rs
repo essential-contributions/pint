@@ -13,7 +13,6 @@ use state_asm::{
     Access, Alu, Constraint as ConstraintOp, Crypto, Op as StateOp, Pred, Stack, StateMemory,
     TotalControlFlow,
 };
-use std::collections::HashMap;
 
 /// This object keeps track of the various assembly blocks that are being generated throughout
 /// assembly generation. It also keeps track of predicate addresses as they become available. Those
@@ -25,20 +24,28 @@ pub struct AsmBuilder<'a> {
     // Opcodes to specify constraints
     pub constraint_programs: Vec<Vec<ConstraintOp>>,
 
-    // A reference to a `HahsMap` from predicate names to the compiled predicates and their
+    // A reference to a `HashMap` from predicate names to the compiled predicates and their
     // addresses
-    compiled_predicates: &'a HashMap<String, (CompiledPredicate, ContentAddress)>,
+    compiled_predicates: &'a fxhash::FxHashMap<String, (CompiledPredicate, ContentAddress)>,
 
     // A map from names of variables to their chosen state slot indices. Each variable is stored in
     // a single slot.
-    variables_to_slot_indices: HashMap<String, usize>,
+    variables_to_slot_indices: fxhash::FxHashMap<String, usize>,
 
     // A map from storage access expressions to their chosen state slot indices. Each storage
     // access spans one or more consecutive slots, hence the `Range`.
-    storage_access_to_slot_indices: HashMap<ExprKey, std::ops::Range<usize>>,
+    storage_access_to_slot_indices: fxhash::FxHashMap<ExprKey, std::ops::Range<usize>>,
+
+    // The current size of global memory in words.
+    // - Used by loops but postponed until we implement the program graphs.
+    //global_mem_size: usize,
 
     // This keeps track of the total number of slots allocated so far, globally
     global_state_slots: usize,
+
+    // The location and index for resolveing the path to iterators used within the current
+    // morphisms.
+    morphism_scopes: Vec<(String, (Location, usize))>,
 }
 
 /// A single assembly program which may be a "constraint program" or a "state program"
@@ -70,7 +77,7 @@ impl Asm {
     fn try_push(&mut self, handler: &Handler, op: StateOp) -> Result<(), ErrorEmitted> {
         match self {
             Self::Constraint(_) => Err(handler.emit_internal_err(
-                "These expressions should have been lowered by now".to_string(),
+                "These expressions should have been lowered by now",
                 empty_span(),
             )),
             Self::State(ref mut ops) => {
@@ -106,6 +113,7 @@ impl Asm {
 ///    using `KeyRange` or `KeyRangeExtern`. The `bool` is `true` if the storage access is external
 ///    (i.e. requires `KeyRangeExtern`) and `false` otherwise.
 /// 5. `Value` expressions are just raw values such as immediates or the outputs of binary ops.
+#[derive(Debug)]
 enum Location {
     DecisionVar,
     State(bool),
@@ -116,15 +124,17 @@ enum Location {
 impl<'a> AsmBuilder<'a> {
     /// Creates a new `AsmBuilder` given a set of compiled predicates and their addresses.
     pub fn new(
-        compiled_predicates: &'a HashMap<String, (CompiledPredicate, ContentAddress)>,
+        compiled_predicates: &'a fxhash::FxHashMap<String, (CompiledPredicate, ContentAddress)>,
     ) -> Self {
         Self {
             state_programs: Vec::new(),
             constraint_programs: Vec::new(),
             compiled_predicates,
-            variables_to_slot_indices: HashMap::new(),
-            storage_access_to_slot_indices: HashMap::new(),
+            variables_to_slot_indices: fxhash::FxHashMap::default(),
+            storage_access_to_slot_indices: fxhash::FxHashMap::default(),
+            //global_mem_size: 0,
             global_state_slots: 0,
+            morphism_scopes: Default::default(),
         }
     }
 
@@ -277,7 +287,7 @@ impl<'a> AsmBuilder<'a> {
         Ok(asm.len() - old_asm_len)
     }
 
-    /// Dereferences a pointer using the appropridate opcode depending on the location of the
+    /// Dereferences a pointer using the appropriate opcode depending on the location of the
     /// pointer. If the pointer is a "storage" pointer, then the data is read in state slots (not
     /// pushed on the stack) and the (local) range of those slots is returned.
     fn compile_expr_pointer_deref(
@@ -395,7 +405,7 @@ impl<'a> AsmBuilder<'a> {
                     Ok(1 + value_size)
                 }
                 Immediate::Error | Immediate::Nil | Immediate::Real(_) | Immediate::String(_) => {
-                    Err(handler.emit_internal_err("unexpected literal".to_string(), empty_span()))
+                    Err(handler.emit_internal_err("unexpected literal", empty_span()))
                 }
             }
         }
@@ -461,6 +471,14 @@ impl<'a> AsmBuilder<'a> {
             Expr::UnionValue { union_expr, .. } => {
                 self.compile_union_get_value(handler, asm, union_expr, contract, pred)
             }
+            Expr::Map { span, .. } => {
+                // self.compile_loop_map(handler, asm, &param.name, range, body, contract, pred),
+                Err(handler.emit_internal_err(
+                    "ASM gen for loops is a work in progress, pending the change to the \
+                    program graph structure",
+                    span.clone(),
+                ))
+            }
             Expr::Error(_)
             | Expr::LocalStorageAccess { .. }
             | Expr::ExternalStorageAccess { .. }
@@ -470,7 +488,7 @@ impl<'a> AsmBuilder<'a> {
             | Expr::Range { .. }
             | Expr::Generator { .. }
             | Expr::Match { .. } => Err(handler.emit_internal_err(
-                "These expressions should have been lowered by now".to_string(),
+                "These expressions should have been lowered by now",
                 empty_span(),
             )),
         }
@@ -486,7 +504,34 @@ impl<'a> AsmBuilder<'a> {
         path: &String,
         pred: &Predicate,
     ) -> Result<Location, ErrorEmitted> {
-        if let Some((param_index, _)) = pred
+        if let Some((loc, global_idx)) =
+            self.morphism_scopes
+                .iter()
+                .rev()
+                .find_map(|(param_name, loc)| {
+                    (param_name == path || path.starts_with("::") && param_name == &path[2..])
+                        .then_some(loc)
+                })
+        {
+            // This path is to a morphism parameter.  We need to put the array entry onto the stack
+            // using the current repeat count as an index.
+            match loc {
+                Location::DecisionVar => {
+                    // The global_idx refers to the slot idx.
+                    asm.push(Stack::Push(*global_idx as i64).into());
+                    asm.push(Stack::Load.into());
+
+                    // Below we push a placeholder.  Might as well do it here too.
+                    asm.push(Stack::Push(0).into());
+
+                    Ok(Location::DecisionVar)
+                }
+
+                Location::State(_) => todo!(),
+                Location::Storage(_) => todo!(),
+                Location::Value => todo!(),
+            }
+        } else if let Some((param_index, _)) = pred
             .params
             .iter()
             .enumerate()
@@ -505,7 +550,7 @@ impl<'a> AsmBuilder<'a> {
             // Must not have anything else at this point. All other path expressions should have
             // been lowered to something else by now
             return Err(handler.emit_internal_err(
-                "this path expression should have been lowered by now".to_string(),
+                "this path expression should have been lowered by now",
                 empty_span(),
             ));
         }
@@ -540,7 +585,7 @@ impl<'a> AsmBuilder<'a> {
                 Ok(Location::Value)
             }
             UnaryOp::Error => {
-                Err(handler.emit_internal_err("unexpected Unary::Error".to_string(), empty_span()))
+                Err(handler.emit_internal_err("unexpected Unary::Error", empty_span()))
             }
         }
     }
@@ -664,17 +709,13 @@ impl<'a> AsmBuilder<'a> {
         for (expected, arg) in expected_args.iter().zip(args.iter()) {
             let found = arg.get_ty(contract);
             if !expected.eq(contract, found) {
-                handler
-                    .emit_internal_err("unexpected intrinsic arg type".to_string(), empty_span());
+                handler.emit_internal_err("unexpected intrinsic arg type", empty_span());
             }
         }
 
         // Also, ensure that the number of arguments is correct
         if args.len() != expected_args.len() {
-            handler.emit_internal_err(
-                "unexpected number of args for intrinsic".to_string(),
-                empty_span(),
-            );
+            handler.emit_internal_err("unexpected number of args for intrinsic", empty_span());
         }
 
         match kind {
@@ -686,10 +727,9 @@ impl<'a> AsmBuilder<'a> {
                 self.compile_internal_intrinsic_call(handler, asm, kind, args, contract, pred)
             }
 
-            IntrinsicKind::Error => Err(handler.emit_internal_err(
-                "intrinsic of kind `Error` encounter".to_string(),
-                empty_span(),
-            )),
+            IntrinsicKind::Error => {
+                Err(handler.emit_internal_err("intrinsic of kind `Error` encounter", empty_span()))
+            }
         }
     }
 
@@ -711,10 +751,8 @@ impl<'a> AsmBuilder<'a> {
                 {
                     // Push the predicate address on the stack, one word at a time.
                     let Some(predicate_address) = &self.compiled_predicates.get(s) else {
-                        return Err(handler.emit_internal_err(
-                            "predicate address should exist!".to_string(),
-                            empty_span(),
-                        ));
+                        return Err(handler
+                            .emit_internal_err("predicate address should exist!", empty_span()));
                     };
 
                     for word in essential_types::convert::word_4_from_u8_32(predicate_address.1 .0)
@@ -819,15 +857,14 @@ impl<'a> AsmBuilder<'a> {
                     | ExternalIntrinsic::SizeOf
                     | ExternalIntrinsic::VerifyEd25519 => {
                         return Err(handler.emit_internal_err(
-                            "SizeOf and AddressOf have already been handled!".to_string(),
+                            "SizeOf and AddressOf have already been handled!",
                             empty_span(),
                         ))
                     }
 
                     ExternalIntrinsic::VecLen => {
                         return Err(handler.emit_internal_err(
-                            "__vec_len should have been lowered to something else by now"
-                                .to_string(),
+                            "__vec_len should have been lowered to something else by now",
                             empty_span(),
                         ))
                     }
@@ -905,8 +942,7 @@ impl<'a> AsmBuilder<'a> {
         // This is a local predicate call: use the pre-computed predicate address of the called
         // predicate
         let Some(predicate_address) = &self.compiled_predicates.get(predicate) else {
-            return Err(handler
-                .emit_internal_err("predicate address should exist!".to_string(), empty_span()));
+            return Err(handler.emit_internal_err("predicate address should exist!", empty_span()));
         };
 
         for word in essential_types::convert::word_4_from_u8_32(predicate_address.1 .0) {
@@ -1032,18 +1068,16 @@ impl<'a> AsmBuilder<'a> {
 
         if let Location::Value | Location::Storage(_) = location {
             return Err(handler.emit_internal_err(
-                "unexpected index operator for `Location::Value` and `Location::Storage`"
-                    .to_string(),
+                "unexpected index operator for `Location::Value` and `Location::Storage`",
                 empty_span(),
             ));
         }
 
         // Grab the element ty of the array
         let Type::Array { ty, .. } = expr.get_ty(contract) else {
-            return Err(handler.emit_internal_err(
-                "type must exist and be an array type".to_string(),
-                empty_span(),
-            ));
+            return Err(
+                handler.emit_internal_err("type must exist and be an array type", empty_span())
+            );
         };
 
         // Compile the index
@@ -1071,17 +1105,16 @@ impl<'a> AsmBuilder<'a> {
 
         if let Location::Value | Location::Storage(_) = location {
             return Err(handler.emit_internal_err(
-                "unexpected tuple access for `Location::Value` and `Location::Storage`".to_string(),
+                "unexpected tuple access for `Location::Value` and `Location::Storage`",
                 empty_span(),
             ));
         }
 
         // Grab the fields of the tuple
         let Type::Tuple { ref fields, .. } = tuple.get_ty(contract) else {
-            return Err(handler.emit_internal_err(
-                "type must exist and be a tuple type".to_string(),
-                empty_span(),
-            ));
+            return Err(
+                handler.emit_internal_err("type must exist and be a tuple type", empty_span())
+            );
         };
 
         // The field index is based on the type definition
@@ -1097,14 +1130,15 @@ impl<'a> AsmBuilder<'a> {
                 })
                 .ok_or_else(|| {
                     handler.emit_internal_err(
-                        "field name must exist, this was checked in type checking".to_string(),
+                        "field name must exist, this was checked in type checking",
                         empty_span(),
                     )
                 })?,
 
             TupleAccess::Error => {
-                return Err(handler
-                    .emit_internal_err("unexpected TupleAccess::Error".to_string(), empty_span()));
+                return Err(
+                    handler.emit_internal_err("unexpected TupleAccess::Error", empty_span())
+                );
             }
         };
 
@@ -1140,7 +1174,7 @@ impl<'a> AsmBuilder<'a> {
             .find_map(|(idx, variant_name)| (variant_name == tag[2..]).then_some(idx))
             .ok_or_else(|| {
                 handler.emit_internal_err(
-                    "Union tag not found in union decl".to_string(),
+                    "Union tag not found in union decl",
                     contract.expr_key_to_span(*union_expr_key),
                 )
             })?;
@@ -1214,4 +1248,163 @@ impl<'a> AsmBuilder<'a> {
             }
         }
     }
+
+    /*  This is the initial attempt at ASM gen for map which we've decided to postpone until we
+     *  have the program graph refactor done.
+     *
+     *  The pre-graph model doesn't really allow global values (efficiently) which the loops
+     *  require -- to store where iterator can be found during the map and also where the mapped
+     *  array is located once done -- but the graph model supports it pretty much explicitly.
+
+    fn compile_loop_map(
+        &mut self,
+        handler: &Handler,
+        asm: &mut Asm,
+        param_name: &String,
+        range_key: &ExprKey,
+        body_key: &ExprKey,
+        contract: &Contract,
+        pred: &Predicate,
+    ) -> Result<Location, ErrorEmitted> {
+
+
+        let range_ty = range_key.get_ty(contract);
+        if !range_ty.is_array() {
+            todo!("Implement map expressions for non-array ranges.")
+        }
+
+        let body_ty = body_key.get_ty(contract);
+        let out_el_size = body_ty.size(handler, contract)?;
+
+        // ( ) Get number of entries for both arrays and dupe it.
+        self.compile_array_num_entries(handler, asm, range_ty, contract)?;
+        asm.push(Stack::Dup.into());
+
+        // (len len) Determine the size of the mapped array.
+        if out_el_size > 1 {
+            asm.push(Stack::Push(out_el_size as i64).into());
+            asm.push(Alu::Mul.into());
+        }
+
+        // (len out-sz) Allocate space for the new array, and store the pointer in the global
+        // section (at the bottom of the stack).
+        asm.push(Temporary::Alloc.into());
+        let mapped_ary_global_idx = self.get_global_idx() as i64;
+        asm.push(Stack::Push(mapped_ary_global_idx).into());
+        asm.push(Stack::Swap.into());
+        asm.push(Stack::Store.into());
+
+        // (len) Get the location of the input array.
+        let in_ary_global_idx = self.get_global_idx();
+        let in_ary_location = self.compile_expr_pointer(handler, asm, range_key, contract, pred)?;
+        match in_ary_location {
+            Location::DecisionVar | Location::State(_) => {
+                // (len loc 0) Currently when compiling these there's a slot index and a zero pushed to
+                // the stack.  We don't need the zero.  XXX: Fix this.
+                asm.push(Stack::Pop.into());
+
+                // (len loc) We need to store the slot index in the global area so it can be resolved
+                // by the iterator.
+                asm.push(Stack::Push(mapped_ary_global_idx).into());
+                asm.push(Stack::Swap.into());
+                asm.push(Stack::Store.into());
+            }
+
+            Location::Storage(_) => todo!(),
+            Location::Value => todo!(),
+            Location::Heap => todo!(),
+        }
+
+        // (len) Depending on which type of location the array lives we need to bind the
+        // iterator.  The slot index is stored in the global area.
+        self.morphism_scopes
+            .push((param_name.clone(), (in_ary_location, in_ary_global_idx)));
+
+        // (len) Start the loop, counting up.
+        asm.push(Stack::Push(1).into());
+        asm.push(Stack::Repeat.into());
+
+        // () Load the offset from the global area.
+        asm.push(Stack::Push(mapped_ary_global_idx).into());
+        asm.push(Stack::Load.into());
+
+        // (idx) Multiply the index by the result size.
+        if out_el_size > 1 {
+            asm.push(Stack::Push(out_el_size as i64).into());
+            asm.push(Alu::Mul.into())
+        }
+
+        // (idx*sz) Then multiply by the repeat count to get the array entry index.
+        asm.push(Access::RepeatCounter.into());
+        asm.push(Alu::Mul.into());
+
+        // (idx*sz*repc) Compile the loop body.
+        let body_result_location =
+            self.compile_expr_pointer(handler, asm, body_key, contract, pred)?;
+
+        match body_result_location {
+            Location::DecisionVar => todo!(),
+            Location::State(_) => todo!(),
+            Location::Storage(_) => todo!(),
+
+            Location::Value => {
+                // (ptr result) Just write the result from the stack to the heap.
+                if out_el_size == 1 {
+                    asm.push(Temporary::Store.into());
+                } else {
+                    asm.push(Stack::Push(out_el_size as i64).into());
+                    asm.push(Temporary::StoreRange.into());
+                }
+            }
+            Location::Heap => todo!(),
+        }
+
+        // Finish the loop.
+        asm.push(Stack::RepeatEnd.into());
+
+        // Return the mapped array.
+        asm.push(Stack::Push(mapped_ary_global_idx).into());
+        asm.push(Stack::Load.into());
+        Ok(Location::Heap)
+    }
+
+    fn compile_array_num_entries(
+        &mut self,
+        handler: &Handler,
+        asm: &mut Asm,
+        array_ty: &Type,
+        contract: &Contract,
+    ) -> Result<(), ErrorEmitted> {
+        // Currently only supporting fixed size arrays, where the size may be extracted from the
+        // type.  Will need to support variable sized arrays using a `len()` operation of some
+        // sort, depending on the array location.
+
+        let Some(array_size) = array_ty
+            .get_array_size()
+            .map(|sz| Ok(sz))
+            .or_else(|| {
+                array_ty.get_array_range_expr().map(|range_expr_key| {
+                    let range_expr = range_expr_key.get(contract);
+                    Type::get_array_size_from_range_expr(handler, range_expr, contract)
+                })
+            })
+            .transpose()?
+        else {
+            return Err(handler.emit_internal_err(
+                "Truly unable to get array size for ASM gen.",
+                array_ty.span().clone(),
+            ));
+        };
+
+        asm.push(Stack::Push(array_size).into());
+
+        Ok(())
+    }
+
+    fn get_global_idx(&mut self) -> usize {
+        let idx = self.global_mem_size;
+        self.global_mem_size += 1;
+        idx
+    }
+    */
 }

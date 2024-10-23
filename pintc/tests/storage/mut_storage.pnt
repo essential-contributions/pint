@@ -5,7 +5,7 @@ storage {
     z: int[2][3],
     w: bool[2][3],
     vec: b256[],
-    map: ( int => { b256, int } ),
+    m: ( int => { b256, int } ),
 }
 
 predicate Foo() {
@@ -15,12 +15,12 @@ predicate Foo() {
     let z = mut storage::z;
     let w_1 = mut storage::w[1];
     let v_3 = mut storage::vec[3];
-    let map_69 = mut storage::map[69];
-    let map_42_1 = mut storage::map[42].1;
-    let vec_len = __vec_len(mut storage::vec); 
+    let map_69 = mut storage::m[69];
+    let map_42_1 = mut storage::m[42].1;
+    let vec_len = __vec_len(mut storage::vec);
 
     // Should not show up in the list of mutable keys
-    let map_43 = storage::map[42].1;
+    let map_43 = storage::m[42].1;
 }
 
 // parsed <<<
@@ -31,9 +31,9 @@ predicate Foo() {
 //     z: int[3][2],
 //     w: bool[3][2],
 //     vec: b256[],
-//     map: ( int => {b256, int} ),
+//     m: ( int => {b256, int} ),
 // }
-// 
+//
 // predicate ::Foo(
 // ) {
 //     let ::x = mut storage::x;
@@ -42,10 +42,10 @@ predicate Foo() {
 //     let ::z = mut storage::z;
 //     let ::w_1 = mut storage::w[1];
 //     let ::v_3 = mut storage::vec[3];
-//     let ::map_69 = mut storage::map[69];
-//     let ::map_42_1 = mut storage::map[42].1;
+//     let ::map_69 = mut storage::m[69];
+//     let ::map_42_1 = mut storage::m[42].1;
 //     let ::vec_len = __vec_len(mut storage::vec);
-//     let ::map_43 = storage::map[42].1;
+//     let ::map_43 = storage::m[42].1;
 // }
 // >>>
 
@@ -57,9 +57,9 @@ predicate Foo() {
 //     z: int[3][2],
 //     w: bool[3][2],
 //     vec: b256[],
-//     map: ( int => {b256, int} ),
+//     m: ( int => {b256, int} ),
 // }
-// 
+//
 // predicate ::Foo(
 // ) {
 //     let ::x: int = __storage_get({0});
