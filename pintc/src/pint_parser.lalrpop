@@ -50,7 +50,7 @@ PredicateInnerDecl: () = {
     PredicateInstance ";",
     StateDecl ";",
     UseStatement ";",
-    VarDecl ";",
+    PubVarDecl ";",
 }
 
 // Decls allowed inside macro bodies, which is ALL of them except `MacroDecl`, since we don't want
@@ -70,15 +70,21 @@ DeclInnerMacroBody: () = {
     StorageDecl,
     UnionDecl ";",
     UseStatement ";",
-    VarDecl ";",
+    PubVarDecl ";",
 }
 
 PredicateDecl: () = {
-    PredicateOpen PredicateInnerDecl* PredicateClose,
+    PredicateOpen "(" SepList<PredicateArg, ","> ")" "{" PredicateInnerDecl* PredicateClose,
+}
+
+PredicateArg: () = {
+    <l:@L> <name:VarName> ":" <ty:Type> <r:@R> => {
+        context.parse_var_decl(handler, false, name, Some(ty), None, (l, r));
+    }
 }
 
 PredicateOpen: () = {
-    <l:@L> "predicate" <name:Ident> <r:@R> "{" => {
+    <l:@L> "predicate" <name:Ident> <r:@R> => {
         // To detect name clashes
         let name = context.add_top_level_symbol(
             handler,
@@ -238,15 +244,15 @@ UseTree: UseTree = {
     <name:UsePathIdent> "as" <alias:Ident> => UseTree::Alias { name, alias },
 }
 
-VarDecl: () = {
-    <l:@L> <r#pub:"pub"?> "var" <name:VarName> ":" <ty:Type> <init:VarInit?> <r:@R> => {
-        context.parse_var_decl(handler, r#pub.is_some(), name, Some(ty), init, (l, r));
+PubVarDecl: () = {
+    <l:@L> <r#pub:"pub"> "var" <name:VarName> ":" <ty:Type> <init:VarInit?> <r:@R> => {
+        context.parse_var_decl(handler, true, name, Some(ty), init, (l, r));
     },
-    <l:@L> <r#pub:"pub"?> "var" <name:VarName> <init:VarInit> <r:@R> => {
-        context.parse_var_decl(handler, r#pub.is_some(), name, None, Some(init), (l, r));
+    <l:@L> <r#pub:"pub"> "var" <name:VarName> <init:VarInit> <r:@R> => {
+        context.parse_var_decl(handler, true, name, None, Some(init), (l, r));
     },
-    <l:@L> <r#pub:"pub"?> "var" <name:VarName> <r:@R> => {
-        context.parse_var_decl(handler, r#pub.is_some(), name, None, None, (l, r));
+    <l:@L> <r#pub:"pub"> "var" <name:VarName> <r:@R> => {
+        context.parse_var_decl(handler, true, name, None, None, (l, r));
     }
 }
 

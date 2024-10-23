@@ -1,23 +1,22 @@
 // ANCHOR: foo
 use garden::vegetables::Asparagus;
 
-predicate Foo {
-    var green_asparagus = Asparagus::Green;
+predicate Foo(green_asparagus: Asparagus) {
+    constraint green_asparagus == Asparagus::Green;
 }
 // ANCHOR_END: foo
 
 // ANCHOR: bar 
-predicate Bar {
-    var first_asparagus: ::garden::vegetables::Asparagus;
-
-    var second_asparagus: garden::vegetables::Asparagus;
-}
+predicate Bar(
+    first_asparagus: ::garden::vegetables::Asparagus,
+    second_asparagus: garden::vegetables::Asparagus,
+) { }
 // ANCHOR_END: bar
 
 // ANCHOR: baz 
 use ::garden::vegetables;
 
-predicate Baz {
-    var third_asparagus: vegetables::Asparagus;
-}
+predicate Baz(
+    third_asparagus: vegetables::Asparagus,
+) { }
 // ANCHOR_END: bar

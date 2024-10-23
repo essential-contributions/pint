@@ -5,7 +5,7 @@ storage {
     map: ( int => bool ),
 }
 
-predicate Test {
+predicate Test(f: int, g: int, h: bool) {
     // live states that should remain when optimized
     state a = storage::x;
     constraint a' >= a + 42;
@@ -22,9 +22,9 @@ predicate Test {
     state e_0 = storage::map[0];
     state e_1 = storage::map[1];
 
-    var f = b + c[0];
-    var g = d.1 + d_0;
-    var h = (e_1 == e_0);
+    constraint f == b + c[0];
+    constraint g == d.1 + d_0;
+    constraint h == (e_1 == e_0);
 
     // dead state that should be eliminated
     state x1 = storage::x;
@@ -45,11 +45,12 @@ predicate Test {
 //     tup: {int, int},
 //     map: ( int => bool ),
 // }
-//
-// predicate ::Test {
-//     var ::f;
-//     var ::g;
-//     var ::h;
+// 
+// predicate ::Test(
+//     ::f: int,
+//     ::g: int,
+//     ::h: bool,
+// ) {
 //     state ::a = storage::x;
 //     state ::b: int = storage::x;
 //     state ::c: int[2] = mut storage::arr;
@@ -80,11 +81,12 @@ predicate Test {
 //     tup: {int, int},
 //     map: ( int => bool ),
 // }
-//
-// predicate ::Test {
-//     var ::f: int;
-//     var ::g: int;
-//     var ::h: bool;
+// 
+// predicate ::Test(
+//     ::f: int,
+//     ::g: int,
+//     ::h: bool,
+// ) {
 //     state ::a: int = __storage_get({0});
 //     state ::b: int = __storage_get({0});
 //     state ::c: int[2] = __storage_get({1, 0});
@@ -116,11 +118,12 @@ predicate Test {
 //     tup: {int, int},
 //     map: ( int => bool ),
 // }
-//
-// predicate ::Test {
-//     var ::f: int;
-//     var ::g: int;
-//     var ::h: bool;
+// 
+// predicate ::Test(
+//     ::f: int,
+//     ::g: int,
+//     ::h: bool,
+// ) {
 //     state ::a: int = __storage_get({0});
 //     state ::b: int = __storage_get({0});
 //     state ::c: int[2] = __storage_get({1, 0});

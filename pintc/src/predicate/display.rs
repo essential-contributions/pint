@@ -109,7 +109,15 @@ impl Display for Contract {
         self.fmt_interfaces(f)?;
 
         for pred in self.preds.values() {
-            writeln!(f, "\npredicate {} {{", pred.name)?;
+            writeln!(f, "\npredicate {}(", pred.name)?;
+            for (var_key, var) in pred.vars() {
+                let ty = var_key.get_ty(pred);
+                if !var.is_pub {
+                    writeln!(f, "    {}: {},", var.name, self.with_ctrct(ty))?;
+                }
+            }
+
+            writeln!(f, ") {{")?;
             pred.fmt_with_indent(f, self, 1)?;
             writeln!(f, "}}")?;
         }
@@ -205,8 +213,10 @@ impl Predicate {
             )?;
         }
 
-        for (var_key, _) in self.vars() {
-            writeln!(f, "{indentation}{};", self.with_pred(contract, var_key))?;
+        for (var_key, var) in self.vars() {
+            if var.is_pub {
+                writeln!(f, "{indentation}{};", self.with_pred(contract, var_key))?;
+            }
         }
 
         for (state_key, _) in self.states() {

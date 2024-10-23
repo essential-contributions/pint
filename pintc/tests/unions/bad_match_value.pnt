@@ -1,7 +1,6 @@
 union number = zero | one(int) | more(bool);
 
-predicate test {
-    var n: number;
+predicate test(n: number) {
     constraint match n {
         number::zero(x) => x == 0,
         number::one => true,
@@ -9,8 +8,7 @@ predicate test {
     };
 }
 
-predicate decl_test {
-    var n: number;
+predicate decl_test(n: number) {
     match n {
         number::zero(x) => {
             constraint x == 0;
@@ -26,14 +24,16 @@ predicate decl_test {
 
 // parsed <<<
 // union ::number = zero | one(int) | more(bool);
-//
-// predicate ::test {
-//     var ::n: ::number;
+// 
+// predicate ::test(
+//     ::n: ::number,
+// ) {
 //     constraint match ::n { ::number::zero(x) => (::x == 0), ::number::one => true, else => false };
 // }
-//
-// predicate ::decl_test {
-//     var ::n: ::number;
+// 
+// predicate ::decl_test(
+//     ::n: ::number,
+// ) {
 //     match ::n {
 //         ::number::zero(x) => {
 //             constraint (::x == 0)
@@ -50,13 +50,13 @@ predicate decl_test {
 
 // typecheck_failure <<<
 // union variant does not have a value
-// @115..127: union variant `::number::zero` should not bind a value
+// @107..119: union variant `::number::zero` should not bind a value
 // missing union variant value
-// @150..161: union variant `::number::one` requires a value of type `int`
+// @142..153: union variant `::number::one` requires a value of type `int`
 // union variant does not have a value
-// @267..279: union variant `::number::zero` should not bind a value
+// @251..263: union variant `::number::zero` should not bind a value
 // missing union variant value
-// @337..348: union variant `::number::one` requires a value of type `int`
+// @321..332: union variant `::number::one` requires a value of type `int`
 // constraint expression type error
-// @97..199: expecting type `bool`
+// @89..191: expecting type `bool`
 // >>>

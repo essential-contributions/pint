@@ -5,20 +5,29 @@ const d = true in [true, false];
 const e = 1 in 1..2;
 const f = 1 in 3..2;
 
-predicate Test {
-    var g = 1 in [1, 2];
-    var h = 1 in [3, 2];
-    var i = true in [true, false];
+predicate Test(
+    g: bool,
+    h: bool,
+    i: bool,
+    j: int,
+    k: bool,
+    l: bool,
+    m: bool,
+    n: int,
+) {
+    constraint g == (1 in [1, 2]);
+    constraint h == (1 in [3, 2]);
+    constraint i == (true in [true, false]);
 
-    var j = 0;
-    var k = false;
+    constraint j == 0;
+    constraint k == false;
     constraint j in [1, 2];
     constraint k in [false, false];
 
-    var l = 1 in 1..2;
-    var m = 1 in 3..2;
+    constraint l == (1 in 1..2);
+    constraint m == (1 in 3..2);
 
-    var n = 0;
+    constraint n == 0;
     constraint n in 1..2;
 }
 
@@ -29,16 +38,17 @@ predicate Test {
 // const ::d = true in [true, false];
 // const ::a = 1 in [1, 2];
 // const ::c = true in [3, 2];
-//
-// predicate ::Test {
-//     var ::g;
-//     var ::h;
-//     var ::i;
-//     var ::j;
-//     var ::k;
-//     var ::l;
-//     var ::m;
-//     var ::n;
+// 
+// predicate ::Test(
+//     ::g: bool,
+//     ::h: bool,
+//     ::i: bool,
+//     ::j: int,
+//     ::k: bool,
+//     ::l: bool,
+//     ::m: bool,
+//     ::n: int,
+// ) {
 //     constraint (::g == 1 in [1, 2]);
 //     constraint (::h == 1 in [3, 2]);
 //     constraint (::i == true in [true, false]);
@@ -60,16 +70,17 @@ predicate Test {
 // const ::d: bool = true;
 // const ::a: bool = true;
 // const ::c: bool = false;
-//
-// predicate ::Test {
-//     var ::g: bool;
-//     var ::h: bool;
-//     var ::i: bool;
-//     var ::j: int;
-//     var ::k: bool;
-//     var ::l: bool;
-//     var ::m: bool;
-//     var ::n: int;
+// 
+// predicate ::Test(
+//     ::g: bool,
+//     ::h: bool,
+//     ::i: bool,
+//     ::j: int,
+//     ::k: bool,
+//     ::l: bool,
+//     ::m: bool,
+//     ::n: int,
+// ) {
 //     constraint (::g == ((1 == 1) || (1 == 2)));
 //     constraint (::h == ((1 == 3) || (1 == 2)));
 //     constraint (::i == ((true == true) || (true == false)));

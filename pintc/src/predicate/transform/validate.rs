@@ -274,16 +274,16 @@ fn run_parser(src: &str, handler: &Handler) -> Contract {
 #[test]
 fn expr_types() {
     // array
-    let src = "predicate test { var a = [1, 2, 3]; }";
+    let src = "predicate test(a: int[3]) { constraint a == [1, 2, 3]; }";
     check(&run_test(src), expect_test::expect![""]);
     // tuple
-    let src = "predicate test { var t = { x: 5, 3 }; }";
+    let src = "predicate test(t: {x: int, int}) { constraint t == { x: 5, 3 }; }";
     check(&run_test(src), expect_test::expect![""]);
 
     // type alias
     let src = r#"
 type MyAliasInt = int;
-predicate test { var x: MyAliasInt = 3; }
+predicate test(x: MyAliasInt) { constraint x == 3; }
 "#;
 
     // Do this manually here because we have to copy the new type into the predicate.
@@ -304,7 +304,7 @@ predicate test { var x: MyAliasInt = 3; }
 #[test]
 fn exprs() {
     // array and array field access
-    let src = "predicate test { var x: bool = 5 in [3, 4, 5]; }";
+    let src = "predicate test(x: bool) { constraint x == 5 in [3, 4, 5]; }";
     check(
         &run_test(src),
         expect_test::expect![
@@ -312,7 +312,7 @@ fn exprs() {
         ],
     );
     // forall
-    let src = "predicate test { var k: int;
+    let src = "predicate test(k: int) { 
     constraint forall i in 0..3, j in 0..3 where !(i >= j), i - 1 >= 0 && j > 0 { !(i - j < k) }; }";
     check(
         &run_test(src),
@@ -322,7 +322,7 @@ fn exprs() {
             compiler internal error: range present in final predicate exprs slotmap"#]],
     );
     // exists
-    let src = "predicate test { var a: int[2][2];
+    let src = "predicate test(a: int[2][2]) {
     constraint exists i in 0..1, j in 0..1 {
         a[i][j] == 70
     };}";
@@ -340,7 +340,7 @@ fn states() {
     use crate::error;
     use crate::predicate::State;
 
-    let src = "predicate test { var a = 1; }";
+    let src = "predicate test(a: int) { constraint a == 1; }";
     let (mut contract, handler) = run_without_transforms(src);
     contract.preds.iter_mut().for_each(|(_, pred)| {
         let dummy_expr_key = contract
@@ -369,7 +369,7 @@ fn vars() {
     use crate::error;
     use crate::predicate::Var;
 
-    let src = "predicate test { var a = 1; }";
+    let src = "predicate test(a: int) { constraint a == 1; }";
     let (mut contract, handler) = run_without_transforms(src);
     contract.preds.iter_mut().for_each(|(_, pred)| {
         pred.vars.insert(
@@ -393,7 +393,7 @@ fn vars() {
 fn if_decls() {
     use crate::error;
 
-    let src = "predicate test { if true { constraint true; } }";
+    let src = "predicate test() { if true { constraint true; } }";
     let (mut contract, handler) = run_without_transforms(src);
     validate(&handler, &mut contract);
     check(

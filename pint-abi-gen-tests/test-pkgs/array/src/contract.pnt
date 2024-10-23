@@ -13,7 +13,7 @@ storage {
     arr_6: { int[2], int[2] }[2],
 }
 
-predicate Foo {
+predicate Foo() {
     // Test the first element of the first array.
     state arr_0_0: int = mut storage::arr_0[0];
     constraint arr_0_0' == 42;

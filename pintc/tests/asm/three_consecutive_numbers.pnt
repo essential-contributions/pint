@@ -1,28 +1,27 @@
-// parsed <<<
-// predicate ::test {
-//     var ::x: int[3];
-//     constraint forall i in 1..2, { (::x[::i] == (::x[(::i - 1)] + 1)) };
-//     constraint (((::x[0] + ::x[1]) + ::x[2]) == ((::x[0] * ::x[1]) * ::x[2]));
-// }
-// >>>
-
-// flattened <<<
-//     predicate ::test {
-//     var ::x: int[3];
-//     constraint ((true && (::x[1] == (::x[(1 - 1)] + 1))) && (::x[2] == (::x[(2 - 1)] + 1)));
-//     constraint (((::x[0] + ::x[1]) + ::x[2]) == ((::x[0] * ::x[1]) * ::x[2]));
-//     constraint __eq_set(__mut_keys(), {0});
-// }
-// >>>
-
-predicate test {
-    // Find three consecutive integers such that their product is equal to their sum.
-
-    var x: int[3];
-
+// Find three consecutive integers such that their product is equal to their sum.
+predicate test(x: int[3]) {
     constraint forall i in 1..2 {
         x[i] == x[i - 1] + 1
     };
 
     constraint x[0] + x[1] + x[2] == x[0] * x[1] * x[2];
 }
+
+// parsed <<<
+// predicate ::test(
+//     ::x: int[3],
+// ) {
+//     constraint forall i in 1..2, { (::x[::i] == (::x[(::i - 1)] + 1)) };
+//     constraint (((::x[0] + ::x[1]) + ::x[2]) == ((::x[0] * ::x[1]) * ::x[2]));
+// }
+// >>>
+
+// flattened <<<
+// predicate ::test(
+//     ::x: int[3],
+// ) {
+//     constraint ((true && (::x[1] == (::x[(1 - 1)] + 1))) && (::x[2] == (::x[(2 - 1)] + 1)));
+//     constraint (((::x[0] + ::x[1]) + ::x[2]) == ((::x[0] * ::x[1]) * ::x[2]));
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>

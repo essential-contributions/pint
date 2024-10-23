@@ -19,15 +19,18 @@ union G = A(int) | B(int[storage::t.0]);
 
 const C = storage::t.1;
 
-predicate Test {
-    var x = storage::map[3].2;
+predicate Test(
+    x: b256,
+    addr: b256,
+    y: { int, int[3] },
+    b: bool,
+    u: G,
+) {
+    constraint x == storage::map[3].2;
 
-    var addr: b256;
     constraint storage::a[addr][storage::t.0] == 0;
 
-    var y = storage::t;
-
-    var b: bool;
+    constraint y == storage::t;
 
     if b {
         constraint storage::t.0 == 0;
@@ -37,7 +40,6 @@ predicate Test {
         constraint storage::t.1 == 2;
     }
 
-    var u: G;
     match u {
         G::A(a) => {
             constraint storage::t.0 == a;
@@ -66,15 +68,16 @@ predicate Test {
 //     predicate Bar;
 // }
 // 
-// predicate ::Test {
+// predicate ::Test(
+//     ::x: b256,
+//     ::addr: b256,
+//     ::y: {int, int[3]},
+//     ::b: bool,
+//     ::u: ::G,
+//     __::BarI_pathway: int,
+// ) {
 //     interface ::FooI = ::Foo(storage::bb)
 //     predicate ::BarI = ::FooI::Bar(storage::bb)
-//     var ::x;
-//     var ::addr: b256;
-//     var ::y;
-//     var ::b: bool;
-//     var ::u: ::G;
-//     var __::BarI_pathway: int;
 //     constraint (::x == storage::map[3].2);
 //     constraint (storage::a[::addr][storage::t.0] == 0);
 //     constraint (::y == storage::t);
@@ -97,43 +100,43 @@ predicate Test {
 
 // typecheck_failure <<<
 // invalid position for accessing storage
-// @530..542: storage cannot be accessed in this position
-// storage can only be accessed in the initializer of `state` declaration
-// invalid position for accessing storage
-// @838..849: storage cannot be accessed in this position
-// storage can only be accessed in the initializer of `state` declaration
-// invalid position for accessing storage
-// @755..767: storage cannot be accessed in this position
+// @544..554: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of `state` declaration
 // invalid position for accessing storage
 // @250..262: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of `state` declaration
 // invalid position for accessing storage
-// @619..631: storage cannot be accessed in this position
+// @625..637: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of `state` declaration
 // invalid position for accessing storage
-// @364..381: storage cannot be accessed in this position
+// @486..516: storage cannot be accessed in this position
+// storage can only be accessed in the initializer of `state` declaration
+// invalid position for accessing storage
+// @926..937: storage cannot be accessed in this position
+// storage can only be accessed in the initializer of `state` declaration
+// invalid position for accessing storage
+// @714..726: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of `state` declaration
 // invalid position for accessing storage
 // @293..305: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of `state` declaration
 // invalid position for accessing storage
-// @568..580: storage cannot be accessed in this position
+// @587..599: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of `state` declaration
 // invalid position for accessing storage
-// @469..479: storage cannot be accessed in this position
+// @881..892: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of `state` declaration
 // invalid position for accessing storage
-// @419..449: storage cannot be accessed in this position
+// @451..468: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of `state` declaration
 // invalid position for accessing storage
-// @883..894: storage cannot be accessed in this position
+// @798..810: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of `state` declaration
 // invalid position for accessing storage
 // @320..332: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of `state` declaration
 // invalid position for accessing storage
-// @657..669: storage cannot be accessed in this position
+// @676..688: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of `state` declaration
 // invalid position for accessing storage
 // @177..189: storage cannot be accessed in this position

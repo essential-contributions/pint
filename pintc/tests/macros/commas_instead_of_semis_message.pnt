@@ -2,9 +2,7 @@ macro @m($x, $y, $z) {
     $x + $y + $z
 }
 
-predicate test {
-    var a: int;
-
+predicate test(a: int) {
     constraint @m(a, a);
     constraint @m(a, a, a);
     constraint @m(a, a, a, a);
@@ -13,19 +11,19 @@ predicate test {
 
 // parse_failure <<<
 // unable to match macro call
-// @92..100: unable to match call to macro `::@m`
+// @83..91: unable to match call to macro `::@m`
 // the valid number of arguments must be exactly 3 but this call passes 1 arguments
 // a macro named `::@m` found with a different signature
 // unable to match macro call
-// @117..128: unable to match call to macro `::@m`
+// @108..119: unable to match call to macro `::@m`
 // the valid number of arguments must be exactly 3 but this call passes 1 arguments
 // macro arguments are separated by `;`.  Perhaps try ::@m(a; a; a)
 // unable to match macro call
-// @145..159: unable to match call to macro `::@m`
+// @136..150: unable to match call to macro `::@m`
 // the valid number of arguments must be exactly 3 but this call passes 1 arguments
 // a macro named `::@m` found with a different signature
 // unable to match macro call
-// @176..192: unable to match call to macro `::@m`
+// @167..183: unable to match call to macro `::@m`
 // the valid number of arguments must be exactly 3 but this call passes 2 arguments
 // macro arguments are separated by `;`.  Perhaps try ::@m([a; a; a]a)
 // >>>

@@ -1,16 +1,15 @@
 union Colour = Red | Green | Blue;
 
-predicate test {
-    // Colouring Australia using 3 colours
-
-    var wa: Colour;
-    var nt: Colour;
-    var sa: Colour;
-    var q: Colour;
-    var nsw: Colour;
-    var v: Colour;
-    var t: Colour;
-
+// Colouring Australia using 3 colours
+predicate test(
+    wa: Colour,
+    nt: Colour,
+    sa: Colour,
+    q: Colour,
+    nsw: Colour,
+    v: Colour,
+    t: Colour,
+) {
     // Make sure that no two neighboring states/territories share a colour
     constraint wa != nt;
     constraint wa != sa;
@@ -25,15 +24,16 @@ predicate test {
 
 // parsed <<<
 // union ::Colour = Red | Green | Blue;
-//
-// predicate ::test {
-//     var ::wa: ::Colour;
-//     var ::nt: ::Colour;
-//     var ::sa: ::Colour;
-//     var ::q: ::Colour;
-//     var ::nsw: ::Colour;
-//     var ::v: ::Colour;
-//     var ::t: ::Colour;
+// 
+// predicate ::test(
+//     ::wa: ::Colour,
+//     ::nt: ::Colour,
+//     ::sa: ::Colour,
+//     ::q: ::Colour,
+//     ::nsw: ::Colour,
+//     ::v: ::Colour,
+//     ::t: ::Colour,
+// ) {
 //     constraint (::wa != ::nt);
 //     constraint (::wa != ::sa);
 //     constraint (::nt != ::sa);
@@ -49,14 +49,15 @@ predicate test {
 // flattened <<<
 // union ::Colour = Red | Green | Blue;
 // 
-// predicate ::test {
-//     var ::wa: ::Colour;
-//     var ::nt: ::Colour;
-//     var ::sa: ::Colour;
-//     var ::q: ::Colour;
-//     var ::nsw: ::Colour;
-//     var ::v: ::Colour;
-//     var ::t: ::Colour;
+// predicate ::test(
+//     ::wa: ::Colour,
+//     ::nt: ::Colour,
+//     ::sa: ::Colour,
+//     ::q: ::Colour,
+//     ::nsw: ::Colour,
+//     ::v: ::Colour,
+//     ::t: ::Colour,
+// ) {
 //     constraint (::wa != ::nt);
 //     constraint (::wa != ::sa);
 //     constraint (::nt != ::sa);

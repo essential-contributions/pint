@@ -69,7 +69,7 @@ fn err() {
 #[test]
 fn compile_errors() {
     let mut input_file = tempfile::NamedTempFile::new().unwrap();
-    let code = r#"predicate test { var t: {} = {}; var a = a[]; }"#;
+    let code = r#"predicate test(t: {}, a: int) { constraint t == {}; constraint a == a[]; }"#;
     write!(input_file.as_file_mut(), "{code}").unwrap();
 
     let output = pintc_command(input_file.path().to_str().unwrap());
@@ -84,25 +84,25 @@ fn compile_errors() {
             .replace(input_file.path().to_str().unwrap(), "filepath"),
         expect_test::expect![[r#"
             Error: empty tuple types are not allowed
-               ╭─[filepath:1:25]
+               ╭─[filepath:1:19]
                │
-             1 │ predicate test { var t: {} = {}; var a = a[]; }
-               │                         ─┬  
-               │                          ╰── empty tuple type found
+             1 │ predicate test(t: {}, a: int) { constraint t == {}; constraint a == a[]; }
+               │                   ─┬  
+               │                    ╰── empty tuple type found
             ───╯
             Error: empty tuple expressions are not allowed
-               ╭─[filepath:1:30]
+               ╭─[filepath:1:49]
                │
-             1 │ predicate test { var t: {} = {}; var a = a[]; }
-               │                              ─┬  
-               │                               ╰── empty tuple expression found
+             1 │ predicate test(t: {}, a: int) { constraint t == {}; constraint a == a[]; }
+               │                                                 ─┬  
+               │                                                  ╰── empty tuple expression found
             ───╯
             Error: missing array or map index
-               ╭─[filepath:1:42]
+               ╭─[filepath:1:69]
                │
-             1 │ predicate test { var t: {} = {}; var a = a[]; }
-               │                                          ─┬─  
-               │                                           ╰─── missing array or map element index
+             1 │ predicate test(t: {}, a: int) { constraint t == {}; constraint a == a[]; }
+               │                                                                     ─┬─  
+               │                                                                      ╰─── missing array or map element index
             ───╯
             Error: could not compile `filepath` due to 3 previous errors
         "#]],
@@ -114,7 +114,7 @@ fn compile_errors() {
 #[test]
 fn default_output() {
     let mut input_file = tempfile::NamedTempFile::new().unwrap();
-    write!(input_file.as_file_mut(), "predicate test {{}}").unwrap();
+    write!(input_file.as_file_mut(), "predicate test() {{}}").unwrap();
 
     let output = pintc_command(input_file.path().to_str().unwrap());
 
@@ -128,7 +128,7 @@ fn default_output() {
 #[test]
 fn explicit_output() {
     let mut input_file = tempfile::NamedTempFile::new().unwrap();
-    write!(input_file.as_file_mut(), "predicate test {{}}").unwrap();
+    write!(input_file.as_file_mut(), "predicate test() {{}}").unwrap();
 
     let temp_dir = tempfile::TempDir::new().unwrap();
     let mut output_file = PathBuf::from(temp_dir.path());

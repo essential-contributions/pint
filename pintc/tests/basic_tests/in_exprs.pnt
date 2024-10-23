@@ -1,12 +1,13 @@
 union Cake = Crab | Mud | Uranium | Urinal;
 
-predicate test {
-    var a: int;
-    var c: bool;
-    var d: b256;
-    var e: Cake;
-    var f: {bool, int};
-    var g: int[2];
+predicate test(
+    a: int,
+    c: bool,
+    d: b256,
+    e: Cake,
+    f: {bool, int},
+    g: int[2],
+) {
 
     constraint a in 11..22;
     constraint a in [11, 13, 17, 19];
@@ -22,14 +23,15 @@ predicate test {
 
 // parsed <<<
 // union ::Cake = Crab | Mud | Uranium | Urinal;
-//
-// predicate ::test {
-//     var ::a: int;
-//     var ::c: bool;
-//     var ::d: b256;
-//     var ::e: ::Cake;
-//     var ::f: {bool, int};
-//     var ::g: int[2];
+// 
+// predicate ::test(
+//     ::a: int,
+//     ::c: bool,
+//     ::d: b256,
+//     ::e: ::Cake,
+//     ::f: {bool, int},
+//     ::g: int[2],
+// ) {
 //     constraint ::a in 11..22;
 //     constraint ::a in [11, 13, 17, 19];
 //     constraint ::c in [true, true];
@@ -43,13 +45,14 @@ predicate test {
 // flattened <<<
 // union ::Cake = Crab | Mud | Uranium | Urinal;
 // 
-// predicate ::test {
-//     var ::a: int;
-//     var ::c: bool;
-//     var ::d: b256;
-//     var ::e: ::Cake;
-//     var ::f: {bool, int};
-//     var ::g: int[2];
+// predicate ::test(
+//     ::a: int,
+//     ::c: bool,
+//     ::d: b256,
+//     ::e: ::Cake,
+//     ::f: {bool, int},
+//     ::g: int[2],
+// ) {
 //     constraint ((::a >= 11) && (::a <= 22));
 //     constraint ((((::a == 11) || (::a == 13)) || (::a == 17)) || (::a == 19));
 //     constraint ((::c == true) || (::c == true));

@@ -1,11 +1,35 @@
-predicate Test {
-    var x_1: int;
-    var y_1: int;
-    var z_1: int;
-    var w_1: int;
-    var condition_1_a: bool = true;
-    var condition_1_b: bool = true;
-    var condition_1_c: bool;
+predicate Test(
+    x_1: int,
+    y_1: int,
+    z_1: int,
+    w_1: int,
+    condition_1_a: bool,
+    condition_1_b: bool,
+    condition_1_c: bool,
+    x_2: int,
+    y_2: int,
+    z_2: int,
+    w_2: int,
+    condition_2_a: bool,
+    condition_2_b: bool,
+    condition_2_c: bool,
+    x_3: int,
+    y_3: int,
+    z_3: int,
+    w_3: int,
+    condition_3_a: bool,
+    condition_3_b: bool,
+    condition_3_c: bool,
+    x_4: int,
+    y_4: int,
+    z_4: int,
+    w_4: int,
+    condition_4_a: bool,
+    condition_4_b: bool,
+    condition_4_c: bool,
+) {
+    constraint condition_1_a == true;
+    constraint condition_1_b == true;
 
     if condition_1_a {
         if condition_1_b {
@@ -28,13 +52,8 @@ predicate Test {
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-    var x_2: int;
-    var y_2: int;
-    var z_2: int;
-    var w_2: int;
-    var condition_2_a: bool = true;
-    var condition_2_b: bool = false;
-    var condition_2_c: bool;
+    constraint condition_2_a == true;
+    constraint condition_2_b == false;
 
     if condition_2_a {
         if condition_2_b {
@@ -57,13 +76,8 @@ predicate Test {
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-    var x_3: int;
-    var y_3: int;
-    var z_3: int;
-    var w_3: int;
-    var condition_3_a: bool = false;
-    var condition_3_b: bool;
-    var condition_3_c: bool = true;
+    constraint condition_3_a == false;
+    constraint condition_3_c == true;
 
     if condition_3_a {
         if condition_3_b {
@@ -86,13 +100,8 @@ predicate Test {
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-    var x_4: int;
-    var y_4: int;
-    var z_4: int;
-    var w_4: int;
-    var condition_4_a: bool = false;
-    var condition_4_b: bool;
-    var condition_4_c: bool = false;
+    constraint condition_4_a == false;
+    constraint condition_4_c == false;
 
     if condition_4_a {
         if condition_4_b {

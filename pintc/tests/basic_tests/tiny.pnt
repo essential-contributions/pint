@@ -1,17 +1,19 @@
-predicate test {
-    var a: int = 1;
+predicate test(a: int) {
+    constraint a == 1;
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::a: int;
+// predicate ::test(
+//     ::a: int,
+// ) {
 //     constraint (::a == 1);
 // }
 // >>>
 
-// flattened <<<<
-// predicate ::test {
-//     var ::a: int;
+// flattened <<<
+// predicate ::test(
+//     ::a: int,
+// ) {
 //     constraint (::a == 1);
 //     constraint __eq_set(__mut_keys(), {0});
 // }

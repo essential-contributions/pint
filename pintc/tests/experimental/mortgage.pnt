@@ -1,15 +1,15 @@
-predicate test {
+predicate test(
     // Interest
-    var I: real = 0.1;
-
+    I: real,
     // Withdrawal amount for each interest period
-    var R: real = 150.0;
-
+    R: real,
     // Balance at time 0
-    var P: real;
-
+    P: real,
     // Remaining balances
-    var mortgage: real[25];
+    mortgage: real[25],
+) {
+    constraint I == 0.1;
+    constraint R == 150.0;
 
     constraint forall i in 0..24 {
        mortgage[i] >= 0.0
@@ -25,11 +25,12 @@ predicate test {
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::I: real;
-//     var ::R: real;
-//     var ::P: real;
-//     var ::mortgage: real[25];
+// predicate ::test(
+//     ::I: real,
+//     ::R: real,
+//     ::P: real,
+//     ::mortgage: real[25],
+// ) {
 //     constraint (::I == 1e-1);
 //     constraint (::R == 1.5e2);
 //     constraint forall i in 0..24, { (::mortgage[::i] >= 0e0) };
@@ -39,11 +40,12 @@ predicate test {
 // >>>
 
 // flattened <<<
-// predicate ::test {
-//     var ::I: real;
-//     var ::R: real;
-//     var ::P: real;
-//     var ::mortgage: real[25];
+// predicate ::test(
+//     ::I: real,
+//     ::R: real,
+//     ::P: real,
+//     ::mortgage: real[25],
+// ) {
 //     constraint (::I == 1e-1);
 //     constraint (::R == 1.5e2);
 //     constraint (((((((((((((((((((((((((true && (::mortgage[0] >= 0e0)) && (::mortgage[1] >= 0e0)) && (::mortgage[2] >= 0e0)) && (::mortgage[3] >= 0e0)) && (::mortgage[4] >= 0e0)) && (::mortgage[5] >= 0e0)) && (::mortgage[6] >= 0e0)) && (::mortgage[7] >= 0e0)) && (::mortgage[8] >= 0e0)) && (::mortgage[9] >= 0e0)) && (::mortgage[10] >= 0e0)) && (::mortgage[11] >= 0e0)) && (::mortgage[12] >= 0e0)) && (::mortgage[13] >= 0e0)) && (::mortgage[14] >= 0e0)) && (::mortgage[15] >= 0e0)) && (::mortgage[16] >= 0e0)) && (::mortgage[17] >= 0e0)) && (::mortgage[18] >= 0e0)) && (::mortgage[19] >= 0e0)) && (::mortgage[20] >= 0e0)) && (::mortgage[21] >= 0e0)) && (::mortgage[22] >= 0e0)) && (::mortgage[23] >= 0e0)) && (::mortgage[24] >= 0e0));

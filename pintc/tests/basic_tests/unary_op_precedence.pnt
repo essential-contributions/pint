@@ -1,19 +1,21 @@
-predicate test {
-    var a: {int, bool};
+predicate test(
+    a: {int, bool},
+    b: bool[3][5],
+    c: {int, bool}[5],
+) {
     constraint !a.1;
 
-    var b: bool[5][3];
     constraint !!b[0][1];
 
-    var c: {int, bool}[5];
     constraint !!c[0].1;
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::a: {int, bool};
-//     var ::b: bool[3][5];
-//     var ::c: {int, bool}[5];
+// predicate ::test(
+//     ::a: {int, bool},
+//     ::b: bool[5][3],
+//     ::c: {int, bool}[5],
+// ) {
 //     constraint !::a.1;
 //     constraint !!::b[0][1];
 //     constraint !!::c[0].1;
@@ -21,10 +23,11 @@ predicate test {
 // >>>
 
 // flattened <<<
-// predicate ::test {
-//     var ::a: {int, bool};
-//     var ::b: bool[3][5];
-//     var ::c: {int, bool}[5];
+// predicate ::test(
+//     ::a: {int, bool},
+//     ::b: bool[5][3],
+//     ::c: {int, bool}[5],
+// ) {
 //     constraint !::a.1;
 //     constraint !!::b[0][1];
 //     constraint !!::c[0].1;

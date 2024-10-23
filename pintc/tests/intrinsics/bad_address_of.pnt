@@ -1,31 +1,38 @@
-predicate Foo {
+predicate Foo() {
 
 }
 
-predicate Bar {
+predicate Bar(
+    a: b256,
+    b: b256,
+    c: b256,
+    d: b256,
+) {
     // This is fine
-    var a = __address_of("::Foo");
+    constraint a == __address_of("::Foo");
 
     // Self referential `__address_of`
-    var b = __address_of("::Bar");
+    constraint b == __address_of("::Bar");
 
     // Missing predicate
-    var c = __address_of("::Missing");
+    constraint c == __address_of("::Missing");
 
     // This should emit a type checking error for the first argument as well as an "incorrect number
     // of arguments" error.
-    var d = __address_of(false, 42);
+    constraint d == __address_of(false, 42);
 }
 
 // parsed <<<
-// predicate ::Foo {
+// predicate ::Foo(
+// ) {
 // }
 // 
-// predicate ::Bar {
-//     var ::a;
-//     var ::b;
-//     var ::c;
-//     var ::d;
+// predicate ::Bar(
+//     ::a: b256,
+//     ::b: b256,
+//     ::c: b256,
+//     ::d: b256,
+// ) {
 //     constraint (::a == __address_of("::Foo"));
 //     constraint (::b == __address_of("::Bar"));
 //     constraint (::c == __address_of("::Missing"));
@@ -35,12 +42,12 @@ predicate Bar {
 
 // typecheck_failure <<<
 // intrinsic `__address_of` cannot refer to the predicate it's used in
-// @156..163: this argument refers to prediate `::Bar` in which this intrinsic is used
+// @229..236: this argument refers to prediate `::Bar` in which this intrinsic is used
 // predicate `::Missing` not found
-// @217..228: argument to `__address_of` must be a valid predicate name
+// @298..309: argument to `__address_of` must be a valid predicate name
 // incorrect intrinsic argument
-// @386..391: expected `string`, found `bool`
-// @373..385: arguments to this intrinsic are incorrect`
+// @475..480: expected `string`, found `bool`
+// @462..474: arguments to this intrinsic are incorrect`
 // this intrinsic takes 1 argument but 2 arguments were supplied
-// @373..396: unexpected number of arguments here
+// @462..485: unexpected number of arguments here
 // >>>

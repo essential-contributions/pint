@@ -5,7 +5,7 @@ storage {
     t: { int, int },
 }
 
-predicate Simple {
+predicate Simple() {
     state supply = mut storage::supply;
     state x = mut storage::map1[69];
     state y = mut storage::map2[0x0000000000000001000000000000000200000000000000030000000000000004];

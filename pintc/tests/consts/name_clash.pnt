@@ -1,19 +1,19 @@
 const a = 11;
 
-predicate test {
-    var a = 22;
-    var b = 33;
+predicate test(a: int, b: int) {
+    constraint a == 22;
+    constraint b == 33;
 }
 
 const b: int = 44;
 
 // parse_failure <<<
 // symbol `::b` has already been declared
-// @73..74: previous declaration of the symbol `::b` here
-// @56..57: `::b` redeclared here
+// @105..106: previous declaration of the symbol `::b` here
+// @38..39: `::b` redeclared here
 // `::b` must be declared or imported only once in this scope
 // symbol `::a` has already been declared
 // @6..7: previous declaration of the symbol `::a` here
-// @40..41: `::a` redeclared here
+// @30..31: `::a` redeclared here
 // `::a` must be declared or imported only once in this scope
 // >>>

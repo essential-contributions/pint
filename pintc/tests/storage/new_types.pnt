@@ -8,7 +8,7 @@ storage {
     o: ( OneOrTheOther => Haaash ),
 }
 
-predicate test {
+predicate test() {
     state x = storage::m[true];
     state y = storage::n[false];
     state z = storage::o[false];
@@ -27,8 +27,9 @@ predicate test {
 //     n: ( bool => ::Count ),
 //     o: ( ::OneOrTheOther => ::Haaash ),
 // }
-//
-// predicate ::test {
+// 
+// predicate ::test(
+// ) {
 //     state ::x = storage::m[true];
 //     state ::y = storage::n[false];
 //     state ::z = storage::o[false];
@@ -47,8 +48,9 @@ predicate test {
 //     n: ( bool => int ),
 //     o: ( bool => b256 ),
 // }
-//
-// predicate ::test {
+// 
+// predicate ::test(
+// ) {
 //     state ::x: int = __storage_get({0, true});
 //     state ::y: int = __storage_get({1, false});
 //     state ::z: b256 = __storage_get({2, false});

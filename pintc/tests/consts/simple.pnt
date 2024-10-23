@@ -12,20 +12,16 @@ union JacketColour = Cream | Bone | White | OffWhite | Ivory | Beige;
 const j = JacketColour::Beige; // Yes.
 const k: JacketColour = JacketColour::Bone;
 
-predicate test {
-    var q: int;
+predicate test(q: int, r: b256, s: int, t: int, u: bool, v: JacketColour) {
     constraint q > a && q < c;
 
-    var r: b256;
     constraint r != b && r != d;
 
-    var s = f.1;
-    var t = g[1];
+    constraint s == f.1;
+    constraint t == g[1];
 
-    var u: bool;
     constraint u == h.1 && u != i[2];
 
-    var v: JacketColour;
     constraint v != j && v != k;
 }
 
@@ -42,14 +38,15 @@ predicate test {
 // const ::f = {66, 77};
 // const ::c: int = 33;
 // union ::JacketColour = Cream | Bone | White | OffWhite | Ivory | Beige;
-//
-// predicate ::test {
-//     var ::q: int;
-//     var ::r: b256;
-//     var ::s;
-//     var ::t;
-//     var ::u: bool;
-//     var ::v: ::JacketColour;
+// 
+// predicate ::test(
+//     ::q: int,
+//     ::r: b256,
+//     ::s: int,
+//     ::t: int,
+//     ::u: bool,
+//     ::v: ::JacketColour,
+// ) {
 //     constraint ((::q > ::a) && (::q < ::c));
 //     constraint ((::r != ::b) && (::r != ::d));
 //     constraint (::s == ::f.1);
@@ -72,14 +69,15 @@ predicate test {
 // const ::f: {int, int} = {66, 77};
 // const ::c: int = 33;
 // union ::JacketColour = Cream | Bone | White | OffWhite | Ivory | Beige;
-//
-// predicate ::test {
-//     var ::q: int;
-//     var ::r: b256;
-//     var ::s: int;
-//     var ::t: int;
-//     var ::u: bool;
-//     var ::v: ::JacketColour;
+// 
+// predicate ::test(
+//     ::q: int,
+//     ::r: b256,
+//     ::s: int,
+//     ::t: int,
+//     ::u: bool,
+//     ::v: ::JacketColour,
+// ) {
 //     constraint ((::q > 11) && (::q < 33));
 //     constraint ((::r != 0x2222222222222222222222222222222222222222222222222222222222222222) && (::r != 0x4444444444444444444444444444444444444444444444444444444444444444));
 //     constraint (::s == 77);

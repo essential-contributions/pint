@@ -1,7 +1,7 @@
 const a = 11;
 
-predicate A {
-    var b = a * 2;
+predicate A(b: int) {
+    constraint b == a * 2;
 
     const c = 33;
 
@@ -9,6 +9,6 @@ predicate A {
 }
 
 // parse_failure <<<
-// expected `::`, `an identifier`, `constraint`, `if`, `interface`, `macro_name`, `match`, `predicate`, `pub`, `state`, `use`, `var`, or `}`, found `const`
-// @53..58: expected `::`, `an identifier`, `constraint`, `if`, `interface`, `macro_name`, `match`, `predicate`, `pub`, `state`, `use`, `var`, or `}`
+// expected `::`, `an identifier`, `constraint`, `if`, `interface`, `macro_name`, `match`, `predicate`, `pub`, `state`, `use`, or `}`, found `const`
+// @69..74: expected `::`, `an identifier`, `constraint`, `if`, `interface`, `macro_name`, `match`, `predicate`, `pub`, `state`, `use`, or `}`
 // >>>

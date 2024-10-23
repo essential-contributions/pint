@@ -18,8 +18,12 @@ interface InTheFace {
     }
 }
 
-predicate Foo {
-    var bob = {
+predicate Foo(
+     bob: {child: {age: int, pet: Animal}, pet: Animal},
+     friends_pets: Animal[3],
+     barb: Parent,
+) {
+    constraint bob == {
         child: {
             age: 23,
             pet: Animal::Dog
@@ -27,9 +31,8 @@ predicate Foo {
         pet: Animal::Cat,
     };
 
-    var friends_pets: Animal[3] = [Animal::Dog, Animal::Cat, Animal::Cat];
+    constraint friends_pets == [Animal::Dog, Animal::Cat, Animal::Cat];
 
-    var barb: Parent;
     match barb {
         Parent::Mum => {}
         Parent::Dad(d) => {
@@ -50,11 +53,12 @@ predicate Foo {
 //         pub var left: ::Father;
 //     }
 // }
-//
-// predicate ::Foo {
-//     var ::bob;
-//     var ::friends_pets: ::Animal[3];
-//     var ::barb: ::Parent;
+// 
+// predicate ::Foo(
+//     ::bob: {child: {age: int, pet: ::Animal}, pet: ::Animal},
+//     ::friends_pets: ::Animal[3],
+//     ::barb: ::Parent,
+// ) {
 //     constraint (::bob == {child: {age: 23, pet: ::Animal::Dog}, pet: ::Animal::Cat});
 //     constraint (::friends_pets == [::Animal::Dog, ::Animal::Cat, ::Animal::Cat]);
 //     constraint (::bob.pet != ::Animal::Dog);
@@ -78,11 +82,12 @@ predicate Foo {
 //         pub var left: {child: {age: int, pet: ::Animal}, pet: ::Animal};
 //     }
 // }
-//
-// predicate ::Foo {
-//     var ::bob: {child: {age: int, pet: ::Animal}, pet: ::Animal};
-//     var ::friends_pets: ::Animal[3];
-//     var ::barb: ::Parent;
+// 
+// predicate ::Foo(
+//     ::bob: {child: {age: int, pet: ::Animal}, pet: ::Animal},
+//     ::friends_pets: ::Animal[3],
+//     ::barb: ::Parent,
+// ) {
 //     constraint (::bob == {child: {age: 23, pet: ::Animal::Dog}, pet: ::Animal::Cat});
 //     constraint (::friends_pets == [::Animal::Dog, ::Animal::Cat, ::Animal::Cat]);
 //     constraint (::bob.pet != ::Animal::Dog);

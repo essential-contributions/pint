@@ -2,8 +2,8 @@ storage {
     v: int[],
 }
 
-predicate test {
-    var v_len = __vec_len(storage::v);
+predicate test(v_len: int) {
+    constraint v_len == __vec_len(storage::v);
     constraint __vec_len(storage::v) == 0;
 }
 
@@ -12,8 +12,9 @@ predicate test {
 //     v: int[],
 // }
 // 
-// predicate ::test {
-//     var ::v_len;
+// predicate ::test(
+//     ::v_len: int,
+// ) {
 //     constraint (::v_len == __vec_len(storage::v));
 //     constraint (__vec_len(storage::v) == 0);
 // }
@@ -21,9 +22,9 @@ predicate test {
 
 // typecheck_failure <<<
 // invalid position for accessing storage
-// @60..81: storage cannot be accessed in this position
+// @118..139: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of `state` declaration
 // invalid position for accessing storage
-// @98..119: storage cannot be accessed in this position
+// @80..101: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of `state` declaration
 // >>>

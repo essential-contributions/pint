@@ -2,31 +2,31 @@ use ::b::c::d;
 use b::c::d::e;
 use b::c;
 
-predicate test {
-    var v1 = e;
-    var v2 = d::e;
-    var v3 = ::b::c;
-    var v4 = c;
-    var v5 = b::c::d;
+predicate test() {
+    state v1 = e;
+    state v2 = d::e;
+    state v3 = ::b::c;
+    state v4 = c;
+    state v5 = b::c::d;
 }
 
 // parse_failure <<<
 // no file found for path
-// @72..73: failed to resolve path b::c::d::e
+// @76..77: failed to resolve path b::c::d::e
 // one of the modules `b::c::d` or `b::c` must exist
 // no file found for path
-// @88..92: failed to resolve path b::c::d::e
+// @94..98: failed to resolve path b::c::d::e
 // one of the modules `b::c::d` or `b::c` must exist
 // multiple source files found for module
-// @107..113: multiple source files found for module b
+// @115..121: multiple source files found for module b
 // both the files `tests/modules/07/b.pnt` and `tests/modules/07/b/b.pnt` exist, where only one or the other is allowed
 // multiple source files found for module
-// @128..129: multiple source files found for module b
+// @138..139: multiple source files found for module b
 // both the files `tests/modules/07/b.pnt` and `tests/modules/07/b/b.pnt` exist, where only one or the other is allowed
 // multiple source files found for module
-// @144..151: multiple source files found for module b
+// @156..163: multiple source files found for module b
 // both the files `tests/modules/07/b.pnt` and `tests/modules/07/b/b.pnt` exist, where only one or the other is allowed
 // no file found for path
-// @144..151: failed to resolve path b::c::d
+// @156..163: failed to resolve path b::c::d
 // one of the modules `b::c` or `b` must exist
 // >>>

@@ -1,16 +1,12 @@
 union count = nul | one | many(int);
 
-predicate test {
-    var x: count;
-
+predicate test(x: count) {
     constraint match x {
         count::one => true,
     };
 }
 
-predicate decl_test {
-    var x: count;
-
+predicate decl_test(x: count) {
     match x {
         count::one => {
             constraint true;
@@ -20,14 +16,16 @@ predicate decl_test {
 
 // parsed <<<
 // union ::count = nul | one | many(int);
-//
-// predicate ::test {
-//     var ::x: ::count;
+// 
+// predicate ::test(
+//     ::x: ::count,
+// ) {
 //     constraint match ::x { ::count::one => true };
 // }
-//
-// predicate ::decl_test {
-//     var ::x: ::count;
+// 
+// predicate ::decl_test(
+//     ::x: ::count,
+// ) {
 //     match ::x {
 //         ::count::one => {
 //             constraint true
@@ -38,11 +36,11 @@ predicate decl_test {
 
 // typecheck_failure <<<
 // not all match variants are covered
-// @89..132: not all variants for union `::count` are covered by match
+// @80..123: not all variants for union `::count` are covered by match
 // branches and/or bindings are required for variants `count::nul` and `count::many`
 // not all match variants are covered
-// @182..260: not all variants for union `::count` are covered by match
+// @164..242: not all variants for union `::count` are covered by match
 // branches and/or bindings are required for variants `count::nul` and `count::many`
 // constraint expression type error
-// @89..132: expecting type `bool`
+// @80..123: expecting type `bool`
 // >>>

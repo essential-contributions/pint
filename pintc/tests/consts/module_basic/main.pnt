@@ -1,15 +1,16 @@
 const a = b::x * 11;
 
-predicate test {
-    var b = a + b::x;
+predicate test(b: int) {
+    constraint b == a + b::x;
 }
 
 // parsed <<<
 // const ::a = (::b::x * 11);
 // const ::b::x: int = 22;
-//
-// predicate ::test {
-//     var ::b;
+// 
+// predicate ::test(
+//     ::b: int,
+// ) {
 //     constraint (::b == (::a + ::b::x));
 // }
 // >>>
@@ -17,9 +18,10 @@ predicate test {
 // flattened <<<
 // const ::a: int = 242;
 // const ::b::x: int = 22;
-//
-// predicate ::test {
-//     var ::b: int;
+// 
+// predicate ::test(
+//     ::b: int,
+// ) {
 //     constraint (::b == (242 + 22));
 //     constraint __eq_set(__mut_keys(), {0});
 // }

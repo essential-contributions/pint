@@ -1,7 +1,6 @@
-predicate test {
-    var a: int[4];
-    var b = [11, 22, 33, 44, 55];
-    var c = [66, 77];
+predicate test(a: int[4], b: int[5], c: int[2]) {
+    constraint b == [11, 22, 33, 44, 55];
+    constraint c == [66, 77];
 
     constraint a == b;
     constraint a != c;
@@ -9,10 +8,11 @@ predicate test {
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::a: int[4];
-//     var ::b;
-//     var ::c;
+// predicate ::test(
+//     ::a: int[4],
+//     ::b: int[5],
+//     ::c: int[2],
+// ) {
 //     constraint (::b == [11, 22, 33, 44, 55]);
 //     constraint (::c == [66, 77]);
 //     constraint (::a == ::b);
@@ -23,12 +23,12 @@ predicate test {
 
 // flattening_failure <<<
 // comparison between differently sized arrays
-// @154..172: cannot compare arrays of different sizes
+// @184..202: cannot compare arrays of different sizes
 // the left-hand side argument of the `!=` operator has 2 elements while the right-hand side argument has 3 elements
 // comparison between differently sized arrays
-// @131..137: cannot compare arrays of different sizes
+// @161..167: cannot compare arrays of different sizes
 // the left-hand side argument of the `!=` operator has 4 elements while the right-hand side argument has 2 elements
 // comparison between differently sized arrays
-// @108..114: cannot compare arrays of different sizes
+// @138..144: cannot compare arrays of different sizes
 // the left-hand side argument of the `==` operator has 4 elements while the right-hand side argument has 5 elements
 // >>>

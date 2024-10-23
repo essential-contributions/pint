@@ -10,7 +10,7 @@ storage {
     v1: V, 
 }
 
-predicate Foo {
+predicate Foo() {
     state u0 = mut storage::u0;
     state u1 = mut storage::u1;
     state m = mut storage::m[5];

@@ -1,1 +1,1 @@
-var c = 5;
+state c = 5;

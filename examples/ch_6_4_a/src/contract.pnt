@@ -2,8 +2,8 @@
 use ::data::contract_lib;
 use ::data::predicate_lib;
 
-predicate test {
-    var contract_data: contract_lib::Data;
-    var predicate_data: predicate_lib::Data;
-}
+predicate test(
+    contract_data: contract_lib::Data,
+    predicate_data: predicate_lib::Data,
+) {}
 // ANCHOR_END: solution

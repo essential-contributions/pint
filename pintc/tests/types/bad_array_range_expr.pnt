@@ -1,46 +1,47 @@
 union MyUnion = A | B;
 
-predicate test {
+predicate test(
     // Bad
-    var a: int[true];
-    var b: int[false];
-    var d: int[0x0000000000000000000000000000000000000000000000000000000000000000];
-    var e: int[{1, 2}];
-    var f: int[[1, 2]];
+    a: int[true],
+    b: int[false],
+    d: int[0x0000000000000000000000000000000000000000000000000000000000000000],
+    e: int[{1, 2}],
+    f: int[[1, 2]],
 
     // Ok
-    var i: int[10];
-    var j: int[MyUnion];
-}
+    i: int[10],
+    j: int[MyUnion],
+) { }
 
 // parsed <<<
 // union ::MyUnion = A | B;
-//
-// predicate ::test {
-//     var ::a: int[true];
-//     var ::b: int[false];
-//     var ::d: int[0x0000000000000000000000000000000000000000000000000000000000000000];
-//     var ::e: int[{1, 2}];
-//     var ::f: int[[1, 2]];
-//     var ::i: int[10];
-//     var ::j: int[::MyUnion];
+// 
+// predicate ::test(
+//     ::a: int[true],
+//     ::b: int[false],
+//     ::d: int[0x0000000000000000000000000000000000000000000000000000000000000000],
+//     ::e: int[{1, 2}],
+//     ::f: int[[1, 2]],
+//     ::i: int[10],
+//     ::j: int[::MyUnion],
+// ) {
 // }
 // >>>
 
 // typecheck_failure <<<
 // invalid array range type bool
-// @67..71: array access must be of type `int` or enumeration `union`
+// @62..66: array access must be of type `int` or enumeration `union`
 // found range type `bool`
 // invalid array range type bool
-// @89..94: array access must be of type `int` or enumeration `union`
+// @80..85: array access must be of type `int` or enumeration `union`
 // found range type `bool`
 // invalid array range type b256
-// @112..178: array access must be of type `int` or enumeration `union`
+// @99..165: array access must be of type `int` or enumeration `union`
 // found range type `b256`
 // invalid array range type {int, int}
-// @196..202: array access must be of type `int` or enumeration `union`
+// @179..185: array access must be of type `int` or enumeration `union`
 // found range type `{int, int}`
 // invalid array range type int[2]
-// @220..226: array access must be of type `int` or enumeration `union`
+// @199..205: array access must be of type `int` or enumeration `union`
 // found range type `int[2]`
 // >>>

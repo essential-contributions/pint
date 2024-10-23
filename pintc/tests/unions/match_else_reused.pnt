@@ -1,8 +1,6 @@
 union value = nul | scalar(int);
 
-predicate test {
-    var x: value;
-
+predicate test(x: value) {
     constraint match x {
         value::nul => false,
         value::scalar(n) => n > 0,
@@ -10,9 +8,7 @@ predicate test {
     };
 }
 
-predicate decl_test {
-    var x: value;
-
+predicate decl_test(x: value) {
     match x {
         value::nul => {
             constraint false;
@@ -28,14 +24,16 @@ predicate decl_test {
 
 // parsed <<<
 // union ::value = nul | scalar(int);
-//
-// predicate ::test {
-//     var ::x: ::value;
+// 
+// predicate ::test(
+//     ::x: ::value,
+// ) {
 //     constraint match ::x { ::value::nul => false, ::value::scalar(n) => (::n > 0), ::value::nul => true };
 // }
-//
-// predicate ::decl_test {
-//     var ::x: ::value;
+// 
+// predicate ::decl_test(
+//     ::x: ::value,
+// ) {
 //     match ::x {
 //         ::value::nul => {
 //             constraint false
@@ -52,9 +50,9 @@ predicate decl_test {
 
 // typecheck_failure <<<
 // re-used match variant
-// @167..177: match variant `::value::nul` has previously been bound
+// @158..168: match variant `::value::nul` has previously been bound
 // re-used match variant
-// @394..404: match variant `::value::nul` has previously been bound
+// @376..386: match variant `::value::nul` has previously been bound
 // constraint expression type error
-// @85..192: expecting type `bool`
+// @76..183: expecting type `bool`
 // >>>

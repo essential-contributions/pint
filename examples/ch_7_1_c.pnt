@@ -1,6 +1,6 @@
 // <disabled>
 // ANCHOR: self_ref
-predicate C {
+predicate C() {
     pub var x: int;    
 
     predicate CI = C();

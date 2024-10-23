@@ -1,67 +1,71 @@
-predicate Foo {
+predicate Foo() {
     predicate Bar = Bar();
     constraint Bar::x == 0;
 }
-predicate Baz {
+predicate Baz() {
     predicate Bar = Bar();
 }
 
-predicate P {
+predicate P() {
     pub var x: int;
     predicate PI = P();
     constraint PI::x == 0;
 }
 
-predicate A {
-    var x: int;
+predicate A(x: int) {
 }
 
-predicate B {
+predicate B() {
     predicate AI = A();
     constraint AI::x == 0; // `x` is not `pub` in `A`
 }
 
 // parsed <<<
-// predicate ::Foo {
+// predicate ::Foo(
+//     __::Bar_pathway: int,
+// ) {
 //     predicate ::Bar = ::Bar()
-//     var __::Bar_pathway: int;
 //     constraint (::Bar::x == 0);
 // }
 // 
-// predicate ::Baz {
+// predicate ::Baz(
+//     __::Bar_pathway: int,
+// ) {
 //     predicate ::Bar = ::Bar()
-//     var __::Bar_pathway: int;
-// }
-//
-// predicate ::P {
-//     predicate ::PI = ::P()
-//     pub var ::x: int;
-//     var __::PI_pathway: int;
-//     constraint (::PI::x == 0);
-// }
-//
-// predicate ::A {
-//     var ::x: int;
 // }
 // 
-// predicate ::B {
+// predicate ::P(
+//     __::PI_pathway: int,
+// ) {
+//     predicate ::PI = ::P()
+//     pub var ::x: int;
+//     constraint (::PI::x == 0);
+// }
+// 
+// predicate ::A(
+//     ::x: int,
+// ) {
+// }
+// 
+// predicate ::B(
+//     __::AI_pathway: int,
+// ) {
 //     predicate ::AI = ::A()
-//     var __::AI_pathway: int;
 //     constraint (::AI::x == 0);
 // }
 // >>>
 
 // typecheck_failure <<<
 // cannot find predicate `Bar` in this contract
-// @20..41: this predicate instance references predicate `Bar` which does not exist in this contract
+// @22..43: this predicate instance references predicate `Bar` which does not exist in this contract
 // cannot find predicate `Bar` in this contract
-// @93..114: this predicate instance references predicate `Bar` which does not exist in this contract
+// @97..118: this predicate instance references predicate `Bar` which does not exist in this contract
 // self referential predicate `P`
-// @157..175: this predicate instance references the predicate it's declared in
+// @163..181: this predicate instance references the predicate it's declared in
 // cannot find value `::Bar::x` in this scope
-// @58..64: not found in this scope
+// @60..66: not found in this scope
 // cannot find value `::PI::x` in this scope
-// @192..197: not found in this scope
+// @198..203: not found in this scope
 // cannot find value `::AI::x` in this scope
 // @293..298: not found in this scope
 // >>>

@@ -1,32 +1,30 @@
-predicate test {
-    var x: int = 1..5;
-    var y: real = 1.1..5.5;
+predicate test(x: int, y: real) {
+    constraint x in 1..5;
+    constraint y in 1.1..5.5;
 
     constraint x > 2;
     constraint y <= 1.9;
 }
 
-// parsed <<<<
-// predicate ::test {
-//     var ::x: int;
-//     var ::y: real;
-//     constraint (::x >= 1);
-//     constraint (::x <= 5);
-//     constraint (::y >= 1.1e0);
-//     constraint (::y <= 5.5e0);
+// parsed <<<
+// predicate ::test(
+//     ::x: int,
+//     ::y: real,
+// ) {
+//     constraint ::x in 1..5;
+//     constraint ::y in 1.1e0..5.5e0;
 //     constraint (::x > 2);
 //     constraint (::y <= 1.9e0);
 // }
 // >>>
 
 // flattened <<<
-// predicate ::test {
-//     var ::x: int;
-//     var ::y: real;
-//     constraint (::x >= 1);
-//     constraint (::x <= 5);
-//     constraint (::y >= 1.1e0);
-//     constraint (::y <= 5.5e0);
+// predicate ::test(
+//     ::x: int,
+//     ::y: real,
+// ) {
+//     constraint ((::x >= 1) && (::x <= 5));
+//     constraint ((::y >= 1.1e0) && (::y <= 5.5e0));
 //     constraint (::x > 2);
 //     constraint (::y <= 1.9e0);
 //     constraint __eq_set(__mut_keys(), {0});

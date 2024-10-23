@@ -10,13 +10,13 @@
 //    we're not gambling all the money away.
 // ANCHOR_END: multi_line_comment 
 
-predicate test {
+predicate test() {
 // ANCHOR: eol_comment
-var big_answer = 42; // answer to life, the universe, and everything
+state big_answer = 42; // answer to life, the universe, and everything
 // ANCHOR_END: eol_comment 
 
 // ANCHOR: pre_comment
 // answer to life, the universe, and everything
-var big_answer_too = 42;
+state big_answer_too = 42;
 // ANCHOR_END: pre_comment 
 }

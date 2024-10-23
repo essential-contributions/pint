@@ -11,12 +11,12 @@ type T = { __x: int, y: bool };
 union ___E = A | B;
 type __MyType = int;
 
-predicate test {
-    var __x = 5;
+predicate test(__x: int) {
+    constraint __x = 5;
     constraint __x == 0;
 }
 
 // parse_failure <<<
 // expected `an identifier`, `macro_name`, `self`, or `{`, found `__x`
 // @12..15: expected `an identifier`, `macro_name`, `self`, or `{`
-// >>> 
+// >>>

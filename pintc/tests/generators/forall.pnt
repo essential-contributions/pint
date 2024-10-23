@@ -1,9 +1,9 @@
-predicate test {
-    var k: int;
-    var l: int;
-    var A: int[4];
-    var B: int[4];
-
+predicate test(
+    k: int,
+    l: int,
+    A: int[4],
+    B: int[4],
+) {
     constraint forall i in 0..3, j in 0..3 where !(i >= j), i - 1 >= 0 && j > 0 { k > i + j || j > k };
     constraint forall i in 0..3, j in 0..3 where !(i >= j), i - 1 >= 0 && j > 0 { !(i - j < k) };
     constraint forall i in 0..3, j in 0..3 where !(i >= j), i - 1 >= 0 && j > 0 { i > 0 ? j > 0 : k > 1 };
@@ -22,11 +22,12 @@ predicate test {
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::k: int;
-//     var ::l: int;
-//     var ::A: int[4];
-//     var ::B: int[4];
+// predicate ::test(
+//     ::k: int,
+//     ::l: int,
+//     ::A: int[4],
+//     ::B: int[4],
+// ) {
 //     constraint forall i in 0..3, j in 0..3, where !(::i >= ::j), (((::i - 1) >= 0) && (::j > 0)) { ((::k > (::i + ::j)) || (::j > ::k)) };
 //     constraint forall i in 0..3, j in 0..3, where !(::i >= ::j), (((::i - 1) >= 0) && (::j > 0)) { !((::i - ::j) < ::k) };
 //     constraint forall i in 0..3, j in 0..3, where !(::i >= ::j), (((::i - 1) >= 0) && (::j > 0)) { ((::i > 0) ? (::j > 0) : (::k > 1)) };
@@ -41,11 +42,12 @@ predicate test {
 // >>>
 
 // flattened <<<
-// predicate ::test {
-//     var ::k: int;
-//     var ::l: int;
-//     var ::A: int[4];
-//     var ::B: int[4];
+// predicate ::test(
+//     ::k: int,
+//     ::l: int,
+//     ::A: int[4],
+//     ::B: int[4],
+// ) {
 //     constraint (((true && ((::k > (1 + 2)) || (2 > ::k))) && ((::k > (1 + 3)) || (3 > ::k))) && ((::k > (2 + 3)) || (3 > ::k)));
 //     constraint (((true && !((1 - 2) < ::k)) && !((1 - 3) < ::k)) && !((2 - 3) < ::k));
 //     constraint (((true && ((1 > 0) ? (2 > 0) : (::k > 1))) && ((1 > 0) ? (3 > 0) : (::k > 1))) && ((2 > 0) ? (3 > 0) : (::k > 1)));

@@ -2,26 +2,35 @@ storage {
     x: int,
 }
 
-predicate Test {
+predicate Test(
+    a1: bool, 
+    b1: bool,
+    a2: bool, 
+    b2: bool,
+    a3: bool, 
+    b3: bool,
+    a4: bool, 
+    b4: bool,
+){
     constraint (false && false) == false;
     constraint (false && true) == false;
     constraint (true && false) == false;
     constraint (true && true) == true;
 
-    var a1: bool = false;
-    var b1: bool = false;
+    constraint a1 == false;
+    constraint b1 == false;
     constraint (a1 && b1) == false;
 
-    var a2: bool = false;
-    var b2: bool = true;
+    constraint a2 == false;
+    constraint b2 == true;
     constraint (a2 && b2) == false;
 
-    var a3: bool = true;
-    var b3: bool = false;
+    constraint a3 == true;
+    constraint b3 == false;
     constraint (a3 && b3) == false;
 
-    var a4: bool = true;
-    var b4: bool = true;
+    constraint a4 == true;
+    constraint b4 == true;
     constraint (a4 && b4) == true;
 
     constraint (a1 && b1 && a2 && b3) == false;

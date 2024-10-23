@@ -3,9 +3,8 @@ const b = 3 < 4;
 const c = { 1, 2 };
 const d: int[5] = [0, 1, 2, 3, 4];
 
-predicate Test {
-    var x = 1;
-    var y: int;
+predicate Test(x: int, y: int) {
+    constraint x == 1;
 
     // trivial and should be removed
     constraint true;
@@ -27,9 +26,10 @@ predicate Test {
 // const ::a = true;
 // const ::c = {1, 2};
 // 
-// predicate ::Test {
-//     var ::x;
-//     var ::y: int;
+// predicate ::Test(
+//     ::x: int,
+//     ::y: int,
+// ) {
 //     constraint (::x == 1);
 //     constraint true;
 //     constraint !false;
@@ -49,9 +49,10 @@ predicate Test {
 // const ::a: bool = true;
 // const ::c: {int, int} = {1, 2};
 // 
-// predicate ::Test {
-//     var ::x: int;
-//     var ::y: int;
+// predicate ::Test(
+//     ::x: int,
+//     ::y: int,
+// ) {
 //     constraint (::x == 1);
 //     constraint true;
 //     constraint !false;
@@ -72,9 +73,10 @@ predicate Test {
 // const ::a: bool = true;
 // const ::c: {int, int} = {1, 2};
 // 
-// predicate ::Test {
-//     var ::x: int;
-//     var ::y: int;
+// predicate ::Test(
+//     ::x: int,
+//     ::y: int,
+// ) {
 //     constraint (::x == 1);
 //     constraint (::x < ::y);
 //     constraint (::x == ::x);

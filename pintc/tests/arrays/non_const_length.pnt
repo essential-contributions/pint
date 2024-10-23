@@ -1,16 +1,15 @@
-predicate test {
-    var n: int;
-    var a: int[n];
+predicate test(n: int, a: int[n]) {
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::n: int;
-//     var ::a: int[::n];
+// predicate ::test(
+//     ::n: int,
+//     ::a: int[::n],
+// ) {
 // }
 // >>>
 
 // flattening_failure <<<
 // attempt to use a non-constant value as an array length
-// @48..49: this must be a constant
+// @30..31: this must be a constant
 // >>>

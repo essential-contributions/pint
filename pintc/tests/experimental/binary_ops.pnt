@@ -1,67 +1,60 @@
 union T = FortyTwo | FleventyFive;
 
-predicate test {
+predicate test() {
     // Numerics are allowed, but they must match.
-    var f = 66 + 77.7;
-    var g = 88 - 99.9;
-    var h = 10.10 * 11;
-    var i = 12 / 13.13;
-    var j = 14.14 % 15;
+    state f = 66 + 77.7;
+    state g = 88 - 99.9;
+    state h = 10.10 * 11;
+    state i = 12 / 13.13;
+    state j = 14.14 % 15;
 
-    var n = 18 >= 19.19;
+    state n = 18 >= 19.19;
 
-    var r = 25.25 || false;
+    state r = 25.25 || false;
 
     // Tuples can compare with `==` or `!=` too.
-    var t = {28.28, 29} != {30, 31};
+    state t = {28.28, 29} != {30, 31};
 }
 
 // parsed <<<
 // union ::T = FortyTwo | FleventyFive;
 // 
-// predicate ::test {
-//     var ::f;
-//     var ::g;
-//     var ::h;
-//     var ::i;
-//     var ::j;
-//     var ::n;
-//     var ::r;
-//     var ::t;
-//     constraint (::f == (66 + 7.77e1));
-//     constraint (::g == (88 - 9.99e1));
-//     constraint (::h == (1.01e1 * 11));
-//     constraint (::i == (12 / 1.313e1));
-//     constraint (::j == (1.414e1 % 15));
-//     constraint (::n == (18 >= 1.919e1));
-//     constraint (::r == (2.525e1 || false));
-//     constraint (::t == ({2.828e1, 29} != {30, 31}));
+// predicate ::test(
+// ) {
+//     state ::f = (66 + 7.77e1);
+//     state ::g = (88 - 9.99e1);
+//     state ::h = (1.01e1 * 11);
+//     state ::i = (12 / 1.313e1);
+//     state ::j = (1.414e1 % 15);
+//     state ::n = (18 >= 1.919e1);
+//     state ::r = (2.525e1 || false);
+//     state ::t = ({2.828e1, 29} != {30, 31});
 // }
 // >>>
 
 // typecheck_failure <<<
 // binary operator type error
-// @120..124: operator `+` argument has unexpected type `real`
-// @115..117: expecting type `int`
+// @124..128: operator `+` argument has unexpected type `real`
+// @119..121: expecting type `int`
 // binary operator type error
-// @143..147: operator `-` argument has unexpected type `real`
-// @138..140: expecting type `int`
+// @149..153: operator `-` argument has unexpected type `real`
+// @144..146: expecting type `int`
 // binary operator type error
-// @169..171: operator `*` argument has unexpected type `int`
-// @161..166: expecting type `real`
+// @177..179: operator `*` argument has unexpected type `int`
+// @169..174: expecting type `real`
 // binary operator type error
-// @190..195: operator `/` argument has unexpected type `real`
-// @185..187: expecting type `int`
+// @200..205: operator `/` argument has unexpected type `real`
+// @195..197: expecting type `int`
 // binary operator type error
-// @217..219: operator `%` argument has unexpected type `int`
-// @209..214: expecting type `real`
+// @229..231: operator `%` argument has unexpected type `int`
+// @221..226: expecting type `real`
 // binary operator type error
-// @240..245: operator `>=` argument has unexpected type `real`
-// @234..236: expecting type `int`
+// @254..259: operator `>=` argument has unexpected type `real`
+// @248..250: expecting type `int`
 // binary operator type error
-// @260..265: operator `||` argument has unexpected type `real`
-// @260..274: expecting type `bool`
+// @276..281: operator `||` argument has unexpected type `real`
+// @276..290: expecting type `bool`
 // binary operator type error
-// @353..361: operator `!=` argument has unexpected type `{int, int}`
-// @338..349: expecting type `{real, int}`
+// @371..379: operator `!=` argument has unexpected type `{int, int}`
+// @356..367: expecting type `{real, int}`
 // >>>

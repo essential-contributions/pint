@@ -4,8 +4,8 @@ use ::data::contract_lib::Data as ContractData;
 use ::data::predicate_lib::Data as PredicateData;
 // ANCHOR_END: imports 
 
-predicate test {
-var contract_data: ContractData;
-var predicate_data: PredicateData;
+predicate test(
+    contract_data: ContractData,
+    predicate_data: PredicateData,
+) { }
 // ANCHOR_END: solution
-}

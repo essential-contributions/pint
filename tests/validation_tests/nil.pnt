@@ -16,7 +16,7 @@ storage {
 }
 
 // Constraint set with address `0x0000000000000000000000000000000000000000000000000000000000000000`
-predicate Foo {
+predicate Foo() {
     state x = mut storage::x;
     state y = mut storage::y;
     state z = mut storage::z;

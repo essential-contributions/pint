@@ -2,18 +2,17 @@ macro @equal($x, $y) {
     $x == $y
 }
 
-macro @foo($x) {
-    var a: int;
-    constraint a == $x;
+macro @foo($a, $x) {
+    constraint $a == $x;
 }
 
-predicate Foo {
-   @foo(3);
+predicate Foo(a: int) {
+   @foo(a; 3);
    constraint @equal(4; 4);
 }
 
-predicate Bar {
-   @foo(4);
+predicate Bar(a: int) {
+   @foo(a; 4);
    constraint @equal([ 1, 2 ]; [ 1, 2 ]);
 }
 
@@ -29,8 +28,7 @@ macro @c($z) {
     $z == 0
 }
 
-predicate Baz {
-    var v: int;
+predicate Baz(v: int) {
     constraint @a(v);
     constraint @b(v);
     constraint @a(v);
@@ -45,67 +43,75 @@ macro @sum($x) {
     $x
 }
 
-predicate Sum {
-    var a: int = 4;
-    var b: int = @sum(1; 2; 3; a);
+predicate Sum(a: int, b: int) {
+    constraint a == 4;
+    constraint b == @sum(1; 2; 3; a);
 }
 
 // parsed <<<
-// predicate ::Foo {
-//     var ::anon@0::a: int;
+// predicate ::Foo(
+//     ::a: int,
+// ) {
 //     constraint (4 == 4);
-//     constraint (::anon@0::a == 3);
+//     constraint (::a == 3);
 // }
-//
-// predicate ::Bar {
-//     var ::anon@1::a: int;
+// 
+// predicate ::Bar(
+//     ::a: int,
+// ) {
 //     constraint ([1, 2] == [1, 2]);
-//     constraint (::anon@1::a == 4);
+//     constraint (::a == 4);
 // }
-//
-// predicate ::Baz {
-//     var ::v: int;
+// 
+// predicate ::Baz(
+//     ::v: int,
+// ) {
 //     constraint (::v == 0);
 //     constraint (::v == 0);
 //     constraint (::v == 0);
 //     constraint (::v == 0);
 // }
-//
-// predicate ::Sum {
-//     var ::a: int;
-//     var ::b: int;
+// 
+// predicate ::Sum(
+//     ::a: int,
+//     ::b: int,
+// ) {
 //     constraint (::a == 4);
 //     constraint (::b == (((1 + 2) + 3) + ::a));
 // }
 // >>>
 
 // flattened <<<
-// predicate ::Foo {
-//     var ::anon@0::a: int;
+// predicate ::Foo(
+//     ::a: int,
+// ) {
 //     constraint (4 == 4);
-//     constraint (::anon@0::a == 3);
+//     constraint (::a == 3);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
-//
-// predicate ::Bar {
-//     var ::anon@1::a: int;
+// 
+// predicate ::Bar(
+//     ::a: int,
+// ) {
 //     constraint ([1, 2] == [1, 2]);
-//     constraint (::anon@1::a == 4);
+//     constraint (::a == 4);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
-//
-// predicate ::Baz {
-//     var ::v: int;
+// 
+// predicate ::Baz(
+//     ::v: int,
+// ) {
 //     constraint (::v == 0);
 //     constraint (::v == 0);
 //     constraint (::v == 0);
 //     constraint (::v == 0);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
-//
-// predicate ::Sum {
-//     var ::a: int;
-//     var ::b: int;
+// 
+// predicate ::Sum(
+//     ::a: int,
+//     ::b: int,
+// ) {
 //     constraint (::a == 4);
 //     constraint (::b == (((1 + 2) + 3) + ::a));
 //     constraint __eq_set(__mut_keys(), {0});

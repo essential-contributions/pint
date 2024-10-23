@@ -29,22 +29,16 @@ type B = Undefined;
 union Baz = X | Y;
 type Xyzzy = int;
 
-predicate test {
+predicate test(a2: Undefined, b2: Undefined, a: int, b: Foo, d: Baz) {
     state a1: Undefined = storage::a;
     state b1: Undefined = storage::b;
 
-    var a2: Undefined;
-    var b2: Undefined;
+    state c1 = a1 as Undefined;
+    state c2 = b1 as Undefined;
 
-    var c1 = a1 as Undefined;
-    var c2 = b1 as Undefined;
+    state c = a as Bar;
 
-    var a: int;
-    var b: Foo;
-    var c = a as Bar;
-
-    var d: Baz;
-    var e = a as Xyzzy;
+    state e = a as Xyzzy;
 }
 
 // parsed <<<
@@ -73,42 +67,39 @@ predicate test {
 //     }
 // }
 // 
-// predicate ::test {
-//     var ::a2: ::Undefined;
-//     var ::b2: ::Undefined;
-//     var ::c1;
-//     var ::c2;
-//     var ::a: int;
-//     var ::b: ::Foo;
-//     var ::c;
-//     var ::d: ::Baz;
-//     var ::e;
+// predicate ::test(
+//     ::a2: ::Undefined,
+//     ::b2: ::Undefined,
+//     ::a: int,
+//     ::b: ::Foo,
+//     ::d: ::Baz,
+// ) {
 //     state ::a1: ::Undefined = storage::a;
 //     state ::b1: ::Undefined = storage::b;
-//     constraint (::c1 == ::a1 as ::Undefined);
-//     constraint (::c2 == ::b1 as ::Undefined);
-//     constraint (::c == ::a as ::Bar);
-//     constraint (::e == ::a as ::Xyzzy);
+//     state ::c1 = ::a1 as ::Undefined;
+//     state ::c2 = ::b1 as ::Undefined;
+//     state ::c = ::a as ::Bar;
+//     state ::e = ::a as ::Xyzzy;
 // }
 // >>>
 
 // typecheck_failure <<<
 // undefined type
-// @463..472: type is undefined
+// @517..526: type is undefined
 // undefined type
-// @501..510: type is undefined
+// @555..564: type is undefined
 // undefined type
-// @538..547: type is undefined
+// @451..460: type is undefined
 // undefined type
-// @561..570: type is undefined
+// @466..475: type is undefined
 // undefined type
-// @661..664: type is undefined
+// @488..491: type is undefined
 // undefined type
-// @683..686: type is undefined
+// @664..667: type is undefined
 // undefined type
-// @622..631: type is undefined
+// @633..642: type is undefined
 // undefined type
-// @592..601: type is undefined
+// @601..610: type is undefined
 // undefined type
 // @84..93: type is undefined
 // undefined type
@@ -138,13 +129,13 @@ predicate test {
 // type not allowed in storage
 // @35..44: found type ::Undefined in storage
 // invalid cast
-// @586..601: illegal cast to `::Undefined`
+// @595..610: illegal cast to `::Undefined`
 // casts may only be made to `int`
 // invalid cast
-// @616..631: illegal cast to `::Undefined`
+// @627..642: illegal cast to `::Undefined`
 // casts may only be made to `int`
 // invalid cast
-// @678..686: illegal cast to `::Bar`
+// @659..667: illegal cast to `::Bar`
 // casts may only be made to `int`
 // const initialization type error
 // @96..97: const initializer has unexpected type `int`

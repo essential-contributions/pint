@@ -1,1 +1,1 @@
-var a = 22;
+state a = 22;

@@ -1,16 +1,17 @@
-predicate test {
-    var a = 1_100_000;
-    var b = 1000;
-    var c = 1_2_3_4_5;
+predicate test(a: int, b: int, c: int) {
+    constraint a == 1_100_000;
+    constraint b == 1000;
+    constraint c == 1_2_3_4_5;
 
     constraint a / b > c;
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::a;
-//     var ::b;
-//     var ::c;
+// predicate ::test(
+//     ::a: int,
+//     ::b: int,
+//     ::c: int,
+// ) {
 //     constraint (::a == 1100000);
 //     constraint (::b == 1000);
 //     constraint (::c == 12345);
@@ -19,10 +20,11 @@ predicate test {
 // >>>
 
 // flattened <<<
-// predicate ::test {
-//     var ::a: int;
-//     var ::b: int;
-//     var ::c: int;
+// predicate ::test(
+//     ::a: int,
+//     ::b: int,
+//     ::c: int,
+// ) {
 //     constraint (::a == 1100000);
 //     constraint (::b == 1000);
 //     constraint (::c == 12345);

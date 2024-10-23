@@ -11,16 +11,14 @@ storage {
     my_array: int[5],
 }
 
-predicate Foo {
-    var v0: bool;
-    var v1: int;
-    var v2: b256;
-    var v3: { int, int };
-    var v4: { int, int, { int, int } };
-    var v5: { int, int[3], b256[2] };
-
-    @foo();
-
+predicate Foo(
+    v0: bool,
+    v1: int,
+    v2: b256,
+    v3: { int, int },
+    v4: { int, int, { int, int } },
+    v5: { int, int[3], b256[2] },
+) {
     pub var t0: bool;
     pub var t1: int;
     pub var t2: b256;
@@ -85,13 +83,6 @@ predicate Foo {
     constraint my_nested_map0_key1_2' == 1234;
     constraint my_nested_map1_key2_3' == { 69, { 0x1111111100000000111111110000000011111111000000001111111100000000, 96 } };
     constraint my_array' == [11, 12, 13, 14, 15];
-}
-
-macro @foo() {
-    var v5: int;
-    var v6: { int, int };
-    constraint v5 == 42;
-    constraint v6.0 == 43 && v6.1 == 44;
 }
 
 macro @bar() {

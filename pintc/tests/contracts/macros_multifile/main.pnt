@@ -2,13 +2,13 @@ use lib::@foo;
 use ::lib::@equal;
 use lib::{@a, @b, @sum};
 
-predicate Foo {
-   ::lib::@foo(3);
+predicate Foo(a: int) {
+   ::lib::@foo(a; 3);
    constraint @equal(4; 4);
 }
 
-predicate Bar {
-   @foo(4);
+predicate Bar(a: int) {
+   @foo(a; 4);
    constraint lib::@equal([ 1, 2 ]; [ 1, 2 ]);
 }
 
@@ -28,31 +28,35 @@ predicate Bar {
 //}
 
 // parsed <<<
-// predicate ::Foo {
-//     var ::anon@0::a: int;
+// predicate ::Foo(
+//     ::a: int,
+// ) {
 //     constraint (4 == 4);
-//     constraint (::anon@0::a == 3);
+//     constraint (::a == 3);
 // }
-//
-// predicate ::Bar {
-//     var ::anon@1::a: int;
+// 
+// predicate ::Bar(
+//     ::a: int,
+// ) {
 //     constraint ([1, 2] == [1, 2]);
-//     constraint (::anon@1::a == 4);
+//     constraint (::a == 4);
 // }
 // >>>
 
 // flattened <<<
-// predicate ::Foo {
-//     var ::anon@0::a: int;
+// predicate ::Foo(
+//     ::a: int,
+// ) {
 //     constraint (4 == 4);
-//     constraint (::anon@0::a == 3);
+//     constraint (::a == 3);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
-//
-// predicate ::Bar {
-//     var ::anon@1::a: int;
+// 
+// predicate ::Bar(
+//     ::a: int,
+// ) {
 //     constraint ([1, 2] == [1, 2]);
-//     constraint (::anon@1::a == 4);
+//     constraint (::a == 4);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

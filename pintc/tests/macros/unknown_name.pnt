@@ -2,11 +2,11 @@ macro @useful($0) {
     constraint a > $0;
 }
 
-predicate test {
+predicate test() {
     @useless(11);
 }
 
 // parse_failure <<<
 // macro not found
-// @67..79: macro `::@useless` not found
+// @69..81: macro `::@useless` not found
 // >>>

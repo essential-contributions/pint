@@ -1,4 +1,4 @@
-predicate test {
+predicate test(x: int) {
     // Magic Modulo Number.
     //
     // A number with an interesting property:
@@ -13,23 +13,23 @@ predicate test {
     // When I divide it by  9, the remainder is 8.
     // When I divide it by 10, the remainder is 9.
 
-    var x: int;
-
     constraint forall i in 2..10 {
         x % i == i - 1
     };
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::x: int;
+// predicate ::test(
+//     ::x: int,
+// ) {
 //     constraint forall i in 2..10, { ((::x % ::i) == (::i - 1)) };
 // }
 // >>>
 
 // flattened <<<
-// predicate ::test {
-//     var ::x: int;
+// predicate ::test(
+//     ::x: int,
+// ) {
 //     constraint (((((((((true && ((::x % 2) == (2 - 1))) && ((::x % 3) == (3 - 1))) && ((::x % 4) == (4 - 1))) && ((::x % 5) == (5 - 1))) && ((::x % 6) == (6 - 1))) && ((::x % 7) == (7 - 1))) && ((::x % 8) == (8 - 1))) && ((::x % 9) == (9 - 1))) && ((::x % 10) == (10 - 1)));
 //     constraint __eq_set(__mut_keys(), {0});
 // }

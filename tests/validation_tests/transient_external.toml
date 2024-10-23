@@ -2,10 +2,10 @@
 predicate_to_solve = { predicate = "::Simple" }
 decision_variables = [
   [0, 0, 0, 0], # foo_addr
-  [1],          #__::FooInstance1_pathway
   [58],         # ::x
   [31],         # ::y
   [1798],       # ::z
+  [1],          #__::FooInstance1_pathway
   [2],          #__::FooInstance2_pathway
 ]
 

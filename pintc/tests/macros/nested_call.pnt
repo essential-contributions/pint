@@ -10,16 +10,16 @@ macro @c($n, $m) {
     $n + $m
 }
 
-predicate test {
-    var x: int;
+predicate test(x: int) {
     constraint x > @a(@b(11));
     constraint x < @c(@b(@a(22)); @a(@b(33)));
     constraint x != @c(@c(44; 55); @c(66; 77));
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::x: int;
+// predicate ::test(
+//     ::x: int,
+// ) {
 //     constraint (::x > ((11 * 2) + 1));
 //     constraint (::x < (((22 + 1) * 2) + ((33 * 2) + 1)));
 //     constraint (::x != ((44 + 55) + (66 + 77)));
@@ -27,8 +27,9 @@ predicate test {
 // >>>
 
 // flattened <<<
-// predicate ::test {
-//     var ::x: int;
+// predicate ::test(
+//     ::x: int,
+// ) {
 //     constraint (::x > ((11 * 2) + 1));
 //     constraint (::x < (((22 + 1) * 2) + ((33 * 2) + 1)));
 //     constraint (::x != ((44 + 55) + (66 + 77)));

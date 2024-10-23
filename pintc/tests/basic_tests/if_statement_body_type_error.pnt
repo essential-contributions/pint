@@ -1,9 +1,10 @@
-predicate test {
-    var z: bool;
-    var x: int;
-    var y: int;
-    var xx: int;
-    var yy: int;
+predicate test(
+    z: bool,
+    x: int,
+    y: int,
+    xx: int,
+    yy: int,
+) {
 
     if true {
         if false {
@@ -32,12 +33,13 @@ predicate test {
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::z: bool;
-//     var ::x: int;
-//     var ::y: int;
-//     var ::xx: int;
-//     var ::yy: int;
+// predicate ::test(
+//     ::z: bool,
+//     ::x: int,
+//     ::y: int,
+//     ::xx: int,
+//     ::yy: int,
+// ) {
 //     if true {
 //         if false {
 //         } else {
@@ -65,10 +67,10 @@ predicate test {
 
 // typecheck_failure <<<
 // binary operator type error
-// @185..186: operator `&&` argument has unexpected type `int`
-// @174..186: expecting type `bool`
+// @168..169: operator `&&` argument has unexpected type `int`
+// @157..169: expecting type `bool`
 // operator invalid type error
-// @267..275: invalid non-numeric type `bool` for operator `+`
+// @250..258: invalid non-numeric type `bool` for operator `+`
 // operator invalid type error
-// @528..544: invalid non-numeric type `{int, bool}` for operator `+`
+// @511..527: invalid non-numeric type `{int, bool}` for operator `+`
 // >>>
