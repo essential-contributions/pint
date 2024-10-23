@@ -7,7 +7,7 @@ use crate::{
     },
     predicate::{Contract, Expr, ExprKey, Ident, PredKey, Predicate, PredicateInstance},
     span::{empty_span, Span, Spanned},
-    types::{PrimitiveKind, Type, UnionVariant},
+    types::{r#bool, PrimitiveKind, Type, UnionVariant},
     warning::Warning,
 };
 use fxhash::FxHashSet;
@@ -187,6 +187,34 @@ impl Contract {
 
             Expr::IntrinsicCall { kind, args, span } => {
                 self.infer_intrinsic_call_expr(handler, pred, kind, args, span)
+            }
+
+            Expr::PredicateCall {
+                c_addr,
+                p_addr,
+                args,
+                ..
+            } => {
+                let mut deps = Vec::new();
+
+                if c_addr.get_ty(self).is_unknown() {
+                    deps.push(*c_addr);
+                }
+
+                if p_addr.get_ty(self).is_unknown() {
+                    deps.push(*p_addr);
+                }
+
+                args.iter()
+                    .filter(|arg_key| arg_key.get_ty(self).is_unknown())
+                    .for_each(|arg_key| deps.push(*arg_key));
+
+                if deps.is_empty() {
+                    // Check stuff
+                    Ok(Inference::Type(r#bool()))
+                } else {
+                    Ok(Inference::Dependencies(deps))
+                }
             }
 
             Expr::Select {

@@ -6,9 +6,7 @@ interface i {
         x: ary,
     }
 
-    predicate p {
-        pub var x1: ary;
-    }
+    predicate p(x1: ary);
 }
 
 predicate test(addr1: b256) {
@@ -22,9 +20,9 @@ predicate test(addr1: b256) {
 //     storage {
 //         x: ::ary,
 //     }
-//     predicate p {
-//         pub var x1: ::ary;
-//     }
+//     predicate p (
+//         x1: ::ary,
+//     );
 // }
 // 
 // predicate ::test(
@@ -41,9 +39,9 @@ predicate test(addr1: b256) {
 //     storage {
 //         x: int[3],
 //     }
-//     predicate p {
-//         pub var x1: int[3];
-//     }
+//     predicate p (
+//         x1: int[3],
+//     );
 // }
 // 
 // predicate ::test(

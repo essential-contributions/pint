@@ -35,6 +35,10 @@ pub enum Token {
     LtEq,
     #[token(">=")]
     GtEq,
+    #[token("<<")]
+    DoubleAngledLeft,
+    #[token(">>")]
+    DoubleAngledRight,
     #[token("==")]
     EqEq,
     #[token("!=")]
@@ -252,6 +256,8 @@ impl fmt::Display for Token {
             Token::Lt => write!(f, "<"),
             Token::LtEq => write!(f, "<="),
             Token::GtEq => write!(f, ">="),
+            Token::DoubleAngledLeft => write!(f, "<<"),
+            Token::DoubleAngledRight => write!(f, ">>"),
             Token::EqEq => write!(f, "=="),
             Token::NotEq => write!(f, "!="),
             Token::DoubleAmpersand => write!(f, "&&"),

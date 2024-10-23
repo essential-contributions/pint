@@ -18,9 +18,7 @@ interface Boo {
         c: I,
     }
 
-    predicate Foo {
-        pub var x: A;
-    }
+    predicate Foo(x: A);
 }
 
 predicate test(h: Hooray) {
@@ -63,9 +61,9 @@ predicate test(h: Hooray) {
 //     storage {
 //         c: ::I,
 //     }
-//     predicate Foo {
-//         pub var x: ::A;
-//     }
+//     predicate Foo (
+//         x: ::A,
+//     );
 // }
 // 
 // predicate ::test(
@@ -105,9 +103,9 @@ predicate test(h: Hooray) {
 //     storage {
 //         c: int,
 //     }
-//     predicate Foo {
-//         pub var x: ::TheLetterA;
-//     }
+//     predicate Foo (
+//         x: ::TheLetterA,
+//     );
 // }
 // 
 // predicate ::test(

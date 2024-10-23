@@ -14,11 +14,11 @@ predicate Foo(a: int, b: bool, c: int[4]) {
 interface MyInterface {
     // storage block, if present
 
-    predicate Foo {
-        pub var x: int;
-        pub var y: b256;
-        pub var t: { int, bool, b256 };
-    }
+    predicate Foo(
+        x: int,
+        y: b256,
+        t: { int, bool, b256 },
+    );
 
     // other predicates, if present
 }

@@ -4,14 +4,14 @@ interface ExternalContract {
         // storage variables
     }
 
-    predicate Foo {
-        // all **public** decision variables     
-    }
+    predicate Foo(
+        // all decision variables
+    );
 
-    predicate Bar {
-        // all **public** decision variables     
-    }
+    predicate Bar(
+        // all decision variables
+    );
 
-    // other constraint sets
+    // other predicates 
 }
 // ANCHOR_END: interface

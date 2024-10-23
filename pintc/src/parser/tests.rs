@@ -659,8 +659,8 @@ interface Foo {
         boolean: bool,
     }
 
-    predicate Bar;
-    predicate Baz { pub var x: int; }
+    predicate Bar();
+    predicate Baz(x: int);
 }
 "#;
 
@@ -672,10 +672,10 @@ interface Foo {
                     integer: int,
                     boolean: bool,
                 }
-                predicate Bar;
-                predicate Baz {
-                    pub var x: int;
-                }
+                predicate Bar();
+                predicate Baz (
+                    x: int,
+                );
             }"#]],
     );
 
@@ -747,13 +747,13 @@ interface Foo {
         &run_parser!(
             pint,
             r#"
-            interface Foo { storage { } predicate Baz { } }"#
+            interface Foo { storage { } predicate Baz(); }"#
         ),
         expect_test::expect![[r#"
             interface ::Foo {
                 storage {
                 }
-                predicate Baz;
+                predicate Baz();
             }"#]],
     );
     check(
@@ -791,43 +791,45 @@ interface Foo {
             pint,
             r#"
             interface Foo {
-                predicate Baz { var x: int }
-            }"#
-        ),
-        expect_test::expect![[r#"
-            expected `pub`, or `}`, found `var`
-            @61..64: expected `pub`, or `}`
-        "#]],
-    );
-
-    check(
-        &run_parser!(
-            pint,
-            r#"
-            interface Foo {
-                predicate Baz { pub var x; }
-            }"#
-        ),
-        expect_test::expect![[r#"
-            expected `:`, found `;`
-            @70..71: expected `:`
-        "#]],
-    );
-
-    check(
-        &run_parser!(
-            pint,
-            r#"
-            interface Foo {
-                predicate Baz { pub var x: int; pub var y: b256; }
+                predicate Baz(x: int);
             }"#
         ),
         expect_test::expect![[r#"
             interface ::Foo {
-                predicate Baz {
-                    pub var x: int;
-                    pub var y: b256;
-                }
+                predicate Baz (
+                    x: int,
+                );
+            }"#]],
+    );
+
+    check(
+        &run_parser!(
+            pint,
+            r#"
+            interface Foo {
+                predicate Baz(x);
+            }"#
+        ),
+        expect_test::expect![[r#"
+            expected `:`, found `)`
+            @60..61: expected `:`
+        "#]],
+    );
+
+    check(
+        &run_parser!(
+            pint,
+            r#"
+            interface Foo {
+                predicate Baz(x: int, y: b256,);
+            }"#
+        ),
+        expect_test::expect![[r#"
+            interface ::Foo {
+                predicate Baz (
+                    x: int,
+                    y: b256,
+                );
             }"#]],
     );
 

@@ -151,18 +151,18 @@ impl Contract {
                 write!(f, "    predicate {}", predicate_interface.name)?;
 
                 if predicate_interface.vars.is_empty() {
-                    writeln!(f, ";")?;
+                    writeln!(f, "();")?;
                 } else {
-                    writeln!(f, " {{")?;
+                    writeln!(f, " (")?;
                     for var in &predicate_interface.vars {
                         writeln!(
                             f,
-                            "        pub var {}: {};",
+                            "        {}: {},",
                             var.name,
                             self.with_ctrct(var.ty.clone())
                         )?;
                     }
-                    writeln!(f, "    }}")?;
+                    writeln!(f, "    );")?;
                 }
             }
 

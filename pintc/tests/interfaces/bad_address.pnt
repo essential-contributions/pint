@@ -4,10 +4,10 @@ interface Foo {
         y: int,
     }
 
-    predicate I1 {
-        pub var x: int;
-        pub var y: b256;
-    }
+    predicate I1(
+        x: int,
+        y: b256,
+    );
 }
 
 predicate Simple(addr: b256) {
@@ -25,10 +25,10 @@ predicate Simple(addr: b256) {
 //         x: int,
 //         y: int,
 //     }
-//     predicate I1 {
-//         pub var x: int;
-//         pub var y: b256;
-//     }
+//     predicate I1 (
+//         x: int,
+//         y: b256,
+//     );
 // }
 // 
 // predicate ::Simple(
@@ -46,19 +46,19 @@ predicate Simple(addr: b256) {
 
 // typecheck_failure <<<
 // operator invalid type error
-// @210..218: invalid non-numeric type `bool` for operator `+`
+// @194..202: invalid non-numeric type `bool` for operator `+`
 // address expression type error
-// @210..218: address expression has unexpected type `int`
-// @210..218: expecting type `b256`
+// @194..202: address expression has unexpected type `int`
+// @194..202: expecting type `b256`
 // address expression type error
-// @254..260: address expression has unexpected type `{int, int}`
-// @254..260: expecting type `b256`
+// @238..244: address expression has unexpected type `{int, int}`
+// @238..244: expecting type `b256`
 // operator invalid type error
-// @347..355: invalid non-numeric type `bool` for operator `+`
+// @331..339: invalid non-numeric type `bool` for operator `+`
 // address expression type error
-// @347..355: address expression has unexpected type `int`
-// @347..355: expecting type `b256`
+// @331..339: address expression has unexpected type `int`
+// @331..339: expecting type `b256`
 // address expression type error
-// @402..407: address expression has unexpected type `bool`
-// @402..407: expecting type `b256`
+// @386..391: address expression has unexpected type `bool`
+// @386..391: expecting type `b256`
 // >>>

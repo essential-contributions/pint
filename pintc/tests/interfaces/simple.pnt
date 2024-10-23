@@ -4,19 +4,19 @@ interface Foo {
         y: int,
     }
 
-    predicate I1 {
-        pub var x1: int;
-        pub var x2: b256;
-        pub var x3: bool;
-    }
+    predicate I1(
+        x1: int,
+        x2: b256,
+        x3: bool,
+    );
 
-    predicate I2 {
-        pub var x1: int;
-        pub var x2: b256;
-        pub var x3: bool;
-    }
+    predicate I2(
+        x1: int,
+        x2: b256,
+        x3: bool,
+    );
 
-    predicate I3;
+    predicate I3();
 }
 
 interface Bar {
@@ -25,19 +25,19 @@ interface Bar {
         z: b256,
     }
 
-    predicate I1 {
-        pub var x1: int;
-        pub var x2: b256;
-        pub var x3: bool;
-    }
+    predicate I1(
+        x1: int,
+        x2: b256,
+        x3: bool,
+    );
 
-    predicate I2 {
-        pub var x1: int;
-        pub var x2: b256;
-        pub var x3: bool;
-    }
+    predicate I2(
+        x1: int,
+        x2: b256,
+        x3: bool,
+    );
 
-    predicate I3;
+    predicate I3();
 }
 
 predicate Simple(
@@ -75,34 +75,34 @@ predicate Simple(
 //         x: int,
 //         y: int,
 //     }
-//     predicate I1 {
-//         pub var x1: int;
-//         pub var x2: b256;
-//         pub var x3: bool;
-//     }
-//     predicate I2 {
-//         pub var x1: int;
-//         pub var x2: b256;
-//         pub var x3: bool;
-//     }
-//     predicate I3;
+//     predicate I1 (
+//         x1: int,
+//         x2: b256,
+//         x3: bool,
+//     );
+//     predicate I2 (
+//         x1: int,
+//         x2: b256,
+//         x3: bool,
+//     );
+//     predicate I3();
 // }
 // interface ::Bar {
 //     storage {
 //         x: int,
 //         z: b256,
 //     }
-//     predicate I1 {
-//         pub var x1: int;
-//         pub var x2: b256;
-//         pub var x3: bool;
-//     }
-//     predicate I2 {
-//         pub var x1: int;
-//         pub var x2: b256;
-//         pub var x3: bool;
-//     }
-//     predicate I3;
+//     predicate I1 (
+//         x1: int,
+//         x2: b256,
+//         x3: bool,
+//     );
+//     predicate I2 (
+//         x1: int,
+//         x2: b256,
+//         x3: bool,
+//     );
+//     predicate I3();
 // }
 // 
 // predicate ::Simple(
@@ -141,34 +141,34 @@ predicate Simple(
 //         x: int,
 //         y: int,
 //     }
-//     predicate I1 {
-//         pub var x1: int;
-//         pub var x2: b256;
-//         pub var x3: bool;
-//     }
-//     predicate I2 {
-//         pub var x1: int;
-//         pub var x2: b256;
-//         pub var x3: bool;
-//     }
-//     predicate I3;
+//     predicate I1 (
+//         x1: int,
+//         x2: b256,
+//         x3: bool,
+//     );
+//     predicate I2 (
+//         x1: int,
+//         x2: b256,
+//         x3: bool,
+//     );
+//     predicate I3();
 // }
 // interface ::Bar {
 //     storage {
 //         x: int,
 //         z: b256,
 //     }
-//     predicate I1 {
-//         pub var x1: int;
-//         pub var x2: b256;
-//         pub var x3: bool;
-//     }
-//     predicate I2 {
-//         pub var x1: int;
-//         pub var x2: b256;
-//         pub var x3: bool;
-//     }
-//     predicate I3;
+//     predicate I1 (
+//         x1: int,
+//         x2: b256,
+//         x3: bool,
+//     );
+//     predicate I2 (
+//         x1: int,
+//         x2: b256,
+//         x3: bool,
+//     );
+//     predicate I3();
 // }
 // 
 // predicate ::Simple(

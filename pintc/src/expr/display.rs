@@ -130,6 +130,24 @@ impl DisplayWithContract for &super::Expr {
                 write!(f, ")")
             }
 
+            super::Expr::PredicateCall {
+                interface,
+                c_addr,
+                predicate,
+                p_addr,
+                args,
+                ..
+            } => {
+                write!(
+                    f,
+                    "{interface}<<{}>>::{predicate}<<{}>>(",
+                    contract.with_ctrct(c_addr),
+                    contract.with_ctrct(p_addr)
+                )?;
+                write_many_with_ctrct!(f, args, ", ", contract);
+                write!(f, ")")
+            }
+
             super::Expr::Select {
                 condition,
                 then_expr,

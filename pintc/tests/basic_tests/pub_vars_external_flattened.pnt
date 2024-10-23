@@ -2,19 +2,19 @@ union MyUnion = A | B;
 type MyType = MyUnion;
 
 interface Contract {
-    predicate Foo {
-        pub var x1: bool;
-        pub var x2: int;
-        pub var x3: b256;
-        pub var x5: { bool, int };
-        pub var x6: int[5];
+    predicate Foo(
+        x1: bool,
+        x2: int,
+        x3: b256,
+        x5: { bool, int },
+        x6: int[5],
 
-        pub var y1: bool;
-        pub var y2: int;
-        pub var y3: b256;
-        pub var y5: { bool, int };
-        pub var y6: int[5];
-    }
+        y1: bool,
+        y2: int,
+        y3: b256,
+        y5: { bool, int },
+        y6: int[5],
+    );
 }
 
 predicate Foo(
@@ -43,18 +43,18 @@ predicate Foo(
 // union ::MyUnion = A | B;
 // type ::MyType = ::MyUnion;
 // interface ::Contract {
-//     predicate Foo {
-//         pub var x1: bool;
-//         pub var x2: int;
-//         pub var x3: b256;
-//         pub var x5: {bool, int};
-//         pub var x6: int[5];
-//         pub var y1: bool;
-//         pub var y2: int;
-//         pub var y3: b256;
-//         pub var y5: {bool, int};
-//         pub var y6: int[5];
-//     }
+//     predicate Foo (
+//         x1: bool,
+//         x2: int,
+//         x3: b256,
+//         x5: {bool, int},
+//         x6: int[5],
+//         y1: bool,
+//         y2: int,
+//         y3: b256,
+//         y5: {bool, int},
+//         y6: int[5],
+//     );
 // }
 // 
 // predicate ::Foo(
@@ -84,18 +84,18 @@ predicate Foo(
 // union ::MyUnion = A | B;
 // type ::MyType = ::MyUnion;
 // interface ::Contract {
-//     predicate Foo {
-//         pub var x1: bool;
-//         pub var x2: int;
-//         pub var x3: b256;
-//         pub var x5: {bool, int};
-//         pub var x6: int[5];
-//         pub var y1: bool;
-//         pub var y2: int;
-//         pub var y3: b256;
-//         pub var y5: {bool, int};
-//         pub var y6: int[5];
-//     }
+//     predicate Foo (
+//         x1: bool,
+//         x2: int,
+//         x3: b256,
+//         x5: {bool, int},
+//         x6: int[5],
+//         y1: bool,
+//         y2: int,
+//         y3: b256,
+//         y5: {bool, int},
+//         y6: int[5],
+//     );
 // }
 // 
 // predicate ::Foo(

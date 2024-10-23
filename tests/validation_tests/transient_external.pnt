@@ -4,18 +4,18 @@ interface Baz {
         y: int,
     }
 
-    predicate Foo {
-        pub var x: int;
-        pub var y: int;
-        pub var q: b256;
-        pub var c: { int, { int, b256 }, bool };
-        pub var e: { int, int }[2][3]; 
-    }
+    predicate Foo(
+        x: int,
+        y: int,
+        q: b256,
+        c: { int, { int, b256 }, bool },
+        e: { int, int }[2][3], 
+    );
 
-    predicate Bar {
-        pub var w: int;
-        pub var p: int;
-    }
+    predicate Bar(
+        w: int,
+        p: int,
+    );
 }
 
 predicate Simple(

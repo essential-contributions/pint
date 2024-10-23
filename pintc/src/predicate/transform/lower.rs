@@ -1036,6 +1036,7 @@ pub(super) fn coalesce_prime_ops(contract: &mut Contract) {
                 | Expr::BinaryOp { .. }
                 | Expr::MacroCall { .. }
                 | Expr::IntrinsicCall { .. }
+                | Expr::PredicateCall { .. }
                 | Expr::Select { .. }
                 | Expr::Match { .. }
                 | Expr::Cast { .. }

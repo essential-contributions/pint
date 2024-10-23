@@ -155,7 +155,18 @@ impl ExprKey {
                     IntrinsicKind::Internal(
                         InternalIntrinsic::StorageGet | InternalIntrinsic::StorageGetExtern
                     ) | IntrinsicKind::External(ExternalIntrinsic::VecLen)
-                ) | args.iter().any(|arg| arg.can_panic(contract, pred))
+                ) || args.iter().any(|arg| arg.can_panic(contract, pred))
+            }
+
+            Expr::PredicateCall {
+                c_addr,
+                p_addr,
+                args,
+                ..
+            } => {
+                c_addr.can_panic(contract, pred)
+                    || p_addr.can_panic(contract, pred)
+                    || args.iter().any(|arg| arg.can_panic(contract, pred))
             }
 
             Expr::Select {
@@ -289,6 +300,19 @@ impl ExprKey {
                             storage_accesses.extend(arg.collect_storage_accesses(contract));
                         });
                     }
+                }
+
+                Expr::PredicateCall {
+                    c_addr,
+                    p_addr,
+                    args,
+                    ..
+                } => {
+                    storage_accesses.extend(c_addr.collect_storage_accesses(contract));
+                    storage_accesses.extend(p_addr.collect_storage_accesses(contract));
+                    args.iter().for_each(|arg| {
+                        storage_accesses.extend(arg.collect_storage_accesses(contract));
+                    });
                 }
 
                 Expr::Select {
@@ -503,6 +527,19 @@ impl<'a> Iterator for ExprsIter<'a> {
             }
 
             Expr::IntrinsicCall { args, .. } => {
+                for arg in args {
+                    queue_if_new!(self, arg);
+                }
+            }
+
+            Expr::PredicateCall {
+                c_addr,
+                p_addr,
+                args,
+                ..
+            } => {
+                queue_if_new!(self, c_addr);
+                queue_if_new!(self, p_addr);
                 for arg in args {
                     queue_if_new!(self, arg);
                 }

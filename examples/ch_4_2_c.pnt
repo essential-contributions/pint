@@ -4,13 +4,13 @@ interface Counter {
         counter: int,
     }
 
-    predicate Initialize {
-        pub var value: int;
-    }
+    predicate Initialize(
+        value: int,
+    );
 
-    predicate Increment {
-        pub var amount: int;
-    }
+    predicate Increment(
+        amount: int,
+    );
 }
 // ANCHOR_END: interface 
 

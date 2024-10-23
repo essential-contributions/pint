@@ -1,0 +1,13 @@
+[[data]]
+predicate_to_solve = { predicate = "::Simple" }
+decision_variables = [
+  [2], # ::x
+  [8], # ::y
+]
+
+[[data]]
+predicate_to_solve = { set = "0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", predicate = "0x0000000000000000000000000000000000000000000000000000000000000000" }
+decision_variables = [
+  [2], # ::x
+  [8], # ::y
+]
