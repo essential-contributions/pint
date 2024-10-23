@@ -1,8 +1,6 @@
 union group = empty | one(int) | couple({int, int});
 
-predicate test {
-    var x: group;
-    var y: group;
+predicate test(x: group, y: group) {
     match x {
         group::empty => {}
         group::one(n) => {
@@ -32,10 +30,11 @@ predicate test {
 
 // parsed <<<
 // union ::group = empty | one(int) | couple({int, int});
-//
-// predicate ::test {
-//     var ::x: ::group;
-//     var ::y: ::group;
+// 
+// predicate ::test(
+//     ::x: ::group,
+//     ::y: ::group,
+// ) {
 //     match ::x {
 //         ::group::empty => {
 //         }
@@ -68,10 +67,11 @@ predicate test {
 
 // flattened <<<
 // union ::group = empty | one(int) | couple({int, int});
-//
-// predicate ::test {
-//     var ::x: ::group;
-//     var ::y: ::group;
+// 
+// predicate ::test(
+//     ::x: ::group,
+//     ::y: ::group,
+// ) {
 //     constraint ((UnTag(::x) == 0) || (!(UnTag(::x) == 1) || (!(UnVal(::x, int) > 11) || (UnVal(::x, int) < 22))));
 //     constraint ((UnTag(::x) == 0) || (!(UnTag(::x) == 1) || ((UnVal(::x, int) > 11) || (UnVal(::x, int) > 0))));
 //     constraint ((UnTag(::x) == 0) || ((UnTag(::x) == 1) || (!(UnTag(::x) == 2) || (UnVal(::x, {int, int}).0 > 0))));

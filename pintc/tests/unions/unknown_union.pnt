@@ -1,31 +1,38 @@
 union known = good | better(int);
 
-predicate test {
+predicate test(
+    a: unknown,
+    b: known, 
+    c: known, 
+    d: known, 
+    e: known, 
+) {
     // Unknown union decl.
-    var a = unknown::variant(11);
+    constraint a == unknown::variant(11);
 
     // Known union, unknown variant.
-    var b = known::unknown(22);
+    constraint b == known::unknown(22);
 
     // Variant does not have a value.
-    var c = known::good(33);
+    constraint c == known::good(33);
 
     // Variant needs a value.
-    var d = known::better;
+    constraint d == known::better;
 
     // Variant value type mismatch.
-    var e = known::better(true);
+    constraint e == known::better(true);
 }
 
 // parsed <<<
 // union ::known = good | better(int);
-//
-// predicate ::test {
-//     var ::a;
-//     var ::b;
-//     var ::c;
-//     var ::d;
-//     var ::e;
+// 
+// predicate ::test(
+//     ::a: ::unknown,
+//     ::b: ::known,
+//     ::c: ::known,
+//     ::d: ::known,
+//     ::e: ::known,
+// ) {
 //     constraint (::a == ::unknown::variant(11));
 //     constraint (::b == ::known::unknown(22));
 //     constraint (::c == ::known::good(33));
@@ -35,17 +42,19 @@ predicate test {
 // >>>
 
 // typecheck_failure <<<
+// undefined type
+// @58..65: type is undefined
 // unknown union
-// @91..107: union declaration for `::unknown::variant` not found
+// @178..194: union declaration for `::unknown::variant` not found
 // unknown union variant
-// @163..177: union variant `::known::unknown` not found
+// @258..272: union variant `::known::unknown` not found
 // valid variant names are `good` and `better`
 // union variant does not have a value
-// @234..249: union variant `::known::good` should not bind a value
+// @337..352: union variant `::known::good` should not bind a value
 // missing union variant value
-// @294..307: union variant `better` requires a value of type `int`
+// @405..418: union variant `better` requires a value of type `int`
 // cannot find value `::known::better` in this scope
-// @294..307: not found in this scope
+// @405..418: not found in this scope
 // union variant type mismatch
-// @372..376: expecting type `int`, found `bool`
+// @491..495: expecting type `int`, found `bool`
 // >>>

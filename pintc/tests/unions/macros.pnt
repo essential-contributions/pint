@@ -16,9 +16,7 @@ macro @match_expr($val, $inc) {
     }
 }
 
-predicate test {
-    var thing: value;
-
+predicate test(thing: value) {
     @match_decl(thing; 11);
 
     constraint @match_expr(thing; 22) < 33;
@@ -26,9 +24,10 @@ predicate test {
 
 // parsed <<<
 // union ::value = nuh | uhuh(int);
-//
-// predicate ::test {
-//     var ::thing: ::value;
+// 
+// predicate ::test(
+//     ::thing: ::value,
+// ) {
 //     constraint (match ::thing { ::value::uhuh(n) => (::n + 22), else => 1 } < 33);
 //     match ::thing {
 //         ::value::uhuh(n) => {
@@ -42,9 +41,10 @@ predicate test {
 
 // flattened <<<
 // union ::value = nuh | uhuh(int);
-//
-// predicate ::test {
-//     var ::thing: ::value;
+// 
+// predicate ::test(
+//     ::thing: ::value,
+// ) {
 //     constraint (((UnTag(::thing) == 1) ? (UnVal(::thing, int) + 22) : 1) < 33);
 //     constraint (!(UnTag(::thing) == 1) || (UnVal(::thing, int) < 11));
 //     constraint __eq_set(__mut_keys(), {0});

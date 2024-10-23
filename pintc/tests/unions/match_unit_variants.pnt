@@ -1,8 +1,6 @@
 union Union = Zero | One | Two;
 
-predicate test {
-    var e: Union;
-
+predicate test(e: Union) {
     constraint 0 == match e {
         Union::Zero => 0,
         Union::One => 1,
@@ -10,9 +8,7 @@ predicate test {
     };
 }
 
-predicate decl_test {
-    var e: Union;
-
+predicate decl_test(e: Union) {
     match e {
         Union::Zero => {
             constraint 0 == 0;
@@ -28,14 +24,16 @@ predicate decl_test {
 
 // parsed <<<
 // union ::Union = Zero | One | Two;
-//
-// predicate ::test {
-//     var ::e: ::Union;
+// 
+// predicate ::test(
+//     ::e: ::Union,
+// ) {
 //     constraint (0 == match ::e { ::Union::Zero => 0, ::Union::One => 1, ::Union::Two => 2 });
 // }
-//
-// predicate ::decl_test {
-//     var ::e: ::Union;
+// 
+// predicate ::decl_test(
+//     ::e: ::Union,
+// ) {
 //     match ::e {
 //         ::Union::Zero => {
 //             constraint (0 == 0)
@@ -53,14 +51,16 @@ predicate decl_test {
 // flattened <<<
 // union ::Union = Zero | One | Two;
 // 
-// predicate ::test {
-//     var ::e: ::Union;
+// predicate ::test(
+//     ::e: ::Union,
+// ) {
 //     constraint (0 == ((UnTag(::e) == 0) ? 0 : ((UnTag(::e) == 1) ? 1 : 2)));
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // 
-// predicate ::decl_test {
-//     var ::e: ::Union;
+// predicate ::decl_test(
+//     ::e: ::Union,
+// ) {
 //     constraint (!(UnTag(::e) == 0) || (0 == 0));
 //     constraint ((UnTag(::e) == 0) || (!(UnTag(::e) == 1) || (0 == 1)));
 //     constraint ((UnTag(::e) == 0) || ((UnTag(::e) == 1) || (!(UnTag(::e) == 2) || (0 == 2))));
