@@ -165,11 +165,15 @@ follows:</p>
     // storage variables
 }
 
-predicate Foo {
+predicate Foo(
+    // parameters 
+) {
     // variables, constraints, etc.     
 }
 
-predicate Bar {
+predicate Bar(
+    // parameters 
+) {
     // variables, constraints, etc.     
 }
 
@@ -221,13 +225,13 @@ have made all decision variables <code>pub</code>, which marks them as public:</
     counter: int,
 }
 
-predicate Initialize {
+predicate Initialize() {
     pub var value: int;
     state counter: int = mut storage::counter;
     constraint counter' == value;
 }
 
-predicate Increment {
+predicate Increment() {
     pub var amount: int;
     state counter: int = mut storage::counter;
     constraint counter' == counter + amount;

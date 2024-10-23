@@ -157,14 +157,12 @@ Guide</a></p>
     counter: int,
 }
 
-predicate Initialize {
-    var value: int;
+predicate Initialize(value: int) {
     state counter: int = mut storage::counter;
     constraint counter' == value;
 }
 
-predicate Increment {
-    var amount: int;
+predicate Increment(amount: int) {
     state counter: int = mut storage::counter;
     constraint counter' == counter + amount;
 }

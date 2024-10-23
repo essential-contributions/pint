@@ -160,10 +160,8 @@ illustrated below.</p>
 returns its value in cents:</p>
 <pre><code class="language-pint">union Coin = Penny | Nickel | Dime | Quarter;
 
-predicate CoinConversion1 {
-    var coin: Coin;
-
-    var coin_in_cents = match coin {
+predicate CoinConversion1(coin: Coin) {
+    state coin_in_cents = match coin {
         Coin::Penny =&gt; 1,
         Coin::Nickel =&gt; 5,
         Coin::Dime =&gt; 10,
@@ -186,11 +184,8 @@ expression.</p>
 <p>It is also possible to include <code>constraints</code> in the match arm code, but you must use curly brackets.
 For example, the following code requires the Boolean variable <code>is_lucky_penny</code> to be <code>true</code> if the
 value <code>coin</code> is a <code>Coin::Penny</code>.</p>
-<pre><code class="language-pint">predicate CoinConversion2 {
-    var coin: Coin;
-    var is_lucky_penny: bool;
-
-    var coin_in_cents = match coin {
+<pre><code class="language-pint">predicate CoinConversion2(coin: Coin, is_lucky_penny: bool) {
+    state coin_in_cents = match coin {
         Coin::Penny =&gt; {
             constraint is_lucky_penny;
             1
@@ -210,10 +205,8 @@ variant to hold an <code>int</code> that represents the number of coins availabl
 </code></pre>
 <p>Now, given a value <code>coins</code> of type <code>Coins</code>, we can compute the total number of cents that <code>coins</code> is
 equivalent to as follows:</p>
-<pre><code class="language-pint">predicate CoinConversion3 {
-    var coins: Coins;
-
-    var coins_in_cents = match coins {
+<pre><code class="language-pint">predicate CoinConversion3(coins: Coins) {
+    state coins_in_cents = match coins {
         Coins::Penny(n) =&gt; n,
         Coins::Nickel(n) =&gt; n * 5,
         Coins::Dime(n) =&gt; n * 10,
@@ -233,10 +226,8 @@ union CoinFace =  Penny(Face)
                 | Dime (Face)
                 | Quarter(Face);
 
-predicate CoinGame1 {
-    var coin: CoinFace;
-
-    var prize = match coin {
+predicate CoinGame1(coin: CoinFace) {
+    state prize = match coin {
         CoinFace::Penny(f) =&gt; match f {
             Face::Head =&gt; 100,
             Face::Tail =&gt; 200,
@@ -261,11 +252,7 @@ predicate CoinGame1 {
 to enforce conditional constraints based on which pattern matches the given value. Below is a
 rewrite of the previous example that uses <code>match</code> statements. The code exhibits the exact same
 behavior as before but written different to showcase <code>match</code> statements.</p>
-<pre><code class="language-pint">predicate CoinGame2 {
-    var coin: CoinFace;
-
-    var prize: int;
-
+<pre><code class="language-pint">predicate CoinGame2(coin: CoinFace, prize: int) {
     match coin {
         CoinFace::Penny(f) =&gt; {
             match f {
@@ -346,8 +333,7 @@ evaluate to a default value for <code>match</code> expressions, or to contain de
 for <code>match</code> statements.</p>
 <p>To get the above example to compile with a default value of zero, implying any other coins actually
 have no value, an <code>else</code> may be used as follows:</p>
-<pre><code class="language-pint">    var coins: Coins;
-    var coins_in_cents = match coins {
+<pre><code class="language-pint">    state coins_in_cents = match coins {
         Coins::Penny(n) =&gt; n,
         Coins::Nickel(n) =&gt; n * 5,
         Coins::Quarter(n) =&gt; n * 25,

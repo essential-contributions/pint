@@ -158,9 +158,9 @@ the shorter name everywhere else in the scope.</p>
 use the <code>Asparagus</code> enum:</p>
 <pre><code class="language-pint">use ::garden::vegetables;
 
-predicate Baz {
-    var third_asparagus: vegetables::Asparagus;
-}
+predicate Baz(
+    third_asparagus: vegetables::Asparagus,
+) { }
 </code></pre>
 <p>Adding <code>use</code> and a path in a scope is similar to creating a symbolic link in the filesystem. By
 adding use <code>::garden::vegetables</code> in the root file, <code>vegetables</code> is now a valid name in that scope.</p>
@@ -190,10 +190,10 @@ type Data = {
 <pre><code class="language-pint">use ::data::contract_lib;
 use ::data::predicate_lib;
 
-predicate test {
-    var contract_data: contract_lib::Data;
-    var predicate_data: predicate_lib::Data;
-}
+predicate test(
+    contract_data: contract_lib::Data,
+    predicate_data: predicate_lib::Data,
+) {}
 </code></pre>
 <p>As you can see, using the parent module distinguishes the two <code>Data</code> types. If instead we specified
 <code>use data::contract_lib::Data</code> and <code>use data::predicate_lib::Data</code>, we'd have two <code>Data</code> types in
@@ -205,9 +205,10 @@ types using <code>as</code>.</p>
 <pre><code class="language-pint">use ::data::contract_lib::Data as ContractData;
 use ::data::predicate_lib::Data as PredicateData;
 
-predicate test {
-var contract_data: ContractData;
-var predicate_data: PredicateData;
+predicate test(
+    contract_data: ContractData,
+    predicate_data: PredicateData,
+) { }
 </code></pre>
 <p>In each <code>use</code> statement, we choose a new name for <code>Data</code>. That guarantees that no conflicts arise.
 This also has the side benefit of giving <code>Data</code> a more meaningful name in the current context.</p>

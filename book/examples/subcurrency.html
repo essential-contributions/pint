@@ -157,10 +157,7 @@ creation of new coins (i.e. minting) as well as sending coins from one address t
 }
 
 // Sends an amount of newly created coins to an address
-predicate Mint {
-    var receiver: b256;
-    var amount: int;
-
+predicate Mint(receiver: b256, amount: int) {
     state receiver_balance = mut storage::balances[receiver];
     state total_supply = mut storage::total_supply;
 
@@ -169,11 +166,7 @@ predicate Mint {
 }
 
 // Sends an amount of existing coins from address `from` to address `receiver`
-predicate Send {
-    var from: b256;
-    var receiver: b256;
-    var amount: int;
-
+predicate Send(from: b256, receiver: b256, amount: int) {
     state from_balance = mut storage::balances[from];
     state receiver_balance = mut storage::balances[receiver];
 

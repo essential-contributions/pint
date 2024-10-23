@@ -156,10 +156,7 @@ initializer.</p>
 <pre><code class="language-pint">const minimum: int = 10;
 const maximum: int = 20;
 
-predicate Foo {
-    var foo: int;
-
-    var size: int;
+predicate Foo(foo: int, size: int) {
     constraint size &gt;= minimum &amp;&amp; foo &lt;= maximum;
 }
 
@@ -178,8 +175,7 @@ const next_count = counts[default_idx + 1];
 
 const min_size = { valid: true, size: 10 };
 
-predicate Bar {
-    var my_size: int;
+predicate Bar(my_size: int) {
     constraint !min_size.valid || my_size &gt;= min_size.size;
 }
 </code></pre>

@@ -160,9 +160,7 @@ will be discussed separately in <a href="custom_types.html">Chapter 3.5</a></p>
 <p>A select expression allows you to select between two alternatives based on a condition. The two
 alternatives must have the same type and that type determines the type of the whole select
 expression. For example:</p>
-<pre><code class="language-pint">var number: int;
-
-var y = number &lt; 5 ? 1 : 2;
+<pre><code class="language-pint">state y = (number &lt; 5 ? 1 : 2);
 </code></pre>
 <p>All select expressions start with a condition followed by the <code>?</code> symbol. In this case, the
 condition checks whether or not the decision variable <code>number</code> has a value less than 5. We place the
@@ -207,8 +205,7 @@ explicit and always provide a select expression with a <code>Boolean</code> as i
 <p>Pint provides <code>cond</code> expressions. <code>cond</code> expressions are generalized select expressions that are not
 limited to only two branches. They provide selection from multiple alternatives, each based on some
 condition. For example:</p>
-<pre><code class="language-pint">var x: int;
-var z = cond {
+<pre><code class="language-pint">state z = cond {
     x == 0 =&gt; 0,
     x &gt; 0 &amp;&amp; x &lt;= 10 =&gt; 1,
     x &gt; 10 &amp;&amp; x &lt;= 100 =&gt; 2,
@@ -226,8 +223,7 @@ equal to <code>2</code> if <code>x</code> is between <code>10</code> and <code>1
 <p>every <code>cond</code> expression can be rewritten using one or more select expressions. however, <code>cond</code> tends
 to be more compact and more readable than nested select expressions. for example, the <code>cond</code>
 expression in the example above is equivalent to:</p>
-<pre><code class="language-pint">var x: int;
-var z = x == 0 ? 0 :
+<pre><code class="language-pint">state z = x == 0 ? 0 :
                x &gt; 0 &amp;&amp; x &lt;= 10 ? 1
                  : x &gt; 10 &amp;&amp; x &lt;= 100 ? 2 : 3;
 </code></pre>

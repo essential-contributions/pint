@@ -163,14 +163,10 @@ solution is submitted and validated. Pint solves this problem by allow decision 
 <h3 id="declaring-public-decision-variables"><a class="header" href="#declaring-public-decision-variables">Declaring Public Decision Variables</a></h3>
 <p>Declaring public decision variables is fairly simple. All you have to do is prefix the <code>var</code>
 declaration with the keyword <code>pub</code>:</p>
-<pre><code class="language-pint">predicate Foo {
+<pre><code class="language-pint">predicate Foo(a: int, b: bool, c: int[4]) {
     pub var x: int;
     pub var y: b256;
     pub var t: { int, bool, b256 };
-
-    var a: int;
-    var b: bool;
-    var c: int[4];
 
     constraint a + x &gt; 3;
     constraint y == 0x1111111111111111111111111111111111111111111111111111111111111111;
@@ -221,10 +217,7 @@ we refer to the predicate <code>Foo</code> in the declaration using the interfac
 <code>::Foo</code>.</p>
 <p>Now that we have an instance of <code>Foo</code>, we are able to access its public decision variables using a
 path that contains the predicate instance name and the name of the variable:</p>
-<pre><code class="language-pint">    var m: int;
-    var n: bool;
-
-    constraint m * FooInstance::x &gt; 8;
+<pre><code class="language-pint">    constraint m * FooInstance::x &gt; 8;
     constraint FooInstance::y == 0x2222222222222222222222222222222222222222222222222222222222222222;
     constraint FooInstance::t.1 &amp;&amp; n;
 </code></pre>
@@ -245,8 +238,8 @@ added for each predicate instance declaration. Therefore, in the example below:<
     predicate FooInstance1 = MyInterfaceInstance::Foo(PredicateID);
     predicate FooInstance2 = MyInterfaceInstance::Foo(PredicateID);
     
-    var x1 = FooInstance1::x;
-    var x2 = FooInstance2::x;
+    state x1 = FooInstance1::x;
+    state x2 = FooInstance2::x;
 </code></pre>
 <p>the variables <code>x1</code> and <code>x2</code> may not be the same since they may refer to two different values of <code>x</code>
 in the solution (if <code>Foo</code> is solved multiple times).</p>
@@ -258,11 +251,11 @@ predicate instances. The difference here is that, because we're working in the s
 is no need to declare an interface for that contract and an interface instance. There is also no
 need to specify an address for the predicate instance because the compiler can figure that out on
 its own! Here's an example:</p>
-<pre><code class="language-pint">predicate A {
+<pre><code class="language-pint">predicate A() {
     pub var x: int;    
 }
 
-predicate B {
+predicate B() {
     predicate AI1 = A();
     predicate AI2 = A();
     constraint AI1::x == AI2::x * 2;
@@ -273,14 +266,14 @@ variable called <code>x</code>. We are then requiring that the value of <code>x<
 value of <code>x</code> in the second instance.</p>
 <p>One important caveat of the above is that you are not allowed to have <em>cyclical dependencies</em>
 between predicates. For example:</p>
-<pre><code class="language-pint">predicate A {
+<pre><code class="language-pint">predicate A() {
     pub var x: int;    
 
     predicate BI = B();
     constraint BI::y == 69;
 }
 
-predicate B {
+predicate B() {
     pub var y: int;    
 
     predicate AI = A();
@@ -305,7 +298,7 @@ will emit the following error to prevent you from proceeding:</p>
 ───╯
 </code></pre>
 <p>Another caveat is that a predicate cannot reference itself:</p>
-<pre><code class="language-pint">predicate C {
+<pre><code class="language-pint">predicate C() {
     pub var x: int;    
 
     predicate CI = C();

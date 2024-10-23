@@ -164,11 +164,10 @@ module.</li>
 <p>Returning to the &quot;backyard&quot; example from the previous chapter, say we want to access the enum
 <code>Asparagus</code>. This is the same as asking: what's the path of the <code>Asparagus</code> enum. We'll show two
 ways to access <code>Asparagus</code> from the root file:</p>
-<pre><code class="language-pint">predicate Bar {
-    var first_asparagus: ::garden::vegetables::Asparagus;
-
-    var second_asparagus: garden::vegetables::Asparagus;
-}
+<pre><code class="language-pint">predicate Bar(
+    first_asparagus: ::garden::vegetables::Asparagus,
+    second_asparagus: garden::vegetables::Asparagus,
+) { }
 </code></pre>
 <p>The first time we refer to the enum <code>Asparagus</code> we use an absolute path. The enum <code>Asparagus</code> is defined
 in the same package as our root module above, which means we can use <code>::</code> to start an absolute path.

@@ -203,8 +203,8 @@ directory, also named <code>backyard</code>, contains these files and directorie
 <p>The package root file is <code>src/contract.pnt</code> since this is a contract package. It contains:</p>
 <pre><code class="language-pint">use garden::vegetables::Asparagus;
 
-predicate Foo {
-    var green_asparagus = Asparagus::Green;
+predicate Foo(green_asparagus: Asparagus) {
+    constraint green_asparagus == Asparagus::Green;
 }
 </code></pre>
 <p>The submodule <code>vegetables</code> which is defined in <code>src/garden/vegetables.pnt</code>, contains:</p>

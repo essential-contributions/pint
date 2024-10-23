@@ -272,7 +272,7 @@ anyways. In this case, there is no value stored at that storage variable and not
 To help you reason about this, Pint provides the literal <code>nil</code> to represent the <em>absence of a
 value</em>. For example,</p>
 <pre><code class="language-pint">state w = mut storage::w;
-var value: int = (w == nil ? 0 : w);
+constraint value == (w == nil ? 0 : w);
 </code></pre>
 <p>In the example above, we first check if <code>w</code> is <code>nil</code> before attempting to read it. If it is <code>nil</code>
 (i.e. currently has no value), then we constrain <code>value</code> to <code>0</code>. Otherwise, we constrain it to the
