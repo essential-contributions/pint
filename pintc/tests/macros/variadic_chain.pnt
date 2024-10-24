@@ -1,29 +1,27 @@
 macro @chain($a, &rest) {
-    var $a: int;
     @chain_next($a; &rest)
 }
 
 macro @chain_next($prev, $next, &rest) {
-    var $next: int;
     constraint $next > $prev + 10;
     @chain_next($next; &rest)
 }
 
 macro @chain_next($prev, $last) {
-    var $last: int;
     constraint $last > $prev + 10;
     $last
 }
 
-predicate test {
+predicate test(x: int, y: int, z: int) {
     constraint @chain(x; y; z) < 100;
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::x: int;
-//     var ::y: int;
-//     var ::z: int;
+// predicate ::test(
+//     ::x: int,
+//     ::y: int,
+//     ::z: int,
+// ) {
 //     constraint (::z < 100);
 //     constraint (::y > (::x + 10));
 //     constraint (::z > (::y + 10));
@@ -31,10 +29,11 @@ predicate test {
 // >>>
 
 // flattened <<<
-// predicate ::test {
-//     var ::x: int;
-//     var ::y: int;
-//     var ::z: int;
+// predicate ::test(
+//     ::x: int,
+//     ::y: int,
+//     ::z: int,
+// ) {
 //     constraint (::z < 100);
 //     constraint (::y > (::x + 10));
 //     constraint (::z > (::y + 10));

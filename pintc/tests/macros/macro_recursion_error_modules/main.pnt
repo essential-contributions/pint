@@ -1,6 +1,4 @@
-predicate test {
-    var a: int;
-
+predicate test(a: int) {
     constraint b::@b_macro(a);
 }
 

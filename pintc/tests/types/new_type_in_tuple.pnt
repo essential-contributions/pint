@@ -2,29 +2,37 @@ type A = int;
 type B = { x: A, y: A };
 type C = A[3];
 
-predicate test {
-    var a: A;
-    var b: B = { a, a };
-    var c: A = b.1;
-    var d: A = b.x;
-    var e: C = [a, a, a];
-    var f: A = e[1];
-    var g: A = a;
+predicate test(
+    a: int,
+    b: {x: int, y: int},
+    c: int,
+    d: int,
+    e: int[3],
+    f: int,
+    g: int,
+) {
+    constraint b == { a, a };
+    constraint c == b.1;
+    constraint d == b.x;
+    constraint e == [a, a, a];
+    constraint f == e[1];
+    constraint g == a;
 }
 
 // parsed <<<
 // type ::A = int;
 // type ::B = {x: ::A, y: ::A};
 // type ::C = ::A[3];
-//
-// predicate ::test {
-//     var ::a: ::A;
-//     var ::b: ::B;
-//     var ::c: ::A;
-//     var ::d: ::A;
-//     var ::e: ::C;
-//     var ::f: ::A;
-//     var ::g: ::A;
+// 
+// predicate ::test(
+//     ::a: int,
+//     ::b: {x: int, y: int},
+//     ::c: int,
+//     ::d: int,
+//     ::e: int[3],
+//     ::f: int,
+//     ::g: int,
+// ) {
 //     constraint (::b == {::a, ::a});
 //     constraint (::c == ::b.1);
 //     constraint (::d == ::b.x);
@@ -38,15 +46,16 @@ predicate test {
 // type ::A = int;
 // type ::B = {x: int, y: int};
 // type ::C = int[3];
-//
-// predicate ::test {
-//     var ::a: int;
-//     var ::b: {x: int, y: int};
-//     var ::c: int;
-//     var ::d: int;
-//     var ::e: int[3];
-//     var ::f: int;
-//     var ::g: int;
+// 
+// predicate ::test(
+//     ::a: int,
+//     ::b: {x: int, y: int},
+//     ::c: int,
+//     ::d: int,
+//     ::e: int[3],
+//     ::f: int,
+//     ::g: int,
+// ) {
 //     constraint (::b == {::a, ::a});
 //     constraint (::c == ::b.1);
 //     constraint (::d == ::b.x);

@@ -14,7 +14,7 @@ interface Counter {
 const ContractID: b256 = 0x0003000300030003000300030003000300030003000300030003000300030003;
 // ANCHOR_END: id
 
-predicate Foo {
+predicate Foo() {
 // ANCHOR: interface_instance 
 interface CounterInstance = Counter(ContractID);
 // ANCHOR_END: interface_instance

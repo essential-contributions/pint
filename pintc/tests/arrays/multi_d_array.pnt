@@ -1,7 +1,8 @@
-predicate test {
-    var a: int[1][2][3];
-    var b: int[2][3];
-
+predicate test(
+    a: int[1][2][3],
+    b: int[2][3],
+    c: int[2][3],
+){
     constraint a[0][0][0] == 0;
     constraint a[0][0][1] == 1;
     constraint a[0][1][0] == 2;
@@ -11,14 +12,15 @@ predicate test {
         b[i][j] - a[0][i][j] == 0
     };
 
-    var c = b;
+    constraint c == b;
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::a: int[3][2][1];
-//     var ::b: int[3][2];
-//     var ::c;
+// predicate ::test(
+//     ::a: int[3][2][1],
+//     ::b: int[3][2],
+//     ::c: int[3][2],
+// ) {
 //     constraint (::a[0][0][0] == 0);
 //     constraint (::a[0][0][1] == 1);
 //     constraint (::a[0][1][0] == 2);
@@ -29,10 +31,11 @@ predicate test {
 // >>>
 
 // flattened <<<
-// predicate ::test {
-//     var ::a: int[3][2][1];
-//     var ::b: int[3][2];
-//     var ::c: int[3][2];
+// predicate ::test(
+//     ::a: int[3][2][1],
+//     ::b: int[3][2],
+//     ::c: int[3][2],
+// ) {
 //     constraint (::a[0][0][0] == 0);
 //     constraint (::a[0][0][1] == 1);
 //     constraint (::a[0][1][0] == 2);

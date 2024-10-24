@@ -2,9 +2,8 @@ macro @equal($x, $y) {
     $x == $y
 }
 
-macro @foo($x) {
-    var a: int;
-    constraint a == $x;
+macro @foo($a, $x) {
+    constraint $a == $x;
 }
 
 macro @a($x) {

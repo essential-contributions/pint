@@ -1,9 +1,14 @@
 union pet = cats(int) | dogs(int) | emu;
 union maybe_addr = no_addr | addr(b256);
 
-predicate test {
-    var a: pet;
-    var b = pet::dogs(2);
+predicate test(
+    a: pet, 
+    b: pet, 
+    no_base_addr: maybe_addr, 
+    a_base_addr: maybe_addr, 
+    actual_addr:b256
+) {
+    constraint b == pet::dogs(2);
 
     // Direct comparisons of variants.
     constraint pet::cats(11) == a;
@@ -11,10 +16,10 @@ predicate test {
     constraint b != pet::emu;
 
     // Constraining an address to either zero or something.
-    var no_base_addr = maybe_addr::no_addr;
-    var a_base_addr = maybe_addr::addr(0x1111111111111111111111111111111111111111111111111111111111111111);
+    constraint no_base_addr == maybe_addr::no_addr;
+    constraint a_base_addr == maybe_addr::addr(0x1111111111111111111111111111111111111111111111111111111111111111);
 
-    var actual_addr = match no_base_addr {
+    constraint actual_addr == match no_base_addr {
         maybe_addr::no_addr => 0x0000000000000000000000000000000000000000000000000000000000000000,
         maybe_addr::addr(a) => a,
     };

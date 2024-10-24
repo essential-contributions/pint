@@ -11,13 +11,13 @@ fn check_order() {
             "{}",
             compile(
                 r#"
-            predicate A {
+            predicate A() {
                 predicate BI = B();
                 predicate CI = C();
             }
-            predicate B {
+            predicate B() {
             }
-            predicate C {
+            predicate C() {
             }
             "#,
             )

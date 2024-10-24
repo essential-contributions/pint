@@ -8,14 +8,15 @@ macro @foo($i) {
     $i.a + $i.b
 }
 
-predicate Foo {
+predicate Foo() {
     constraint @foo(FOO) == 3;
 }
 
 // parsed <<<
 // const ::FOO = [{a: 1, b: 2}];
-//
-// predicate ::Foo {
+// 
+// predicate ::Foo(
+// ) {
 //     constraint ((::FOO.a + ::FOO.b) == 3);
 // }
 // >>>

@@ -1,43 +1,45 @@
 union MyUnion = A | B;
 
-predicate test {
-    var y: bool;
-    var t: { int, bool, { b256, { int, bool } }, b256 };
-    var a: int[4][2];
-    var u: { int, bool };
-    var b: int[2][2][2];
-    var x: int;
-    var z: b256;
-    var e: { MyUnion, bool };
-}
+predicate test(
+    y: bool,
+    t: { int, bool, { b256, { int, bool } }, b256 },
+    a: int[4][2],
+    u: { int, bool },
+    b: int[2][2][2],
+    x: int,
+    z: b256,
+    e: { MyUnion, bool },
+) { }
 
 // parsed <<<
 // union ::MyUnion = A | B;
-//
-// predicate ::test {
-//     var ::y: bool;
-//     var ::t: {int, bool, {b256, {int, bool}}, b256};
-//     var ::a: int[2][4];
-//     var ::u: {int, bool};
-//     var ::b: int[2][2][2];
-//     var ::x: int;
-//     var ::z: b256;
-//     var ::e: {::MyUnion, bool};
+// 
+// predicate ::test(
+//     ::y: bool,
+//     ::t: {int, bool, {b256, {int, bool}}, b256},
+//     ::a: int[2][4],
+//     ::u: {int, bool},
+//     ::b: int[2][2][2],
+//     ::x: int,
+//     ::z: b256,
+//     ::e: {::MyUnion, bool},
+// ) {
 // }
 // >>>
 
 // flattened <<<
 // union ::MyUnion = A | B;
-//
-// predicate ::test {
-//     var ::y: bool;
-//     var ::t: {int, bool, {b256, {int, bool}}, b256};
-//     var ::a: int[2][4];
-//     var ::u: {int, bool};
-//     var ::b: int[2][2][2];
-//     var ::x: int;
-//     var ::z: b256;
-//     var ::e: {::MyUnion, bool};
+// 
+// predicate ::test(
+//     ::y: bool,
+//     ::t: {int, bool, {b256, {int, bool}}, b256},
+//     ::a: int[2][4],
+//     ::u: {int, bool},
+//     ::b: int[2][2][2],
+//     ::x: int,
+//     ::z: b256,
+//     ::e: {::MyUnion, bool},
+// ) {
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

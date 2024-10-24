@@ -4,11 +4,7 @@ union CoinFace =  Penny(Face)
                 | Dime (Face)
                 | Quarter(Face);
 
-predicate CoinGame {
-    var coin: CoinFace;
-
-    var prize: int;
-
+predicate CoinGame(coin: CoinFace, prize: int) {
     match coin {
         CoinFace::Penny(f) => {
             match f {
@@ -42,10 +38,11 @@ predicate CoinGame {
 // parsed <<<
 // union ::Face = Head | Tail;
 // union ::CoinFace = Penny(::Face) | Nickel(::Face) | Dime(::Face) | Quarter(::Face);
-//
-// predicate ::CoinGame {
-//     var ::coin: ::CoinFace;
-//     var ::prize: int;
+// 
+// predicate ::CoinGame(
+//     ::coin: ::CoinFace,
+//     ::prize: int,
+// ) {
 //     match ::coin {
 //         ::CoinFace::Penny(f) => {
 //             match ::f {
@@ -77,10 +74,11 @@ predicate CoinGame {
 // flattened <<<
 // union ::Face = Head | Tail;
 // union ::CoinFace = Penny(::Face) | Nickel(::Face) | Dime(::Face) | Quarter(::Face);
-//
-// predicate ::CoinGame {
-//     var ::coin: ::CoinFace;
-//     var ::prize: int;
+// 
+// predicate ::CoinGame(
+//     ::coin: ::CoinFace,
+//     ::prize: int,
+// ) {
 //     constraint (!(UnTag(::coin) == 0) || (!(UnTag(UnVal(::coin, ::Face)) == 0) || (::prize == 100)));
 //     constraint (!(UnTag(::coin) == 0) || ((UnTag(UnVal(::coin, ::Face)) == 0) || (!(UnTag(UnVal(::coin, ::Face)) == 1) || (::prize == 200))));
 //     constraint ((UnTag(::coin) == 0) || (!(UnTag(::coin) == 1) || (!(UnVal(::coin, ::Face) == ::Face::Head) || (::prize == (5 * 10)))));

@@ -1,8 +1,6 @@
 union Colour = Red | Green | Blue;
 
-predicate test {
-    var a: b256;
-
+predicate test(a: b256) {
     constraint 1 + 2;
     constraint a;
     constraint { 1, 2 };
@@ -12,9 +10,10 @@ predicate test {
 
 // parsed <<<
 // union ::Colour = Red | Green | Blue;
-//
-// predicate ::test {
-//     var ::a: b256;
+// 
+// predicate ::test(
+//     ::a: b256,
+// ) {
 //     constraint (1 + 2);
 //     constraint ::a;
 //     constraint {1, 2};
@@ -25,18 +24,18 @@ predicate test {
 
 // typecheck_failure <<<
 // constraint expression type error
-// @75..91: constraint expression has unexpected type `int`
-// @86..91: expecting type `bool`
+// @66..82: constraint expression has unexpected type `int`
+// @77..82: expecting type `bool`
 // constraint expression type error
-// @97..109: constraint expression has unexpected type `b256`
-// @108..109: expecting type `bool`
+// @88..100: constraint expression has unexpected type `b256`
+// @99..100: expecting type `bool`
 // constraint expression type error
-// @115..134: constraint expression has unexpected type `{int, int}`
-// @126..134: expecting type `bool`
+// @106..125: constraint expression has unexpected type `{int, int}`
+// @117..125: expecting type `bool`
 // constraint expression type error
-// @140..160: constraint expression has unexpected type `int[3]`
-// @151..160: expecting type `bool`
+// @131..151: constraint expression has unexpected type `int[3]`
+// @142..151: expecting type `bool`
 // constraint expression type error
-// @166..188: constraint expression has unexpected type `::Colour`
-// @177..188: expecting type `bool`
+// @157..179: constraint expression has unexpected type `::Colour`
+// @168..179: expecting type `bool`
 // >>>

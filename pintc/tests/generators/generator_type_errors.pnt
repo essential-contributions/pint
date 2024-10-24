@@ -1,4 +1,4 @@
-predicate test {
+predicate test() {
     // Range errors.
     constraint forall i in false..true { false };
     constraint exists i in false..true { false };
@@ -16,7 +16,8 @@ predicate test {
 }
 
 // parsed <<<
-// predicate ::test {
+// predicate ::test(
+// ) {
 //     constraint forall i in false..true, { false };
 //     constraint exists i in false..true, { false };
 //     constraint forall i in 0x0000000000000000000000000000000000000000000000000000000000000000..0x0000000000000000000000000000000000000000000000000000000000000002, { false };
@@ -30,27 +31,27 @@ predicate test {
 
 // typecheck_failure <<<
 // range type must be numeric
-// @65..76: ranges must have numeric bounds; found `bool`
+// @67..78: ranges must have numeric bounds; found `bool`
 // range for `forall` must be an `int`
-// @65..76: invalid type `bool`, expecting `int`
+// @67..78: invalid type `bool`, expecting `int`
 // range type must be numeric
-// @115..126: ranges must have numeric bounds; found `bool`
+// @117..128: ranges must have numeric bounds; found `bool`
 // range for `exists` must be an `int`
-// @115..126: invalid type `bool`, expecting `int`
+// @117..128: invalid type `bool`, expecting `int`
 // range type must be numeric
-// @165..299: ranges must have numeric bounds; found `b256`
+// @167..301: ranges must have numeric bounds; found `b256`
 // range for `forall` must be an `int`
-// @165..299: invalid type `b256`, expecting `int`
+// @167..301: invalid type `b256`, expecting `int`
 // range type must be numeric
-// @338..472: ranges must have numeric bounds; found `b256`
+// @340..474: ranges must have numeric bounds; found `b256`
 // range for `exists` must be an `int`
-// @338..472: invalid type `b256`, expecting `int`
+// @340..474: invalid type `b256`, expecting `int`
 // condition for `forall` must be a `bool`
-// @549..550: invalid type `int`, expecting `bool`
+// @551..552: invalid type `int`, expecting `bool`
 // condition for `exists` must be a `bool`
-// @599..600: invalid type `int`, expecting `bool`
+// @601..602: invalid type `int`, expecting `bool`
 // body for `forall` must be a `bool` expression
-// @667..672: invalid type `int`, expecting `bool`
+// @669..674: invalid type `int`, expecting `bool`
 // body for `exists` must be a `bool` expression
-// @710..715: invalid type `int`, expecting `bool`
+// @712..717: invalid type `int`, expecting `bool`
 // >>>

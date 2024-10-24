@@ -1,12 +1,11 @@
 macro @add3($x, $y, $z) {
     $x + $y + $z
 }
-predicate F {
-    var a: int[3];
+predicate F(a: int[3]) {
     constraint @add3(~(a));
 }
 
 // parse_failure <<<
 // bad argument splice
-// @99..100: the macro argument splice operator `~` must be applied to an identifier
+// @91..92: the macro argument splice operator `~` must be applied to an identifier
 // >>>

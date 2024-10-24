@@ -2,16 +2,15 @@
 union Token = DAI | USDC | USDT;
 // ANCHOR_END: simple_union
 
-predicate test2 {
+predicate test2(token_id: int) {
 // ANCHOR: simple_union_instances
-var dai: Token = Token::DAI;
-var usdc: Token = Token::USDC;
-var usdt: Token = Token::USDT;
+state dai: Token = Token::DAI;
+state usdc: Token = Token::USDC;
+state usdt: Token = Token::USDT;
 // ANCHOR_END: simple_union_instances
 
 // ANCHOR: union_selection
-var token_id: int;
-var token_type: Token = cond {
+state token_type: Token = cond {
     token_id == 0 => Token::DAI,
     token_id == 1  => Token::USDC,
     else => Token::USDT,
@@ -25,13 +24,13 @@ type Balance = {
     balance: int,
 };
 
-predicate balances_1 {
-    var alice_bal: Balance = {
+predicate balances_1() {
+    state alice_bal: Balance = {
         token: Token::DAI,
         balance: 42,
     };
 
-    var bob_bal: Balance = {
+    state bob_bal: Balance = {
         token: Token::USDC,
         balance: 96,
     };
@@ -41,9 +40,9 @@ predicate balances_1 {
 // ANCHOR: int_in_union
 union TokenBalance = DAI(int) | USDC(int) | USDT(int);
 
-predicate balances_2 {
-    var alice_bal: TokenBalance = TokenBalance::DAI(42);
-    var bob_bal: TokenBalance = TokenBalance::USDC(96);
+predicate balances_2() {
+    state alice_bal: TokenBalance = TokenBalance::DAI(42);
+    state bob_bal: TokenBalance = TokenBalance::USDC(96);
 }
 // ANCHOR_END: int_in_union
 

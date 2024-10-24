@@ -2,22 +2,24 @@ union x = a | b;
 
 const y: { x, x } = { x::a, x::b };
 
-predicate test {
+predicate test() {
 }
 
 // parsed <<<
 // const ::y: {::x, ::x} = {::x::a, ::x::b};
 // union ::x = a | b;
-//
-// predicate ::test {
+// 
+// predicate ::test(
+// ) {
 // }
 // >>>
 
 // flattened <<<
 // const ::y: {::x, ::x} = {::x::a, ::x::b};
 // union ::x = a | b;
-//
-// predicate ::test {
+// 
+// predicate ::test(
+// ) {
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

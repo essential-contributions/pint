@@ -8,8 +8,8 @@ union E = A | B;
 
 type E = b256;
 
-predicate test {
-    var E = 4;
+predicate test(E: int) {
+    constraint E == 4;
 
     state E = __vec_len();
 }
@@ -24,8 +24,8 @@ predicate test {
 // @59..60: `E` redeclared here
 // `E` must be declared or imported only once in this scope
 // symbol `E` has already been declared
-// @95..96: previous declaration of the symbol `E` here
-// @113..114: `E` redeclared here
+// @85..86: previous declaration of the symbol `E` here
+// @129..130: `E` redeclared here
 // `E` must be declared or imported only once in this scope
 // symbol `F` has already been declared
 // @6..7: previous declaration of the symbol `F` here
@@ -41,6 +41,6 @@ predicate test {
 // `F` must be declared or imported only once in this scope
 // symbol `::E` has already been declared
 // @7..8: previous declaration of the symbol `::E` here
-// @95..96: `::E` redeclared here
+// @85..86: `::E` redeclared here
 // `::E` must be declared or imported only once in this scope
 // >>>

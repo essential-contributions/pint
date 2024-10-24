@@ -11,9 +11,7 @@ interface i {
     }
 }
 
-predicate test {
-    var addr1: b256;
-
+predicate test(addr1: b256) {
     interface inst = i(addr1);
 }
 
@@ -28,10 +26,11 @@ predicate test {
 //         pub var x1: ::ary;
 //     }
 // }
-//
-// predicate ::test {
+// 
+// predicate ::test(
+//     ::addr1: b256,
+// ) {
 //     interface ::inst = ::i(::addr1)
-//     var ::addr1: b256;
 // }
 // >>>
 
@@ -46,10 +45,11 @@ predicate test {
 //         pub var x1: int[3];
 //     }
 // }
-//
-// predicate ::test {
+// 
+// predicate ::test(
+//     ::addr1: b256,
+// ) {
 //     interface ::inst = ::i(::addr1)
-//     var ::addr1: b256;
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

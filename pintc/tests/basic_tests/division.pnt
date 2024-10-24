@@ -1,37 +1,33 @@
-predicate test {
-    var x: int = 3..10;
-    var y: int = 3..10;
-    var z: int = 3..10;
+predicate test(x: int, y: int, z: int) {
+    constraint x in 3..10;
+    constraint y in 3..10;
+    constraint z in 3..10;
 
     constraint x / y > y / z;
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::x: int;
-//     var ::y: int;
-//     var ::z: int;
-//     constraint (::x >= 3);
-//     constraint (::x <= 10);
-//     constraint (::y >= 3);
-//     constraint (::y <= 10);
-//     constraint (::z >= 3);
-//     constraint (::z <= 10);
+// predicate ::test(
+//     ::x: int,
+//     ::y: int,
+//     ::z: int,
+// ) {
+//     constraint ::x in 3..10;
+//     constraint ::y in 3..10;
+//     constraint ::z in 3..10;
 //     constraint ((::x / ::y) > (::y / ::z));
 // }
 // >>>
 
 // flattened <<<
-// predicate ::test {
-//     var ::x: int;
-//     var ::y: int;
-//     var ::z: int;
-//     constraint (::x >= 3);
-//     constraint (::x <= 10);
-//     constraint (::y >= 3);
-//     constraint (::y <= 10);
-//     constraint (::z >= 3);
-//     constraint (::z <= 10);
+// predicate ::test(
+//     ::x: int,
+//     ::y: int,
+//     ::z: int,
+// ) {
+//     constraint ((::x >= 3) && (::x <= 10));
+//     constraint ((::y >= 3) && (::y <= 10));
+//     constraint ((::z >= 3) && (::z <= 10));
 //     constraint ((::x / ::y) > (::y / ::z));
 //     constraint __eq_set(__mut_keys(), {0});
 // }

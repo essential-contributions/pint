@@ -247,6 +247,7 @@ pub(crate) fn lower_pub_var_accesses_in_predicate(
 
                 let Some((pub_var_index, (var_key, _))) = predicate
                     .vars()
+                    .filter(|(_, var)| var.is_pub)
                     .enumerate()
                     .find(|(_, (_, var))| name.to_string() + &var.name == *path)
                 else {

@@ -1,12 +1,8 @@
 // ANCHOR: predicate_foo 
-predicate Foo {
+predicate Foo(a: int, b: bool, c: int[4]) {
     pub var x: int;
     pub var y: b256;
     pub var t: { int, bool, b256 };
-
-    var a: int;
-    var b: bool;
-    var c: int[4];
 
     constraint a + x > 3;
     constraint y == 0x1111111111111111111111111111111111111111111111111111111111111111;
@@ -31,7 +27,7 @@ interface MyInterface {
 const ContractID: b256 = 0x0000000000000000000000000000000000000000000000000000000000000000;
 const PredicateID: b256 = 0x1111111111111111111111111111111111111111111111111111111111111111;
 
-predicate Bar {
+predicate Bar(m: int, n: bool) {
     // ANCHOR: interface_instance 
     interface MyInterfaceInstance = MyInterface(ContractID);
     // ANCHOR_END: interface_instance
@@ -41,32 +37,29 @@ predicate Bar {
     // ANCHOR_END: predicate_instance
 
     // ANCHOR: access
-    var m: int;
-    var n: bool;
-
     constraint m * FooInstance::x > 8;
     constraint FooInstance::y == 0x2222222222222222222222222222222222222222222222222222222222222222;
     constraint FooInstance::t.1 && n;
     // ANCHOR_END: access
 }
 
-predicate Baz {
+predicate Baz() {
     // ANCHOR: multiple_instances
     interface MyInterfaceInstance = MyInterface(ContractID);
     predicate FooInstance1 = MyInterfaceInstance::Foo(PredicateID);
     predicate FooInstance2 = MyInterfaceInstance::Foo(PredicateID);
     
-    var x1 = FooInstance1::x;
-    var x2 = FooInstance2::x;
+    state x1 = FooInstance1::x;
+    state x2 = FooInstance2::x;
     // ANCHOR_END: multiple_instances
 }
 
 // ANCHOR: siblings 
-predicate A {
+predicate A() {
     pub var x: int;    
 }
 
-predicate B {
+predicate B() {
     predicate AI1 = A();
     predicate AI2 = A();
     constraint AI1::x == AI2::x * 2;

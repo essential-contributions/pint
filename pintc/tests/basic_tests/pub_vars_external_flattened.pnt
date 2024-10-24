@@ -17,10 +17,11 @@ interface Contract {
     }
 }
 
-predicate Foo {
-    var addr1: b256;
-    var addr2: b256;
-    var addr3: b256;
+predicate Foo(
+    addr1: b256,
+    addr2: b256,
+    addr3: b256,
+) {
     interface ContractI = Contract(addr1);
 
     predicate FooI = ContractI::Foo(addr2);
@@ -56,15 +57,16 @@ predicate Foo {
 //     }
 // }
 // 
-// predicate ::Foo {
+// predicate ::Foo(
+//     ::addr1: b256,
+//     ::addr2: b256,
+//     ::addr3: b256,
+//     __::FooI_pathway: int,
+//     __::FooI2_pathway: int,
+// ) {
 //     interface ::ContractI = ::Contract(::addr1)
 //     predicate ::FooI = ::ContractI::Foo(::addr2)
 //     predicate ::FooI2 = ::ContractI::Foo(::addr3)
-//     var ::addr1: b256;
-//     var ::addr2: b256;
-//     var ::addr3: b256;
-//     var __::FooI_pathway: int;
-//     var __::FooI2_pathway: int;
 //     constraint (::FooI::x1 == true);
 //     constraint (::FooI::x2 == 5);
 //     constraint (::FooI::x3 == 0x0000111100001111000011110000111100001111000011110000111100001111);
@@ -96,15 +98,16 @@ predicate Foo {
 //     }
 // }
 // 
-// predicate ::Foo {
+// predicate ::Foo(
+//     ::addr1: b256,
+//     ::addr2: b256,
+//     ::addr3: b256,
+//     __::FooI_pathway: int,
+//     __::FooI2_pathway: int,
+// ) {
 //     interface ::ContractI = ::Contract(::addr1)
 //     predicate ::FooI = ::ContractI::Foo(::addr2)
 //     predicate ::FooI2 = ::ContractI::Foo(::addr3)
-//     var ::addr1: b256;
-//     var ::addr2: b256;
-//     var ::addr3: b256;
-//     var __::FooI_pathway: int;
-//     var __::FooI2_pathway: int;
 //     constraint (__pub_var(__::FooI_pathway, {0}) == true);
 //     constraint (__pub_var(__::FooI_pathway, {1}) == 5);
 //     constraint (__pub_var(__::FooI_pathway, {2}) == 0x0000111100001111000011110000111100001111000011110000111100001111);

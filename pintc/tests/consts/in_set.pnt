@@ -1,44 +1,47 @@
 const a = 11;
 
-predicate A {
-    var b = a;
-    var c: int;
+predicate A(b: int, c: int) {
+    constraint b == a;
     constraint c > a * 2;
 }
 
-predicate B {
-    var b = a < 22;
+predicate B(b: bool) {
+    constraint b == (a < 22);
 }
 
 // parsed <<<
 // const ::a = 11;
-//
-// predicate ::A {
-//     var ::b;
-//     var ::c: int;
+// 
+// predicate ::A(
+//     ::b: int,
+//     ::c: int,
+// ) {
 //     constraint (::b == ::a);
 //     constraint (::c > (::a * 2));
 // }
-//
-// predicate ::B {
-//     var ::b;
+// 
+// predicate ::B(
+//     ::b: bool,
+// ) {
 //     constraint (::b == (::a < 22));
 // }
 // >>>
 
 // flattened <<<
 // const ::a: int = 11;
-//
-// predicate ::A {
-//     var ::b: int;
-//     var ::c: int;
+// 
+// predicate ::A(
+//     ::b: int,
+//     ::c: int,
+// ) {
 //     constraint (::b == 11);
 //     constraint (::c > (11 * 2));
 //     constraint __eq_set(__mut_keys(), {0});
 // }
-//
-// predicate ::B {
-//     var ::b: bool;
+// 
+// predicate ::B(
+//     ::b: bool,
+// ) {
 //     constraint (::b == (11 < 22));
 //     constraint __eq_set(__mut_keys(), {0});
 // }

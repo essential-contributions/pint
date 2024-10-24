@@ -1,8 +1,14 @@
-predicate Test {
-    var d = [ 5, 6 ];
-    var e = [ 8, 9 ];
-    var f1 = true ? d : e;
-    var f2 = false ? d : e;
+predicate Test(
+    d: int[2],
+    e: int[2],
+    f1: int[2],
+    f2: int[2],
+) {
+    constraint d == [ 5, 6 ];
+    constraint e == [ 8, 9 ];
+    constraint f1 == (true ? d : e);
+    constraint f2 == (false ? d : e);
+
     constraint f1[0] == 5;
     constraint f1[1] == 6;
     constraint f1 == d;

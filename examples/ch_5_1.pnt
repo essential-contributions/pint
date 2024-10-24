@@ -10,7 +10,7 @@ storage {
 }
 // ANCHOR_END: storage_block
 
-predicate test {
+predicate test(value: int) {
 // ANCHOR: storage_access_1
 state x = storage::x;
 state a = storage::a;
@@ -41,7 +41,7 @@ state inner: { bool, b256 } = mut storage::v.1;
 
 // ANCHOR: nil 
 state w = mut storage::w;
-var value: int = (w == nil ? 0 : w);
+constraint value == (w == nil ? 0 : w);
 // ANCHOR_END: nil 
 
 // ANCHOR: update_to_nil 

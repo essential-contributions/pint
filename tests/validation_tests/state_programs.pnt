@@ -21,10 +21,8 @@ macro @unwrap_or_2($a, $b) {
     __size_of($a) == 0 ? $b : $a
 }
 
-predicate Simple {
-    var p: int;
+predicate Simple(p: int, q: { int, b256[2] }) {
     constraint p == 69;
-    var q: { int, b256[2] };
     
     state e1 = p / (- mut storage::x * mut storage::y + mut storage::t.0 + mut storage::a[0]);
     constraint e1 == p / (-1 * 2 + 3 + 5);

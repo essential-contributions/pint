@@ -1,11 +1,9 @@
-predicate test {
+predicate test(x: int, y: int) {
 // ANCHOR: simple
-var x: int;
 constraint x == 0;
 // ANCHOR_END: simple
 
 // ANCHOR: two_constraints
-var y: int;
 constraint y >= 0;
 constraint y <= 10;
 // ANCHOR_END: two_constraints

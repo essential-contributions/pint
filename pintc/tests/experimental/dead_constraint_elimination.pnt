@@ -1,13 +1,14 @@
 const b = 3.14 < 4.23;
 
-predicate Test {
+predicate Test() {
     constraint b;
 }
 
 // parsed <<<
 // const ::b = (3.14e0 < 4.23e0);
 // 
-// predicate ::Test {
+// predicate ::Test(
+// ) {
 //     constraint ::b;
 // }
 // >>>
@@ -15,7 +16,8 @@ predicate Test {
 // flattened <<<
 // const ::b: bool = true;
 // 
-// predicate ::Test {
+// predicate ::Test(
+// ) {
 //     constraint true;
 //     constraint __eq_set(__mut_keys(), {0});
 // }
@@ -24,7 +26,8 @@ predicate Test {
 // optimized <<<
 // const ::b: bool = true;
 // 
-// predicate ::Test {
+// predicate ::Test(
+// ) {
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

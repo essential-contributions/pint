@@ -2,7 +2,7 @@ macro @foo($a, $b) {
     $a + $b + $c
 }
 
-predicate test {
+predicate test() {
     @foo(11; 22);
 }
 

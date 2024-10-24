@@ -1,37 +1,33 @@
-predicate test {
-    var untyped;
-    var clash = 5;
-    var clash = 5;
-    var clash = 5;
-    var empty_tuple: {} = {};
-    var empty_array: int[] = [];
-    var empty_index = a[];
-    var bad_integer_index = t.0x5;
-    var bad_real_index = t.1e5;
-    var parse_error
+predicate test() {
+    state clash = 5;
+    state clash = 5;
+    state clash = 5;
+    state empty_tuple: {} = {};
+    state empty_array: int[] = [];
+    state empty_index = a[];
+    state bad_integer_index = t.0x5;
+    state bad_real_index = t.1e5;
+    state parse_error
 
 // parse_failure <<<
-// type annotation or initializer needed for variable `untyped`
-// @21..32: type annotation or initializer needed
-// consider giving `untyped` an explicit type or an initializer
 // symbol `clash` has already been declared
-// @42..47: previous declaration of the symbol `clash` here
-// @61..66: `clash` redeclared here
+// @23..38: previous declaration of the symbol `clash` here
+// @50..55: `clash` redeclared here
 // `clash` must be declared or imported only once in this scope
 // symbol `clash` has already been declared
-// @42..47: previous declaration of the symbol `clash` here
-// @80..85: `clash` redeclared here
+// @23..38: previous declaration of the symbol `clash` here
+// @71..76: `clash` redeclared here
 // `clash` must be declared or imported only once in this scope
 // empty tuple types are not allowed
-// @112..114: empty tuple type found
+// @105..107: empty tuple type found
 // empty tuple expressions are not allowed
-// @117..119: empty tuple expression found
+// @110..112: empty tuple expression found
 // missing array or map index
-// @176..179: missing array or map element index
+// @173..176: missing array or map element index
 // invalid integer `0x5` as tuple index
-// @211..214: invalid integer as tuple index
+// @210..213: invalid integer as tuple index
 // invalid value `1e5` as tuple index
-// @243..246: invalid value as tuple index
-// expected `:`, `;`, or `=`, found `end of file`
-// @267..267: expected `:`, `;`, or `=`
+// @244..247: invalid value as tuple index
+// expected `:`, or `=`, found `end of file`
+// @270..270: expected `:`, or `=`
 // >>>

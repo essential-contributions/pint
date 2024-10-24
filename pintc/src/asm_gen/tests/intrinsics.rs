@@ -7,8 +7,8 @@ fn this_address() {
             "{}",
             compile(
                 r#"
-            predicate test {
-                var this_address = __this_address();
+            predicate test(this_address: b256) {
+                constraint this_address == __this_address();
             }
             "#,
             )
@@ -42,8 +42,8 @@ fn this_contract_address() {
             "{}",
             compile(
                 r#"
-            predicate test {
-                var this_contract_address = __this_contract_address();
+            predicate test(this_contract_address: b256) {
+                constraint this_contract_address == __this_contract_address();
             }
             "#,
             )
@@ -77,8 +77,8 @@ fn this_pathway() {
             "{}",
             compile(
                 r#"
-            predicate test {
-                var this_pathway = __this_pathway();
+            predicate test(this_pathway: int) {
+                constraint this_pathway == __this_pathway();
             }
             "#,
             )
@@ -111,8 +111,8 @@ fn sha256() {
             "{}",
             compile(
                 r#"
-            predicate test {
-                var sha256 = __sha256(69);
+            predicate test(sha256: b256) {
+                constraint sha256 == __sha256(69);
             }
             "#,
             )
@@ -147,9 +147,8 @@ fn sha256() {
             "{}",
             compile(
                 r#"
-            predicate test {
-                var x: int;
-                var sha256 = __sha256(x);
+            predicate test(x: int, sha256: b256) {
+                constraint sha256 == __sha256(x);
             }
             "#,
             )
@@ -187,10 +186,8 @@ fn sha256() {
             "{}",
             compile(
                 r#"
-            predicate test {
-                var x: b256;
-                var y: b256;
-                var sha256 = __sha256({ 1, 3, x, { y, true } });
+            predicate test(x: b256, y: b256, sha256: b256) {
+                constraint sha256 == __sha256({ 1, 3, x, { y, true } });
             }
             "#,
             )
@@ -235,9 +232,8 @@ fn sha256() {
             "{}",
             compile(
                 r#"
-            predicate test {
-                var t: { int, int, b256, { b256, bool } };
-                var sha256 = __sha256(t);
+            predicate test(t: { int, int, b256, { b256, bool } }, sha256: b256) {
+                constraint sha256 == __sha256(t);
             }
             "#,
             )
@@ -275,11 +271,8 @@ fn sha256() {
             "{}",
             compile(
                 r#"
-            predicate test {
-                var x: int;
-                var y: int;
-                var z: int;
-                var sha256 = __sha256([[1, 2, 3], [x, y, z]]);
+            predicate test(x: int, y: int, z: int, sha256: b256) {
+                constraint sha256 == __sha256([[1, 2, 3], [x, y, z]]);
             }
             "#,
             )
@@ -328,9 +321,8 @@ fn sha256() {
             "{}",
             compile(
                 r#"
-            predicate test {
-                var z: int[3][2];
-                var sha256 = __sha256(z);
+            predicate test(z: int[3][2], sha256: b256) {
+                constraint sha256 == __sha256(z);
             }
             "#,
             )
@@ -368,9 +360,8 @@ fn sha256() {
             "{}",
             compile(
                 r#"
-            predicate test {
-                var z: int[3][2];
-                var sha256 = __sha256(z[1]);
+            predicate test(z: int[3][2], sha256: b256) {
+                constraint sha256 == __sha256(z[1]);
             }
             "#,
             )
@@ -412,10 +403,10 @@ fn sha256() {
             "{}",
             compile(
                 r#"
-            predicate test {
+            predicate test(hash: b256) {
                 pub var foo: int;
                 pub var bar: { int, b256, int[3] };
-                var hash = __sha256({ foo, bar });
+                constraint hash == __sha256({ foo, bar });
             }
             "#,
             )
@@ -464,12 +455,9 @@ fn verify_ed25519() {
             "{}",
             compile(
                 r#"
-            predicate test {
-                var hash0: b256;
-                var hash1: b256;
-                var hash2: b256;
-                var sig = { hash0, hash1 };
-                var verify = __verify_ed25519(69, sig, hash2);
+            predicate test(hash0: b256, hash1: b256, hash2: b256, sig: {b256, b256}, verify: bool) {
+                constraint sig == { hash0, hash1 };
+                constraint verify == __verify_ed25519(69, sig, hash2);
             }
             "#,
             )
@@ -524,13 +512,17 @@ fn verify_ed25519() {
             "{}",
             compile(
                 r#"
-            predicate test {
-                var tuple = { 1, 2, [ 1, 3 ] };
-                var hash0: b256;
-                var hash1: b256;
-                var hash2: b256;
-                var sig = { hash0, hash1 };
-                var verify = __verify_ed25519(tuple, sig, hash2);
+            predicate test(
+                tuple: {int, int, int[2]}, 
+                hash0: b256,
+                hash1: b256,
+                hash2: b256,
+                sig: {b256, b256},
+                verify: bool,
+            ) {
+                constraint tuple == { 1, 2, [ 1, 3 ] };
+                constraint sig == { hash0, hash1 };
+                constraint verify == __verify_ed25519(tuple, sig, hash2);
             }
             "#,
             )
@@ -602,12 +594,15 @@ fn recover_secp256k1() {
             "{}",
             compile(
                 r#"
-            predicate test {
-                var hash0: b256;
-                var hash1: b256;
-                var hash2: b256;
-                var sig = { hash1, hash2, 69 };
-                var recovered = __recover_secp256k1(hash0, sig);
+            predicate test(
+                hash0: b256,
+                hash1: b256,
+                hash2: b256,
+                sig: {b256, b256, int},
+                recovered: {b256, int},
+            ) {
+                constraint sig == { hash1, hash2, 69 };
+                constraint recovered == __recover_secp256k1(hash0, sig);
             }
             "#,
             )

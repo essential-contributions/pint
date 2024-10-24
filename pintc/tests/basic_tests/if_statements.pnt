@@ -1,21 +1,19 @@
-predicate test {
-    var condition: bool;
-    var condition2: bool;
-    var condition3: bool;
-
-    var x: int;
-    var y: int;
-
+predicate test(
+    condition: bool,
+    condition2: bool,
+    condition3: bool,
+    x: int,
+    y: int,
+    xx: int,
+    yy: int,
+    z: bool,
+) {
     if condition {
         constraint x == 0;
         constraint y != x;
     }
 
     if condition { }
-
-    var xx: int;
-    var yy: int;
-    var z: bool;
 
     if condition2 {
         constraint xx == 1;
@@ -72,15 +70,16 @@ predicate test {
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::condition: bool;
-//     var ::condition2: bool;
-//     var ::condition3: bool;
-//     var ::x: int;
-//     var ::y: int;
-//     var ::xx: int;
-//     var ::yy: int;
-//     var ::z: bool;
+// predicate ::test(
+//     ::condition: bool,
+//     ::condition2: bool,
+//     ::condition3: bool,
+//     ::x: int,
+//     ::y: int,
+//     ::xx: int,
+//     ::yy: int,
+//     ::z: bool,
+// ) {
 //     if ::condition {
 //         constraint (::x == 0)
 //         constraint (::y != ::x)
@@ -144,15 +143,16 @@ predicate test {
 // >>>
 
 // flattened <<<
-// predicate ::test {
-//     var ::condition: bool;
-//     var ::condition2: bool;
-//     var ::condition3: bool;
-//     var ::x: int;
-//     var ::y: int;
-//     var ::xx: int;
-//     var ::yy: int;
-//     var ::z: bool;
+// predicate ::test(
+//     ::condition: bool,
+//     ::condition2: bool,
+//     ::condition3: bool,
+//     ::x: int,
+//     ::y: int,
+//     ::xx: int,
+//     ::yy: int,
+//     ::z: bool,
+// ) {
 //     constraint (!::condition || (::x == 0));
 //     constraint (!::condition || (::y != ::x));
 //     constraint (!::condition2 || (::xx == 1));

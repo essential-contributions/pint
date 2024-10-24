@@ -1,30 +1,28 @@
-predicate test {
-    var x: real = 1.0..4.0;
-    var y: real = 1.0..4.0;
+predicate test(x: real, y: real) {
+    constraint x in 1.0..4.0;
+    constraint y in 1.0..4.0;
 
     constraint x + y == 3.3;
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::x: real;
-//     var ::y: real;
-//     constraint (::x >= 1e0);
-//     constraint (::x <= 4e0);
-//     constraint (::y >= 1e0);
-//     constraint (::y <= 4e0);
+// predicate ::test(
+//     ::x: real,
+//     ::y: real,
+// ) {
+//     constraint ::x in 1e0..4e0;
+//     constraint ::y in 1e0..4e0;
 //     constraint ((::x + ::y) == 3.3e0);
 // }
 // >>>
 
 // flattened <<<
-// predicate ::test {
-//     var ::x: real;
-//     var ::y: real;
-//     constraint (::x >= 1e0);
-//     constraint (::x <= 4e0);
-//     constraint (::y >= 1e0);
-//     constraint (::y <= 4e0);
+// predicate ::test(
+//     ::x: real,
+//     ::y: real,
+// ) {
+//     constraint ((::x >= 1e0) && (::x <= 4e0));
+//     constraint ((::y >= 1e0) && (::y <= 4e0));
 //     constraint ((::x + ::y) == 3.3e0);
 //     constraint __eq_set(__mut_keys(), {0});
 // }

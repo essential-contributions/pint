@@ -1,25 +1,22 @@
 union SupperGuest = Bartholomew | JamesL | Andrew | Judas | Peter | John | Thomas | JamesG | Philip | Matthew | Jude | Simon;
 
-predicate test {
-    var x: int;
-
+predicate test(x: int, y: bool, z: SupperGuest) {
     constraint x in 11..22 in 13..20;
 
-    var y: bool;
     constraint y in 0x0000111100001111000011110000111100001111000011110000111100001111..false;
 
-    var z: SupperGuest;
     constraint z in [1, 4, 7];
     constraint x in [SupperGuest::Andrew, SupperGuest::Philip];
 }
 
 // parsed <<<
 // union ::SupperGuest = Bartholomew | JamesL | Andrew | Judas | Peter | John | Thomas | JamesG | Philip | Matthew | Jude | Simon;
-//
-// predicate ::test {
-//     var ::x: int;
-//     var ::y: bool;
-//     var ::z: ::SupperGuest;
+// 
+// predicate ::test(
+//     ::x: int,
+//     ::y: bool,
+//     ::z: ::SupperGuest,
+// ) {
 //     constraint ::x in 11..22 in 13..20;
 //     constraint ::y in 0x0000111100001111000011110000111100001111000011110000111100001111..false;
 //     constraint ::z in [1, 4, 7];
@@ -29,15 +26,15 @@ predicate test {
 
 // typecheck_failure <<<
 // value type and range type differ
-// @191..193: range type mismatch; expecting `bool` type, found `int` type
+// @207..209: range type mismatch; expecting `bool` type, found `int` type
 // left and right types in range differ
-// @305..310: expecting `b256` type , found `bool` type
+// @304..309: expecting `b256` type , found `bool` type
 // compiler internal error: range ty is not numeric or array?
-// @232..310: range ty is not numeric or array?
+// @231..309: range ty is not numeric or array?
 // value type and array element type in range differ
-// @358..359: array element type mismatch; expecting `::SupperGuest` type, found `int` type
+// @333..334: array element type mismatch; expecting `::SupperGuest` type, found `int` type
 // value type and array element type in range differ
 // @0..124: array element type mismatch; expecting `int` type, found `::SupperGuest` type
 // constraint expression type error
-// @232..310: expecting type `bool`
+// @231..309: expecting type `bool`
 // >>>

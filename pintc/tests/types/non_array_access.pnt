@@ -1,19 +1,18 @@
-predicate test {
-    var a: int;
-
+predicate test(a: int) {
     constraint a[0] == a[1];
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::a: int;
+// predicate ::test(
+//     ::a: int,
+// ) {
 //     constraint (::a[0] == ::a[1]);
 // }
 // >>>
 
 // typecheck_failure <<<
 // indexed expression invalid
-// @49..53: value must be an array or a storage map; found `int`
+// @40..44: value must be an array or a storage map; found `int`
 // indexed expression invalid
-// @57..61: value must be an array or a storage map; found `int`
+// @48..52: value must be an array or a storage map; found `int`
 // >>>

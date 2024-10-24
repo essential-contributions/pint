@@ -1,23 +1,23 @@
-predicate test {
-    var x: int;
-
+predicate test(x: int, obj: int) {
     constraint x >= -10;
-    var obj: int = x*x + 2*x - 8;
+    constraint obj == x*x + 2*x - 8;
 }
 
-// parsed <<<<
-// predicate ::test {
-//     var ::x: int;
-//     var ::obj: int;
+// parsed <<<
+// predicate ::test(
+//     ::x: int,
+//     ::obj: int,
+// ) {
 //     constraint (::x >= -10);
 //     constraint (::obj == (((::x * ::x) + (2 * ::x)) - 8));
 // }
 // >>>
 
 // flattened <<<
-// predicate ::test {
-//     var ::x: int;
-//     var ::obj: int;
+// predicate ::test(
+//     ::x: int,
+//     ::obj: int,
+// ) {
 //     constraint (::x >= -10);
 //     constraint (::obj == (((::x * ::x) + (2 * ::x)) - 8));
 //     constraint __eq_set(__mut_keys(), {0});

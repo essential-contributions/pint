@@ -1,9 +1,7 @@
 union Key = CMajor | DMinor;
 union Chord = FFlatDiminished | EMinorOverG;
 
-predicate test {
-    var saddest_sound: Chord;
-
+predicate test(saddest_sound: Chord) {
     // Saddest key is D-minor.  Should produce type error since `saddest_sound` is a `Chord`.
     constraint saddest_sound == Key::DMinor;
 }
@@ -11,15 +9,16 @@ predicate test {
 // parsed <<<
 // union ::Key = CMajor | DMinor;
 // union ::Chord = FFlatDiminished | EMinorOverG;
-//
-// predicate ::test {
-//     var ::saddest_sound: ::Chord;
+// 
+// predicate ::test(
+//     ::saddest_sound: ::Chord,
+// ) {
 //     constraint (::saddest_sound == ::Key::DMinor);
 // }
 // >>>
 
 // typecheck_failure <<<
 // binary operator type error
-// @249..260: operator `==` argument has unexpected type `::Key`
-// @232..245: expecting type `::Chord`
+// @240..251: operator `==` argument has unexpected type `::Key`
+// @223..236: expecting type `::Chord`
 // >>>

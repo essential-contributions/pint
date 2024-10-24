@@ -7,10 +7,10 @@ storage {
     my_union: U
 }
 
-predicate Foo {
-    var v0: int;
-    var v1: bool[5];
-
+predicate Foo(
+    v0: int,
+    v1: bool[5],
+) {
     pub var t0: { int, int }[5];
     pub var t1: b256[3];
 }

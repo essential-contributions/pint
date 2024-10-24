@@ -6,8 +6,7 @@ const b: bool[match a {
     node::sure(x) => x.0,
 }] = [true, true, false, true, false, false, false, true, false, false, false];
 
-predicate test {
-    var y: bool;
+predicate test(y: bool) {
     constraint y == b[2];
 }
 
@@ -15,9 +14,10 @@ predicate test {
 // const ::b: bool[match ::a { ::node::nope => 22, ::node::sure(x) => ::x.0 }] = [true, true, false, true, false, false, false, true, false, false, false];
 // const ::a = ::node::sure({11, false});
 // union ::node = nope | sure({int, bool});
-//
-// predicate ::test {
-//     var ::y: bool;
+// 
+// predicate ::test(
+//     ::y: bool,
+// ) {
 //     constraint (::y == ::b[2]);
 // }
 // >>>
@@ -26,9 +26,10 @@ predicate test {
 // const ::b: bool[11] = [true, true, false, true, false, false, false, true, false, false, false];
 // const ::a: ::node = ::node::sure({11, false});
 // union ::node = nope | sure({int, bool});
-//
-// predicate ::test {
-//     var ::y: bool;
+// 
+// predicate ::test(
+//     ::y: bool,
+// ) {
 //     constraint (::y == false);
 //     constraint __eq_set(__mut_keys(), {0});
 // }

@@ -7,17 +7,17 @@ storage {
     x: Real,
 }
 
-predicate test {
-    var i: I = 11;
-    var j: {I, real} = {22, 33.3};
+predicate test() {
+    state i: I = 11;
+    state j: {I, real} = {22, 33.3};
 
-    var r: Real = 44.4;
-    var e: Experience = Experience::Real;
+    state r: Real = 44.4;
+    state e: Experience = Experience::Real;
 
-    var p: Point = { 66.6, 77.7 };
+    state p: Point = { 66.6, 77.7 };
     constraint r < p.y;
 
-    var q: real = i as Real;
+    state q: real = i as Real;
 
     state x: Real = storage::x;
 }
@@ -31,21 +31,16 @@ predicate test {
 //     x: ::Real,
 // }
 // 
-// predicate ::test {
-//     var ::i: ::I;
-//     var ::j: {::I, real};
-//     var ::r: ::Real;
-//     var ::e: ::Experience;
-//     var ::p: ::Point;
-//     var ::q: real;
+// predicate ::test(
+// ) {
+//     state ::i: ::I = 11;
+//     state ::j: {::I, real} = {22, 3.33e1};
+//     state ::r: ::Real = 4.44e1;
+//     state ::e: ::Experience = ::Experience::Real;
+//     state ::p: ::Point = {6.66e1, 7.77e1};
+//     state ::q: real = ::i as ::Real;
 //     state ::x: ::Real = storage::x;
-//     constraint (::i == 11);
-//     constraint (::j == {22, 3.33e1});
-//     constraint (::r == 4.44e1);
-//     constraint (::e == ::Experience::Real);
-//     constraint (::p == {6.66e1, 7.77e1});
 //     constraint (::r < ::p.y);
-//     constraint (::q == ::i as ::Real);
 // }
 // >>>
 
@@ -58,21 +53,16 @@ predicate test {
 //     x: real,
 // }
 // 
-// predicate ::test {
-//     var ::i: int;
-//     var ::j: {int, real};
-//     var ::r: real;
-//     var ::e: ::Experience;
-//     var ::p: {x: real, y: real};
-//     var ::q: real;
+// predicate ::test(
+// ) {
+//     state ::i: int = 11;
+//     state ::j: {int, real} = {22, 3.33e1};
+//     state ::r: real = 4.44e1;
+//     state ::e: ::Experience = ::Experience::Real;
+//     state ::p: {x: real, y: real} = {6.66e1, 7.77e1};
+//     state ::q: real = ::i as real;
 //     state ::x: real = __storage_get({0});
-//     constraint (::i == 11);
-//     constraint (::j == {22, 3.33e1});
-//     constraint (::r == 4.44e1);
-//     constraint (::e == ::Experience::Real);
-//     constraint (::p == {6.66e1, 7.77e1});
 //     constraint (::r < ::p.y);
-//     constraint (::q == ::i as real);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

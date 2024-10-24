@@ -23,26 +23,25 @@ interface Boo {
     }
 }
 
-predicate test {
-    var t: A = A::T;
+predicate test(h: Hooray) {
+    state t: A = A::T;
     pub var pt: A = A::T;
 
-    var u: TheLetterA = A::U;
-    var v: A = TheLetterA::V;
+    state u: TheLetterA = A::U;
+    state v: A = TheLetterA::V;
 
-    var i: I = 11;
-    var j: {I, int} = {22, 33};
+    state i: I = 11;
+    state j: {I, int} = {22, 33};
 
-    var r: Int = 44;
-    var e: Experience = Experience::Int;
+    state r: Int = 44;
+    state e: Experience = Experience::Int;
 
-    var h: Hooray;
     constraint h[1] == 55;
 
-    var p: Point = { 66, 77 };
+    state p: Point = { 66, 77 };
     constraint r < p.y;
 
-    var q: int = i as Int;
+    state q: int = i as Int;
 
     state x: I = storage::x;
 }
@@ -68,32 +67,24 @@ predicate test {
 //         pub var x: ::A;
 //     }
 // }
-//
-// predicate ::test {
-//     var ::t: ::A;
+// 
+// predicate ::test(
+//     ::h: ::Hooray,
+// ) {
 //     pub var ::pt: ::A;
-//     var ::u: ::TheLetterA;
-//     var ::v: ::A;
-//     var ::i: ::I;
-//     var ::j: {::I, int};
-//     var ::r: ::Int;
-//     var ::e: ::Experience;
-//     var ::h: ::Hooray;
-//     var ::p: ::Point;
-//     var ::q: int;
+//     state ::t: ::A = ::A::T;
+//     state ::u: ::TheLetterA = ::A::U;
+//     state ::v: ::A = ::TheLetterA::V;
+//     state ::i: ::I = 11;
+//     state ::j: {::I, int} = {22, 33};
+//     state ::r: ::Int = 44;
+//     state ::e: ::Experience = ::Experience::Int;
+//     state ::p: ::Point = {66, 77};
+//     state ::q: int = ::i as ::Int;
 //     state ::x: ::I = storage::x;
-//     constraint (::t == ::A::T);
 //     constraint (::pt == ::A::T);
-//     constraint (::u == ::A::U);
-//     constraint (::v == ::TheLetterA::V);
-//     constraint (::i == 11);
-//     constraint (::j == {22, 33});
-//     constraint (::r == 44);
-//     constraint (::e == ::Experience::Int);
 //     constraint (::h[1] == 55);
-//     constraint (::p == {66, 77});
 //     constraint (::r < ::p.y);
-//     constraint (::q == ::i as ::Int);
 // }
 // >>>
 
@@ -118,33 +109,24 @@ predicate test {
 //         pub var x: ::TheLetterA;
 //     }
 // }
-//
-// predicate ::test {
-//     var ::t: ::TheLetterA;
+// 
+// predicate ::test(
+//     ::h: int[3],
+// ) {
 //     pub var ::pt: ::TheLetterA;
-//     var ::u: ::TheLetterA;
-//     var ::v: ::TheLetterA;
-//     var ::i: int;
-//     var ::j: {int, int};
-//     var ::r: int;
-//     var ::e: ::Experience;
-//     var ::h: int[3];
-//     var ::p: {x: int, y: int};
-//     var ::q: int;
+//     state ::t: ::TheLetterA = ::TheLetterA::T;
+//     state ::u: ::TheLetterA = ::TheLetterA::U;
+//     state ::v: ::TheLetterA = ::TheLetterA::V;
+//     state ::i: int = 11;
+//     state ::j: {int, int} = {22, 33};
+//     state ::r: int = 44;
+//     state ::e: ::Experience = ::Experience::Int;
+//     state ::p: {x: int, y: int} = {66, 77};
+//     state ::q: int = ::i;
 //     state ::x: int = __storage_get({0});
-//     constraint (::t == ::TheLetterA::T);
 //     constraint (__pub_var(__this_pathway(), {0}) == ::TheLetterA::T);
-//     constraint (::u == ::TheLetterA::U);
-//     constraint (::v == ::TheLetterA::V);
-//     constraint (::i == 11);
-//     constraint (::j == {22, 33});
-//     constraint (::r == 44);
-//     constraint (::e == ::Experience::Int);
 //     constraint (::h[1] == 55);
-//     constraint (::p == {66, 77});
 //     constraint (::r < ::p.y);
-//     constraint (::q == ::i);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
-//
 // >>>

@@ -8,13 +8,13 @@ storage {
     my_nested_map: (int => (b256 => { int, { b256, int } })),
 }
 
-predicate Foo {
-    var v0: bool;
-    var v1: int;
-    var v2: b256;
-    var v3: { int, int };
-    var v4: { int, int, { int, int } };
-
+predicate Foo(
+    v0: bool,
+    v1: int,
+    v2: b256,
+    v3: { int, int },
+    v4: { int, int, { int, int } },
+) {
     pub var t0: bool;
     pub var t1: int;
     pub var t2: b256;
@@ -30,13 +30,14 @@ predicate Foo {
 //     my_map: ( int => {int, {b256, int}} ),
 //     my_nested_map: ( int => ( b256 => {int, {b256, int}} ) ),
 // }
-//
-// predicate ::Foo {
-//     var ::v0: bool;
-//     var ::v1: int;
-//     var ::v2: b256;
-//     var ::v3: {int, int};
-//     var ::v4: {int, int, {int, int}};
+// 
+// predicate ::Foo(
+//     ::v0: bool,
+//     ::v1: int,
+//     ::v2: b256,
+//     ::v3: {int, int},
+//     ::v4: {int, int, {int, int}},
+// ) {
 //     pub var ::t0: bool;
 //     pub var ::t1: int;
 //     pub var ::t2: b256;
@@ -53,13 +54,14 @@ predicate Foo {
 //     my_map: ( int => {int, {b256, int}} ),
 //     my_nested_map: ( int => ( b256 => {int, {b256, int}} ) ),
 // }
-//
-// predicate ::Foo {
-//     var ::v0: bool;
-//     var ::v1: int;
-//     var ::v2: b256;
-//     var ::v3: {int, int};
-//     var ::v4: {int, int, {int, int}};
+// 
+// predicate ::Foo(
+//     ::v0: bool,
+//     ::v1: int,
+//     ::v2: b256,
+//     ::v3: {int, int},
+//     ::v4: {int, int, {int, int}},
+// ) {
 //     pub var ::t0: bool;
 //     pub var ::t1: int;
 //     pub var ::t2: b256;

@@ -1,19 +1,20 @@
-predicate test {
+predicate test(u: real, w: real) {
     // All the decision variables in this test are known. The only purpose of this test make sure that
     // all the listed constraints are satisfied and not conflicting. This helps ensure correctness of
     // logical operators in various forms.
 
-    var u: real = 40.0;
-    var w: real = 50.0;
+    constraint u == 40.0;
+    constraint w == 50.0;
 
     constraint u >= 40.0 && w <= 50.0;
     constraint (u >= 40.0 && u + w == 90.0) || w == 60.0;
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::u: real;
-//     var ::w: real;
+// predicate ::test(
+//     ::u: real,
+//     ::w: real,
+// ) {
 //     constraint (::u == 4e1);
 //     constraint (::w == 5e1);
 //     constraint ((::u >= 4e1) && (::w <= 5e1));
@@ -22,9 +23,10 @@ predicate test {
 // >>>
 
 // flattened <<<
-// predicate ::test {
-//     var ::u: real;
-//     var ::w: real;
+// predicate ::test(
+//     ::u: real,
+//     ::w: real,
+// ) {
 //     constraint (::u == 4e1);
 //     constraint (::w == 5e1);
 //     constraint ((::u >= 4e1) && (::w <= 5e1));

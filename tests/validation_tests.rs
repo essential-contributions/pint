@@ -331,7 +331,7 @@ fn parse_db_section(
     contract_addr: &ContentAddress,
 ) -> anyhow::Result<()> {
     // Parse the db section. This can include internal and external storage addresses.
-    if let Some(db) = &parse_test_data(path)?.db {
+    if let Some(db) = &parse_test_data(path, true /* db_only */)?.db {
         for line in db.lines() {
             // Collect key and value. Assume the key is a hex and the value is a u64
             let split = line.split(',').collect::<Vec<_>>();

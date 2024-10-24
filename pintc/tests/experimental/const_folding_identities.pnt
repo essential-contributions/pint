@@ -1,43 +1,60 @@
-predicate Test {
-    var x: real;
-
-    var a = 0.0 + x;
-    var b = x + 0.0;
-    var c = x - 0.0;
-    var d = 0.0 * x;
-    var e = x * 0.0;
-    var f = 0.0 / x - 0.0;
-    var g = x / 1.0;
-    var h = x % 1.0;
-    var i = (0.0 + x) + (x - 0.0);
-    var j = (x + 0.0) * (0.0 * x);
-    var k = (x - 0.0) / (x / 1.0);
-    var l = (0.0 * x) + (x % 1.0);
-    var m = (x * 0.0) - (0.0 + x);
-    var n = (0.0 / x) - (0.0 * x);
-    var o = (x / 1.0) + (x - 0.0);
-    var p = (x % 1.0) * (0.0 + x);
+predicate Test(
+    x: real,
+    a: real,
+    b: real,
+    c: real,
+    d: real,
+    e: real,
+    f: real,
+    g: real,
+    h: real,
+    i: real,
+    j: real,
+    k: real,
+    l: real,
+    m: real,
+    n: real,
+    o: real,
+    p: real,
+) {
+    constraint a == 0.0 + x;
+    constraint b == x + 0.0;
+    constraint c == x - 0.0;
+    constraint d == 0.0 * x;
+    constraint e == x * 0.0;
+    constraint f == 0.0 / x - 0.0;
+    constraint g == x / 1.0;
+    constraint h == x % 1.0;
+    constraint i == (0.0 + x) + (x - 0.0);
+    constraint j == (x + 0.0) * (0.0 * x);
+    constraint k == (x - 0.0) / (x / 1.0);
+    constraint l == (0.0 * x) + (x % 1.0);
+    constraint m == (x * 0.0) - (0.0 + x);
+    constraint n == (0.0 / x) - (0.0 * x);
+    constraint o == (x / 1.0) + (x - 0.0);
+    constraint p == (x % 1.0) * (0.0 + x);
 }
 
 // parsed <<<
-// predicate ::Test {
-//     var ::x: real;
-//     var ::a;
-//     var ::b;
-//     var ::c;
-//     var ::d;
-//     var ::e;
-//     var ::f;
-//     var ::g;
-//     var ::h;
-//     var ::i;
-//     var ::j;
-//     var ::k;
-//     var ::l;
-//     var ::m;
-//     var ::n;
-//     var ::o;
-//     var ::p;
+// predicate ::Test(
+//     ::x: real,
+//     ::a: real,
+//     ::b: real,
+//     ::c: real,
+//     ::d: real,
+//     ::e: real,
+//     ::f: real,
+//     ::g: real,
+//     ::h: real,
+//     ::i: real,
+//     ::j: real,
+//     ::k: real,
+//     ::l: real,
+//     ::m: real,
+//     ::n: real,
+//     ::o: real,
+//     ::p: real,
+// ) {
 //     constraint (::a == (0e0 + ::x));
 //     constraint (::b == (::x + 0e0));
 //     constraint (::c == (::x - 0e0));
@@ -58,24 +75,25 @@ predicate Test {
 // >>>
 
 // flattened <<<
-// predicate ::Test {
-//     var ::x: real;
-//     var ::a: real;
-//     var ::b: real;
-//     var ::c: real;
-//     var ::d: real;
-//     var ::e: real;
-//     var ::f: real;
-//     var ::g: real;
-//     var ::h: real;
-//     var ::i: real;
-//     var ::j: real;
-//     var ::k: real;
-//     var ::l: real;
-//     var ::m: real;
-//     var ::n: real;
-//     var ::o: real;
-//     var ::p: real;
+// predicate ::Test(
+//     ::x: real,
+//     ::a: real,
+//     ::b: real,
+//     ::c: real,
+//     ::d: real,
+//     ::e: real,
+//     ::f: real,
+//     ::g: real,
+//     ::h: real,
+//     ::i: real,
+//     ::j: real,
+//     ::k: real,
+//     ::l: real,
+//     ::m: real,
+//     ::n: real,
+//     ::o: real,
+//     ::p: real,
+// ) {
 //     constraint (::a == (0e0 + ::x));
 //     constraint (::b == (::x + 0e0));
 //     constraint (::c == (::x - 0e0));
@@ -97,24 +115,25 @@ predicate Test {
 // >>>
 
 // optimized <<<
-// predicate ::Test {
-//     var ::x: real;
-//     var ::a: real;
-//     var ::b: real;
-//     var ::c: real;
-//     var ::d: real;
-//     var ::e: real;
-//     var ::f: real;
-//     var ::g: real;
-//     var ::h: real;
-//     var ::i: real;
-//     var ::j: real;
-//     var ::k: real;
-//     var ::l: real;
-//     var ::m: real;
-//     var ::n: real;
-//     var ::o: real;
-//     var ::p: real;
+// predicate ::Test(
+//     ::x: real,
+//     ::a: real,
+//     ::b: real,
+//     ::c: real,
+//     ::d: real,
+//     ::e: real,
+//     ::f: real,
+//     ::g: real,
+//     ::h: real,
+//     ::i: real,
+//     ::j: real,
+//     ::k: real,
+//     ::l: real,
+//     ::m: real,
+//     ::n: real,
+//     ::o: real,
+//     ::p: real,
+// ) {
 //     constraint (::a == ::x);
 //     constraint (::b == ::x);
 //     constraint (::c == ::x);

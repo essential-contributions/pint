@@ -8,7 +8,7 @@ storage {
     map: ( int => { b256, int } ),
 }
 
-predicate Foo {
+predicate Foo() {
     state x = mut storage::x;
     state b = mut storage::b;
     state y_2 = mut storage::y.2;
@@ -34,7 +34,8 @@ predicate Foo {
 //     map: ( int => {b256, int} ),
 // }
 // 
-// predicate ::Foo {
+// predicate ::Foo(
+// ) {
 //     state ::x = mut storage::x;
 //     state ::b = mut storage::b;
 //     state ::y_2 = mut storage::y.2;
@@ -59,7 +60,8 @@ predicate Foo {
 //     map: ( int => {b256, int} ),
 // }
 // 
-// predicate ::Foo {
+// predicate ::Foo(
+// ) {
 //     state ::x: int = __storage_get({0});
 //     state ::b: b256 = __storage_get({1});
 //     state ::y_2: {b256, int} = __storage_get({2, (0 + 2)});

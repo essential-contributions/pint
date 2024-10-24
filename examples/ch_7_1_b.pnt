@@ -1,13 +1,13 @@
 // <disabled>
 // ANCHOR: cycle
-predicate A {
+predicate A() {
     pub var x: int;    
 
     predicate BI = B();
     constraint BI::y == 69;
 }
 
-predicate B {
+predicate B() {
     pub var y: int;    
 
     predicate AI = A();

@@ -1,16 +1,20 @@
-predicate test {
+predicate test(
+    r: real,  // quarterly repayment
+    p: real,  // principal initially borrowed
+    i: real,  // interest rate (per quarter)
+
+    // parsed variables
+    b1: real, // balance after one quarter
+    b2: real, // balance after two quarters
+    b3: real, // balance after three quarters
+    b4: real, // balance owing at end
+) {
     // Model for determining relationships between a 1 year loan repaying every quarter
 
     // variables
-    var r: real = 260.0;   // quarterly repayment
-    var p: real = 1000.0;  // principal initially borrowed
-    var i: real = 0.04;    // interest rate (per quarter)
-
-    // parsed variables
-    var b1: real; // balance after one quarter
-    var b2: real; // balance after two quarters
-    var b3: real; // balance after three quarters
-    var b4: real; // balance owing at end
+    constraint r == 260.0;   // quarterly repayment
+    constraint p == 1000.0;  // principal initially borrowed
+    constraint i == 0.04;    // interest rate (per quarter)
 
     constraint b1 == p * (1.0 + i) - r;
     constraint b2 == b1 * (1.0 + i) - r;
@@ -19,14 +23,15 @@ predicate test {
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::r: real;
-//     var ::p: real;
-//     var ::i: real;
-//     var ::b1: real;
-//     var ::b2: real;
-//     var ::b3: real;
-//     var ::b4: real;
+// predicate ::test(
+//     ::r: real,
+//     ::p: real,
+//     ::i: real,
+//     ::b1: real,
+//     ::b2: real,
+//     ::b3: real,
+//     ::b4: real,
+// ) {
 //     constraint (::r == 2.6e2);
 //     constraint (::p == 1e3);
 //     constraint (::i == 4e-2);
@@ -38,14 +43,15 @@ predicate test {
 // >>>
 
 // flattened <<<
-// predicate ::test {
-//     var ::r: real;
-//     var ::p: real;
-//     var ::i: real;
-//     var ::b1: real;
-//     var ::b2: real;
-//     var ::b3: real;
-//     var ::b4: real;
+// predicate ::test(
+//     ::r: real,
+//     ::p: real,
+//     ::i: real,
+//     ::b1: real,
+//     ::b2: real,
+//     ::b3: real,
+//     ::b4: real,
+// ) {
 //     constraint (::r == 2.6e2);
 //     constraint (::p == 1e3);
 //     constraint (::i == 4e-2);

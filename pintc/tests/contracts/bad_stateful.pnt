@@ -14,11 +14,12 @@ interface BamInstance = Bam(0x00000000000000000000000000000000000000000000000000
 predicate BamPredicateInstance =
     BamInstance::BamPredicate(0x0000000000000000000000000000000000000000000000000000000000000000);
 
-predicate Baz {}
+predicate Baz() {}
 
 // The parser changed to simply disallow these decls outside of predicates.  So it barfs on the
 // first `var`.
 //
+
 // parse_failure <<<
 // expected `::`, `an identifier`, `const`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`, found `var`
 // @22..25: expected `::`, `an identifier`, `const`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`

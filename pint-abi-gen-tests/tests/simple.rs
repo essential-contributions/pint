@@ -50,8 +50,6 @@ async fn test_solution_foo() {
             [70, 71, 72],
             [[0x3333333333333333; 4], [0x4444444444444444; 4]],
         ),
-        anon_0_v5: 42,
-        anon_0_v6: (43, 44),
     };
 
     // Public decision variables (i.e. transient data).
@@ -65,7 +63,7 @@ async fn test_solution_foo() {
             [74, 75, 76],
             [[0x5555555555555555; 4], [0x6666666666666666; 4]],
         ),
-        anon_1_t3: 45,
+        anon_0_t3: 45,
     };
 
     // State mutations.

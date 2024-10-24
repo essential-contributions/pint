@@ -1,11 +1,11 @@
 use a_mod::a1 as a1_alias;
 use a_mod::a2 as a1_alias; // Clash because of the alias
 
-predicate test {
-    var a1_alias = 5; // Clash because of the alias
-    var a1 = 5; // No Clash
+predicate test() {
+    state a1_alias = 5; // Clash because of the alias
+    state a1 = 5; // No Clash
 
-    var c_copy = b_mod::c;
+    state c_copy = b_mod::c;
 }
 
 // parse_failure <<<
@@ -23,6 +23,6 @@ predicate test {
 // `c1_alias` must be declared or imported only once in this scope
 // symbol `::a1_alias` has already been declared
 // @11..25: previous declaration of the symbol `::a1_alias` here
-// @110..118: `::a1_alias` redeclared here
+// @108..126: `::a1_alias` redeclared here
 // `::a1_alias` must be declared or imported only once in this scope
 // >>>

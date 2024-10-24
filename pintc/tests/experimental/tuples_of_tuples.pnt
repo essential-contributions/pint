@@ -1,27 +1,28 @@
-predicate test {
-    var a: {int, {int, bool, {int, bool, real}, real}, bool, real} =
-      {11, {22, false, {33, true, 44.4}, 55.5}, false, 66.6};
-
-    var b: real;
+predicate test(
+    a: {int, {int, bool, {int, bool, real}, real}, bool, real},
+    b: real,
+    c: {{width: int, height: int}, {x: int, y: int}},
+    d: {int, int},
+) {
+    constraint a == {11, {22, false, {33, true, 44.4}, 55.5}, false, 66.6};
 
     constraint b < a.1.2.2;
 
-    var c: {{width: int, height: int}, {x: int, y: int}};
-
     constraint c.1.x < c.0.0 && c.1.y < c.0.height;
 
-    var d: {int, int} = {77, 88};
+    constraint d == {77, 88};
 
     constraint c.0 == d;
     constraint c.1 != d;
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::a: {int, {int, bool, {int, bool, real}, real}, bool, real};
-//     var ::b: real;
-//     var ::c: {{width: int, height: int}, {x: int, y: int}};
-//     var ::d: {int, int};
+// predicate ::test(
+//     ::a: {int, {int, bool, {int, bool, real}, real}, bool, real},
+//     ::b: real,
+//     ::c: {{width: int, height: int}, {x: int, y: int}},
+//     ::d: {int, int},
+// ) {
 //     constraint (::a == {11, {22, false, {33, true, 4.44e1}, 5.55e1}, false, 6.66e1});
 //     constraint (::b < ::a.1.2.2);
 //     constraint ((::c.1.x < ::c.0.0) && (::c.1.y < ::c.0.height));
@@ -32,11 +33,12 @@ predicate test {
 // >>>
 
 // flattened <<<
-// predicate ::test {
-//     var ::a: {int, {int, bool, {int, bool, real}, real}, bool, real};
-//     var ::b: real;
-//     var ::c: {{width: int, height: int}, {x: int, y: int}};
-//     var ::d: {int, int};
+// predicate ::test(
+//     ::a: {int, {int, bool, {int, bool, real}, real}, bool, real},
+//     ::b: real,
+//     ::c: {{width: int, height: int}, {x: int, y: int}},
+//     ::d: {int, int},
+// ) {
 //     constraint (::a == {11, {22, false, {33, true, 4.44e1}, 5.55e1}, false, 6.66e1});
 //     constraint (::b < ::a.1.2.2);
 //     constraint ((::c.1.x < ::c.0.0) && (::c.1.y < ::c.0.height));

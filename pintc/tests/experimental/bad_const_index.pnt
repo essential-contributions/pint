@@ -1,20 +1,18 @@
-predicate test {
-    var n: int;
-    var a: int[10];
-
+predicate test(n: int, a: int[10]) {
     constraint a[-1.2] == 3;
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::n: int;
-//     var ::a: int[10];
+// predicate ::test(
+//     ::n: int,
+//     ::a: int[10],
+// ) {
 //     constraint (::a[-1.2e0] == 3);
 // }
 // >>>
 
 // typecheck_failure <<<
 // attempt to index an array with a mismatched value
-// @71..75: array access must be with an int value
+// @54..58: array access must be with an int value
 // found access using type `real`
 // >>>

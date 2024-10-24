@@ -3,13 +3,13 @@ use ::b_mod::c_mod::{A, A::B};
 
 union U = V | W;
 
-predicate test {
-    var s0 = B;
-    var s1 = C;
-    var s2 = A::B;
-    var s3 = b_mod::c_mod::A::C;
-    var s4 = ::b_mod::c_mod::A::B;
-
+predicate test(
+    s0: ::b_mod::c_mod::A,
+    s1: ::b_mod::c_mod::A,
+    s2: ::b_mod::c_mod::A,
+    s3: ::b_mod::c_mod::A,
+    s4: ::b_mod::c_mod::A,
+) {
     constraint s0 == B;
     constraint s1 == C;
     constraint s2 == A::B;
@@ -20,18 +20,14 @@ predicate test {
 // parsed <<<
 // union ::U = V | W;
 // union ::b_mod::c_mod::A = B | C | D;
-//
-// predicate ::test {
-//     var ::s0;
-//     var ::s1;
-//     var ::s2;
-//     var ::s3;
-//     var ::s4;
-//     constraint (::s0 == ::b_mod::c_mod::A::B);
-//     constraint (::s1 == ::b_mod::c_mod::A::C);
-//     constraint (::s2 == ::b_mod::c_mod::A::B);
-//     constraint (::s3 == ::b_mod::c_mod::A::C);
-//     constraint (::s4 == ::b_mod::c_mod::A::B);
+// 
+// predicate ::test(
+//     ::s0: ::b_mod::c_mod::A,
+//     ::s1: ::b_mod::c_mod::A,
+//     ::s2: ::b_mod::c_mod::A,
+//     ::s3: ::b_mod::c_mod::A,
+//     ::s4: ::b_mod::c_mod::A,
+// ) {
 //     constraint (::s0 == ::b_mod::c_mod::A::B);
 //     constraint (::s1 == ::b_mod::c_mod::A::C);
 //     constraint (::s2 == ::b_mod::c_mod::A::B);
@@ -44,17 +40,13 @@ predicate test {
 // union ::U = V | W;
 // union ::b_mod::c_mod::A = B | C | D;
 // 
-// predicate ::test {
-//     var ::s0: ::b_mod::c_mod::A;
-//     var ::s1: ::b_mod::c_mod::A;
-//     var ::s2: ::b_mod::c_mod::A;
-//     var ::s3: ::b_mod::c_mod::A;
-//     var ::s4: ::b_mod::c_mod::A;
-//     constraint (::s0 == ::b_mod::c_mod::A::B);
-//     constraint (::s1 == ::b_mod::c_mod::A::C);
-//     constraint (::s2 == ::b_mod::c_mod::A::B);
-//     constraint (::s3 == ::b_mod::c_mod::A::C);
-//     constraint (::s4 == ::b_mod::c_mod::A::B);
+// predicate ::test(
+//     ::s0: ::b_mod::c_mod::A,
+//     ::s1: ::b_mod::c_mod::A,
+//     ::s2: ::b_mod::c_mod::A,
+//     ::s3: ::b_mod::c_mod::A,
+//     ::s4: ::b_mod::c_mod::A,
+// ) {
 //     constraint (::s0 == ::b_mod::c_mod::A::B);
 //     constraint (::s1 == ::b_mod::c_mod::A::C);
 //     constraint (::s2 == ::b_mod::c_mod::A::B);

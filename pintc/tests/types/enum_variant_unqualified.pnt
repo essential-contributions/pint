@@ -1,22 +1,22 @@
 union Foo = Bar | Baz;
 union Bar = Baz | Xyzzy;
 
-predicate test {
-    var a = Baz;
+predicate test() {
+    state a = Baz;
 }
 
 // parsed <<<
 // union ::Foo = Bar | Baz;
 // union ::Bar = Baz | Xyzzy;
-//
-// predicate ::test {
-//     var ::a;
-//     constraint (::a == ::Baz);
+// 
+// predicate ::test(
+// ) {
+//     state ::a = ::Baz;
 // }
 // >>>
 
 // typecheck_failure <<<
 // cannot find value `::Baz` in this scope
-// @78..81: not found in this scope
+// @82..85: not found in this scope
 // this symbol is a variant of unions `::Foo` and `::Bar` and may need a fully qualified path
 // >>>

@@ -2,7 +2,7 @@ union choice = is_an | illusion;
 
 union choice = one(int) | the_other(int);
 
-predicate test {}
+predicate test() {}
 
 // parse_failure <<<
 // symbol `choice` has already been declared

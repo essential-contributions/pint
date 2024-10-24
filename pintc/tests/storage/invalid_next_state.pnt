@@ -1,16 +1,16 @@
-predicate test {
-    var y: int;
+predicate test(y: int) {
     constraint y' == 5;
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::y: int;
+// predicate ::test(
+//     ::y: int,
+// ) {
 //     constraint (::y' == 5);
 // }
 // >>>
 
 // typecheck_failure <<<
 // `next state` access must be bound to a state variable
-// @48..49: `next state` access must be bound to a state variable
+// @40..41: `next state` access must be bound to a state variable
 // >>>

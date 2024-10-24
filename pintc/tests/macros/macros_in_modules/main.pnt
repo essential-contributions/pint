@@ -7,10 +7,8 @@ macro @main_macro($id) {
 use c;
 use e::@e_macro;
 
-predicate test {
+predicate test(a: int) {
     // Call a macro in a module, should be expanded in the current scope.
-
-    var a: int;
     constraint ::b::@b_macro(a; 11 + 22);
     constraint c::@c_macro(a; 33);
 
@@ -24,8 +22,9 @@ predicate test {
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::a: int;
+// predicate ::test(
+//     ::a: int,
+// ) {
 //     constraint (::a <= (11 + 22));
 //     constraint (::a >= 33);
 //     constraint ((::a % 3) == 0);
@@ -35,8 +34,9 @@ predicate test {
 // >>>
 
 // flattened <<<
-// predicate ::test {
-//     var ::a: int;
+// predicate ::test(
+//     ::a: int,
+// ) {
 //     constraint (::a <= (11 + 22));
 //     constraint (::a >= 33);
 //     constraint ((::a % 3) == 0);

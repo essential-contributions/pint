@@ -6,9 +6,14 @@ storage {
     map3: (int => (int => b256)),
 }
 
-predicate Foo {
-    var x = 5;
-    var address = 0x2222222222222222222222222222222222222222222222222222222222222222;
+predicate Foo(
+    x: int,
+    address: b256,
+    and: bool,
+    sum: int,
+) {
+    constraint x == 5;
+    constraint address == 0x2222222222222222222222222222222222222222222222222222222222222222;
 
     state i0 = storage::i;
     state i1: int = storage::i;
@@ -25,13 +30,18 @@ predicate Foo {
     state map_3_access_1 = storage::map3[42][69];
     state map_3_access_2: b256 = storage::map3[42][69];
 
-    var and = b1 && map_2_access_1 && map_2_access_2;
-    var sum = x + i0 + map_1_access_1 + map_1_access_2;
+    constraint and == (b1 && map_2_access_1 && map_2_access_2);
+    constraint sum == x + i0 + map_1_access_1 + map_1_access_2;
 }
 
-predicate Bar {
-    var x = 5;
-    var address = 0x2222222222222222222222222222222222222222222222222222222222222222;
+predicate Bar(
+    x: int,
+    address: b256,
+    and: bool,
+    sum: int,
+) {
+    constraint x == 5;
+    constraint address == 0x2222222222222222222222222222222222222222222222222222222222222222;
 
     state i0 = storage::i;
     state i1: int = storage::i;
@@ -48,8 +58,8 @@ predicate Bar {
     state map_3_access_1 = storage::map3[42][69];
     state map_3_access_2: b256 = storage::map3[42][69];
 
-    var and = b1 && map_2_access_1 && map_2_access_2;
-    var sum = x + i0 + map_1_access_1 + map_1_access_2;
+    constraint and == (b1 && map_2_access_1 && map_2_access_2);
+    constraint sum == x + i0 + map_1_access_1 + map_1_access_2;
 }
 
 // parsed <<<
@@ -60,12 +70,13 @@ predicate Bar {
 //     map2: ( b256 => bool ),
 //     map3: ( int => ( int => b256 ) ),
 // }
-//
-// predicate ::Foo {
-//     var ::x;
-//     var ::address;
-//     var ::and;
-//     var ::sum;
+// 
+// predicate ::Foo(
+//     ::x: int,
+//     ::address: b256,
+//     ::and: bool,
+//     ::sum: int,
+// ) {
 //     state ::i0 = storage::i;
 //     state ::i1: int = storage::i;
 //     state ::b0 = storage::b;
@@ -81,12 +92,13 @@ predicate Bar {
 //     constraint (::and == ((::b1 && ::map_2_access_1) && ::map_2_access_2));
 //     constraint (::sum == (((::x + ::i0) + ::map_1_access_1) + ::map_1_access_2));
 // }
-//
-// predicate ::Bar {
-//     var ::x;
-//     var ::address;
-//     var ::and;
-//     var ::sum;
+// 
+// predicate ::Bar(
+//     ::x: int,
+//     ::address: b256,
+//     ::and: bool,
+//     ::sum: int,
+// ) {
 //     state ::i0 = storage::i;
 //     state ::i1: int = storage::i;
 //     state ::b0 = storage::b;
@@ -112,12 +124,13 @@ predicate Bar {
 //     map2: ( b256 => bool ),
 //     map3: ( int => ( int => b256 ) ),
 // }
-//
-// predicate ::Foo {
-//     var ::x: int;
-//     var ::address: b256;
-//     var ::and: bool;
-//     var ::sum: int;
+// 
+// predicate ::Foo(
+//     ::x: int,
+//     ::address: b256,
+//     ::and: bool,
+//     ::sum: int,
+// ) {
 //     state ::i0: int = __storage_get({0});
 //     state ::i1: int = __storage_get({0});
 //     state ::b0: bool = __storage_get({1});
@@ -134,12 +147,13 @@ predicate Bar {
 //     constraint (::sum == (((::x + ::i0) + ::map_1_access_1) + ::map_1_access_2));
 //     constraint __eq_set(__mut_keys(), {0});
 // }
-//
-// predicate ::Bar {
-//     var ::x: int;
-//     var ::address: b256;
-//     var ::and: bool;
-//     var ::sum: int;
+// 
+// predicate ::Bar(
+//     ::x: int,
+//     ::address: b256,
+//     ::and: bool,
+//     ::sum: int,
+// ) {
 //     state ::i0: int = __storage_get({0});
 //     state ::i1: int = __storage_get({0});
 //     state ::b0: bool = __storage_get({1});

@@ -1,16 +1,17 @@
-predicate test {
-    var n: int;
-    var a: int[0];
-}
+predicate test(
+    n: int,
+    a: int[0]
+) { }
 
 // parsed <<<
-// predicate ::test {
-//     var ::n: int;
-//     var ::a: int[0];
+// predicate ::test(
+//     ::n: int,
+//     ::a: int[0],
+// ) {
 // }
 // >>>
 
 // flattening_failure <<<
 // attempt to use an invalid constant as an array length
-// @48..49: this must be a strictly positive integer value
+// @39..40: this must be a strictly positive integer value
 // >>>

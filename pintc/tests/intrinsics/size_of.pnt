@@ -7,19 +7,24 @@ storage {
     d: { int, bool },
 }
 
-predicate test {
+predicate test(
+    a_len: int,
+    b_len: int,
+    c_len: int,
+    d_len: int,
+) {
     state a = storage::a;
     state b = storage::b;
     state c = storage::c;
     state d = storage::d;
 
-    var a_len = __size_of(a);
-    var b_len = __size_of(b);
-    var c_len = __size_of(c);
-    var d_len = __size_of(d);
+    constraint a_len == __size_of(a);
+    constraint b_len == __size_of(b);
+    constraint c_len == __size_of(c);
+    constraint d_len == __size_of(d);
 }
 
-// parsed <<<,
+// parsed <<<
 // union ::MyUnion = A | B;
 // storage {
 //     a: int,
@@ -27,12 +32,13 @@ predicate test {
 //     c: b256,
 //     d: {int, bool},
 // }
-//
-// predicate ::test {
-//     var ::a_len;
-//     var ::b_len;
-//     var ::c_len;
-//     var ::d_len;
+// 
+// predicate ::test(
+//     ::a_len: int,
+//     ::b_len: int,
+//     ::c_len: int,
+//     ::d_len: int,
+// ) {
 //     state ::a = storage::a;
 //     state ::b = storage::b;
 //     state ::c = storage::c;
@@ -44,7 +50,7 @@ predicate test {
 // }
 // >>>
 
-// flattened <<<,
+// flattened <<<
 // union ::MyUnion = A | B;
 // storage {
 //     a: int,
@@ -52,12 +58,13 @@ predicate test {
 //     c: b256,
 //     d: {int, bool},
 // }
-//
-// predicate ::test {
-//     var ::a_len: int;
-//     var ::b_len: int;
-//     var ::c_len: int;
-//     var ::d_len: int;
+// 
+// predicate ::test(
+//     ::a_len: int,
+//     ::b_len: int,
+//     ::c_len: int,
+//     ::d_len: int,
+// ) {
 //     state ::a: int = __storage_get({0});
 //     state ::b: bool = __storage_get({1});
 //     state ::c: b256 = __storage_get({2});

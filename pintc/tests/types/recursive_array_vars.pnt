@@ -1,49 +1,32 @@
-predicate test {
-    var a = [c[1], b];
-    var b = c[1];
-    var c = [[b][0], a[1]];
+predicate test() {
+    state a = [c[1], b];
+    state b = c[1];
+    state c = [[b][0], a[1]];
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::a;
-//     var ::b;
-//     var ::c;
-//     constraint (::a == [::c[1], ::b]);
-//     constraint (::b == ::c[1]);
-//     constraint (::c == [[::b][0], ::a[1]]);
+// predicate ::test(
+// ) {
+//     state ::a = [::c[1], ::b];
+//     state ::b = ::c[1];
+//     state ::c = [[::b][0], ::a[1]];
 // }
 // >>>
 
 // typecheck_failure <<<
 // expression has a recursive dependency
-// @52..53: cannot determine type of expression due to dependency
-// @70..84: dependency on expression is recursive
+// @58..59: cannot determine type of expression due to dependency
+// @78..92: dependency on expression is recursive
 // expression has a recursive dependency
-// @72..73: cannot determine type of expression due to dependency
-// @52..56: dependency on expression is recursive
+// @80..81: cannot determine type of expression due to dependency
+// @58..62: dependency on expression is recursive
 // expression has a recursive dependency
-// @52..53: cannot determine type of expression due to dependency
-// @70..84: dependency on expression is recursive
-// expression has a recursive dependency
-// @52..53: cannot determine type of expression due to dependency
-// @70..84: dependency on expression is recursive
-// expression has a recursive dependency
-// @72..73: cannot determine type of expression due to dependency
-// @52..56: dependency on expression is recursive
-// expression has a recursive dependency
-// @52..53: cannot determine type of expression due to dependency
-// @70..84: dependency on expression is recursive
+// @58..59: cannot determine type of expression due to dependency
+// @78..92: dependency on expression is recursive
 // unable to determine expression type
-// @25..26: type of this expression is ambiguous
+// @23..42: type of this expression is ambiguous
 // unable to determine expression type
-// @48..49: type of this expression is ambiguous
+// @48..62: type of this expression is ambiguous
 // unable to determine expression type
-// @66..67: type of this expression is ambiguous
-// constraint expression type error
-// @21..38: expecting type `bool`
-// constraint expression type error
-// @44..56: expecting type `bool`
-// constraint expression type error
-// @62..84: expecting type `bool`
+// @68..92: type of this expression is ambiguous
 // >>>

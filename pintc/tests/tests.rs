@@ -8,7 +8,7 @@ use std::{
     io::{BufRead, BufReader, Read},
     path::{Path, PathBuf},
 };
-use test_util::{parse_test_data, TestData};
+use test_util::{parse_test_data, update_expect, update_expected, TestData};
 use yansi::Paint;
 
 mod cli;
@@ -46,7 +46,7 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
 
         // Parse the file for the expected results for pint parsing, optimising and final output,
         // or errors at any of those stages.
-        let test_data = parse_test_data(&path)?;
+        let test_data = parse_test_data(&path, false /* db_only */)?;
 
         // Parse the project and check its output.
         let program = parse_test_and_check(&path, &test_data, &mut failed_tests)
@@ -56,9 +56,7 @@ fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
             .and_then(|pred|
                 // Flatten the parsed intent and check the result.
                 flatten_and_check(pred, &test_data, &mut failed_tests, &path))
-            .and_then(|pred|
-                // optimize the flattened intent
-                optimize(pred, &test_data, &mut failed_tests, &path));
+            .map(|pred| optimize(pred, &test_data, &path));
 
         // Check the `json` ABI if a reference file exists.
         if let Some(program) = program {
@@ -118,8 +116,9 @@ fn parse_test_and_check(
                 .collect::<String>()
                 .trim_end()
                 .to_string();
-
-            if let Some(parse_error_str) = &test_data.parse_failure {
+            if update_expect() {
+                update_expected(path, "parse_failure", &errs_str);
+            } else if let Some(parse_error_str) = &test_data.parse_failure {
                 similar_asserts::assert_eq!(parse_error_str.trim_end(), errs_str);
             } else {
                 failed_tests.push(path.display().to_string());
@@ -134,7 +133,9 @@ fn parse_test_and_check(
             None
         }
         Ok(pred) => {
-            if let Some(expected_intent_str) = &test_data.parsed {
+            if update_expect() {
+                update_expected(path, "parsed", format!("{pred}").trim());
+            } else if let Some(expected_intent_str) = &test_data.parsed {
                 similar_asserts::assert_eq!(expected_intent_str.trim(), format!("{pred}").trim());
             } else if test_data.parse_failure.is_some() {
                 failed_tests.push(path.display().to_string());
@@ -181,7 +182,7 @@ fn type_check(
     // For testing a warning is treated as an error, so *any* output from the handler is a
     // 'failure'.
     if err_output.is_empty() {
-        if test_data.typecheck_failure.is_some() {
+        if !update_expect() && test_data.typecheck_failure.is_some() {
             failed_tests.push(path.display().to_string());
             println!(
                 "{} {}.",
@@ -192,7 +193,9 @@ fn type_check(
 
         res.ok()
     } else {
-        if let Some(typecheck_error_str) = &test_data.typecheck_failure {
+        if update_expect() {
+            update_expected(path, "typecheck_failure", &err_output);
+        } else if let Some(typecheck_error_str) = &test_data.typecheck_failure {
             similar_asserts::assert_eq!(typecheck_error_str.trim_end(), err_output);
         } else {
             failed_tests.push(path.display().to_string());
@@ -218,7 +221,9 @@ fn flatten_and_check(
     let handler = Handler::default();
     pred.flatten(&handler)
         .map(|flattened| {
-            if let Some(expected_flattened_str) = &test_data.flattened {
+            if update_expect() {
+                update_expected(path, "flattened", format!("{flattened}").trim());
+            } else if let Some(expected_flattened_str) = &test_data.flattened {
                 similar_asserts::assert_eq!(
                     expected_flattened_str.trim(),
                     format!("{flattened}").trim()
@@ -242,7 +247,9 @@ fn flatten_and_check(
         })
         .map_err(|_| {
             let err = Errors(handler.consume().0);
-            if let Some(flattening_error_str) = &test_data.flattening_failure {
+            if update_expect() {
+                update_expected(path, "flattening_failure", format!("{err}").trim());
+            } else if let Some(flattening_error_str) = &test_data.flattening_failure {
                 similar_asserts::assert_eq!(flattening_error_str.trim_end(), format!("{err}"));
             } else {
                 failed_tests.push(path.display().to_string());
@@ -258,33 +265,35 @@ fn flatten_and_check(
         .ok()
 }
 
-fn optimize(
-    pred: Contract,
-    test_data: &TestData,
-    failed_tests: &mut Vec<String>,
-    path: &Path,
-) -> Option<Contract> {
+// TODO: This probably needs a bit of work. Kept it as is for now, but we need to do the following:
+// 1. Always include `optimized` in every test.
+// 2. Figure out what to do with warnings
+// For now, we just worry about `optimized` and `warnings` if they're already there to start with.
+fn optimize(pred: Contract, test_data: &TestData, path: &Path) -> Contract {
     let handler = Handler::default();
     let optimized = pred.optimize(&handler);
-    if let Some(expected_optimized_str) = &test_data.optimized {
-        similar_asserts::assert_eq!(expected_optimized_str.trim(), format!("{optimized}").trim());
 
-        if let Some(expected_warnings_str) = &test_data.warnings {
-            let warnings = Warnings(handler.consume().1);
-            similar_asserts::assert_eq!(expected_warnings_str.trim(), format!("{warnings}").trim());
+    if let Some(expected_optimized_str) = &test_data.optimized {
+        if update_expect() {
+            update_expected(path, "optimized", format!("{optimized}").trim());
         } else {
-            failed_tests.push(path.display().to_string());
-            println!(
-                "{} {}.",
-                "MISSING 'warnings' DIRECTIVE".red(),
-                path.display().to_string().cyan(),
+            similar_asserts::assert_eq!(
+                expected_optimized_str.trim(),
+                format!("{optimized}").trim()
             );
         }
-
-        Some(optimized)
-    } else {
-        None
     }
+
+    if let Some(expected_warnings_str) = &test_data.warnings {
+        let warnings = Warnings(handler.consume().1);
+        if update_expect() {
+            update_expected(path, "warnings", format!("{warnings}").trim());
+        } else {
+            similar_asserts::assert_eq!(expected_warnings_str.trim(), format!("{warnings}").trim());
+        }
+    }
+
+    optimized
 }
 
 #[cfg(test)]

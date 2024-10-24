@@ -3,9 +3,8 @@ const b = 3 < 4;
 const c = { 1, 2 };
 const d: int[5] = [0, 1, 2, 3, 4];
 
-predicate Test {
-    var x = 1;
-    var y: int;
+predicate Test(x: int, y: int) {
+    constraint x == 1;
 
     // should be simplified to appropriate branch
     constraint (true || (::x == ::y));
@@ -34,10 +33,11 @@ predicate Test {
 // const ::d: int[5] = [0, 1, 2, 3, 4];
 // const ::a = true;
 // const ::c = {1, 2};
-//
-// predicate ::Test {
-//     var ::x;
-//     var ::y: int;
+// 
+// predicate ::Test(
+//     ::x: int,
+//     ::y: int,
+// ) {
 //     constraint (::x == 1);
 //     constraint (true || (::x == ::y));
 //     constraint ((::x == ::y) || true);
@@ -62,10 +62,11 @@ predicate Test {
 // const ::d: int[5] = [0, 1, 2, 3, 4];
 // const ::a: bool = true;
 // const ::c: {int, int} = {1, 2};
-//
-// predicate ::Test {
-//     var ::x: int;
-//     var ::y: int;
+// 
+// predicate ::Test(
+//     ::x: int,
+//     ::y: int,
+// ) {
 //     constraint (::x == 1);
 //     constraint (true || (::x == ::y));
 //     constraint ((::x == ::y) || true);
@@ -91,10 +92,11 @@ predicate Test {
 // const ::d: int[5] = [0, 1, 2, 3, 4];
 // const ::a: bool = true;
 // const ::c: {int, int} = {1, 2};
-//
-// predicate ::Test {
-//     var ::x: int;
-//     var ::y: int;
+// 
+// predicate ::Test(
+//     ::x: int,
+//     ::y: int,
+// ) {
 //     constraint (::x == 1);
 //     constraint (::x == ::y);
 //     constraint (::x == ::y);
@@ -104,6 +106,7 @@ predicate Test {
 //     constraint (::x == ::x);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
+
 // >>>
 
 // warnings <<<

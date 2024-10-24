@@ -2,8 +2,8 @@ macro @a($x, &pack, $y) {
     $x + $y
 }
 
-predicate test {
-    var b = @a(11; 22);
+predicate test(b: int) {
+    constraint b == @a(11; 22);
 }
 
 // parse_failure <<<

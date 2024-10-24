@@ -10,11 +10,10 @@ interface Foo {
     }
 }
 
-predicate Simple {
+predicate Simple(addr: b256) {
     interface FooInstance1 = Foo(0 + true);
     interface FooInstance2 = Foo({1, 2});
 
-    var addr: b256;
     interface FooInstance = Foo(addr);
     predicate I1Instance1 = FooInstance::I1(0 + true);
     predicate I1Instance2 = FooInstance::I1(false);
@@ -31,34 +30,35 @@ predicate Simple {
 //         pub var y: b256;
 //     }
 // }
-//
-// predicate ::Simple {
+// 
+// predicate ::Simple(
+//     ::addr: b256,
+//     __::I1Instance1_pathway: int,
+//     __::I1Instance2_pathway: int,
+// ) {
 //     interface ::FooInstance1 = ::Foo((0 + true))
 //     interface ::FooInstance2 = ::Foo({1, 2})
 //     interface ::FooInstance = ::Foo(::addr)
 //     predicate ::I1Instance1 = ::FooInstance::I1((0 + true))
 //     predicate ::I1Instance2 = ::FooInstance::I1(false)
-//     var ::addr: b256;
-//     var __::I1Instance1_pathway: int;
-//     var __::I1Instance2_pathway: int;
 // }
 // >>>
 
 // typecheck_failure <<<
 // operator invalid type error
-// @198..206: invalid non-numeric type `bool` for operator `+`
+// @210..218: invalid non-numeric type `bool` for operator `+`
 // address expression type error
-// @198..206: address expression has unexpected type `int`
-// @198..206: expecting type `b256`
+// @210..218: address expression has unexpected type `int`
+// @210..218: expecting type `b256`
 // address expression type error
-// @242..248: address expression has unexpected type `{int, int}`
-// @242..248: expecting type `b256`
+// @254..260: address expression has unexpected type `{int, int}`
+// @254..260: expecting type `b256`
 // operator invalid type error
-// @355..363: invalid non-numeric type `bool` for operator `+`
+// @347..355: invalid non-numeric type `bool` for operator `+`
 // address expression type error
-// @355..363: address expression has unexpected type `int`
-// @355..363: expecting type `b256`
+// @347..355: address expression has unexpected type `int`
+// @347..355: expecting type `b256`
 // address expression type error
-// @410..415: address expression has unexpected type `bool`
-// @410..415: expecting type `b256`
+// @402..407: address expression has unexpected type `bool`
+// @402..407: expecting type `b256`
 // >>>

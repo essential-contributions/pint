@@ -1,12 +1,13 @@
-predicate test {
-    var a = { x: 11, y: true };
+predicate test(a: { x: int, y: bool }) {
+    constraint a == { x: 11, y: true };
 
     constraint a.z > 33;
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::a;
+// predicate ::test(
+//     ::a: {x: int, y: bool},
+// ) {
 //     constraint (::a == {x: 11, y: true});
 //     constraint (::a.z > 33);
 // }
@@ -14,6 +15,6 @@ predicate test {
 
 // typecheck_failure <<<
 // invalid tuple accessor
-// @65..68: unable to get field from tuple using `z`
+// @97..100: unable to get field from tuple using `z`
 // tuple has type `{x: int, y: bool}`
 // >>>

@@ -1,7 +1,4 @@
-predicate Simple {
-    var z: int;
-    var q: int;
-
+predicate Simple(z: int, q: int) {
     predicate FooI = Foo();
 
     constraint FooI::x + z == FooI::y + q;
@@ -75,7 +72,7 @@ predicate Simple {
     constraint BarI::e[1] == [{ 16, 17 }, { 18, 19 }, { 110, 111 }];
 }
 
-predicate Foo {
+predicate Foo(nonce: int) {
     pub var x: int;
     pub var y: int;
     pub var w: b256;
@@ -83,10 +80,10 @@ predicate Foo {
     pub var c: { int, { int, b256 }, bool };
     pub var d: int[3]; 
     pub var e: { int, int }[2][3];
-    var nonce = 0;
+    constraint nonce == 0;
 }
 
-predicate Bar {
+predicate Bar(nonce: int) {
     pub var x: int;
     pub var y: int;
     pub var w: b256;
@@ -94,17 +91,18 @@ predicate Bar {
     pub var c: { int, { int, b256 }, bool };
     pub var d: int[3]; 
     pub var e: { int, int }[2][3]; 
-    var nonce = 1;
+    constraint nonce == 1;
 }
 
 // parsed <<<
-// predicate ::Simple {
+// predicate ::Simple(
+//     ::z: int,
+//     ::q: int,
+//     __::FooI_pathway: int,
+//     __::BarI_pathway: int,
+// ) {
 //     predicate ::FooI = ::Foo()
 //     predicate ::BarI = ::Bar()
-//     var ::z: int;
-//     var ::q: int;
-//     var __::FooI_pathway: int;
-//     var __::BarI_pathway: int;
 //     constraint ((::FooI::x + ::z) == (::FooI::y + ::q));
 //     constraint (::FooI::w == 0x0000000000000009000000000000000900000000000000090000000000000009);
 //     constraint (::FooI::b == true);
@@ -141,7 +139,9 @@ predicate Bar {
 //     constraint (::BarI::e[1] == [{16, 17}, {18, 19}, {110, 111}]);
 // }
 // 
-// predicate ::Foo {
+// predicate ::Foo(
+//     ::nonce: int,
+// ) {
 //     pub var ::x: int;
 //     pub var ::y: int;
 //     pub var ::w: b256;
@@ -149,11 +149,12 @@ predicate Bar {
 //     pub var ::c: {int, {int, b256}, bool};
 //     pub var ::d: int[3];
 //     pub var ::e: {int, int}[3][2];
-//     var ::nonce;
 //     constraint (::nonce == 0);
 // }
 // 
-// predicate ::Bar {
+// predicate ::Bar(
+//     ::nonce: int,
+// ) {
 //     pub var ::x: int;
 //     pub var ::y: int;
 //     pub var ::w: b256;
@@ -161,19 +162,19 @@ predicate Bar {
 //     pub var ::c: {int, {int, b256}, bool};
 //     pub var ::d: int[3];
 //     pub var ::e: {int, int}[3][2];
-//     var ::nonce;
 //     constraint (::nonce == 1);
 // }
 // >>>
 
 // flattened <<<
-// predicate ::Simple {
+// predicate ::Simple(
+//     ::z: int,
+//     ::q: int,
+//     __::FooI_pathway: int,
+//     __::BarI_pathway: int,
+// ) {
 //     predicate ::FooI = ::Foo()
 //     predicate ::BarI = ::Bar()
-//     var ::z: int;
-//     var ::q: int;
-//     var __::FooI_pathway: int;
-//     var __::BarI_pathway: int;
 //     constraint ((__pub_var(__::FooI_pathway, {0}) + ::z) == (__pub_var(__::FooI_pathway, {1}) + ::q));
 //     constraint (__pub_var(__::FooI_pathway, {2}) == 0x0000000000000009000000000000000900000000000000090000000000000009);
 //     constraint (__pub_var(__::FooI_pathway, {3}) == true);
@@ -213,7 +214,9 @@ predicate Bar {
 //     constraint (__predicate_at(__::BarI_pathway) == {__this_contract_address(), __address_of("::Bar")});
 // }
 // 
-// predicate ::Foo {
+// predicate ::Foo(
+//     ::nonce: int,
+// ) {
 //     pub var ::x: int;
 //     pub var ::y: int;
 //     pub var ::w: b256;
@@ -221,12 +224,13 @@ predicate Bar {
 //     pub var ::c: {int, {int, b256}, bool};
 //     pub var ::d: int[3];
 //     pub var ::e: {int, int}[3][2];
-//     var ::nonce: int;
 //     constraint (::nonce == 0);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // 
-// predicate ::Bar {
+// predicate ::Bar(
+//     ::nonce: int,
+// ) {
 //     pub var ::x: int;
 //     pub var ::y: int;
 //     pub var ::w: b256;
@@ -234,7 +238,6 @@ predicate Bar {
 //     pub var ::c: {int, {int, b256}, bool};
 //     pub var ::d: int[3];
 //     pub var ::e: {int, int}[3][2];
-//     var ::nonce: int;
 //     constraint (::nonce == 1);
 //     constraint __eq_set(__mut_keys(), {0});
 // }

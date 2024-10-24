@@ -1,18 +1,18 @@
 macro @m($a, $b) {
-    var z = $a + $b;
+    constraint z == $a + $b;
 }
 
 macro @m($x, $y) {
-    var a = $x + $y;
+    constraint a == $x + $y;
 }
 
-predicate test {
+predicate test(z: int, a: int) {
     @m(1; 2);
 }
 
 // parse_failure <<<
 // macro ::@m is declared multiple times
 // @6..16: previous declaration of the macro `::@m` here
-// @49..59: `::@m` redeclared here with the same number of parameters
+// @57..67: `::@m` redeclared here with the same number of parameters
 // it is valid to have multiple macros named `::@m` but they must have differing parameter lists
 // >>>

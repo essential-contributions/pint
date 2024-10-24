@@ -1,31 +1,41 @@
-predicate test {
+predicate test(
+    a: int,
+    b: int,
+    c: int,
+    d: int,
+    e: int,
+    f: bool,
+    g: int,
+    y: int,
+    z: int,
+){
     // select exprs that should be optimized out
-    var a = true ? 1 : 2;
-    var b = false ? 1 : 2;
-    var c = (1 + 2 == 3) ? 1 : 2;
-    var d = (1 < 2) ? 1 : 2;
-    var e = true ? (false ? 1 : 2) : 3;
+    constraint a == (true ? 1 : 2);
+    constraint b == (false ? 1 : 2);
+    constraint c == ((1 + 2 == 3) ? 1 : 2);
+    constraint d == ((1 < 2) ? 1 : 2);
+    constraint e == (true ? (false ? 1 : 2) : 3);
 
     // should this be removed? The evaluator can't handle this right now
-    var f = 2 < 1;
-    var g = f ? 1 : 2;
+    constraint f == (2 < 1);
+    constraint g == (f ? 1 : 2);
 
     // select exprs that should be kept in
-    var y: int;
-    var z = y > 0 ? 3 : 4;
+    constraint z == (y > 0 ? 3 : 4);
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::a;
-//     var ::b;
-//     var ::c;
-//     var ::d;
-//     var ::e;
-//     var ::f;
-//     var ::g;
-//     var ::y: int;
-//     var ::z;
+// predicate ::test(
+//     ::a: int,
+//     ::b: int,
+//     ::c: int,
+//     ::d: int,
+//     ::e: int,
+//     ::f: bool,
+//     ::g: int,
+//     ::y: int,
+//     ::z: int,
+// ) {
 //     constraint (::a == (true ? 1 : 2));
 //     constraint (::b == (false ? 1 : 2));
 //     constraint (::c == (((1 + 2) == 3) ? 1 : 2));
@@ -38,16 +48,17 @@ predicate test {
 // >>>
 
 // flattened <<<
-// predicate ::test {
-//     var ::a: int;
-//     var ::b: int;
-//     var ::c: int;
-//     var ::d: int;
-//     var ::e: int;
-//     var ::f: bool;
-//     var ::g: int;
-//     var ::y: int;
-//     var ::z: int;
+// predicate ::test(
+//     ::a: int,
+//     ::b: int,
+//     ::c: int,
+//     ::d: int,
+//     ::e: int,
+//     ::f: bool,
+//     ::g: int,
+//     ::y: int,
+//     ::z: int,
+// ) {
 //     constraint (::a == (true ? 1 : 2));
 //     constraint (::b == (false ? 1 : 2));
 //     constraint (::c == (((1 + 2) == 3) ? 1 : 2));
@@ -61,16 +72,17 @@ predicate test {
 // >>>
 
 // optimized <<<
-// predicate ::test {
-//     var ::a: int;
-//     var ::b: int;
-//     var ::c: int;
-//     var ::d: int;
-//     var ::e: int;
-//     var ::f: bool;
-//     var ::g: int;
-//     var ::y: int;
-//     var ::z: int;
+// predicate ::test(
+//     ::a: int,
+//     ::b: int,
+//     ::c: int,
+//     ::d: int,
+//     ::e: int,
+//     ::f: bool,
+//     ::g: int,
+//     ::y: int,
+//     ::z: int,
+// ) {
 //     constraint (::a == 1);
 //     constraint (::b == 2);
 //     constraint (::c == 1);

@@ -1,17 +1,15 @@
-predicate test {
-    var n: int;
-
+predicate test() {
     constraint __this_address()[0] == 3;
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::n: int;
+// predicate ::test(
+// ) {
 //     constraint (__this_address()[0] == 3);
 // }
 // >>>
 
 // typecheck_failure <<<
 // indexed expression invalid
-// @49..68: value must be an array or a storage map; found `b256`
+// @34..53: value must be an array or a storage map; found `b256`
 // >>>

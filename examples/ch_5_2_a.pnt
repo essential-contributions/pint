@@ -6,16 +6,17 @@ storage {
 }
 // ANCHOR_END: storage_block
 
-predicate test {
+predicate test(
+    from_address: b256,
+    receiver_address: b256,
+    my_address: b256,
+) {
 // ANCHOR: storage_access_1
-var from_address: b256;
-var receiver_address: b256;
 state from_balance = storage::balances[from_address];
 state receiver_balance = storage::balances[receiver_address];
 // ANCHOR_END: storage_access_1
 
 // ANCHOR: next_state
-var my_address: b256;
 state my_bal = mut storage::balances[my_address];
 constraint my_bal' == my_bal + 1000000;
 // ANCHOR_END: next_state 

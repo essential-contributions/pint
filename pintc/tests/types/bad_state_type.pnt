@@ -3,7 +3,7 @@ storage {
     map2: (int => (bool => b256)),
 }
 
-predicate Foo {
+predicate Foo() {
     // Bad
     state map1 = storage::map1;
     state map2_inner = storage::map2[69];
@@ -18,8 +18,9 @@ predicate Foo {
 //     map1: ( int => bool ),
 //     map2: ( int => ( bool => b256 ) ),
 // }
-//
-// predicate ::Foo {
+// 
+// predicate ::Foo(
+// ) {
 //     state ::map1 = storage::map1;
 //     state ::map2_inner = storage::map2[69];
 //     state ::entry = storage::map1[42];
@@ -29,7 +30,7 @@ predicate Foo {
 
 // typecheck_failure <<<
 // variables cannot have storage types
-// @104..130: found variable of storage type ( int => bool ) here
+// @106..132: found variable of storage type ( int => bool ) here
 // variables cannot have storage types
-// @136..172: found variable of storage type ( bool => b256 ) here
+// @138..174: found variable of storage type ( bool => b256 ) here
 // >>>

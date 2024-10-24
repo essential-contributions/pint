@@ -12,7 +12,7 @@ interface Bar {
     }
 }
 
-predicate Foo {
+predicate Foo() {
     interface BarI = Bar(0x0000000000000000000000000000000000000000000000000000000000000000);
     state v0_0 = storage::v0[0];
     state v0_1 = storage::v0[1];
@@ -54,7 +54,8 @@ predicate Foo {
 //     }
 // }
 // 
-// predicate ::Foo {
+// predicate ::Foo(
+// ) {
 //     interface ::BarI = ::Bar(0x0000000000000000000000000000000000000000000000000000000000000000)
 //     state ::v0_0 = storage::v0[0];
 //     state ::v0_1 = storage::v0[1];
@@ -93,7 +94,8 @@ predicate Foo {
 //     }
 // }
 // 
-// predicate ::Foo {
+// predicate ::Foo(
+// ) {
 //     interface ::BarI = ::Bar(0x0000000000000000000000000000000000000000000000000000000000000000)
 //     state ::v0_0: int = __storage_get({0, 0});
 //     state ::v0_1: int = __storage_get({0, 1});

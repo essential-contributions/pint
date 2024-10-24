@@ -12,8 +12,6 @@ interface I2 {
     predicate B;
 }
 
-Foo { }
-
 // parse_failure <<<
 // symbol `A` has already been declared
 // @29..30: previous declaration of the symbol `A` here
@@ -31,6 +29,4 @@ Foo { }
 // @137..138: previous declaration of the symbol `C` here
 // @174..175: `C` redeclared here
 // `C` must be declared or imported only once in this scope
-// expected `::`, found `{`
-// @221..222: expected `::`
 // >>>

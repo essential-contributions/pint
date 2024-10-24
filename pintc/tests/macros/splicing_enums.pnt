@@ -27,32 +27,30 @@ macro @find_max_feeling($feeling, $max_feeling, $counts_name, $last_idx) {
 
 union Feeling = Uneasy | Queasy | Awkward | Anxious;
 
-predicate test {
-    var counts: int[Feeling];
+predicate test(counts: int[Feeling], max_feeling: int, feeling: Feeling) {
     constraint counts[Feeling::Uneasy] == 33;
     constraint counts[Feeling::Queasy] == 22;
     constraint counts[Feeling::Awkward] == 44;
     constraint counts[Feeling::Anxious] == 11;
 
     // Constrain max_feeling to the max value (44).
-    var max_feeling: int;
     @gte(max_feeling; ~counts);
     constraint @matches_one(max_feeling; ~counts);
 
     // Solve feeling to be the max (Feeling::Awkward).  This should be easier, with no need to put each
     // enum variant into a new array.
-    var feeling: Feeling;
     constraint @find_max_feeling(feeling; max_feeling; counts;
                                  Feeling::Uneasy; Feeling::Queasy; Feeling::Awkward; Feeling::Anxious);
 }
 
 // parsed <<<
 // union ::Feeling = Uneasy | Queasy | Awkward | Anxious;
-//
-// predicate ::test {
-//     var ::counts: int[::Feeling];
-//     var ::max_feeling: int;
-//     var ::feeling: ::Feeling;
+// 
+// predicate ::test(
+//     ::counts: int[::Feeling],
+//     ::max_feeling: int,
+//     ::feeling: ::Feeling,
+// ) {
 //     constraint (::counts[::Feeling::Uneasy] == 33);
 //     constraint (::counts[::Feeling::Queasy] == 22);
 //     constraint (::counts[::Feeling::Awkward] == 44);
@@ -69,10 +67,11 @@ predicate test {
 // flattened <<<
 // union ::Feeling = Uneasy | Queasy | Awkward | Anxious;
 // 
-// predicate ::test {
-//     var ::counts: int[::Feeling];
-//     var ::max_feeling: int;
-//     var ::feeling: ::Feeling;
+// predicate ::test(
+//     ::counts: int[::Feeling],
+//     ::max_feeling: int,
+//     ::feeling: ::Feeling,
+// ) {
 //     constraint (::counts[::Feeling::Uneasy] == 33);
 //     constraint (::counts[::Feeling::Queasy] == 22);
 //     constraint (::counts[::Feeling::Awkward] == 44);

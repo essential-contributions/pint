@@ -1,14 +1,15 @@
-predicate Foo {
+predicate Foo() {
     state y = storage::y;
 }
 
 // parsed <<<
-// predicate ::Foo {
+// predicate ::Foo(
+// ) {
 //     state ::y = storage::y;
 // }
 // >>>
 
 // typecheck_failure <<<
 // cannot find storage variable `y`
-// @30..40: no storage declaration found
+// @32..42: no storage declaration found
 // >>>

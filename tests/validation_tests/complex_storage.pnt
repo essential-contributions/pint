@@ -6,7 +6,7 @@ storage {
     map_in_map_in_map: (int => (b256 => (int => b256))),
 }
 
-predicate Foo {
+predicate Foo() {
     state address = mut storage::address;
     state address2 = mut storage::address2;
     state map_entry = mut storage::map[69];

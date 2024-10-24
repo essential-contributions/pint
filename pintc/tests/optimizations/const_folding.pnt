@@ -2,15 +2,39 @@ const test: int = 20;
 const test_array: int[2] = [1, 2];
 const test_tuple: { bool, int } = { false, 5 };
 
-predicate Test {
-    var a = 1 + 2;
-    var b = 1 - test_array[0];
-    var c = (1 + 2) - 3 + 4 - (2 - test_tuple.1);
-    var d = !(1 > 2);
-    var e = -(test + 3);
-    var f = d ? false : !(!true);
-    
-    var y: int;
+predicate Test(
+    a: int,
+    b: int,
+    c: int,
+    d: bool,
+    e: int,
+    f: bool,
+    g: int,
+    h: int,
+    i: int,
+    j: int,
+    k: int,
+    l: int,
+    m: int,
+    n: int,
+    o: int,
+    p: int,
+    q: int,
+    r: int,
+    s: int,
+    t: int,
+    u: int,
+    v: int,
+    x: int,
+    y: int,
+) {
+    constraint a == 1 + 2;
+    constraint b == 1 - test_array[0];
+    constraint c == (1 + 2) - 3 + 4 - (2 - test_tuple.1);
+    constraint d == !(1 > 2);
+    constraint e == -(test + 3);
+    constraint f == (d ? false : !(!true));
+
     if (1 + 2) - 3 + 4 - (2 - 5) < 5 {
         constraint 3 - 4 + 1 == y;
     } else {
@@ -18,7 +42,6 @@ predicate Test {
     }
 
     // boolean identities
-    var x: int;
     if true && y == 0 {
         constraint x == 1;
     } else {
@@ -44,54 +67,55 @@ predicate Test {
     }
 
     // arithmetic identities
-    var g = 0 + x;
-    var h = x + 0;
-    var i = x - 0;
-    var j = 0 * x;
-    var k = x * 0;
-    var l = 0 / x;
-    var m = x / 1;
-    var n = x % 1;
-    var o = (0 + x) + (x - 0);
-    var p = (x + 0) * (0 * x);
-    var q = (x - 0) / (x / 1);
-    var r = (0 * x) + (x % 1);
-    var s = (x * 0) - (0 + x);
-    var t = (0 / x) - (0 * x);
-    var u = (x / 1) + (x - 0);
-    var v = (x % 1) * (0 + x);
+    constraint g == 0 + x;
+    constraint h == x + 0;
+    constraint i == x - 0;
+    constraint j == 0 * x;
+    constraint k == x * 0;
+    constraint l == 0 / x;
+    constraint m == x / 1;
+    constraint n == x % 1;
+    constraint o == (0 + x) + (x - 0);
+    constraint p == (x + 0) * (0 * x);
+    constraint q == (x - 0) / (x / 1);
+    constraint r == (0 * x) + (x % 1);
+    constraint s == (x * 0) - (0 + x);
+    constraint t == (0 / x) - (0 * x);
+    constraint u == (x / 1) + (x - 0);
+    constraint v == (x % 1) * (0 + x);
 }
 
 // parsed <<<
 // const ::test_array: int[2] = [1, 2];
 // const ::test_tuple: {bool, int} = {false, 5};
 // const ::test: int = 20;
-//
-// predicate ::Test {
-//     var ::a;
-//     var ::b;
-//     var ::c;
-//     var ::d;
-//     var ::e;
-//     var ::f;
-//     var ::y: int;
-//     var ::x: int;
-//     var ::g;
-//     var ::h;
-//     var ::i;
-//     var ::j;
-//     var ::k;
-//     var ::l;
-//     var ::m;
-//     var ::n;
-//     var ::o;
-//     var ::p;
-//     var ::q;
-//     var ::r;
-//     var ::s;
-//     var ::t;
-//     var ::u;
-//     var ::v;
+// 
+// predicate ::Test(
+//     ::a: int,
+//     ::b: int,
+//     ::c: int,
+//     ::d: bool,
+//     ::e: int,
+//     ::f: bool,
+//     ::g: int,
+//     ::h: int,
+//     ::i: int,
+//     ::j: int,
+//     ::k: int,
+//     ::l: int,
+//     ::m: int,
+//     ::n: int,
+//     ::o: int,
+//     ::p: int,
+//     ::q: int,
+//     ::r: int,
+//     ::s: int,
+//     ::t: int,
+//     ::u: int,
+//     ::v: int,
+//     ::x: int,
+//     ::y: int,
+// ) {
 //     constraint (::a == (1 + 2));
 //     constraint (::b == (1 - ::test_array[0]));
 //     constraint (::c == ((((1 + 2) - 3) + 4) - (2 - ::test_tuple.1)));
@@ -146,32 +170,33 @@ predicate Test {
 // const ::test_array: int[2] = [1, 2];
 // const ::test_tuple: {bool, int} = {false, 5};
 // const ::test: int = 20;
-//
-// predicate ::Test {
-//     var ::a: int;
-//     var ::b: int;
-//     var ::c: int;
-//     var ::d: bool;
-//     var ::e: int;
-//     var ::f: bool;
-//     var ::y: int;
-//     var ::x: int;
-//     var ::g: int;
-//     var ::h: int;
-//     var ::i: int;
-//     var ::j: int;
-//     var ::k: int;
-//     var ::l: int;
-//     var ::m: int;
-//     var ::n: int;
-//     var ::o: int;
-//     var ::p: int;
-//     var ::q: int;
-//     var ::r: int;
-//     var ::s: int;
-//     var ::t: int;
-//     var ::u: int;
-//     var ::v: int;
+// 
+// predicate ::Test(
+//     ::a: int,
+//     ::b: int,
+//     ::c: int,
+//     ::d: bool,
+//     ::e: int,
+//     ::f: bool,
+//     ::g: int,
+//     ::h: int,
+//     ::i: int,
+//     ::j: int,
+//     ::k: int,
+//     ::l: int,
+//     ::m: int,
+//     ::n: int,
+//     ::o: int,
+//     ::p: int,
+//     ::q: int,
+//     ::r: int,
+//     ::s: int,
+//     ::t: int,
+//     ::u: int,
+//     ::v: int,
+//     ::x: int,
+//     ::y: int,
+// ) {
 //     constraint (::a == (1 + 2));
 //     constraint (::b == (1 - 1));
 //     constraint (::c == ((((1 + 2) - 3) + 4) - (2 - 5)));
@@ -212,32 +237,33 @@ predicate Test {
 // const ::test_array: int[2] = [1, 2];
 // const ::test_tuple: {bool, int} = {false, 5};
 // const ::test: int = 20;
-//
-// predicate ::Test {
-//     var ::a: int;
-//     var ::b: int;
-//     var ::c: int;
-//     var ::d: bool;
-//     var ::e: int;
-//     var ::f: bool;
-//     var ::y: int;
-//     var ::x: int;
-//     var ::g: int;
-//     var ::h: int;
-//     var ::i: int;
-//     var ::j: int;
-//     var ::k: int;
-//     var ::l: int;
-//     var ::m: int;
-//     var ::n: int;
-//     var ::o: int;
-//     var ::p: int;
-//     var ::q: int;
-//     var ::r: int;
-//     var ::s: int;
-//     var ::t: int;
-//     var ::u: int;
-//     var ::v: int;
+// 
+// predicate ::Test(
+//     ::a: int,
+//     ::b: int,
+//     ::c: int,
+//     ::d: bool,
+//     ::e: int,
+//     ::f: bool,
+//     ::g: int,
+//     ::h: int,
+//     ::i: int,
+//     ::j: int,
+//     ::k: int,
+//     ::l: int,
+//     ::m: int,
+//     ::n: int,
+//     ::o: int,
+//     ::p: int,
+//     ::q: int,
+//     ::r: int,
+//     ::s: int,
+//     ::t: int,
+//     ::u: int,
+//     ::v: int,
+//     ::x: int,
+//     ::y: int,
+// ) {
 //     constraint (::a == 3);
 //     constraint (::b == 0);
 //     constraint (::c == 7);

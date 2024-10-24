@@ -1,16 +1,16 @@
-predicate test {
-    var x: int = nil;
-    var y: int = 1 + nil;
-    var z: int;
+predicate test(x: int, y: int, z: int) {
+    constraint x == nil;
+    constraint y == 1 + nil;
     constraint z < nil;
     constraint nil;
 }
 
 // parsed <<<
-// predicate ::test {
-//     var ::x: int;
-//     var ::y: int;
-//     var ::z: int;
+// predicate ::test(
+//     ::x: int,
+//     ::y: int,
+//     ::z: int,
+// ) {
 //     constraint (::x == nil);
 //     constraint (::y == (1 + nil));
 //     constraint (::z < nil);
@@ -20,13 +20,10 @@ predicate test {
 
 // typecheck_failure <<<
 // operator invalid type error
-// @56..63: invalid non-numeric type `nil` for operator `+`
+// @86..93: invalid non-numeric type `nil` for operator `+`
 // operator invalid type error
-// @96..103: invalid non-numeric type `nil` for operator `<`
-// variable initialization type error
-// @34..37: variable initializer has unexpected type `nil`
-// @28..31: expecting type `int`
+// @110..117: invalid non-numeric type `nil` for operator `<`
 // constraint expression type error
-// @109..123: constraint expression has unexpected type `nil`
-// @120..123: expecting type `bool`
+// @123..137: constraint expression has unexpected type `nil`
+// @134..137: expecting type `bool`
 // >>>
