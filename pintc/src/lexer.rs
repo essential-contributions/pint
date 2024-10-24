@@ -136,8 +136,6 @@ pub enum Token {
     #[token("constraint")]
     Constraint,
 
-    #[token("pub")]
-    Pub,
     #[token("mut")]
     Mut,
     #[token("use")]
@@ -224,7 +222,6 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Match,
     Token::Nil,
     Token::Predicate,
-    Token::Pub,
     Token::Mut,
     Token::Real,
     Token::SelfTok,
@@ -329,7 +326,6 @@ impl fmt::Display for Token {
             Token::Type => write!(f, "type"),
             Token::Union => write!(f, "union"),
             Token::Constraint => write!(f, "constraint"),
-            Token::Pub => write!(f, "pub"),
             Token::Mut => write!(f, "mut"),
             Token::Use => write!(f, "use"),
             Token::SelfTok => write!(f, "self"),

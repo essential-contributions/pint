@@ -11,3 +11,10 @@ decision_variables = [
   [2], # ::x
   [8], # ::y
 ]
+
+[[data]]
+predicate_to_solve = { predicate = "::Other" }
+decision_variables = [
+  [5], # ::x
+  [3], # ::y
+]

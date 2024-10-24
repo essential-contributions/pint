@@ -7,8 +7,8 @@ use crate::error::{ErrorEmitted, Handler};
 use legalize::legalize_vector_accesses;
 use lower::{
     coalesce_prime_ops, lower_aliases, lower_array_ranges, lower_casts, lower_compares_to_nil,
-    lower_ifs, lower_imm_accesses, lower_ins, lower_matches, lower_pub_var_accesses,
-    lower_storage_accesses, lower_union_variant_paths, replace_const_refs,
+    lower_ifs, lower_imm_accesses, lower_ins, lower_matches, lower_storage_accesses,
+    lower_union_variant_paths, replace_const_refs,
 };
 use unroll::unroll_generators;
 use validate::validate;
@@ -89,10 +89,6 @@ impl super::Contract {
         // Lower all storage accesses to __storage_get and __storage_get_extern intrinsics. Also
         // add constraints on mutable keys
         let _ = lower_storage_accesses(handler, &mut self);
-
-        // Lower accesses to pub vars to `__pub_var` intrinsics. Also insert any relevant
-        // constraints on contract and predicate addresses.
-        let _ = handler.scope(|handler| lower_pub_var_accesses(handler, &mut self));
 
         // Ensure that the final contract is indeed final
         if !handler.has_errors() {

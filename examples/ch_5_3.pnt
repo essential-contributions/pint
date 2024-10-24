@@ -1,12 +1,13 @@
+// <disabled>
 // ANCHOR: interface
 interface Counter {
     storage {
         counter: int,
     }
 
-    predicate Initialize();
+    predicate Initialize;
 
-    predicate Increment();
+    predicate Increment;
 }
 // ANCHOR_END: interface
 

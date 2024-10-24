@@ -11,5 +11,11 @@ predicate Simple(x: int, y: int) {
 
     constraint  Baz[[c_addr]]::Foo[[p_addr]](x, y);
 
-    constraint x + y == 10;    
+    constraint x + y == 10;
+
+    constraint Other[[]](5, 3);
+}
+
+predicate Other(w: int, v: int) {
+
 }

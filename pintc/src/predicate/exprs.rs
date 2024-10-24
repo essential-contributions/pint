@@ -122,7 +122,7 @@ impl ExprKey {
     /// Return whether this expression can panic (typically related to storage).
     pub fn can_panic(&self, contract: &Contract, pred: &Predicate) -> bool {
         contract.exprs.get(*self).map_or(false, |expr| match expr {
-            Expr::StorageAccess { .. } | Expr::ExternalStorageAccess { .. } => true,
+            Expr::LocalStorageAccess { .. } | Expr::ExternalStorageAccess { .. } => true,
 
             Expr::Path(path, _) => pred.states().any(|(_, state)| &state.name == path),
 
@@ -158,7 +158,11 @@ impl ExprKey {
                 ) || args.iter().any(|arg| arg.can_panic(contract, pred))
             }
 
-            Expr::PredicateCall {
+            Expr::LocalPredicateCall { args, .. } => {
+                args.iter().any(|arg| arg.can_panic(contract, pred))
+            }
+
+            Expr::ExternalPredicateCall {
                 c_addr,
                 p_addr,
                 args,
@@ -272,7 +276,7 @@ impl ExprKey {
                     }
                 }
 
-                Expr::StorageAccess { .. } | Expr::ExternalStorageAccess { .. } => {
+                Expr::LocalStorageAccess { .. } | Expr::ExternalStorageAccess { .. } => {
                     storage_accesses.insert(*self);
                 }
 
@@ -302,7 +306,7 @@ impl ExprKey {
                     }
                 }
 
-                Expr::PredicateCall {
+                Expr::ExternalPredicateCall {
                     c_addr,
                     p_addr,
                     args,
@@ -310,6 +314,12 @@ impl ExprKey {
                 } => {
                     storage_accesses.extend(c_addr.collect_storage_accesses(contract));
                     storage_accesses.extend(p_addr.collect_storage_accesses(contract));
+                    args.iter().for_each(|arg| {
+                        storage_accesses.extend(arg.collect_storage_accesses(contract));
+                    });
+                }
+
+                Expr::LocalPredicateCall { args, .. } => {
                     args.iter().for_each(|arg| {
                         storage_accesses.extend(arg.collect_storage_accesses(contract));
                     });
@@ -394,7 +404,7 @@ impl ExprKey {
 
     pub fn is_storage_access(&self, contract: &Contract) -> bool {
         match self.get(contract) {
-            Expr::StorageAccess { .. } | Expr::ExternalStorageAccess { .. } => true,
+            Expr::LocalStorageAccess { .. } | Expr::ExternalStorageAccess { .. } => true,
             Expr::TupleFieldAccess { tuple, .. } => tuple.is_storage_access(contract),
             Expr::Index { expr, .. } => expr.is_storage_access(contract),
             _ => false,
@@ -532,7 +542,7 @@ impl<'a> Iterator for ExprsIter<'a> {
                 }
             }
 
-            Expr::PredicateCall {
+            Expr::ExternalPredicateCall {
                 c_addr,
                 p_addr,
                 args,
@@ -540,6 +550,12 @@ impl<'a> Iterator for ExprsIter<'a> {
             } => {
                 queue_if_new!(self, c_addr);
                 queue_if_new!(self, p_addr);
+                for arg in args {
+                    queue_if_new!(self, arg);
+                }
+            }
+
+            Expr::LocalPredicateCall { args, .. } => {
                 for arg in args {
                     queue_if_new!(self, arg);
                 }
@@ -628,7 +644,7 @@ impl<'a> Iterator for ExprsIter<'a> {
             }
 
             Expr::Error(_)
-            | Expr::StorageAccess { .. }
+            | Expr::LocalStorageAccess { .. }
             | Expr::ExternalStorageAccess { .. }
             | Expr::Path(_, _)
             | Expr::MacroCall { .. } => {}

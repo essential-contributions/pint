@@ -107,13 +107,11 @@ impl Asm {
 /// 3. `Storage` expressions refer to expressions that are storage keys and need to be read from
 ///    using `KeyRange` or `KeyRangeExtern`. The `bool` is `true` if the storage access is external
 ///    (i.e. requires `KeyRangeExtern`) and `false` otherwise.
-/// 4. `PubVar` expressions refer to expressions that require the `PubVar` opcode.
 /// 5. `Value` expressions are just raw values such as immediates or the outputs of binary ops.
 enum Location {
     DecisionVar,
     State(bool),
     Storage(bool),
-    PubVar,
     Value,
 }
 
@@ -329,20 +327,14 @@ impl<'a> AsmBuilder<'a> {
                 Ok(Some(base_slot_index..num_keys_to_read + base_slot_index))
             }
 
-            Location::PubVar => {
-                asm.push(Stack::Push(expr_ty.size(handler, contract)? as i64).into()); // value_len
-                asm.push(ConstraintOp::Access(Access::PubVar));
-                Ok(None)
-            }
-
             Location::Value => Ok(None),
         }
     }
 
     /// Generates assembly for an `ExprKey` as a _pointer_. What this means is that, if the expr
     /// refers to something other than a "value" (like an immedate), we generate assembly for the
-    /// pointer (i.e. `Location`) only. A "pointer" may be a state slot or a  pub var data key for
-    /// example.
+    /// pointer (i.e. `Location`) only. A "pointer" may be to a decision variable or a state slot
+    /// for example.
     fn compile_expr_pointer(
         &mut self,
         handler: &Handler,
@@ -436,12 +428,17 @@ impl<'a> AsmBuilder<'a> {
             Expr::IntrinsicCall { kind, args, .. } => {
                 self.compile_intrinsic_call(handler, asm, &kind.0, args, contract, pred)
             }
-            Expr::PredicateCall {
+            Expr::LocalPredicateCall {
+                predicate, args, ..
+            } => self.compile_local_predicate_call(handler, asm, predicate, args, contract, pred),
+            Expr::ExternalPredicateCall {
                 c_addr,
                 p_addr,
                 args,
                 ..
-            } => self.compile_predicate_call(handler, asm, c_addr, p_addr, args, contract, pred),
+            } => self.compile_external_predicate_call(
+                handler, asm, c_addr, p_addr, args, contract, pred,
+            ),
             Expr::Select {
                 condition,
                 then_expr,
@@ -463,7 +460,7 @@ impl<'a> AsmBuilder<'a> {
                 self.compile_union_get_value(handler, asm, union_expr, contract, pred)
             }
             Expr::Error(_)
-            | Expr::StorageAccess { .. }
+            | Expr::LocalStorageAccess { .. }
             | Expr::ExternalStorageAccess { .. }
             | Expr::MacroCall { .. }
             | Expr::Cast { .. }
@@ -491,7 +488,6 @@ impl<'a> AsmBuilder<'a> {
     ) -> Result<Location, ErrorEmitted> {
         if let Some((var_index, _)) = pred
             .vars()
-            .filter(|(_, var)| !var.is_pub)
             .enumerate()
             .find(|(_, (_, var))| &var.name == path)
         {
@@ -770,7 +766,7 @@ impl<'a> AsmBuilder<'a> {
                             asm.push(Alu::Add.into());
                         }
                     }
-                    Location::DecisionVar | Location::PubVar | Location::Value => {
+                    Location::DecisionVar | Location::Value => {
                         // These "locations" can just rely on the knwon size of the type since they
                         // can't be `nil`.
                         asm.push(
@@ -805,10 +801,6 @@ impl<'a> AsmBuilder<'a> {
                 }
 
                 match kind {
-                    ExternalIntrinsic::PredicateAt => {
-                        asm.push(ConstraintOp::Access(Access::PredicateAt))
-                    }
-
                     ExternalIntrinsic::RecoverSECP256k1 => {
                         asm.push(ConstraintOp::Crypto(Crypto::RecoverSecp256k1))
                     }
@@ -825,10 +817,6 @@ impl<'a> AsmBuilder<'a> {
 
                     ExternalIntrinsic::ThisContractAddress => {
                         asm.push(ConstraintOp::Access(Access::ThisContractAddress))
-                    }
-
-                    ExternalIntrinsic::ThisPathway => {
-                        asm.push(ConstraintOp::Access(Access::ThisPathway))
                     }
 
                     ExternalIntrinsic::AddressOf
@@ -886,16 +874,56 @@ impl<'a> AsmBuilder<'a> {
             }
             InternalIntrinsic::StorageGet => Ok(Location::Storage(false)),
             InternalIntrinsic::StorageGetExtern => Ok(Location::Storage(true)),
-            InternalIntrinsic::PubVar => {
-                asm.push(ConstraintOp::Stack(Stack::Push(0))); // placeholder for index
-                                                               // computations
-                Ok(Location::PubVar)
-            }
         }
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn compile_predicate_call(
+    fn compile_local_predicate_call(
+        &mut self,
+        handler: &Handler,
+        asm: &mut Asm,
+        predicate: &String,
+        args: &[ExprKey],
+        contract: &Contract,
+        pred: &Predicate,
+    ) -> Result<Location, ErrorEmitted> {
+        // Use `PredicateExists` here which takes the following as input:
+        //
+        // [sha256(arg0len, arg0, argNlen, argN, contract_addr, predicate_addr)]
+        //
+        // First compute the total size, in bytes, of the data to hash. This includes 2 `b256` for
+        // the contract and predicate addresses (hence why we start with 64 bytes), the size of
+        // each arg, and an integer per arg desribing the arg length
+        let data_to_hash_size = args.iter().try_fold(64, |acc, arg| {
+            let arg_size = arg.get_ty(contract).size(handler, contract)?;
+            asm.push(ConstraintOp::Stack(Stack::Push(arg_size as i64)));
+            self.compile_expr(handler, asm, arg, contract, pred)?;
+            Ok(acc + 8 * (1 + arg_size))
+        })?;
+
+        // This is a local predicate call: use the current contract address here.
+        asm.push(ConstraintOp::Access(Access::ThisContractAddress));
+
+        // This is a local predicate call: use the pre-computed predicate address of the called
+        // predicate
+        let predicate_address = &self
+            .compiled_predicates
+            .get(predicate)
+            .expect("predicate address should exist!")
+            .1;
+        for word in essential_types::convert::word_4_from_u8_32(predicate_address.0) {
+            asm.push(ConstraintOp::Stack(Stack::Push(word)));
+        }
+
+        asm.push(ConstraintOp::Stack(Stack::Push(data_to_hash_size as i64)));
+        asm.push(ConstraintOp::Crypto(Crypto::Sha256));
+        asm.push(ConstraintOp::Access(Access::PredicateExists));
+
+        Ok(Location::Value)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn compile_external_predicate_call(
         &mut self,
         handler: &Handler,
         asm: &mut Asm,
@@ -905,16 +933,23 @@ impl<'a> AsmBuilder<'a> {
         contract: &Contract,
         pred: &Predicate,
     ) -> Result<Location, ErrorEmitted> {
-        let mut data_to_hash_size = 0;
-        for arg in args {
+        // Use `PredicateExists` here which takes the following as input:
+        //
+        // [sha256(arg0len, arg0, argNlen, argN, contract_addr, predicate_addr)]
+        //
+        // First compute the total size, in bytes, of the data to hash. This includes 2 `b256` for
+        // the contract and predicate addresses (hence why we start with 64 bytes), the size of
+        // each arg, and an integer per arg desribing the arg length
+        let data_to_hash_size = args.iter().try_fold(64, |acc, arg| {
             let arg_size = arg.get_ty(contract).size(handler, contract)?;
-            data_to_hash_size += 8 + 8 * arg_size;
             asm.push(ConstraintOp::Stack(Stack::Push(arg_size as i64)));
             self.compile_expr(handler, asm, arg, contract, pred)?;
-        }
+            Ok(acc + 8 * (1 + arg_size))
+        })?;
+
         self.compile_expr(handler, asm, c_addr, contract, pred)?;
         self.compile_expr(handler, asm, p_addr, contract, pred)?;
-        data_to_hash_size += 64; // 32 bytes per address
+
         asm.push(ConstraintOp::Stack(Stack::Push(data_to_hash_size as i64)));
         asm.push(ConstraintOp::Crypto(Crypto::Sha256));
         asm.push(ConstraintOp::Access(Access::PredicateExists));
@@ -1157,10 +1192,9 @@ impl<'a> AsmBuilder<'a> {
             }
 
             // Are these supported?
-            Location::State(_)
-            | Location::Storage { .. }
-            | Location::PubVar { .. }
-            | Location::Value => todo!("support union matches in non- decision variables?"),
+            Location::State(_) | Location::Storage { .. } | Location::Value => {
+                todo!("support union matches in non- decision variables?")
+            }
         }
 
         Ok(Location::Value)
@@ -1176,7 +1210,7 @@ impl<'a> AsmBuilder<'a> {
     ) -> Result<Location, ErrorEmitted> {
         let location = self.compile_expr_pointer(handler, asm, union_expr_key, contract, pred)?;
         match location {
-            Location::State(_) | Location::PubVar { .. } | Location::DecisionVar => {
+            Location::State(_) | Location::DecisionVar => {
                 // Skip the tag.
                 asm.push(Stack::Push(1).into());
                 asm.push(Alu::Add.into());

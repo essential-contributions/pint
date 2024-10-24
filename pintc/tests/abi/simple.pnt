@@ -15,9 +15,6 @@ predicate Foo(
     v3: { int, int },
     v4: { int, int, { int, int } },
 ) {
-    pub var t0: bool;
-    pub var t1: int;
-    pub var t2: b256;
 }
 
 // parsed <<<
@@ -38,9 +35,6 @@ predicate Foo(
 //     ::v3: {int, int},
 //     ::v4: {int, int, {int, int}},
 // ) {
-//     pub var ::t0: bool;
-//     pub var ::t1: int;
-//     pub var ::t2: b256;
 // }
 // >>>
 
@@ -62,9 +56,6 @@ predicate Foo(
 //     ::v3: {int, int},
 //     ::v4: {int, int, {int, int}},
 // ) {
-//     pub var ::t0: bool;
-//     pub var ::t1: int;
-//     pub var ::t2: b256;
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

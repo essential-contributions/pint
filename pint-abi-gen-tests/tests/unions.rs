@@ -58,26 +58,6 @@ async fn test_solution_foo() {
         v_tuple: (unions::lib2::A::B, unions::lib3::foo::TT::A),
     };
 
-    // Public decision variables (i.e. transient data).
-    let pub_vars = unions::Foo::PubVars {
-        p_v_u1: unions::UU::A(69),
-        p_v_u2: unions::UU::B,
-        p_v_u3: unions::UU::C([0x6969696969696969; 4]),
-        p_v_w1: unions::WW::E(unions::UU::A(69)),
-        p_v_pp1: unions::lib::PP::T(unions::lib::QQ::M),
-        p_v_pp2: unions::lib::PP::JJ([0x1111111111111111; 4]),
-        p_v_aa: unions::lib2::A::C,
-        p_v_dd: unions::lib2::D::E(unions::lib3::foo::TT::B),
-        p_v_tt: unions::lib3::foo::TT::B,
-        p_v_rr: unions::RR::A(unions::lib::PP::T(unions::lib::QQ::N(42))),
-        p_v_oo: unions::lib3::foo::OO::B((unions::lib3::foo::TT::A, unions::lib3::foo::TT::B)),
-        p_v_array: [
-            unions::RR::B,
-            unions::RR::A(unions::lib::PP::T(unions::lib::QQ::M)),
-        ],
-        p_v_tuple: (unions::lib2::A::B, unions::lib3::foo::TT::A),
-    };
-
     // State mutations.
     let state_mutations: Vec<Mutation> = unions::storage::mutations()
         .u1(unions::UU::A(69))
@@ -141,7 +121,6 @@ async fn test_solution_foo() {
     let solution_data = SolutionData {
         predicate_to_solve: unions::Foo::ADDRESS,
         decision_variables: vars.into(),
-        transient_data: pub_vars.into(),
         state_mutations,
     };
 

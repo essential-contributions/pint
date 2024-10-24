@@ -12,8 +12,9 @@ interface Foo {
 predicate test() {
     state l = __vec_len(storage::v);
 
-    interface FooI = Foo(0x0000000000000000000000000000000000000000000000000000000000000000);
-    state l2 = __vec_len(FooI::storage::v);
+    state l2 = __vec_len(
+                    Foo[[0x0000000000000000000000000000000000000000000000000000000000000000]]::storage::v
+                );
 }
 
 // parsed <<<
@@ -29,9 +30,8 @@ predicate test() {
 // 
 // predicate ::test(
 // ) {
-//     interface ::FooI = ::Foo(0x0000000000000000000000000000000000000000000000000000000000000000)
 //     state ::l = __vec_len(storage::v);
-//     state ::l2 = __vec_len(::FooI::storage::v);
+//     state ::l2 = __vec_len(::Foo[[0x0000000000000000000000000000000000000000000000000000000000000000]]::storage::v);
 // }
 // >>>
 
@@ -48,7 +48,6 @@ predicate test() {
 // 
 // predicate ::test(
 // ) {
-//     interface ::FooI = ::Foo(0x0000000000000000000000000000000000000000000000000000000000000000)
 //     state ::l: int = __storage_get({0});
 //     state ::l2: int = __storage_get_extern(0x0000000000000000000000000000000000000000000000000000000000000000, {0});
 //     constraint __eq_set(__mut_keys(), {0});

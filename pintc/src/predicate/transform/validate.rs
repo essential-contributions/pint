@@ -198,16 +198,17 @@ fn check_expr(
         | Expr::Tuple { .. }
         | Expr::UnionVariant { .. }
         | Expr::Path(..)
-        | Expr::StorageAccess { .. }
+        | Expr::LocalStorageAccess { .. }
+        | Expr::ExternalStorageAccess { .. }
         | Expr::UnaryOp { .. }
         | Expr::BinaryOp { .. }
         | Expr::IntrinsicCall { .. }
-        | Expr::PredicateCall { .. }
+        | Expr::LocalPredicateCall { .. }
+        | Expr::ExternalPredicateCall { .. }
         | Expr::Select { .. }
         | Expr::Cast { .. }
         | Expr::TupleFieldAccess { .. }
         | Expr::Index { .. }
-        | Expr::ExternalStorageAccess { .. }
         | Expr::UnionTag { .. }
         | Expr::UnionValue { .. } => Ok(()),
     }
@@ -376,7 +377,6 @@ fn vars() {
         pred.vars.insert(
             Var {
                 name: "test".to_owned(),
-                is_pub: false,
                 span: empty_span(),
             },
             Type::Unknown(empty_span()),

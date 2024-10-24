@@ -45,10 +45,15 @@ pub fn compile_contract(
     }
 
     for (pred_key, pred) in contract.preds.iter() {
-        // If this predicate references another predicate (via a `AddressOf` intrinsic), then
-        // create a dependency edge from the other pedicate to this one.
+        // If this predicate refers to another predicate using a `LocalPredicateCall` or an
+        // `AddressOf` intrinsic, then create a dependency edge from the other pedicate to this
+        // one.
         for expr in contract.exprs(pred_key) {
-            if let Some(Expr::IntrinsicCall {
+            if let Some(Expr::LocalPredicateCall { predicate, .. }) = expr.try_get(contract) {
+                let from = names_to_indices[predicate];
+                let to = names_to_indices[&pred.name];
+                dep_graph.add_edge(from, to, ());
+            } else if let Some(Expr::IntrinsicCall {
                 kind: (IntrinsicKind::External(ExternalIntrinsic::AddressOf), _),
                 args,
                 ..

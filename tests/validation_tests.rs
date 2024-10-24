@@ -109,9 +109,6 @@ async fn validation_e2e() -> anyhow::Result<()> {
             .map(|(idx, data)| (idx, data.predicate_to_solve.predicate.clone()))
             .collect::<Vec<_>>();
 
-        // This is required to call `check_predicate` later
-        let transient_data = essential_constraint_vm::transient_data(&solution);
-
         // Pre-populate the pre-state with all the db content, but first, every solution data
         // predicate set has to be inserted.
         let mut pre_state = State::new(
@@ -145,7 +142,6 @@ async fn validation_e2e() -> anyhow::Result<()> {
                 Arc::new(predicate.clone()),
                 idx as u16, // solution data index
                 &Default::default(),
-                Arc::new(transient_data.clone()),
             )
             .await
             {
@@ -278,44 +274,10 @@ fn parse_solution(
                     })
                     .collect::<anyhow::Result<Vec<_>>>()?;
 
-                let transient_data = e
-                    .get("transient_data")
-                    .and_then(|muta| muta.as_array())
-                    .unwrap_or(&Vec::new())
-                    .iter()
-                    .map(|mutation| {
-                        Ok(Mutation {
-                            key: mutation
-                                .get("key")
-                                .and_then(|word| word.as_array())
-                                .unwrap_or(&Vec::new())
-                                .iter()
-                                .map(|d| {
-                                    d.as_integer().ok_or_else(|| {
-                                        anyhow!("Invalid integer value in state mutation key")
-                                    })
-                                })
-                                .collect::<anyhow::Result<Vec<_>, _>>()?,
-                            value: mutation
-                                .get("value")
-                                .and_then(|word| word.as_array())
-                                .unwrap_or(&Vec::new())
-                                .iter()
-                                .map(|d| {
-                                    d.as_integer().ok_or_else(|| {
-                                        anyhow!("Invalid integer value in state mutation word")
-                                    })
-                                })
-                                .collect::<anyhow::Result<Vec<_>, _>>()?,
-                        })
-                    })
-                    .collect::<anyhow::Result<Vec<_>>>()?;
-
                 Ok(SolutionData {
                     predicate_to_solve,
                     decision_variables,
                     state_mutations,
-                    transient_data,
                 })
             })
             .collect::<anyhow::Result<Vec<_>>>()?,

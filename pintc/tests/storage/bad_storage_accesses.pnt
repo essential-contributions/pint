@@ -47,8 +47,7 @@ predicate Test(
         G::B(b) => {}
     }
 
-    interface FooI = Foo(storage::bb);
-    predicate BarI = FooI::Bar(storage::bb);
+    constraint Foo[[storage::bb]]::Bar[[storage::bb]]();
 }
 
 // parsed <<<
@@ -74,13 +73,11 @@ predicate Test(
 //     ::y: {int, int[3]},
 //     ::b: bool,
 //     ::u: ::G,
-//     __::BarI_pathway: int,
 // ) {
-//     interface ::FooI = ::Foo(storage::bb)
-//     predicate ::BarI = ::FooI::Bar(storage::bb)
 //     constraint (::x == storage::map[3].2);
 //     constraint (storage::a[::addr][storage::t.0] == 0);
 //     constraint (::y == storage::t);
+//     constraint ::Foo[[storage::bb]]::Bar[[storage::bb]]();
 //     if ::b {
 //         constraint (storage::t.0 == 0)
 //         constraint (storage::t.1 == 0)
@@ -112,7 +109,7 @@ predicate Test(
 // @488..518: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of `state` declaration
 // invalid position for accessing storage
-// @928..939: storage cannot be accessed in this position
+// @898..909: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of `state` declaration
 // invalid position for accessing storage
 // @716..728: storage cannot be accessed in this position
@@ -124,7 +121,7 @@ predicate Test(
 // @589..601: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of `state` declaration
 // invalid position for accessing storage
-// @883..894: storage cannot be accessed in this position
+// @878..889: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of `state` declaration
 // invalid position for accessing storage
 // @453..470: storage cannot be accessed in this position

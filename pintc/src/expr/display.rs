@@ -53,17 +53,22 @@ impl DisplayWithContract for &super::Expr {
             }
 
             super::Expr::Path(p, _) => write!(f, "{p}"),
-            super::Expr::StorageAccess { name, mutable, .. } => {
+            super::Expr::LocalStorageAccess { name, mutable, .. } => {
                 if *mutable {
                     write!(f, "mut ")?;
                 }
                 write!(f, "storage::{name}")
             }
             super::Expr::ExternalStorageAccess {
-                interface_instance,
+                interface,
+                address,
                 name,
                 ..
-            } => write!(f, "{interface_instance}::storage::{name}"),
+            } => write!(
+                f,
+                "{interface}[[{}]]::storage::{name}",
+                contract.with_ctrct(address)
+            ),
 
             super::Expr::UnaryOp { op, expr, .. } => {
                 if matches!(op, expr::UnaryOp::NextState) {
@@ -130,7 +135,15 @@ impl DisplayWithContract for &super::Expr {
                 write!(f, ")")
             }
 
-            super::Expr::PredicateCall {
+            super::Expr::LocalPredicateCall {
+                predicate, args, ..
+            } => {
+                write!(f, "{predicate}[[]](",)?;
+                write_many_with_ctrct!(f, args, ", ", contract);
+                write!(f, ")")
+            }
+
+            super::Expr::ExternalPredicateCall {
                 interface,
                 c_addr,
                 predicate,

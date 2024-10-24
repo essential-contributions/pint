@@ -71,40 +71,6 @@ fn this_contract_address() {
 }
 
 #[test]
-fn this_pathway() {
-    check(
-        &format!(
-            "{}",
-            compile(
-                r#"
-            predicate test(this_pathway: int) {
-                constraint this_pathway == __this_pathway();
-            }
-            "#,
-            )
-        ),
-        expect_test::expect![[r#"
-            predicate ::test {
-                --- Constraints ---
-                constraint 0
-                  Stack(Push(0))
-                  Stack(Push(0))
-                  Stack(Push(1))
-                  Access(DecisionVar)
-                  Access(ThisPathway)
-                  Pred(Eq)
-                constraint 1
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                --- State Reads ---
-            }
-
-        "#]],
-    );
-}
-
-#[test]
 fn sha256() {
     check(
         &format!(
@@ -403,9 +369,7 @@ fn sha256() {
             "{}",
             compile(
                 r#"
-            predicate test(hash: b256) {
-                pub var foo: int;
-                pub var bar: { int, b256, int[3] };
+            predicate test(hash: b256, foo: int, bar: { int, b256, int[3] }) {
                 constraint hash == __sha256({ foo, bar });
             }
             "#,
@@ -419,18 +383,14 @@ fn sha256() {
                   Stack(Push(0))
                   Stack(Push(4))
                   Access(DecisionVar)
-                  Access(ThisPathway)
-                  Stack(Push(0))
                   Stack(Push(1))
                   Stack(Push(0))
                   Stack(Push(1))
-                  Access(PubVar)
-                  Access(ThisPathway)
-                  Stack(Push(1))
-                  Stack(Push(1))
+                  Access(DecisionVar)
+                  Stack(Push(2))
                   Stack(Push(0))
                   Stack(Push(8))
-                  Access(PubVar)
+                  Access(DecisionVar)
                   Stack(Push(9))
                   Stack(Push(8))
                   Alu(Mul)

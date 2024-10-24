@@ -88,7 +88,7 @@ impl Contract {
         match expr {
             Expr::Error(_)
             | Expr::Path(_, _)
-            | Expr::StorageAccess { .. }
+            | Expr::LocalStorageAccess { .. }
             | Expr::ExternalStorageAccess { .. }
             | Expr::MacroCall { .. }
             | Expr::Immediate { .. } => {}
@@ -129,7 +129,13 @@ impl Contract {
                 }
             }
 
-            Expr::PredicateCall {
+            Expr::LocalPredicateCall { args, .. } => {
+                for arg in args {
+                    self.visitor_from_key(kind, *arg, f);
+                }
+            }
+
+            Expr::ExternalPredicateCall {
                 c_addr,
                 p_addr,
                 args,
@@ -537,17 +543,8 @@ pub struct Predicate {
 
     pub ephemerals: Vec<EphemeralDecl>,
 
-    // Each of the initialised variables.  Used by type inference.
-    pub var_inits: slotmap::SecondaryMap<VarKey, ExprKey>,
-
     // CallKey is used in a secondary map in the parser context to access the actual call data.
     pub calls: slotmap::SlotMap<CallKey, String>,
-
-    // A list of all availabe interface instances
-    pub interface_instances: Vec<InterfaceInstance>,
-
-    // A list of all availabe predicate instances
-    pub predicate_instances: Vec<PredicateInstance>,
 
     pub symbols: SymbolTable,
 }
@@ -570,22 +567,8 @@ impl Predicate {
             name: self.name.clone(),
             vars: self
                 .vars()
-                .filter(|(_, var)| !var.is_pub)
                 .map(|(var_key, _)| var_key.abi(handler, contract, self))
                 .collect::<Result<_, _>>()?,
-            pub_vars: self
-                .vars()
-                .filter(|(_, var)| var.is_pub)
-                .map(|(var_key, Var { name, .. })| {
-                    Ok(VarABI {
-                        name: name.to_string(),
-                        ty: {
-                            let ty = var_key.get_ty(self);
-                            ty.abi(handler, contract)?
-                        },
-                    })
-                })
-                .collect::<Result<Vec<_>, _>>()?,
         })
     }
 
@@ -640,30 +623,6 @@ impl Predicate {
         self.if_decls.iter_mut().for_each(|if_decl| {
             if_decl.replace_exprs(old_expr, new_expr);
         });
-
-        self.var_inits.iter_mut().for_each(|(_, expr)| {
-            if *expr == old_expr {
-                *expr = new_expr;
-            }
-        });
-
-        self.interface_instances
-            .iter_mut()
-            .for_each(|InterfaceInstance { address, .. }| {
-                if *address == old_expr {
-                    *address = new_expr;
-                }
-            });
-
-        self.predicate_instances
-            .iter_mut()
-            .for_each(|PredicateInstance { address, .. }| {
-                if let Some(ref mut address) = address {
-                    if *address == old_expr {
-                        *address = new_expr;
-                    }
-                }
-            });
     }
 
     /// Return an iterator to the 'root set' of expressions, based on the constraints, states,
@@ -673,8 +632,6 @@ impl Predicate {
             .iter()
             .map(|c| c.expr)
             .chain(self.states().map(|(_, state)| state.expr))
-            .chain(self.interface_instances.iter().map(|ii| ii.address))
-            .chain(self.predicate_instances.iter().filter_map(|pi| pi.address))
             .chain(self.if_decls.iter().flat_map(|if_decl| if_decl.expr_iter()))
             .chain(
                 self.match_decls
@@ -1014,25 +971,6 @@ pub struct Interface {
 pub struct InterfaceVar {
     pub name: Ident,
     pub ty: Type,
-    pub span: Span,
-}
-
-/// An interface instance that specifies an address
-#[derive(Clone, Debug)]
-pub struct InterfaceInstance {
-    pub name: Ident,
-    pub interface: String,
-    pub address: ExprKey,
-    pub span: Span,
-}
-
-/// A predicate instance that specifies an address
-#[derive(Clone, Debug)]
-pub struct PredicateInstance {
-    pub name: Ident,
-    pub interface_instance: Option<String>,
-    pub predicate: Ident,
-    pub address: Option<ExprKey>,
     pub span: Span,
 }
 

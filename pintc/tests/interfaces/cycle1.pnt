@@ -1,71 +1,64 @@
 // A, B, C create a cycle
 predicate A() {
-    predicate BI = B();
+    constraint B[[]]();
 }
 
 predicate B() {
-    predicate CI = C();
+    constraint C[[]]();
 }
 
 predicate C() {
-    predicate AI = A();
+    constraint A[[]]();
 }
 
 // D, E, F create a cycle
 predicate D() {
-    predicate EI = E();
-    predicate AI = A();
+    constraint E[[]]();
+    constraint A[[]]();
 }
 
 predicate E() {
-    predicate FI = F();
+    constraint F[[]]();
 }
 
 predicate F() {
-    predicate DI = D();
+    constraint D[[]]();
 }
 
 // parsed <<<
 // predicate ::A(
-//     __::BI_pathway: int,
 // ) {
-//     predicate ::BI = ::B()
+//     constraint ::B[[]]();
 // }
 // 
 // predicate ::B(
-//     __::CI_pathway: int,
 // ) {
-//     predicate ::CI = ::C()
+//     constraint ::C[[]]();
 // }
 // 
 // predicate ::C(
-//     __::AI_pathway: int,
 // ) {
-//     predicate ::AI = ::A()
+//     constraint ::A[[]]();
 // }
 // 
 // predicate ::D(
-//     __::EI_pathway: int,
-//     __::AI_pathway: int,
 // ) {
-//     predicate ::EI = ::E()
-//     predicate ::AI = ::A()
+//     constraint ::E[[]]();
+//     constraint ::A[[]]();
 // }
 // 
 // predicate ::E(
-//     __::FI_pathway: int,
 // ) {
-//     predicate ::FI = ::F()
+//     constraint ::F[[]]();
 // }
 // 
 // predicate ::F(
-//     __::DI_pathway: int,
 // ) {
-//     predicate ::DI = ::D()
+//     constraint ::D[[]]();
 // }
 // >>>
 
-// flattening_failure <<<
+// typecheck_failure <<<
 // dependency cycle detected between predicates
 // @181..192: this predicate is on the dependency cycle
 // @291..302: this predicate is on the dependency cycle
