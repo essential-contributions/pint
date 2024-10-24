@@ -40,7 +40,8 @@ pub enum Expr {
         span: Span,
     },
     ExternalStorageAccess {
-        interface_instance: String,
+        interface: String,
+        address: ExprKey,
         name: String,
         span: Span,
     },
@@ -70,6 +71,11 @@ pub enum Expr {
         c_addr: ExprKey,
         predicate: String,
         p_addr: ExprKey,
+        args: Vec<ExprKey>,
+        span: Span,
+    },
+    LocalPredicateCall {
+        predicate: String,
         args: Vec<ExprKey>,
         span: Span,
     },
@@ -302,6 +308,7 @@ impl Spanned for Expr {
             | Expr::MacroCall { span, .. }
             | Expr::IntrinsicCall { span, .. }
             | Expr::PredicateCall { span, .. }
+            | Expr::LocalPredicateCall { span, .. }
             | Expr::Select { span, .. }
             | Expr::Match { span, .. }
             | Expr::Index { span, .. }
@@ -354,7 +361,17 @@ impl Expr {
                 replace(rhs);
             }
             Expr::IntrinsicCall { args, .. } => args.iter_mut().for_each(replace),
-            Expr::PredicateCall { args, .. } => args.iter_mut().for_each(replace),
+            Expr::PredicateCall {
+                c_addr,
+                p_addr,
+                args,
+                ..
+            } => {
+                replace(c_addr);
+                replace(p_addr);
+                args.iter_mut().for_each(replace)
+            }
+            Expr::LocalPredicateCall { args, .. } => args.iter_mut().for_each(replace),
             Expr::Select {
                 condition,
                 then_expr,

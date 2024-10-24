@@ -15,7 +15,7 @@ interface Foo {
 }
 
 predicate Bar() {
-    interface FooInstance = Foo(0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE);
+    state addr = 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE;
 
     state u = storage::u;
     state u0 = mut storage::u[0];
@@ -96,29 +96,29 @@ predicate Bar() {
     constraint map_to_arrays_69_1' == 100;
     constraint map_to_arrays_69_2' == 101;
 
-    state foo_u =  FooInstance::storage::u;
-    state foo_u0 = FooInstance::storage::u[0];
-    state foo_u1 = FooInstance::storage::u[1];
+    state foo_u =  Foo[[addr]]::storage::u;
+    state foo_u0 = Foo[[addr]]::storage::u[0];
+    state foo_u1 = Foo[[addr]]::storage::u[1];
 
-    state foo_t = FooInstance::storage::t;
-    state foo_t0 = FooInstance::storage::t[0];
-    state foo_t1 = FooInstance::storage::t[1];
-    state foo_t2 = FooInstance::storage::t[2];
+    state foo_t = Foo[[addr]]::storage::t;
+    state foo_t0 = Foo[[addr]]::storage::t[0];
+    state foo_t1 = Foo[[addr]]::storage::t[1];
+    state foo_t2 = Foo[[addr]]::storage::t[2];
 
-    state foo_v = FooInstance::storage::v;
-    state foo_v0 = FooInstance::storage::v[0];
-    state foo_v1 = FooInstance::storage::v[1];
-    state foo_v00 = FooInstance::storage::v[0][0];
-    state foo_v01 = FooInstance::storage::v[0][1];
-    state foo_v02 = FooInstance::storage::v[0][2];
-    state foo_v10 = FooInstance::storage::v[1][0];
-    state foo_v11 = FooInstance::storage::v[1][1];
-    state foo_v12 = FooInstance::storage::v[1][2];
+    state foo_v = Foo[[addr]]::storage::v;
+    state foo_v0 = Foo[[addr]]::storage::v[0];
+    state foo_v1 = Foo[[addr]]::storage::v[1];
+    state foo_v00 = Foo[[addr]]::storage::v[0][0];
+    state foo_v01 = Foo[[addr]]::storage::v[0][1];
+    state foo_v02 = Foo[[addr]]::storage::v[0][2];
+    state foo_v10 = Foo[[addr]]::storage::v[1][0];
+    state foo_v11 = Foo[[addr]]::storage::v[1][1];
+    state foo_v12 = Foo[[addr]]::storage::v[1][2];
 
-    state foo_map_to_arrays_69 = FooInstance::storage::map_to_arrays[69];
-    state foo_map_to_arrays_69_0 = FooInstance::storage::map_to_arrays[69][0];
-    state foo_map_to_arrays_69_1 = FooInstance::storage::map_to_arrays[69][1];
-    state foo_map_to_arrays_69_2 = FooInstance::storage::map_to_arrays[69][2];
+    state foo_map_to_arrays_69 = Foo[[addr]]::storage::map_to_arrays[69];
+    state foo_map_to_arrays_69_0 = Foo[[addr]]::storage::map_to_arrays[69][0];
+    state foo_map_to_arrays_69_1 = Foo[[addr]]::storage::map_to_arrays[69][1];
+    state foo_map_to_arrays_69_2 = Foo[[addr]]::storage::map_to_arrays[69][2];
 
     constraint foo_u' == [12, 13];
     constraint (foo_u')[0] == 12;

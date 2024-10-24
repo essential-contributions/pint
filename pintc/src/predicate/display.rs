@@ -112,9 +112,7 @@ impl Display for Contract {
             writeln!(f, "\npredicate {}(", pred.name)?;
             for (var_key, var) in pred.vars() {
                 let ty = var_key.get_ty(pred);
-                if !var.is_pub {
-                    writeln!(f, "    {}: {},", var.name, self.with_ctrct(ty))?;
-                }
+                writeln!(f, "    {}: {},", var.name, self.with_ctrct(ty))?;
             }
 
             writeln!(f, ") {{")?;
@@ -176,48 +174,6 @@ impl Contract {
 impl Predicate {
     fn fmt_with_indent(&self, f: &mut Formatter, contract: &Contract, indent: usize) -> Result {
         let indentation = " ".repeat(4 * indent);
-
-        for InterfaceInstance {
-            name,
-            interface,
-            address,
-            ..
-        } in &self.interface_instances
-        {
-            writeln!(
-                f,
-                "{indentation}interface {name} = {interface}({})",
-                contract.with_ctrct(address)
-            )?;
-        }
-
-        for PredicateInstance {
-            name,
-            interface_instance,
-            predicate,
-            address,
-            ..
-        } in &self.predicate_instances
-        {
-            writeln!(
-                f,
-                "{indentation}predicate {name} = {}::{predicate}({})",
-                interface_instance
-                    .as_ref()
-                    .map(|instance| instance.to_string())
-                    .unwrap_or(String::new()),
-                address
-                    .as_ref()
-                    .map(|address| format!("{}", contract.with_ctrct(address)))
-                    .unwrap_or(String::new()),
-            )?;
-        }
-
-        for (var_key, var) in self.vars() {
-            if var.is_pub {
-                writeln!(f, "{indentation}{};", self.with_pred(contract, var_key))?;
-            }
-        }
 
         for (state_key, _) in self.states() {
             writeln!(f, "{indentation}{};", self.with_pred(contract, state_key))?;

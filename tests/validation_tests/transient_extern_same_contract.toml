@@ -3,37 +3,49 @@ predicate_to_solve = { predicate = "::Simple" }
 decision_variables = [
   [42], # ::z
   [69], # ::q
-  [1],  # __::FooI_pathway:
-  [2],  # __::BarI_pathway:
+
+  [0],                                    # ::foo_nonce
+  [58],                                   # ::foo_x
+  [31],                                   # ::foo_y
+  [9, 9, 9, 9],                           # ::foo_w
+  [1],                                    # ::foo_b
+  [42, 43, 8, 8, 8, 8, 1],                # ::foo_c
+  [91, 92, 93],                           # ::foo_d
+  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], # ::foo_e
+
+  [1],                                                # bar_nonce
+  [158],                                              # ::bar_x
+  [131],                                              # ::bar_y
+  [10, 10, 10, 10],                                   # ::bar_w
+  [0],                                                # ::bar_b
+  [142, 143, 9, 9, 9, 9, 0],                          # ::bar_c
+  [191, 192, 193],                                    # ::bar_d
+  [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 110, 111], # ::bar_e
 ]
 transient_data = []
 
 [[data]]
 predicate_to_solve = { predicate = "::Foo" }
 decision_variables = [
-  [0], # nonce
-]
-transient_data = [
-  { key = [0], value = [58] },                                   # ::x
-  { key = [1], value = [31] },                                   # ::y
-  { key = [2], value = [9, 9, 9, 9] },                           # ::w
-  { key = [3], value = [1] },                                    # ::b
-  { key = [4], value = [42, 43, 8, 8, 8, 8, 1] },                # ::c
-  { key = [5], value = [91, 92, 93] },                           # ::d
-  { key = [6], value = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] }, # ::e
+  [0],                                    # nonce
+  [58],                                   # ::x
+  [31],                                   # ::y
+  [9, 9, 9, 9],                           # ::w
+  [1],                                    # ::b
+  [42, 43, 8, 8, 8, 8, 1],                # ::c
+  [91, 92, 93],                           # ::d
+  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], # ::e
 ]
 
 [[data]]
 predicate_to_solve = { predicate = "::Bar" }
 decision_variables = [
-  [1], # nonce
-]
-transient_data = [
-  { key = [0], value = [158] },                                              # ::x
-  { key = [1], value = [131] },                                              # ::y
-  { key = [2], value = [10, 10, 10, 10] },                                   # ::w
-  { key = [3], value = [0] },                                                # ::b
-  { key = [4], value = [142, 143, 9, 9, 9, 9, 0] },                          # ::c
-  { key = [5], value = [191, 192, 193] },                                    # ::d
-  { key = [6], value = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 110, 111] }, # ::e
+  [1],                                                # nonce
+  [158],                                              # ::x
+  [131],                                              # ::y
+  [10, 10, 10, 10],                                   # ::w
+  [0],                                                # ::b
+  [142, 143, 9, 9, 9, 9, 0],                          # ::c
+  [191, 192, 193],                                    # ::d
+  [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 110, 111], # ::e
 ]

@@ -12,8 +12,8 @@ fn check_order() {
             compile(
                 r#"
             predicate A() {
-                predicate BI = B();
-                predicate CI = C();
+                constraint B[[]]();
+                constraint C[[]]();
             }
             predicate B() {
             }
@@ -26,35 +26,27 @@ fn check_order() {
             predicate ::A {
                 --- Constraints ---
                 constraint 0
+                  Access(ThisContractAddress)
+                  Stack(Push(-5015437933321959706))
+                  Stack(Push(-4022861202447085451))
+                  Stack(Push(-8440564760172310971))
+                  Stack(Push(-2049596813535960749))
+                  Stack(Push(64))
+                  Crypto(Sha256)
+                  Access(PredicateExists)
+                constraint 1
+                  Access(ThisContractAddress)
+                  Stack(Push(-5015437933321959706))
+                  Stack(Push(-4022861202447085451))
+                  Stack(Push(-8440564760172310971))
+                  Stack(Push(-2049596813535960749))
+                  Stack(Push(64))
+                  Crypto(Sha256)
+                  Access(PredicateExists)
+                constraint 2
                   Access(MutKeys)
                   Stack(Push(0))
                   Pred(EqSet)
-                constraint 1
-                  Stack(Push(0))
-                  Stack(Push(0))
-                  Stack(Push(1))
-                  Access(DecisionVar)
-                  Access(PredicateAt)
-                  Access(ThisContractAddress)
-                  Stack(Push(-5015437933321959706))
-                  Stack(Push(-4022861202447085451))
-                  Stack(Push(-8440564760172310971))
-                  Stack(Push(-2049596813535960749))
-                  Stack(Push(8))
-                  Pred(EqRange)
-                constraint 2
-                  Stack(Push(1))
-                  Stack(Push(0))
-                  Stack(Push(1))
-                  Access(DecisionVar)
-                  Access(PredicateAt)
-                  Access(ThisContractAddress)
-                  Stack(Push(-5015437933321959706))
-                  Stack(Push(-4022861202447085451))
-                  Stack(Push(-8440564760172310971))
-                  Stack(Push(-2049596813535960749))
-                  Stack(Push(8))
-                  Pred(EqRange)
                 --- State Reads ---
             }
 

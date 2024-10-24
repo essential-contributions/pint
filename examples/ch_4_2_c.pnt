@@ -1,16 +1,17 @@
+// <disabled>
 // ANCHOR: interface 
 interface Counter {
     storage {
         counter: int,
     }
 
-    predicate Initialize(
-        value: int,
-    );
+    predicate Initialize {
+        pub var value: int;
+    }
 
-    predicate Increment(
-        amount: int,
-    );
+    predicate Increment {
+        pub var amount: int;
+    }
 }
 // ANCHOR_END: interface 
 

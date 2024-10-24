@@ -1,0 +1,6 @@
+[[data]]
+predicate_to_solve = { predicate = "::Foo" }
+decision_variables = [
+  [42],                         # ::foo
+  [69, 1, 2, 3, 4, 15, 16, 17], # ::bar
+]

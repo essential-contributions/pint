@@ -60,10 +60,15 @@ impl DisplayWithContract for &super::Expr {
                 write!(f, "storage::{name}")
             }
             super::Expr::ExternalStorageAccess {
-                interface_instance,
+                interface,
+                address,
                 name,
                 ..
-            } => write!(f, "{interface_instance}::storage::{name}"),
+            } => write!(
+                f,
+                "{interface}[[{}]]::storage::{name}",
+                contract.with_ctrct(address)
+            ),
 
             super::Expr::UnaryOp { op, expr, .. } => {
                 if matches!(op, expr::UnaryOp::NextState) {
@@ -144,6 +149,14 @@ impl DisplayWithContract for &super::Expr {
                     contract.with_ctrct(c_addr),
                     contract.with_ctrct(p_addr)
                 )?;
+                write_many_with_ctrct!(f, args, ", ", contract);
+                write!(f, ")")
+            }
+
+            super::Expr::LocalPredicateCall {
+                predicate, args, ..
+            } => {
+                write!(f, "{predicate}[[]](",)?;
                 write_many_with_ctrct!(f, args, ", ", contract);
                 write!(f, ")")
             }

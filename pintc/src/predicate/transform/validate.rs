@@ -203,6 +203,7 @@ fn check_expr(
         | Expr::BinaryOp { .. }
         | Expr::IntrinsicCall { .. }
         | Expr::PredicateCall { .. }
+        | Expr::LocalPredicateCall { .. }
         | Expr::Select { .. }
         | Expr::Cast { .. }
         | Expr::TupleFieldAccess { .. }
@@ -376,7 +377,6 @@ fn vars() {
         pred.vars.insert(
             Var {
                 name: "test".to_owned(),
-                is_pub: false,
                 span: empty_span(),
             },
             Type::Unknown(empty_span()),

@@ -5,15 +5,9 @@ interface ERC20 {
 }
 
 predicate Foo() {
-    interface ERC20Instance =
-        ERC20Missing(0x1111111111111111111111111111111111111111111111111111111111111111);
-
-    interface ERC20Instance2 =
-        ERC20(0x2222222222222222222222222222222222222222222222222222222222222222);
-
-    state x = ERC20Instance::storage::x;
-
-    state y = ERC20InstanceMissing::storage::x;
+    state x = ERC20[[0x2222222222222222222222222222222222222222222222222222222222222222]]::storage::x;
+    state y = ERC20Missing[[0x1111111111111111111111111111111111111111111111111111111111111111]]
+             ::storage::x;
 }
 
 // parsed <<<
@@ -25,18 +19,12 @@ predicate Foo() {
 // 
 // predicate ::Foo(
 // ) {
-//     interface ::ERC20Instance = ::ERC20Missing(0x1111111111111111111111111111111111111111111111111111111111111111)
-//     interface ::ERC20Instance2 = ::ERC20(0x2222222222222222222222222222222222222222222222222222222222222222)
-//     state ::x = ::ERC20Instance::storage::x;
-//     state ::y = ::ERC20InstanceMissing::storage::x;
+//     state ::x = ::ERC20[[0x2222222222222222222222222222222222222222222222222222222222222222]]::storage::x;
+//     state ::y = ::ERC20Missing[[0x1111111111111111111111111111111111111111111111111111111111111111]]::storage::x;
 // }
 // >>>
 
 // typecheck_failure <<<
 // cannot find interface declaration `::ERC20Missing`
-// @79..193: cannot find interface declaration `::ERC20Missing`
-// cannot find interface instance `::ERC20InstanceMissing`
-// @367..399: cannot find interface instance `::ERC20InstanceMissing`
-// unable to determine expression type
-// @315..350: type of this expression is ambiguous
+// @192..300: cannot find interface declaration `::ERC20Missing`
 // >>>

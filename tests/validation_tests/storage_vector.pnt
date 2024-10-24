@@ -75,13 +75,13 @@ predicate Bar() {
 
 
     // Test external storage vectors
-    interface FooInstance = Foo(0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE);
+    state addr = 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE;
 
     // v0 starts empty
-    state foo_v0_0 = FooInstance::storage::v0[0];
-    state foo_v0_1 = FooInstance::storage::v0[1];
-    state foo_v0_2 = FooInstance::storage::v0[2];
-    state foo_v0_len = __vec_len(FooInstance::storage::v0);
+    state foo_v0_0 = Foo[[addr]]::storage::v0[0];
+    state foo_v0_1 = Foo[[addr]]::storage::v0[1];
+    state foo_v0_2 = Foo[[addr]]::storage::v0[2];
+    state foo_v0_len = __vec_len(Foo[[addr]]::storage::v0);
 
     constraint foo_v0_len == nil || foo_v0_len == 0;
     constraint foo_v0_len' == 3;
@@ -90,18 +90,18 @@ predicate Bar() {
     constraint foo_v0_2' == 44;
 
     // v1 starts with 3 elements and then expands to 5
-    state foo_v1_0 = FooInstance::storage::v1[0];
-    state foo_v1_1 = FooInstance::storage::v1[1];
-    state foo_v1_2 = FooInstance::storage::v1[2];
-    state foo_v1_len = __vec_len(FooInstance::storage::v1);
+    state foo_v1_0 = Foo[[addr]]::storage::v1[0];
+    state foo_v1_1 = Foo[[addr]]::storage::v1[1];
+    state foo_v1_2 = Foo[[addr]]::storage::v1[2];
+    state foo_v1_len = __vec_len(Foo[[addr]]::storage::v1);
 
     constraint foo_v1_len == 3;
     constraint foo_v1_0 == 13;
     constraint foo_v1_1 == 14;
     constraint foo_v1_2 == 15;
 
-    state foo_v1_3 = FooInstance::storage::v1[3];
-    state foo_v1_4 = FooInstance::storage::v1[4];
+    state foo_v1_3 = Foo[[addr]]::storage::v1[3];
+    state foo_v1_4 = Foo[[addr]]::storage::v1[4];
 
     constraint foo_v1_len' == 5;
     constraint foo_v1_0' == 13; // did not change
@@ -111,10 +111,10 @@ predicate Bar() {
     constraint foo_v1_4' == 17; // newly added
 
     // v2 starts empty
-    state foo_v2_0 = FooInstance::storage::v2[0];
-    state foo_v2_1 = FooInstance::storage::v2[1];
-    state foo_v2_2 = FooInstance::storage::v2[2];
-    state foo_v2_len = __vec_len(FooInstance::storage::v2);
+    state foo_v2_0 = Foo[[addr]]::storage::v2[0];
+    state foo_v2_1 = Foo[[addr]]::storage::v2[1];
+    state foo_v2_2 = Foo[[addr]]::storage::v2[2];
+    state foo_v2_len = __vec_len(Foo[[addr]]::storage::v2);
    
     constraint foo_v2_len == nil || foo_v2_len == 0;
     constraint foo_v2_len' == 3;

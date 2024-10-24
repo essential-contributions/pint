@@ -1,3 +1,4 @@
+// <disabled>
 // ANCHOR: predicate_foo 
 predicate Foo(a: int, b: bool, c: int[4]) {
     pub var x: int;
@@ -14,11 +15,11 @@ predicate Foo(a: int, b: bool, c: int[4]) {
 interface MyInterface {
     // storage block, if present
 
-    predicate Foo(
-        x: int,
-        y: b256,
-        t: { int, bool, b256 },
-    );
+    predicate Foo {
+        pub var x: int;
+        pub var y: b256;
+        pub var t: { int, bool, b256 };
+    }
 
     // other predicates, if present
 }

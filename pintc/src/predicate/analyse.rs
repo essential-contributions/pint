@@ -56,6 +56,13 @@ impl Contract {
         let _ = handler.scope(|handler| self.check_inits(handler));
         let _ = handler.scope(|handler| self.check_constraint_types(handler));
 
+        if !handler.has_errors() {
+            // If we haven't caught any issues so far, it's safe to start looking for cyclical
+            // dependencies between predicates. It makes no sense to check this if some predicates
+            // have errors. Ideally, this check would live outside the `type_check(..)` function.
+            let _ = handler.scope(|handler| self.check_cyclical_predicate_dependencies(handler));
+        }
+
         handler.result(self)
     }
 

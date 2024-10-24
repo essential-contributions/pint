@@ -558,6 +558,7 @@ impl Evaluator {
             | Expr::MacroCall { .. }
             | Expr::IntrinsicCall { .. }
             | Expr::PredicateCall { .. }
+            | Expr::LocalPredicateCall { .. }
             | Expr::Range { .. }
             | Expr::Generator { .. }
             | Expr::Match { .. } => Err(handler.emit_err(Error::Compile {
@@ -696,6 +697,22 @@ impl ExprKey {
                     c_addr,
                     predicate,
                     p_addr,
+                    args,
+                    span,
+                }
+            }
+            Expr::LocalPredicateCall {
+                predicate,
+                args,
+                span,
+            } => {
+                let args = args
+                    .into_iter()
+                    .map(|arg| arg.plug_in(contract, values_map))
+                    .collect::<Vec<_>>();
+
+                Expr::LocalPredicateCall {
+                    predicate,
                     args,
                     span,
                 }

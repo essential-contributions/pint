@@ -169,6 +169,10 @@ impl ExprKey {
                     || args.iter().any(|arg| arg.can_panic(contract, pred))
             }
 
+            Expr::LocalPredicateCall { args, .. } => {
+                args.iter().any(|arg| arg.can_panic(contract, pred))
+            }
+
             Expr::Select {
                 condition,
                 then_expr,
@@ -310,6 +314,12 @@ impl ExprKey {
                 } => {
                     storage_accesses.extend(c_addr.collect_storage_accesses(contract));
                     storage_accesses.extend(p_addr.collect_storage_accesses(contract));
+                    args.iter().for_each(|arg| {
+                        storage_accesses.extend(arg.collect_storage_accesses(contract));
+                    });
+                }
+
+                Expr::LocalPredicateCall { args, .. } => {
                     args.iter().for_each(|arg| {
                         storage_accesses.extend(arg.collect_storage_accesses(contract));
                     });
@@ -540,6 +550,12 @@ impl<'a> Iterator for ExprsIter<'a> {
             } => {
                 queue_if_new!(self, c_addr);
                 queue_if_new!(self, p_addr);
+                for arg in args {
+                    queue_if_new!(self, arg);
+                }
+            }
+
+            Expr::LocalPredicateCall { args, .. } => {
                 for arg in args {
                     queue_if_new!(self, arg);
                 }

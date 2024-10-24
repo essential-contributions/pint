@@ -10,7 +10,6 @@ pub struct ContractABI {
 pub struct PredicateABI {
     pub name: String,
     pub vars: Vec<VarABI>,
-    pub pub_vars: Vec<VarABI>,
 }
 
 ////////////////////////////////////////
