@@ -6,6 +6,14 @@ const d: int[5] = [0, 1, 2, 3, 4];
 predicate Test(x: int, y: int) {
     constraint x == 1;
 
+    // should be simplified to appropriate branch
+    constraint (true || (::x == ::y));
+    constraint ((::x == ::y) || true);
+    constraint (true && (::x == ::y));
+    constraint ((::x == ::y) && true);
+    constraint (false || (::x == ::y));
+    constraint ((::x == ::y) || false);
+
     // trivial and should be removed
     constraint true;
     constraint !false;
@@ -31,6 +39,12 @@ predicate Test(x: int, y: int) {
 //     ::y: int,
 // ) {
 //     constraint (::x == 1);
+//     constraint (true || (::x == ::y));
+//     constraint ((::x == ::y) || true);
+//     constraint (true && (::x == ::y));
+//     constraint ((::x == ::y) && true);
+//     constraint (false || (::x == ::y));
+//     constraint ((::x == ::y) || false);
 //     constraint true;
 //     constraint !false;
 //     constraint ((1 + 2) == 3);
@@ -54,6 +68,12 @@ predicate Test(x: int, y: int) {
 //     ::y: int,
 // ) {
 //     constraint (::x == 1);
+//     constraint (true || (::x == ::y));
+//     constraint ((::x == ::y) || true);
+//     constraint (true && (::x == ::y));
+//     constraint ((::x == ::y) && true);
+//     constraint (false || (::x == ::y));
+//     constraint ((::x == ::y) || false);
 //     constraint true;
 //     constraint !false;
 //     constraint ((1 + 2) == 3);
@@ -78,10 +98,15 @@ predicate Test(x: int, y: int) {
 //     ::y: int,
 // ) {
 //     constraint (::x == 1);
+//     constraint (::x == ::y);
+//     constraint (::x == ::y);
+//     constraint (::x == ::y);
+//     constraint (::x == ::y);
 //     constraint (::x < ::y);
 //     constraint (::x == ::x);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
+
 // >>>
 
 // warnings <<<

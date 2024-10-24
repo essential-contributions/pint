@@ -7,6 +7,8 @@ predicate Test(x: int, y: int) {
 
     // resolves to false
     constraint 1 + 2 < 3;
+    constraint (false && (::x == ::y));
+    constraint ((::x == ::y) && false);
 
     if true {
         // non-trivial
@@ -26,6 +28,8 @@ predicate Test(x: int, y: int) {
 //     constraint (::x < ::y);
 //     constraint (::x == ::x);
 //     constraint ((1 + 2) < 3);
+//     constraint (false && (::x == ::y));
+//     constraint ((::x == ::y) && false);
 //     if true {
 //         constraint (::y == 3)
 //         constraint (3 < 2)
@@ -42,6 +46,8 @@ predicate Test(x: int, y: int) {
 //     constraint (::x < ::y);
 //     constraint (::x == ::x);
 //     constraint ((1 + 2) < 3);
+//     constraint (false && (::x == ::y));
+//     constraint ((::x == ::y) && false);
 //     constraint (!true || (::y == 3));
 //     constraint (!true || (3 < 2));
 //     constraint __eq_set(__mut_keys(), {0});
@@ -62,6 +68,12 @@ predicate Test(x: int, y: int) {
 // @213..233: this constraint always evaluates to `false` and can never be satisfied
 // if this is intentional, consider removing the containing predicate because its constraints can never be satisfied
 // constraint is always `false`
-// @338..354: this constraint always evaluates to `false` and can never be satisfied
+// @239..273: this constraint always evaluates to `false` and can never be satisfied
+// if this is intentional, consider removing the containing predicate because its constraints can never be satisfied
+// constraint is always `false`
+// @279..313: this constraint always evaluates to `false` and can never be satisfied
+// if this is intentional, consider removing the containing predicate because its constraints can never be satisfied
+// constraint is always `false`
+// @418..434: this constraint always evaluates to `false` and can never be satisfied
 // if this is intentional, consider removing the containing predicate because its constraints can never be satisfied
 // >>>
