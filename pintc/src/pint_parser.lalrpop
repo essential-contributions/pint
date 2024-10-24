@@ -1065,8 +1065,8 @@ IntrinsicCallExpr: Expr = {
 }
 
 PredicateCallExpr: Expr = {
-    <l:@L> <interface: Path> "<<" <c_addr: Expr> ">>" 
-           "::" <predicate: Ident> "<<" <p_addr: Expr> ">>" 
+    <l:@L> <interface: Path> "[[" <c_addr: Expr> "]]" 
+           "::" <predicate: Ident> "[[" <p_addr: Expr> "]]" 
            "(" <args:SepList<Expr, ",">> ")" <r:@R> => {
         Expr::PredicateCall {
             interface,
@@ -1290,8 +1290,6 @@ extern {
         "<=" => lexer::Token::LtEq,
         ">" => lexer::Token::Gt,
         ">=" => lexer::Token::GtEq,
-        "<<" => lexer::Token::DoubleAngledLeft,
-        ">>" => lexer::Token::DoubleAngledRight,
 
         "&&" => lexer::Token::DoubleAmpersand,
         "||" => lexer::Token::DoublePipe,
@@ -1311,6 +1309,8 @@ extern {
         "}" => lexer::Token::BraceClose,
         "[" => lexer::Token::BracketOpen,
         "]" => lexer::Token::BracketClose,
+        "[[" => lexer::Token::DoubleBracketOpen,
+        "]]" => lexer::Token::DoubleBracketClose,
         "->" => lexer::Token::Arrow,
         "=>" => lexer::Token::HeavyArrow,
         "." => lexer::Token::Dot,
