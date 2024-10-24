@@ -1065,8 +1065,8 @@ IntrinsicCallExpr: Expr = {
 }
 
 PredicateCallExpr: Expr = {
-    <l:@L> <interface: Path> "[[" <c_addr: Expr> "]]" 
-           "::" <predicate: Ident> "[[" <p_addr: Expr> "]]" 
+    <l:@L> <interface: Path> "[[" <c_addr: Expr> "]" "]"
+           "::" <predicate: Ident> "[[" <p_addr: Expr> "]" "]"
            "(" <args:SepList<Expr, ",">> ")" <r:@R> => {
         Expr::PredicateCall {
             interface,
@@ -1080,20 +1080,38 @@ PredicateCallExpr: Expr = {
 }
 
 ArrayExpr: Expr = {
-    <l:@L> "[" <il:@L> <elements:SepList<Expr, ",">> <ir:@R> "]" <r:@R> => {
-        let span = (context.span_from)(il, ir);
-        let range_expr = context.contract.exprs.insert(
-            Expr::Immediate {
-                value: Immediate::Int(elements.len() as i64),
-                span: span.clone(),
-            },
-            Type::Unknown(span),
-        );
-        Expr::Array {
-            elements,
-            range_expr,
-            span: (context.span_from)(l, r),
-        }
+    <l:@L> "[" <elements:SepList<Expr, ",">> "]" <r:@R> => {
+        context.build_array_expr(elements, (context.span_from)(l, r))
+    },
+
+    <l:@L> "[[" <elements:SepList<Expr, ",">> "]" "]" <r:@R> => {
+        let inner_span = (context.span_from)(l + 1, r - 1);
+        let inner_expr = context.build_array_expr(elements, inner_span.clone());
+
+        let inner_expr_key = context
+            .contract
+            .exprs
+            .insert(inner_expr, Type::Unknown(inner_span));
+        context.build_array_expr(vec![inner_expr_key], (context.span_from)(l, r))
+    },
+
+    <l:@L> "[["
+        <first_els:SepList<Expr, ",">> "]" <ir:@R> ","
+        <mut ary_els:SepList<ArrayExpr, ",">>
+    "]" <r:@R> => {
+        let first_els_span = (context.span_from)(l + 1, ir);
+        let first_ary_expr = context.build_array_expr(first_els, first_els_span.clone());
+
+        ary_els.insert(0, first_ary_expr);
+
+        let ary_el_keys = ary_els
+            .into_iter()
+            .map(|expr| {
+                let el_span = expr.span().clone();
+                context.contract.exprs.insert(expr, Type::Unknown(el_span))
+            })
+            .collect();
+        context.build_array_expr(ary_el_keys, (context.span_from)(l, r))
     },
 }
 
@@ -1310,7 +1328,6 @@ extern {
         "[" => lexer::Token::BracketOpen,
         "]" => lexer::Token::BracketClose,
         "[[" => lexer::Token::DoubleBracketOpen,
-        "]]" => lexer::Token::DoubleBracketClose,
         "->" => lexer::Token::Arrow,
         "=>" => lexer::Token::HeavyArrow,
         "." => lexer::Token::Dot,

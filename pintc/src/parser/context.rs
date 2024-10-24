@@ -8,7 +8,7 @@ use crate::{
         PredicateInstance, StorageVar, SymbolTable, Var,
     },
     span::{self, Span},
-    types::{PrimitiveKind, Type},
+    types::{self, PrimitiveKind, Type},
 };
 use std::collections::BTreeMap;
 
@@ -1001,6 +1001,22 @@ impl<'a> ParserContext<'a> {
                     span: span.clone(),
                 }
             }
+        }
+    }
+
+    pub fn build_array_expr(&mut self, elements: Vec<ExprKey>, span: Span) -> Expr {
+        let range_expr = self.contract.exprs.insert(
+            Expr::Immediate {
+                value: Immediate::Int(elements.len() as i64),
+                span: span.clone(),
+            },
+            types::int(),
+        );
+
+        Expr::Array {
+            elements,
+            range_expr,
+            span,
         }
     }
 }
