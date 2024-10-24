@@ -69,8 +69,6 @@ pub enum Token {
     BracketClose,
     #[token("[[")]
     DoubleBracketOpen,
-    #[token("]]")]
-    DoubleBracketClose,
     #[token("->")]
     Arrow,
     #[token("=>")]
@@ -272,8 +270,7 @@ impl fmt::Display for Token {
             Token::ParenClose => write!(f, ")"),
             Token::BracketOpen => write!(f, "["),
             Token::BracketClose => write!(f, "]"),
-            Token::DoubleBracketOpen => write!(f, "<<"),
-            Token::DoubleBracketClose => write!(f, ">>"),
+            Token::DoubleBracketOpen => write!(f, "[["),
             Token::Arrow => write!(f, "->"),
             Token::HeavyArrow => write!(f, "=>"),
             Token::Dot => write!(f, "."),

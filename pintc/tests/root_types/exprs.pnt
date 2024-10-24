@@ -6,7 +6,7 @@ type myNestedUnaryOp = int[--3];
 type myNestedBinaryOp = int[1 + two];
 type myNestedSelect = int[ 1 > 0 ? 5 : 6 ];
 type myNestedTuple = int[{two, 1}.0];
-type myNestedArray = int[[2, 1][1]];
+type myNestedArray = int[ [2, 1][1]];   // Without the space the `[[` parses as a single token.
 type complexType = { myNestedCast, myNestedSelect }[(2 in [1, two, 3]) as int];
 
 predicate Foo(

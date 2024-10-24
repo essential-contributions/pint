@@ -2,7 +2,7 @@ union Egg = Ovum | Oeuf | Uovo | HuaManu;
 
 // The generators tests are already testing most of the basics.  Here's some wacky stuff.
 predicate test(
-    a: int[[1, 2, 3][1]],
+    a: int[ [1, 2, 3][1]],      // Without the space we parse `[[` as a single token.
     b0: int[{1, 2, 3}.1],
     b1: int[{x: 1, y: 2, z: 3}.y],
     c: int[false ? 1 : 2],
