@@ -9,8 +9,7 @@ predicate Simple(x: int, y: int) {
     state c_addr = 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE;
     state p_addr = 0x0000000000000000000000000000000000000000000000000000000000000000;
 
-    constraint  Baz<<c_addr>>
-              ::Foo<<p_addr>>(x, y);
+    constraint  Baz[[c_addr]]::Foo[[p_addr]](x, y);
 
     constraint x + y == 10;    
 }

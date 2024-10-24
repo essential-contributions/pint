@@ -35,10 +35,7 @@ pub enum Token {
     LtEq,
     #[token(">=")]
     GtEq,
-    #[token("<<")]
-    DoubleAngledLeft,
-    #[token(">>")]
-    DoubleAngledRight,
+
     #[token("==")]
     EqEq,
     #[token("!=")]
@@ -70,6 +67,10 @@ pub enum Token {
     BracketOpen,
     #[token("]")]
     BracketClose,
+    #[token("[[")]
+    DoubleBracketOpen,
+    #[token("]]")]
+    DoubleBracketClose,
     #[token("->")]
     Arrow,
     #[token("=>")]
@@ -256,8 +257,6 @@ impl fmt::Display for Token {
             Token::Lt => write!(f, "<"),
             Token::LtEq => write!(f, "<="),
             Token::GtEq => write!(f, ">="),
-            Token::DoubleAngledLeft => write!(f, "<<"),
-            Token::DoubleAngledRight => write!(f, ">>"),
             Token::EqEq => write!(f, "=="),
             Token::NotEq => write!(f, "!="),
             Token::DoubleAmpersand => write!(f, "&&"),
@@ -273,6 +272,8 @@ impl fmt::Display for Token {
             Token::ParenClose => write!(f, ")"),
             Token::BracketOpen => write!(f, "["),
             Token::BracketClose => write!(f, "]"),
+            Token::DoubleBracketOpen => write!(f, "<<"),
+            Token::DoubleBracketClose => write!(f, ">>"),
             Token::Arrow => write!(f, "->"),
             Token::HeavyArrow => write!(f, "=>"),
             Token::Dot => write!(f, "."),

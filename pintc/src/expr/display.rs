@@ -140,7 +140,7 @@ impl DisplayWithContract for &super::Expr {
             } => {
                 write!(
                     f,
-                    "{interface}<<{}>>::{predicate}<<{}>>(",
+                    "{interface}[[{}]]::{predicate}[[{}]](",
                     contract.with_ctrct(c_addr),
                     contract.with_ctrct(p_addr)
                 )?;

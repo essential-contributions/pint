@@ -554,6 +554,7 @@ dependencies = [
 [[package]]
 name = "essential-asm-gen"
 version = "0.4.0"
+source = "git+https://github.com/essential-contributions/essential-base.git?branch=freesig/predicate-exists#0105313c115739517f9521948ba885e8f15d7b6a"
 dependencies = [
  "essential-asm-spec",
  "essential-types",
@@ -565,6 +566,7 @@ dependencies = [
 [[package]]
 name = "essential-asm-spec"
 version = "0.3.0"
+source = "git+https://github.com/essential-contributions/essential-base.git?branch=freesig/predicate-exists#0105313c115739517f9521948ba885e8f15d7b6a"
 dependencies = [
  "serde",
  "serde_yaml",
@@ -573,6 +575,7 @@ dependencies = [
 [[package]]
 name = "essential-check"
 version = "0.6.0"
+source = "git+https://github.com/essential-contributions/essential-base.git?branch=freesig/predicate-exists#0105313c115739517f9521948ba885e8f15d7b6a"
 dependencies = [
  "essential-constraint-vm",
  "essential-hash",
@@ -588,6 +591,7 @@ dependencies = [
 [[package]]
 name = "essential-constraint-asm"
 version = "0.4.0"
+source = "git+https://github.com/essential-contributions/essential-base.git?branch=freesig/predicate-exists#0105313c115739517f9521948ba885e8f15d7b6a"
 dependencies = [
  "essential-asm-gen",
  "essential-types",
@@ -597,6 +601,7 @@ dependencies = [
 [[package]]
 name = "essential-constraint-vm"
 version = "0.4.0"
+source = "git+https://github.com/essential-contributions/essential-base.git?branch=freesig/predicate-exists#0105313c115739517f9521948ba885e8f15d7b6a"
 dependencies = [
  "ed25519-dalek",
  "essential-constraint-asm",
@@ -611,6 +616,7 @@ dependencies = [
 [[package]]
 name = "essential-hash"
 version = "0.4.0"
+source = "git+https://github.com/essential-contributions/essential-base.git?branch=freesig/predicate-exists#0105313c115739517f9521948ba885e8f15d7b6a"
 dependencies = [
  "essential-types",
  "postcard",
@@ -621,6 +627,7 @@ dependencies = [
 [[package]]
 name = "essential-sign"
 version = "0.4.0"
+source = "git+https://github.com/essential-contributions/essential-base.git?branch=freesig/predicate-exists#0105313c115739517f9521948ba885e8f15d7b6a"
 dependencies = [
  "essential-hash",
  "essential-types",
@@ -630,6 +637,7 @@ dependencies = [
 [[package]]
 name = "essential-state-asm"
 version = "0.4.0"
+source = "git+https://github.com/essential-contributions/essential-base.git?branch=freesig/predicate-exists#0105313c115739517f9521948ba885e8f15d7b6a"
 dependencies = [
  "essential-asm-gen",
  "essential-constraint-asm",
@@ -639,6 +647,7 @@ dependencies = [
 [[package]]
 name = "essential-state-read-vm"
 version = "0.5.0"
+source = "git+https://github.com/essential-contributions/essential-base.git?branch=freesig/predicate-exists#0105313c115739517f9521948ba885e8f15d7b6a"
 dependencies = [
  "essential-constraint-vm",
  "essential-state-asm",
@@ -650,6 +659,7 @@ dependencies = [
 [[package]]
 name = "essential-types"
 version = "0.3.0"
+source = "git+https://github.com/essential-contributions/essential-base.git?branch=freesig/predicate-exists#0105313c115739517f9521948ba885e8f15d7b6a"
 dependencies = [
  "hex",
  "serde",
