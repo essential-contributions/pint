@@ -1,3 +1,4 @@
+// <disabled>
 // ANCHOR: predicate_foo 
 predicate Foo(a: int, b: bool, c: int[4]) {
     pub var x: int;

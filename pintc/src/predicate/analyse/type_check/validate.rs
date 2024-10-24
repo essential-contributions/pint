@@ -192,17 +192,6 @@ impl Contract {
                     bad_storage_accesses.extend(constraint.expr.collect_storage_accesses(self));
                 }
             }
-
-            for interface_instance in &pred.interface_instances {
-                bad_storage_accesses
-                    .extend(interface_instance.address.collect_storage_accesses(self));
-            }
-
-            for predicate_instance in &pred.predicate_instances {
-                if let Some(address) = predicate_instance.address {
-                    bad_storage_accesses.extend(address.collect_storage_accesses(self));
-                }
-            }
         }
 
         for expr in bad_storage_accesses {
@@ -264,33 +253,6 @@ impl Contract {
         &self,
         handler: &Handler,
     ) -> Result<(), ErrorEmitted> {
-        for pred in self.preds.values() {
-            // Confirm types for all the variable initialisers first.
-            for (var_key, init_expr_key) in &pred.var_inits {
-                let var_decl_ty = var_key.get_ty(pred);
-
-                // Reporting an error that we're expecting 'Unknown' is not useful.
-                if !var_decl_ty.is_unknown() {
-                    let init_ty = init_expr_key.get_ty(self);
-
-                    if !var_decl_ty.eq(self, init_ty) {
-                        handler.emit_err(Error::Compile {
-                            error: CompileError::InitTypeError {
-                                init_kind: "variable",
-                                large_err: Box::new(LargeTypeError::InitTypeError {
-                                    init_kind: "variable",
-                                    expected_ty: self.with_ctrct(var_decl_ty).to_string(),
-                                    found_ty: self.with_ctrct(init_ty).to_string(),
-                                    expected_ty_span: var_decl_ty.span().clone(),
-                                    init_span: self.expr_key_to_span(*init_expr_key),
-                                }),
-                            },
-                        });
-                    }
-                }
-            }
-        }
-
         // Now confirm that every const initialiser type matches the const decl type.
         for Const {
             expr: init_expr_key,

@@ -15,10 +15,6 @@ use fxhash::{FxHashMap, FxHashSet};
 
 impl Contract {
     pub(super) fn type_check_all(&mut self, handler: &Handler) -> Result<(), ErrorEmitted> {
-        // Check all address expressions in instances.
-        self.check_iface_inst_addrs(handler);
-        self.check_pred_inst_addrs(handler);
-
         // Check all the const expr decls before predicates.
         let const_expr_keys = self
             .consts
@@ -37,7 +33,6 @@ impl Contract {
                 .iter()
                 .map(|ConstraintDecl { expr: key, .. }| *key)
                 .chain(self.preds[pred_key].states().map(|(_, state)| state.expr))
-                .chain(self.preds[pred_key].var_inits.iter().map(|(_, expr)| *expr))
                 .collect::<Vec<_>>();
 
             for expr_key in all_expr_keys {
@@ -59,43 +54,6 @@ impl Contract {
                 .iter()
                 .for_each(|match_decl| {
                     self.type_check_match_decl(handler, Some(pred_key), match_decl)
-                });
-
-            // Confirm now that all decision variables are typed.
-            let mut var_key_to_new_type = FxHashMap::default();
-            for (var_key, var) in self.preds[pred_key].vars() {
-                let ty = var_key.get_ty(&self.preds[pred_key]);
-                if ty.is_unknown() {
-                    if let Some(init_expr_key) = self.preds[pred_key].var_inits.get(var_key) {
-                        let ty = init_expr_key.get_ty(self);
-                        if !ty.is_unknown() {
-                            var_key_to_new_type.insert(var_key, ty.clone());
-                        } else {
-                            handler.emit_err(Error::Compile {
-                                error: CompileError::UnknownType {
-                                    span: var.span.clone(),
-                                },
-                            });
-                        }
-                    } else {
-                        handler.emit_err(Error::Compile {
-                            error: CompileError::Internal {
-                                msg: "untyped variable has no initialiser",
-                                span: var.span.clone(),
-                            },
-                        });
-                    }
-                }
-            }
-
-            self.preds
-                .get_mut(pred_key)
-                .unwrap()
-                .vars
-                .update_types(|var_key, ty| {
-                    if let Some(new_ty) = var_key_to_new_type.get(&var_key) {
-                        *ty = new_ty.clone()
-                    }
                 });
 
             // Confirm now that all state variables are typed.

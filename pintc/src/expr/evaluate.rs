@@ -557,6 +557,8 @@ impl Evaluator {
             | Expr::ExternalStorageAccess { .. }
             | Expr::MacroCall { .. }
             | Expr::IntrinsicCall { .. }
+            | Expr::PredicateCall { .. }
+            | Expr::LocalPredicateCall { .. }
             | Expr::Range { .. }
             | Expr::Generator { .. }
             | Expr::Match { .. } => Err(handler.emit_err(Error::Compile {
@@ -674,6 +676,46 @@ impl ExprKey {
                     .collect::<Vec<_>>();
 
                 Expr::IntrinsicCall { kind, args, span }
+            }
+            Expr::PredicateCall {
+                interface,
+                c_addr,
+                predicate,
+                p_addr,
+                args,
+                span,
+            } => {
+                let c_addr = c_addr.plug_in(contract, values_map);
+                let p_addr = p_addr.plug_in(contract, values_map);
+                let args = args
+                    .into_iter()
+                    .map(|arg| arg.plug_in(contract, values_map))
+                    .collect::<Vec<_>>();
+
+                Expr::PredicateCall {
+                    interface,
+                    c_addr,
+                    predicate,
+                    p_addr,
+                    args,
+                    span,
+                }
+            }
+            Expr::LocalPredicateCall {
+                predicate,
+                args,
+                span,
+            } => {
+                let args = args
+                    .into_iter()
+                    .map(|arg| arg.plug_in(contract, values_map))
+                    .collect::<Vec<_>>();
+
+                Expr::LocalPredicateCall {
+                    predicate,
+                    args,
+                    span,
+                }
             }
             Expr::Select {
                 condition,

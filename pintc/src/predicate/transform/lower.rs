@@ -17,9 +17,7 @@ use fxhash::FxHashMap;
 
 use std::{collections::VecDeque, rc::Rc};
 
-mod lower_pub_var_accesses;
 mod lower_storage_accesses;
-pub(crate) use lower_pub_var_accesses::lower_pub_var_accesses;
 pub(crate) use lower_storage_accesses::lower_storage_accesses;
 
 pub(crate) fn lower_casts(handler: &Handler, contract: &mut Contract) -> Result<(), ErrorEmitted> {
@@ -1036,6 +1034,8 @@ pub(super) fn coalesce_prime_ops(contract: &mut Contract) {
                 | Expr::BinaryOp { .. }
                 | Expr::MacroCall { .. }
                 | Expr::IntrinsicCall { .. }
+                | Expr::PredicateCall { .. }
+                | Expr::LocalPredicateCall { .. }
                 | Expr::Select { .. }
                 | Expr::Match { .. }
                 | Expr::Cast { .. }

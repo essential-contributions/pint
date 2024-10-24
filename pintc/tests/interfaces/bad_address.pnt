@@ -4,19 +4,18 @@ interface Foo {
         y: int,
     }
 
-    predicate I1 {
-        pub var x: int;
-        pub var y: b256;
-    }
+    predicate I1(
+        x: int,
+        y: b256,
+    );
 }
 
 predicate Simple(addr: b256) {
-    interface FooInstance1 = Foo(0 + true);
-    interface FooInstance2 = Foo({1, 2});
+    constraint Foo[[0 + true]]::I1[[addr]](0, 0x0000000000000000000000000000000000000000000000000000000000000000);
+    constraint Foo[[{1, 2}]]::I1[[addr]](0, 0x0000000000000000000000000000000000000000000000000000000000000000);
 
-    interface FooInstance = Foo(addr);
-    predicate I1Instance1 = FooInstance::I1(0 + true);
-    predicate I1Instance2 = FooInstance::I1(false);
+    constraint Foo[[addr]]::I1[[0 + true]](0, 0x0000000000000000000000000000000000000000000000000000000000000000);
+    constraint Foo[[addr]]::I1[[false]](0, 0x0000000000000000000000000000000000000000000000000000000000000000);
 }
 
 // parsed <<<
@@ -25,40 +24,37 @@ predicate Simple(addr: b256) {
 //         x: int,
 //         y: int,
 //     }
-//     predicate I1 {
-//         pub var x: int;
-//         pub var y: b256;
-//     }
+//     predicate I1 (
+//         x: int,
+//         y: b256,
+//     );
 // }
 // 
 // predicate ::Simple(
 //     ::addr: b256,
-//     __::I1Instance1_pathway: int,
-//     __::I1Instance2_pathway: int,
 // ) {
-//     interface ::FooInstance1 = ::Foo((0 + true))
-//     interface ::FooInstance2 = ::Foo({1, 2})
-//     interface ::FooInstance = ::Foo(::addr)
-//     predicate ::I1Instance1 = ::FooInstance::I1((0 + true))
-//     predicate ::I1Instance2 = ::FooInstance::I1(false)
+//     constraint ::Foo[[(0 + true)]]::I1[[::addr]](0, 0x0000000000000000000000000000000000000000000000000000000000000000);
+//     constraint ::Foo[[{1, 2}]]::I1[[::addr]](0, 0x0000000000000000000000000000000000000000000000000000000000000000);
+//     constraint ::Foo[[::addr]]::I1[[(0 + true)]](0, 0x0000000000000000000000000000000000000000000000000000000000000000);
+//     constraint ::Foo[[::addr]]::I1[[false]](0, 0x0000000000000000000000000000000000000000000000000000000000000000);
 // }
 // >>>
 
 // typecheck_failure <<<
 // operator invalid type error
-// @210..218: invalid non-numeric type `bool` for operator `+`
+// @181..189: invalid non-numeric type `bool` for operator `+`
 // address expression type error
-// @210..218: address expression has unexpected type `int`
-// @210..218: expecting type `b256`
+// @181..189: address expression has unexpected type `int`
+// @181..189: expecting type `b256`
 // address expression type error
-// @254..260: address expression has unexpected type `{int, int}`
-// @254..260: expecting type `b256`
+// @296..302: address expression has unexpected type `{int, int}`
+// @296..302: expecting type `b256`
 // operator invalid type error
-// @347..355: invalid non-numeric type `bool` for operator `+`
+// @422..430: invalid non-numeric type `bool` for operator `+`
 // address expression type error
-// @347..355: address expression has unexpected type `int`
-// @347..355: expecting type `b256`
+// @422..430: address expression has unexpected type `int`
+// @422..430: expecting type `b256`
 // address expression type error
-// @402..407: address expression has unexpected type `bool`
-// @402..407: expecting type `b256`
+// @537..542: address expression has unexpected type `bool`
+// @537..542: expecting type `b256`
 // >>>

@@ -403,9 +403,7 @@ fn sha256() {
             "{}",
             compile(
                 r#"
-            predicate test(hash: b256) {
-                pub var foo: int;
-                pub var bar: { int, b256, int[3] };
+            predicate test(hash: b256, foo: int, bar: { int, b256, int[3] }) {
                 constraint hash == __sha256({ foo, bar });
             }
             "#,
@@ -419,18 +417,14 @@ fn sha256() {
                   Stack(Push(0))
                   Stack(Push(4))
                   Access(DecisionVar)
-                  Access(ThisPathway)
-                  Stack(Push(0))
                   Stack(Push(1))
                   Stack(Push(0))
                   Stack(Push(1))
-                  Access(PubVar)
-                  Access(ThisPathway)
-                  Stack(Push(1))
-                  Stack(Push(1))
+                  Access(DecisionVar)
+                  Stack(Push(2))
                   Stack(Push(0))
                   Stack(Push(8))
-                  Access(PubVar)
+                  Access(DecisionVar)
                   Stack(Push(9))
                   Stack(Push(8))
                   Alu(Mul)

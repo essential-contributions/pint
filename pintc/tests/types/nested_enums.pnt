@@ -13,9 +13,7 @@ union Parent = Mum | Dad(Father);
 const papa: Father = { child: { age: 33, pet: Animal::Cat }, pet: Animal::Dog };
 
 interface InTheFace {
-    predicate Who {
-        pub var left: Father;
-    }
+    predicate Who(left: Father);
 }
 
 predicate Foo(
@@ -49,9 +47,9 @@ predicate Foo(
 // union ::Parent = Mum | Dad(::Father);
 // type ::Father = {child: {age: int, pet: ::Animal}, pet: ::Animal};
 // interface ::InTheFace {
-//     predicate Who {
-//         pub var left: ::Father;
-//     }
+//     predicate Who (
+//         left: ::Father,
+//     );
 // }
 // 
 // predicate ::Foo(
@@ -78,9 +76,9 @@ predicate Foo(
 // union ::Parent = Mum | Dad({child: {age: int, pet: ::Animal}, pet: ::Animal});
 // type ::Father = {child: {age: int, pet: ::Animal}, pet: ::Animal};
 // interface ::InTheFace {
-//     predicate Who {
-//         pub var left: {child: {age: int, pet: ::Animal}, pet: ::Animal};
-//     }
+//     predicate Who (
+//         left: {child: {age: int, pet: ::Animal}, pet: ::Animal},
+//     );
 // }
 // 
 // predicate ::Foo(

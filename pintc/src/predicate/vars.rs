@@ -1,17 +1,15 @@
-use super::{Contract, DisplayWithPred, Ident, Predicate};
+use super::{Contract, Ident, Predicate};
 use crate::{
     error::{ErrorEmitted, Handler},
     span::Span,
     types::Type,
 };
 use pint_abi_types::VarABI;
-use std::fmt::{self, Formatter};
 
 /// A decision variable with an optional type.
 #[derive(Clone, Debug)]
 pub struct Var {
     pub name: String,
-    pub is_pub: bool,
     pub span: Span,
 }
 
@@ -28,6 +26,16 @@ impl Vars {
     /// Returns a read-only iterator to the `vars` map
     pub fn vars(&self) -> impl Iterator<Item = (VarKey, &Var)> {
         self.order.iter().map(|&key| (key, &self.vars[key]))
+    }
+
+    /// Returns the total number of vars
+    pub fn len(&self) -> usize {
+        self.vars.len()
+    }
+
+    /// Checks if the number of vars is 0
+    pub fn is_empty(&self) -> bool {
+        self.vars.len() == 0
     }
 
     /// Returns the order of the provided `VarKey` as tracked in the `order` vector
@@ -119,30 +127,14 @@ impl VarKey {
     }
 }
 
-impl DisplayWithPred for VarKey {
-    fn fmt(&self, f: &mut Formatter, contract: &Contract, pred: &Predicate) -> fmt::Result {
-        let var = &self.get(pred);
-        if var.is_pub {
-            write!(f, "pub ")?;
-        }
-        write!(f, "var {}", var.name)?;
-        let ty = self.get_ty(pred);
-        if !ty.is_unknown() {
-            write!(f, ": {}", contract.with_ctrct(ty))?;
-        }
-        Ok(())
-    }
-}
-
 impl Predicate {
     pub fn insert_var(
         &mut self,
         handler: &Handler,
         mod_prefix: &str,
         local_scope: Option<&str>,
-        is_pub: bool,
         name: &Ident,
-        ty: Option<Type>,
+        ty: Type,
     ) -> std::result::Result<(VarKey, String), ErrorEmitted> {
         let full_name =
             self.symbols
@@ -150,14 +142,9 @@ impl Predicate {
         let var_key = self.vars.insert(
             Var {
                 name: full_name.clone(),
-                is_pub,
                 span: name.span.clone(),
             },
-            if let Some(ty) = ty {
-                ty
-            } else {
-                Type::Unknown(name.span.clone())
-            },
+            ty,
         );
 
         Ok((var_key, full_name))

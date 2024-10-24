@@ -31,7 +31,6 @@ mod array;
 mod keys;
 mod map;
 mod mutations;
-mod pub_vars;
 mod tuple;
 mod unions;
 mod utils;
@@ -136,9 +135,6 @@ fn items_from_predicate(
     if !predicate.vars.is_empty() {
         items.extend(vars::items(&predicate.vars));
     }
-    if !predicate.pub_vars.is_empty() {
-        items.extend(pub_vars::items(&predicate.pub_vars));
-    }
     items
 }
 
@@ -165,7 +161,7 @@ fn mod_from_predicate(
 
 /// Whether or not the given predicate contains any items.
 fn is_predicate_empty(pred: &PredicateABI) -> bool {
-    pred.vars.is_empty() && pred.pub_vars.is_empty()
+    pred.vars.is_empty()
 }
 
 /// Zip the predicates with their addresses.
@@ -379,7 +375,7 @@ fn items_from_abi_and_addrs(abi: &ContractABI, addrs: Option<&Addresses>) -> Vec
         .chain(
             abi.predicates
                 .iter()
-                .flat_map(|predicate| predicate.vars.iter().chain(predicate.pub_vars.iter())),
+                .flat_map(|predicate| predicate.vars.iter()),
         )
         .for_each(|var| unions::collect_unions(&var.ty, &mut unions));
 

@@ -35,6 +35,7 @@ pub enum Token {
     LtEq,
     #[token(">=")]
     GtEq,
+
     #[token("==")]
     EqEq,
     #[token("!=")]
@@ -66,6 +67,8 @@ pub enum Token {
     BracketOpen,
     #[token("]")]
     BracketClose,
+    #[token("[[")]
+    DoubleBracketOpen,
     #[token("->")]
     Arrow,
     #[token("=>")]
@@ -133,8 +136,6 @@ pub enum Token {
     #[token("constraint")]
     Constraint,
 
-    #[token("pub")]
-    Pub,
     #[token("mut")]
     Mut,
     #[token("use")]
@@ -221,7 +222,6 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Match,
     Token::Nil,
     Token::Predicate,
-    Token::Pub,
     Token::Mut,
     Token::Real,
     Token::SelfTok,
@@ -267,6 +267,7 @@ impl fmt::Display for Token {
             Token::ParenClose => write!(f, ")"),
             Token::BracketOpen => write!(f, "["),
             Token::BracketClose => write!(f, "]"),
+            Token::DoubleBracketOpen => write!(f, "[["),
             Token::Arrow => write!(f, "->"),
             Token::HeavyArrow => write!(f, "=>"),
             Token::Dot => write!(f, "."),
@@ -325,7 +326,6 @@ impl fmt::Display for Token {
             Token::Type => write!(f, "type"),
             Token::Union => write!(f, "union"),
             Token::Constraint => write!(f, "constraint"),
-            Token::Pub => write!(f, "pub"),
             Token::Mut => write!(f, "mut"),
             Token::Use => write!(f, "use"),
             Token::SelfTok => write!(f, "self"),

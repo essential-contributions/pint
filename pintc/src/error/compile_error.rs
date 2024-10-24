@@ -135,10 +135,6 @@ pub enum CompileError {
     },
     #[error("self referential predicate `{pred_name}`")]
     SelfReferencialPredicate { pred_name: String, span: Span },
-    #[error("cannot find interface instance `{name}`")]
-    MissingInterfaceInstance { name: String, span: Span },
-    #[error("cannot find predicate instance `{name}`")]
-    MissingPredicateInstance { name: String, span: Span },
     #[error("address expression type error")]
     AddressExpressionTypeError { large_err: Box<LargeTypeError> },
     #[error("attempt to use a non-constant value as an array length")]
@@ -282,11 +278,35 @@ pub enum CompileError {
         found: usize,
         span: Span,
     },
+    #[error("this predicate takes {} but {}",
+        if *expected == 1 {
+            format!("{expected} argument")
+        } else {
+            format!("{expected} arguments")
+        },
+        if *found == 1 {
+            format!("{found} argument was supplied")
+        } else {
+            format!("{found} arguments were supplied")
+        }
+    )]
+    UnexpectedPredicateArgCount {
+        expected: usize,
+        found: usize,
+        span: Span,
+    },
     #[error("incorrect intrinsic argument")]
     MismatchedIntrinsicArgType {
         expected: String,
         found: String,
         intrinsic_span: Span,
+        arg_span: Span,
+    },
+    #[error("incorrect predicate argument")]
+    MismatchedPredicateArgType {
+        expected: String,
+        found: String,
+        span: Span,
         arg_span: Span,
     },
     #[error("intrinsic argument must be a state variable")]
@@ -678,7 +698,7 @@ impl ReportableError for CompileError {
             } => {
                 vec![ErrorLabel {
                     message: format!(
-                        "this predicate instance references predicate `{pred_name}` \
+                        "this predicate call references predicate `{pred_name}` \
                          which does not exist in {}",
                         if let Some(interface_name) = interface_name {
                             format!("interface `{interface_name}`")
@@ -693,24 +713,8 @@ impl ReportableError for CompileError {
 
             SelfReferencialPredicate { span, .. } => {
                 vec![ErrorLabel {
-                    message: "this predicate instance references the predicate it's declared in"
+                    message: "this predicate call references the predicate it's declared in"
                         .to_string(),
-                    span: span.clone(),
-                    color: Color::Red,
-                }]
-            }
-
-            MissingInterfaceInstance { name, span } => {
-                vec![ErrorLabel {
-                    message: format!("cannot find interface instance `{name}`"),
-                    span: span.clone(),
-                    color: Color::Red,
-                }]
-            }
-
-            MissingPredicateInstance { name, span } => {
-                vec![ErrorLabel {
-                    message: format!("cannot find predicate instance `{name}`"),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -1054,6 +1058,12 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
+            UnexpectedPredicateArgCount { span, .. } => vec![ErrorLabel {
+                message: "unexpected number of arguments here".to_string(),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
             MismatchedIntrinsicArgType {
                 expected,
                 found,
@@ -1068,6 +1078,24 @@ impl ReportableError for CompileError {
                 ErrorLabel {
                     message: "arguments to this intrinsic are incorrect`".to_string(),
                     span: intrinsic_span.clone(),
+                    color: Color::Red,
+                },
+            ],
+
+            MismatchedPredicateArgType {
+                expected,
+                found,
+                span,
+                arg_span,
+            } => vec![
+                ErrorLabel {
+                    message: format!("expected `{expected}`, found `{found}`"),
+                    span: arg_span.clone(),
+                    color: Color::Blue,
+                },
+                ErrorLabel {
+                    message: "arguments to this predicate call are incorrect`".to_string(),
+                    span: span.clone(),
                     color: Color::Red,
                 },
             ],
@@ -1365,8 +1393,6 @@ impl ReportableError for CompileError {
             | MissingInterface { .. }
             | MissingPredicate { .. }
             | SelfReferencialPredicate { .. }
-            | MissingInterfaceInstance { .. }
-            | MissingPredicateInstance { .. }
             | AddressExpressionTypeError { .. }
             | NonConstArrayLength { .. }
             | InvalidConstArrayLength { .. }
@@ -1402,9 +1428,11 @@ impl ReportableError for CompileError {
             | NonBoolGeneratorCondition { .. }
             | NonBoolGeneratorBody { .. }
             | UnexpectedIntrinsicArgCount { .. }
+            | UnexpectedPredicateArgCount { .. }
             | IntrinsicArgMustBeStateVar { .. }
             | IntrinsicArgMustBeStorageAccess { .. }
             | MismatchedIntrinsicArgType { .. }
+            | MismatchedPredicateArgType { .. }
             | CompareToNilError { .. }
             | RecursiveNewType { .. }
             | InRangeInvalid { .. }
@@ -1601,8 +1629,6 @@ impl Spanned for CompileError {
             | MissingInterface { span, .. }
             | MissingPredicate { span, .. }
             | SelfReferencialPredicate { span, .. }
-            | MissingInterfaceInstance { span, .. }
-            | MissingPredicateInstance { span, .. }
             | NonConstArrayIndex { span }
             | InvalidConstArrayLength { span }
             | NonConstArrayLength { span }
@@ -1634,7 +1660,9 @@ impl Spanned for CompileError {
             | InExprTypesMismatch { span, .. }
             | InExprTypesArrayMismatch { span, .. }
             | UnexpectedIntrinsicArgCount { span, .. }
+            | UnexpectedPredicateArgCount { span, .. }
             | MismatchedIntrinsicArgType { arg_span: span, .. }
+            | MismatchedPredicateArgType { arg_span: span, .. }
             | IntrinsicArgMustBeStateVar { span, .. }
             | IntrinsicArgMustBeStorageAccess { span, .. }
             | CompareToNilError { span, .. }
