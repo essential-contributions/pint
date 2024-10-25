@@ -385,7 +385,7 @@ impl ExprKey {
 /// times.
 ///
 /// An alternative is to use `[Predicate::visitor]` which will also iterate
-/// for each reachable expression but does not implement `Interator` and instead takes a closure.
+/// for each reachable expression but does not implement `Iterator` and instead takes a closure.
 
 #[derive(Debug)]
 pub(crate) struct ExprsIter<'a> {

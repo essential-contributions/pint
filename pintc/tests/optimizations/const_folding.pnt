@@ -289,9 +289,8 @@ predicate Test(
 //     constraint (((::y == 1) || (::y == 4)) || (::y == 7));
 //     constraint (!(::y == 0) || (::x == 1));
 //     constraint ((::y == 0) || (::x == 0));
-//     constraint (true || (::x == 1));
 //     constraint (::x == 0);
-//     constraint (false || (::x == 1));
+//     constraint (::x == 1);
 //     constraint (!(::y == 0) || (::x == 1));
 //     constraint ((::y == 0) || (::x == 0));
 //     constraint __eq_set(__mut_keys(), {0});
