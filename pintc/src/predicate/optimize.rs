@@ -8,7 +8,7 @@ use crate::error::Handler;
 
 impl super::Contract {
     pub fn optimize(mut self, handler: &Handler) -> Self {
-        const_folding(&mut self);
+        const_folding(handler, &mut self);
 
         dead_code_elimination(handler, &mut self);
 
