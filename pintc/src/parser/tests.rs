@@ -988,7 +988,7 @@ fn external_storage_access() {
 }
 
 #[test]
-fn var_decls() {
+fn params() {
     let mod_path = vec!["foo".to_string()];
     let pint = (yp::PintParser::new(), "");
 

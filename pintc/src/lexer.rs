@@ -119,8 +119,6 @@ pub enum Token {
     #[token("match")]
     Match,
 
-    #[token("var")]
-    Var,
     #[token("state")]
     State,
     #[token("const")]
@@ -232,7 +230,6 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Type,
     Token::Union,
     Token::Use,
-    Token::Var,
     Token::Where,
 ];
 
@@ -318,7 +315,6 @@ impl fmt::Display for Token {
             Token::Else => write!(f, "else"),
             Token::Cond => write!(f, "cond"),
             Token::Match => write!(f, "match"),
-            Token::Var => write!(f, "var"),
             Token::State => write!(f, "state"),
             Token::Const => write!(f, "const"),
             Token::Storage => write!(f, "storage"),

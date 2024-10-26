@@ -476,9 +476,9 @@ impl<'a> AsmBuilder<'a> {
         }
     }
 
-    /// Compile a path expression. Assumes that each path expressions corresponds to a decision
-    /// variable or a state variable. All other paths should have been lowered to something else by
-    /// now.
+    /// Compile a path expression. Assumes that each path expressions corresponds to a predicate
+    /// parameter or a state variable. All other paths should have been lowered to something else
+    /// by now.
     fn compile_path(
         &mut self,
         handler: &Handler,
@@ -486,13 +486,16 @@ impl<'a> AsmBuilder<'a> {
         path: &String,
         pred: &Predicate,
     ) -> Result<Location, ErrorEmitted> {
-        if let Some((var_index, _)) = pred
-            .vars()
+        if let Some((param_index, _)) = pred
+            .params
+            .iter()
             .enumerate()
-            .find(|(_, (_, var))| &var.name == path)
+            .find(|(_, param)| &param.name.name == path)
         {
-            asm.push(Stack::Push(var_index as i64).into()); // slot
+            asm.push(Stack::Push(param_index as i64).into()); // slot
             asm.push(Stack::Push(0).into()); // placeholder for index computation
+
+            // predicate parameters are implemented using `DecisionVar`
             Ok(Location::DecisionVar)
         } else if pred.states().any(|(_, state)| &state.name == path) {
             asm.push(Stack::Push(self.state_var_to_slot_indices[path] as i64).into()); // slot

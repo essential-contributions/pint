@@ -29,8 +29,8 @@ predicate Foo() {
 // >>>
 
 // typecheck_failure <<<
-// variables cannot have storage types
-// @106..132: found variable of storage type ( int => bool ) here
-// variables cannot have storage types
-// @138..174: found variable of storage type ( bool => b256 ) here
+// predicate parameters cannot have storage types
+// @106..132: found parameter of storage type ( int => bool ) here
+// predicate parameters cannot have storage types
+// @138..174: found parameter of storage type ( bool => b256 ) here
 // >>>

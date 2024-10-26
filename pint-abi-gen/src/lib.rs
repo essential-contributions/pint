@@ -17,7 +17,7 @@
 
 use addr::Addresses;
 use essential_types::{contract::Contract, PredicateAddress};
-use pint_abi_types::{ContractABI, PredicateABI, TupleField, TypeABI, UnionVariant, VarABI};
+use pint_abi_types::{ContractABI, ParamABI, PredicateABI, TupleField, TypeABI, UnionVariant};
 use pint_abi_visit::Nesting;
 use proc_macro::TokenStream;
 use proc_macro2::Span;
@@ -132,8 +132,8 @@ fn items_from_predicate(
     if let Some(addr) = addr {
         items.push(addr::predicate_const(&addr.contract, &addr.predicate).into());
     }
-    if !predicate.vars.is_empty() {
-        items.extend(vars::items(&predicate.vars));
+    if !predicate.params.is_empty() {
+        items.extend(vars::items(&predicate.params));
     }
     items
 }
@@ -161,7 +161,7 @@ fn mod_from_predicate(
 
 /// Whether or not the given predicate contains any items.
 fn is_predicate_empty(pred: &PredicateABI) -> bool {
-    pred.vars.is_empty()
+    pred.params.is_empty()
 }
 
 /// Zip the predicates with their addresses.
@@ -311,7 +311,7 @@ fn nesting_key_doc_str(nesting: &[Nesting]) -> String {
 /// The `mutations` and `keys` items for the given keyed vars.
 ///
 /// This is used for both `storage` and `pub_vars` mod generation.
-fn items_from_keyed_vars(vars: &[VarABI]) -> Vec<syn::Item> {
+fn items_from_keyed_vars(vars: &[ParamABI]) -> Vec<syn::Item> {
     let mut items = vec![];
 
     // The `mutations` module and re-exports.
@@ -334,7 +334,7 @@ fn items_from_keyed_vars(vars: &[VarABI]) -> Vec<syn::Item> {
 /// Create a module with `mutations` and `keys` fns for the given keyed vars.
 ///
 /// This is used for `storage` mod generation.
-fn mod_from_keyed_vars(mod_name: &str, vars: &[VarABI]) -> syn::ItemMod {
+fn mod_from_keyed_vars(mod_name: &str, vars: &[ParamABI]) -> syn::ItemMod {
     let items = items_from_keyed_vars(vars);
     let mod_ident = syn::Ident::new(mod_name, Span::call_site());
     syn::parse_quote! {
@@ -375,7 +375,7 @@ fn items_from_abi_and_addrs(abi: &ContractABI, addrs: Option<&Addresses>) -> Vec
         .chain(
             abi.predicates
                 .iter()
-                .flat_map(|predicate| predicate.vars.iter()),
+                .flat_map(|predicate| predicate.params.iter()),
         )
         .for_each(|var| unions::collect_unions(&var.ty, &mut unions));
 

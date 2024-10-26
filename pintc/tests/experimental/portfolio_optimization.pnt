@@ -1,11 +1,11 @@
 predicate test(r: real[4], coeff: real[4][4], x: real[4], f: real) {
     // Consider a portfolio optimization example. The two competing goals of investment are (1)
     // long-term growth of capital and (2) low risk. A good portfolio grows steadily without wild
-    // fluctuations in value. The Markowitz model is an optimization model for balancing the return and
-    // risk of a portfolio. The decision variables are the amounts invested in each asset. The objective
-    // is to minimize the variance of the portfolio's total return, subject to the constraints that (1)
-    // the expected growth of the portfolio reaches at least some target level and (2) you do not invest
-    // more capital than you have.
+    // fluctuations in value. The Markowitz model is an optimization model for balancing the return
+    // and risk of a portfolio. The predicate parameters are the amounts invested in each asset. The
+    // objective is to minimize the variance of the portfolio's total return, subject to the
+    // constraints that (1) the expected growth of the portfolio reaches at least some target level
+    // and (2) you do not invest more capital than you have.
 
     // Total capitable available
     state B: real = 10000.0;

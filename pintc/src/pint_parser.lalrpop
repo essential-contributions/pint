@@ -9,8 +9,8 @@ use crate::{
     },
     predicate::{
         BlockStatement, CallKey, Const, ConstraintDecl, ExprKey, IfDecl, InterfaceDecl,
-        InterfaceVar, MatchDecl, MatchDeclBranch, Predicate, PredicateInterface,
-        StorageVar,
+        MatchDecl, MatchDeclBranch, Predicate, PredicateInterface,
+        StorageVar, Param,
     },
     span::Spanned,
     types::{NewTypeDecl, PrimitiveKind, Type, UnionDecl, UnionVariant},
@@ -68,16 +68,31 @@ DeclInnerMacroBody: () = {
 }
 
 PredicateDecl: () = {
-    PredicateOpen "(" SepList<PredicateArg, ","> ")" "{" PredicateInnerDecl* PredicateClose,
+    PredicateOpen "(" SepList<PredicateParam, ","> ")" "{" PredicateInnerDecl* PredicateClose,
 }
 
-PredicateArg: () = {
-    <l:@L> <name:VarName> ":" <ty:Type> <r:@R> => {
+PredicateParam: () = {
+    <l:@L> <name:ParamName> ":" <ty:Type> <r:@R> => {
         let mod_prefix = context.mod_prefix;
-        let _ = context 
+        let mut full_name_ident = name.0.clone();
+        if let Ok(full_name) = context
             .current_pred()
-            .expect("can only parse vars within predicates")
-            .insert_var(handler, mod_prefix, name.1, &name.0, ty);
+            .expect("adding an argument to the predicate")
+            .symbols
+            .add_symbol(handler, mod_prefix, None, &name.0, name.0.span.clone())
+        {
+            let span = (context.span_from)(l, r);
+            full_name_ident.name = full_name;
+            context
+                .current_pred()
+                .expect("adding an argument to the predicate")
+                .params
+                .push(Param {
+                    name: full_name_ident,
+                    ty,
+                    span,
+                });
+        }
     }
 }
 
@@ -137,9 +152,9 @@ StorageDecl: () = {
     },
 }
 
-InterfaceVar: InterfaceVar = {
-    <l:@L> <name:VarName> ":" <ty:Type> <r:@R> => {
-        InterfaceVar {
+InterfacePredicateParam: Param = {
+    <l:@L> <name:ParamName> ":" <ty:Type> <r:@R> => {
+        Param {
             name: name.0,
             ty,
             span: (context.span_from)(l, r),
@@ -148,10 +163,10 @@ InterfaceVar: InterfaceVar = {
 }
 
 PredicateInterface: PredicateInterface = {
-    <l:@L> "predicate" <name:Ident> "(" <vars:SepList<InterfaceVar, ",">> ")" ";" <r:@R> => {
+    <l:@L> "predicate" <name:Ident> "(" <params:SepList<InterfacePredicateParam, ",">> ")" ";" <r:@R> => {
         PredicateInterface {
             name,
-            vars,
+            params,
             span: (context.span_from)(l, r),
         }
     },
@@ -191,8 +206,8 @@ UseTree: UseTree = {
     <name:UsePathIdent> "as" <alias:Ident> => UseTree::Alias { name, alias },
 }
 
-VarName: (Ident, Option<&'a str>) = {
-    <l:@L> <id:"ident"> <r:@R> => context.parse_var_name(id, (l, r)),
+ParamName: (Ident, Option<&'a str>) = {
+    <l:@L> <id:"ident"> <r:@R> => context.parse_param_name(id, (l, r)),
 }
 
 StateDecl: () = {
@@ -1154,7 +1169,7 @@ StoragePath: Expr = {
         }
     },
 
-    <l:@L> <interface: Path> "[[" <address: Expr> "]" "]" 
+    <l:@L> <interface: Path> "[[" <address: Expr> "]" "]"
         "::" "storage" "::" <name:Ident> <r:@R> => {
         Expr::ExternalStorageAccess {
             interface,

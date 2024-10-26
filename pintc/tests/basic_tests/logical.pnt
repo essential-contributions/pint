@@ -5,9 +5,8 @@ predicate test(
     t: bool,
     f: bool,
 ) {
-    // All the decision constraintiables in this test are known. The only purpose of this test make sure that
-    // all the listed constraints are satisfied and not conflicting. This helps ensure correctness of
-    // logical operators in constraintious forms.
+    // The only purpose of this test make sure that all the listed constraints are satisfied and not
+    // conflicting. This helps ensure correctness of logical operators in constraintious forms.
 
     constraint x == 10;
     constraint y == 20;

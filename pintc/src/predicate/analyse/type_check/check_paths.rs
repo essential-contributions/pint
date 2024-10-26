@@ -1,33 +1,12 @@
 use super::Inference;
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
-    predicate::{Const, Contract, Ident, Predicate, VarKey},
+    predicate::{Const, Contract, Ident, Predicate},
     span::Span,
     types::{EphemeralDecl, NewTypeDecl, Type, UnionDecl},
 };
 
 impl Contract {
-    fn infer_path_by_key(
-        &self,
-        handler: &Handler,
-        pred: &Predicate,
-        var_key: VarKey,
-        span: &Span,
-    ) -> Inference {
-        let ty = var_key.get_ty(pred);
-        if !ty.is_unknown() {
-            Inference::Type(ty.clone())
-        } else {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "untyped variable doesn't have initialiser",
-                    span: span.clone(),
-                },
-            });
-            Inference::Type(Type::Error(span.clone()))
-        }
-    }
-
     pub(super) fn infer_path_by_name(
         &self,
         handler: &Handler,
@@ -74,12 +53,12 @@ impl Contract {
 
                 // For all other paths we need a predicate.
                 if let Some(pred) = pred {
-                    if let Some(var_key) = pred
-                        .vars()
-                        .find_map(|(var_key, var)| (&var.name == path).then_some(var_key))
+                    if let Some(param_ty) = pred
+                        .params
+                        .iter()
+                        .find_map(|param| (&param.name.name == path).then_some(param.ty.clone()))
                     {
-                        // It's a var.
-                        self.infer_path_by_key(handler, pred, var_key, span)
+                        Inference::Type(param_ty.clone())
                     } else if let Some((state_key, state)) =
                         pred.states().find(|(_, state)| (&state.name == path))
                     {
