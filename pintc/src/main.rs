@@ -59,7 +59,9 @@ fn main() -> anyhow::Result<()> {
         }
     };
 
-    match handler.scope(|handler| compile_contract(handler, &contract)) {
+    match handler
+        .scope(|handler| compile_contract(handler, args.salt.unwrap_or_default(), &contract))
+    {
         Ok(compiled_contract) => {
             if args.print_asm {
                 println!("{compiled_contract}");

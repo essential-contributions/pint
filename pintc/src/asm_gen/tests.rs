@@ -33,7 +33,7 @@ pub(super) fn compile(code: &str) -> CompiledContract {
             },
         )
         .unwrap();
-    compile_contract(&handler, &contract).unwrap()
+    compile_contract(&handler, Default::default(), &contract).unwrap()
 }
 
 #[test]
