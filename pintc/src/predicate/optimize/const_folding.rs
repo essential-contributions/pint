@@ -2,7 +2,7 @@ use fxhash::FxHashMap;
 
 use crate::{
     error::{CompileError, Error, Handler},
-    expr::{evaluate::Evaluator, BinaryOp, Expr, Immediate},
+    expr::{evaluate::Evaluator, BinaryOp, Expr, Immediate, UnaryOp},
     predicate::{Contract, ExprKey},
     span::{empty_span, Spanned},
     types::Type,
@@ -90,18 +90,21 @@ pub(crate) fn fold_consts(contract: &mut Contract) -> bool {
 /// false && <expr> is <false>
 /// x + 0 is x
 /// x - 0 is x
+/// 0 - x is -x
 /// x * 0 is 0
 /// x * 1 is x
 /// 0 / x is 0
 /// x / 1 is x
 /// x % 1 is x
+/// 1 % x is x
 pub(crate) fn fold_identities(contract: &mut Contract) -> bool {
     let mut expr_keys_to_replace: Vec<(ExprKey, ExprKey)> = vec![];
+    let mut new_exprs_to_replace: Vec<(ExprKey, Expr, Type)> = vec![];
     let mut did_fold_const: bool = false;
 
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         for expr_key in contract.exprs(pred_key) {
-            if let Expr::BinaryOp { op, lhs, rhs, .. } = expr_key.get(contract) {
+            if let Expr::BinaryOp { op, lhs, rhs, span } = expr_key.get(contract) {
                 let lhs_imm = if let Expr::Immediate { value, .. } = lhs.get(contract) {
                     Some(value)
                 } else {
@@ -114,6 +117,7 @@ pub(crate) fn fold_identities(contract: &mut Contract) -> bool {
                     None
                 };
 
+                // First, look for any folding opportunities with just expr_key swaps
                 let replacement_expr_key = match (op, lhs_imm, rhs_imm) {
                     (BinaryOp::LogicalAnd, Some(Immediate::Bool(true)), _) => Some(*rhs),
 
@@ -161,7 +165,7 @@ pub(crate) fn fold_identities(contract: &mut Contract) -> bool {
 
                     (BinaryOp::Mod, _, Some(Immediate::Int(1))) => Some(*lhs),
 
-                    (BinaryOp::Mod, _, Some(Immediate::Real(1.0))) => Some(*lhs),
+                    (BinaryOp::Mod, Some(Immediate::Int(1)), _) => Some(*lhs),
 
                     _ => None,
                 };
@@ -169,7 +173,40 @@ pub(crate) fn fold_identities(contract: &mut Contract) -> bool {
                 if let Some(replacement_expr_key) = replacement_expr_key {
                     expr_keys_to_replace.push((expr_key, replacement_expr_key));
                 }
+
+                // Next, look for folding opportunities where new or modified exprs need to be inserted
+                let replacement_expr = match (op, lhs_imm, rhs_imm) {
+                    (BinaryOp::Sub, Some(Immediate::Int(0)), _) => {
+                        let new_expr = Expr::UnaryOp {
+                            op: UnaryOp::Neg,
+                            expr: *rhs,
+                            span: span.clone(),
+                        };
+                        Some((new_expr, lhs.get_ty(contract).clone()))
+                    }
+
+                    (BinaryOp::Sub, Some(Immediate::Real(0.0)), _) => {
+                        let new_expr = Expr::UnaryOp {
+                            op: UnaryOp::Neg,
+                            expr: *rhs,
+                            span: span.clone(),
+                        };
+                        Some((new_expr, lhs.get_ty(contract).clone()))
+                    }
+
+                    _ => None,
+                };
+
+                if let Some(replacement_expr) = replacement_expr {
+                    new_exprs_to_replace.push((expr_key, replacement_expr.0, replacement_expr.1))
+                }
             }
+        }
+
+        // Insert new/modified exprs now that the contract is mutable outside of the loop and before performing the expr_key replacement
+        for (old_expr_key, new_expr, new_expr_ty) in &new_exprs_to_replace {
+            let new_expr_key = contract.exprs.insert(new_expr.clone(), new_expr_ty.clone());
+            expr_keys_to_replace.push((*old_expr_key, new_expr_key));
         }
 
         for (old_expr_key, new_expr_key) in &expr_keys_to_replace {
