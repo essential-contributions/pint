@@ -124,132 +124,60 @@ pub(crate) fn fold_identities(contract: &mut Contract) -> bool {
                     None
                 };
 
-                match op {
-                    BinaryOp::LogicalAnd => match (lhs_imm, rhs_imm) {
-                        (Some(Immediate::Bool(true)), _) => {
-                            expr_keys_to_replace.push((expr_key, *rhs));
-                        }
+                let replacement_expr_key = match (op, lhs_imm, rhs_imm) {
+                    (BinaryOp::LogicalAnd, Some(Immediate::Bool(true)), _) => Some(*rhs),
 
-                        (_, Some(Immediate::Bool(true))) => {
-                            expr_keys_to_replace.push((expr_key, *lhs));
-                        }
+                    (BinaryOp::LogicalAnd, _, Some(Immediate::Bool(true))) => Some(*lhs),
 
-                        (Some(Immediate::Bool(false)), _) => {
-                            expr_keys_to_replace.push((expr_key, *lhs));
-                        }
+                    (BinaryOp::LogicalAnd, Some(Immediate::Bool(false)), _) => Some(*lhs),
 
-                        (_, Some(Immediate::Bool(false))) => {
-                            expr_keys_to_replace.push((expr_key, *rhs));
-                        }
+                    (BinaryOp::LogicalAnd, _, Some(Immediate::Bool(false))) => Some(*rhs),
 
-                        _ => {}
-                    },
+                    (BinaryOp::LogicalOr, Some(Immediate::Bool(true)), _) => Some(*lhs),
 
-                    BinaryOp::LogicalOr => match (lhs_imm, rhs_imm) {
-                        (Some(Immediate::Bool(true)), _) => {
-                            expr_keys_to_replace.push((expr_key, *lhs));
-                        }
+                    (BinaryOp::LogicalOr, _, Some(Immediate::Bool(true))) => Some(*rhs),
 
-                        (_, Some(Immediate::Bool(true))) => {
-                            expr_keys_to_replace.push((expr_key, *rhs));
-                        }
+                    (BinaryOp::LogicalOr, Some(Immediate::Bool(false)), _) => Some(*rhs),
 
-                        (Some(Immediate::Bool(false)), _) => {
-                            expr_keys_to_replace.push((expr_key, *rhs));
-                        }
+                    (BinaryOp::LogicalOr, _, Some(Immediate::Bool(false))) => Some(*lhs),
 
-                        (_, Some(Immediate::Bool(false))) => {
-                            expr_keys_to_replace.push((expr_key, *lhs));
-                        }
+                    (BinaryOp::Add, Some(Immediate::Int(0)), _) => Some(*rhs),
 
-                        _ => {}
-                    },
+                    (BinaryOp::Add, _, Some(Immediate::Int(0))) => Some(*lhs),
 
-                    BinaryOp::Add => match (lhs_imm, rhs_imm) {
-                        (Some(Immediate::Int(0)), _) => {
-                            expr_keys_to_replace.push((expr_key, *rhs));
-                        }
+                    (BinaryOp::Add, Some(Immediate::Real(0.0)), _) => Some(*rhs),
 
-                        (_, Some(Immediate::Int(0))) => {
-                            expr_keys_to_replace.push((expr_key, *lhs));
-                        }
+                    (BinaryOp::Add, _, Some(Immediate::Real(0.0))) => Some(*lhs),
 
-                        (Some(Immediate::Real(0.0)), _) => {
-                            expr_keys_to_replace.push((expr_key, *rhs));
-                        }
+                    (BinaryOp::Sub, _, Some(Immediate::Int(0))) => Some(*lhs),
 
-                        (_, Some(Immediate::Real(0.0))) => {
-                            expr_keys_to_replace.push((expr_key, *lhs));
-                        }
+                    (BinaryOp::Sub, _, Some(Immediate::Real(0.0))) => Some(*lhs),
 
-                        _ => {}
-                    },
+                    (BinaryOp::Mul, Some(Immediate::Int(0)), _) => Some(*lhs),
 
-                    BinaryOp::Sub => match (lhs_imm, rhs_imm) {
-                        (_, Some(Immediate::Int(0))) => {
-                            expr_keys_to_replace.push((expr_key, *lhs));
-                        }
+                    (BinaryOp::Mul, _, Some(Immediate::Int(0))) => Some(*rhs),
 
-                        (_, Some(Immediate::Real(0.0))) => {
-                            expr_keys_to_replace.push((expr_key, *lhs));
-                        }
+                    (BinaryOp::Mul, Some(Immediate::Real(0.0)), _) => Some(*lhs),
 
-                        _ => {}
-                    },
+                    (BinaryOp::Mul, _, Some(Immediate::Real(0.0))) => Some(*rhs),
 
-                    BinaryOp::Mul => match (lhs_imm, rhs_imm) {
-                        (Some(Immediate::Int(0)), _) => {
-                            expr_keys_to_replace.push((expr_key, *lhs));
-                        }
+                    (BinaryOp::Div, Some(Immediate::Int(0)), _) => Some(*lhs),
 
-                        (_, Some(Immediate::Int(0))) => {
-                            expr_keys_to_replace.push((expr_key, *rhs));
-                        }
+                    (BinaryOp::Div, _, Some(Immediate::Int(1))) => Some(*lhs),
 
-                        (Some(Immediate::Real(0.0)), _) => {
-                            expr_keys_to_replace.push((expr_key, *lhs));
-                        }
+                    (BinaryOp::Div, Some(Immediate::Real(0.0)), _) => Some(*lhs),
 
-                        (_, Some(Immediate::Real(0.0))) => {
-                            expr_keys_to_replace.push((expr_key, *rhs));
-                        }
+                    (BinaryOp::Div, _, Some(Immediate::Real(1.0))) => Some(*lhs),
 
-                        _ => {}
-                    },
+                    (BinaryOp::Mod, _, Some(Immediate::Int(1))) => Some(*lhs),
 
-                    BinaryOp::Div => match (lhs_imm, rhs_imm) {
-                        (Some(Immediate::Int(0)), _) => {
-                            expr_keys_to_replace.push((expr_key, *lhs));
-                        }
+                    (BinaryOp::Mod, _, Some(Immediate::Real(1.0))) => Some(*lhs),
 
-                        (_, Some(Immediate::Int(1))) => {
-                            expr_keys_to_replace.push((expr_key, *lhs));
-                        }
+                    _ => None,
+                };
 
-                        (Some(Immediate::Real(0.0)), _) => {
-                            expr_keys_to_replace.push((expr_key, *lhs));
-                        }
-
-                        (_, Some(Immediate::Real(1.0))) => {
-                            expr_keys_to_replace.push((expr_key, *lhs));
-                        }
-
-                        _ => {}
-                    },
-
-                    BinaryOp::Mod => match (lhs_imm, rhs_imm) {
-                        (_, Some(Immediate::Int(1))) => {
-                            expr_keys_to_replace.push((expr_key, *lhs));
-                        }
-
-                        (_, Some(Immediate::Real(1.0))) => {
-                            expr_keys_to_replace.push((expr_key, *lhs));
-                        }
-
-                        _ => {}
-                    },
-
-                    _ => {}
+                if let Some(replacement_expr_key) = replacement_expr_key {
+                    expr_keys_to_replace.push((expr_key, replacement_expr_key));
                 }
             }
         }
