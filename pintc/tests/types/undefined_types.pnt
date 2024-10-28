@@ -130,13 +130,13 @@ predicate test(a2: Undefined, b2: Undefined, a: int, b: Foo, d: Baz) {
 // @35..44: found type ::Undefined in storage
 // invalid cast
 // @595..610: illegal cast to `::Undefined`
-// casts may only be made to `int`
+// casts may only be made to `int` or `real`
 // invalid cast
 // @627..642: illegal cast to `::Undefined`
-// casts may only be made to `int`
+// casts may only be made to `int` or `real`
 // invalid cast
 // @659..667: illegal cast to `::Bar`
-// casts may only be made to `int`
+// casts may only be made to `int` or `real`
 // const initialization type error
 // @96..97: const initializer has unexpected type `int`
 // @84..93: expecting type `::Undefined`

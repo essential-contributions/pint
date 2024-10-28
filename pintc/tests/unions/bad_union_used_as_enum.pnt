@@ -17,7 +17,7 @@ predicate Foo(a: int[U]) {
 // typecheck_failure <<<
 // invalid cast
 // @65..76: illegal cast from `::U`
-// casts may only be made from `bool`s,`int`s, and enumeration unions to `int`
+// casts may only be made from `bool`s,`int`s, and enumeration unions to `int`, or from `int`s, `real`s, and enumeration unions to `real`
 // invalid array range type ::U
 // @44..45: array access must be of type `int` or enumeration `union`
 // found range type `::U`
