@@ -117,7 +117,7 @@ pub enum CompileError {
     StorageSymbolNotFound { name: String, span: Span },
     #[error("cannot find storage variable `{name}`")]
     MissingStorageBlock { name: String, span: Span },
-    #[error("`next state` access must be bound to a state variable")]
+    #[error("`next state` access must be bound to a variable")]
     InvalidNextStateAccess { span: Span },
     #[error("cannot find interface declaration `{name}`")]
     MissingInterface { name: String, span: Span },
@@ -230,8 +230,8 @@ pub enum CompileError {
         init_kind: &'static str,
         large_err: Box<LargeTypeError>,
     },
-    #[error("state variable initialization type error")]
-    StateVarInitTypeError { large_err: Box<LargeTypeError> },
+    #[error("variable initialization type error")]
+    VarInitTypeError { large_err: Box<LargeTypeError> },
     #[error("expression has a recursive dependency")]
     ExprRecursion {
         dependant_span: Span,
@@ -392,7 +392,7 @@ pub enum LargeTypeError {
         span: Span,
         expected_span: Option<Span>,
     },
-    StateVarInitTypeError {
+    VarInitTypeError {
         expected_ty: String,
         found_ty: String,
         span: Span,
@@ -669,7 +669,7 @@ impl ReportableError for CompileError {
 
             InvalidNextStateAccess { span } => {
                 vec![ErrorLabel {
-                    message: "`next state` access must be bound to a state variable".to_string(),
+                    message: "`next state` access must be bound to a variable".to_string(),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -888,7 +888,7 @@ impl ReportableError for CompileError {
 
             SelectBranchesTypeMismatch { large_err }
             | OperatorTypeError { large_err, .. }
-            | StateVarInitTypeError { large_err, .. }
+            | VarInitTypeError { large_err, .. }
             | ConstraintExpressionTypeError { large_err, .. }
             | AddressExpressionTypeError { large_err, .. }
             | InitTypeError { large_err, .. } => match large_err.as_ref() {
@@ -924,7 +924,7 @@ impl ReportableError for CompileError {
                     generate_type_error_labels(&what, found_ty, expected_ty, span, expected_span)
                 }
 
-                LargeTypeError::StateVarInitTypeError {
+                LargeTypeError::VarInitTypeError {
                     found_ty,
                     expected_ty,
                     span,
@@ -1341,7 +1341,7 @@ impl ReportableError for CompileError {
             ),
 
             InvalidStorageAccess { .. } => Some(
-                "storage can only be accessed in the initializer of `state` declaration"
+                "storage can only be accessed in the initializer of a `let` declaration"
                     .to_string(),
             ),
 
@@ -1376,7 +1376,7 @@ impl ReportableError for CompileError {
             | OperatorTypeError { .. }
             | OperatorInvalidType { .. }
             | InitTypeError { .. }
-            | StateVarInitTypeError { .. }
+            | VarInitTypeError { .. }
             | IndexExprNonIndexable { .. }
             | TupleAccessNonTuple { .. }
             | EmptyArrayExpression { .. }
@@ -1637,13 +1637,13 @@ impl Spanned for CompileError {
 
             SelectBranchesTypeMismatch { large_err }
             | OperatorTypeError { large_err, .. }
-            | StateVarInitTypeError { large_err, .. }
+            | VarInitTypeError { large_err, .. }
             | ConstraintExpressionTypeError { large_err, .. }
             | AddressExpressionTypeError { large_err, .. }
             | InitTypeError { large_err, .. } => match large_err.as_ref() {
                 LargeTypeError::SelectBranchesTypeMismatch { span, .. }
                 | LargeTypeError::OperatorTypeError { span, .. }
-                | LargeTypeError::StateVarInitTypeError { span, .. }
+                | LargeTypeError::VarInitTypeError { span, .. }
                 | LargeTypeError::ConstraintExpressionTypeError { span, .. }
                 | LargeTypeError::AddressExpressionTypeError { span, .. }
                 | LargeTypeError::InitTypeError {

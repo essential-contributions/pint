@@ -9,9 +9,9 @@ storage {
 }
 
 predicate test() {
-    state x = storage::m[true];
-    state y = storage::n[false];
-    state z = storage::o[false];
+    let x = storage::m[true];
+    let y = storage::n[false];
+    let z = storage::o[false];
 
     constraint x == 11;
     constraint y' < 22;
@@ -30,9 +30,9 @@ predicate test() {
 // 
 // predicate ::test(
 // ) {
-//     state ::x = storage::m[true];
-//     state ::y = storage::n[false];
-//     state ::z = storage::o[false];
+//     let ::x = storage::m[true];
+//     let ::y = storage::n[false];
+//     let ::z = storage::o[false];
 //     constraint (::x == 11);
 //     constraint (::y' < 22);
 //     constraint (::z != 0x3333333333333333333333333333333333333333333333333333333333333333);
@@ -51,9 +51,9 @@ predicate test() {
 // 
 // predicate ::test(
 // ) {
-//     state ::x: int = __storage_get({0, true});
-//     state ::y: int = __storage_get({1, false});
-//     state ::z: b256 = __storage_get({2, false});
+//     let ::x: int = __storage_get({0, true});
+//     let ::y: int = __storage_get({1, false});
+//     let ::z: b256 = __storage_get({2, false});
 //     constraint (::x == 11);
 //     constraint (::y' < 22);
 //     constraint (::z != 0x3333333333333333333333333333333333333333333333333333333333333333);

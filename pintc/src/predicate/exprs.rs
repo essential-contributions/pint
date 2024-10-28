@@ -124,7 +124,7 @@ impl ExprKey {
         contract.exprs.get(*self).map_or(false, |expr| match expr {
             Expr::LocalStorageAccess { .. } | Expr::ExternalStorageAccess { .. } => true,
 
-            Expr::Path(path, _) => pred.states().any(|(_, state)| &state.name == path),
+            Expr::Path(path, _) => pred.variables().any(|(_, variable)| &variable.name == path),
 
             Expr::Error(_) | Expr::Immediate { .. } | Expr::MacroCall { .. } => false,
 
@@ -430,7 +430,7 @@ pub(crate) struct ExprsIter<'a> {
 
 impl<'a> ExprsIter<'a> {
     pub(super) fn new(contract: &'a Contract, pred_key: PredKey) -> ExprsIter<'a> {
-        // We start with all the constraint and state exprs.
+        // We start with all the constraint and variable exprs.
         let queue = contract.root_set(pred_key).collect();
 
         ExprsIter {

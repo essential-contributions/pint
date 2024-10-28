@@ -3,7 +3,7 @@ use fxhash::{FxHashMap, FxHashSet};
 use crate::{
     error::Handler,
     expr::{evaluate::Evaluator, Expr, Immediate},
-    predicate::{ConstraintDecl, Contract, ExprKey, StateKey},
+    predicate::{ConstraintDecl, Contract, ExprKey, VariableKey},
     span::empty_span,
     warning::Warning,
 };
@@ -13,13 +13,13 @@ use crate::{
 /// If an error occurs, the specific optimization process is aborted to ensure the contract remains
 /// functional.
 pub(crate) fn dead_code_elimination(handler: &Handler, contract: &mut Contract) {
-    dead_state_elimination(contract);
+    dead_variable_elimination(contract);
     dead_constraint_elimination(handler, contract);
     dead_select_elimination(contract);
 }
 
-/// Remove all unused States in their respective predicates.
-pub(crate) fn dead_state_elimination(contract: &mut Contract) {
+/// Remove all unused variables in their respective predicates.
+pub(crate) fn dead_variable_elimination(contract: &mut Contract) {
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         let live_paths = contract
             .exprs(pred_key)
@@ -32,20 +32,20 @@ pub(crate) fn dead_state_elimination(contract: &mut Contract) {
             })
             .collect::<FxHashSet<String>>();
 
-        let pred_states = contract
+        let pred_variables = contract
             .preds
             .get(pred_key)
             .expect("pred guaranteed to exist")
-            .states();
+            .variables();
 
-        let dead_state_decls = pred_states
-            .filter(|&(_, state)| (!live_paths.contains(&state.name)))
-            .map(|(state_key, _)| state_key)
-            .collect::<FxHashSet<StateKey>>();
+        let dead_variable_decls = pred_variables
+            .filter(|&(_, variable)| (!live_paths.contains(&variable.name)))
+            .map(|(variable_key, _)| variable_key)
+            .collect::<FxHashSet<VariableKey>>();
 
         if let Some(pred) = contract.preds.get_mut(pred_key) {
-            for dead_state in dead_state_decls {
-                pred.states.remove(dead_state);
+            for dead_variable in dead_variable_decls {
+                pred.variables.remove(dead_variable);
             }
         }
     }

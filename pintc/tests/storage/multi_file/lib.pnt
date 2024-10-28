@@ -4,4 +4,4 @@ storage {
     x: int,
 }
 
-//state x = storage::x;
+//let x = storage::x;

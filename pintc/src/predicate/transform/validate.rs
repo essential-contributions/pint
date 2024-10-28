@@ -10,7 +10,7 @@ pub(crate) fn validate(handler: &Handler, contract: &mut Contract) {
     for (pred_key, pred) in contract.preds.iter() {
         check_constraints(contract, pred_key, handler);
         check_params(pred, handler);
-        check_states(pred, handler);
+        check_variables(pred, handler);
         check_ifs_and_matches(pred, handler);
     }
 }
@@ -29,14 +29,15 @@ fn check_params(pred: &Predicate, handler: &Handler) {
     }
 }
 
-fn check_states(pred: &Predicate, handler: &Handler) {
-    for (state_key, state) in pred.states() {
-        if state_key.get_ty(pred).is_unknown() {
+fn check_variables(pred: &Predicate, handler: &Handler) {
+    for (variable_key, variable) in pred.variables() {
+        if variable_key.get_ty(pred).is_unknown() {
             handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
-                    msg: "final predicate state_types slotmap is missing corresponding key from \
-                    states slotmap",
-                    span: state.span.clone(),
+                    msg:
+                        "final predicate variable_types slotmap is missing corresponding key from \
+                    variables slotmap",
+                    span: variable.span.clone(),
                 },
             });
         }
@@ -338,9 +339,9 @@ fn exprs() {
 }
 
 #[test]
-fn states() {
+fn variables() {
     use crate::error;
-    use crate::predicate::State;
+    use crate::predicate::Variable;
 
     let src = "predicate test(a: int) { constraint a == 1; }";
     let (mut contract, handler) = run_without_transforms(src);
@@ -348,12 +349,13 @@ fn states() {
         let dummy_expr_key = contract
             .exprs
             .insert(Expr::Error(empty_span()), Type::Unknown(empty_span()));
-        let dummy_state = State {
+        let dummy_variable = Variable {
             name: "test".to_owned(),
             expr: dummy_expr_key,
             span: empty_span(),
         };
-        pred.states.insert(dummy_state, Type::Unknown(empty_span()));
+        pred.variables
+            .insert(dummy_variable, Type::Unknown(empty_span()));
     });
     validate(&handler, &mut contract);
     check(
@@ -362,7 +364,7 @@ fn states() {
             compiler internal error: Unknown expr type found invalid predicate expr_types slotmap key
             compiler internal error: unknown type present in final predicate expr_types slotmap
             compiler internal error: error expression present in final predicate exprs slotmap
-            compiler internal error: final predicate state_types slotmap is missing corresponding key from states slotmap"#]],
+            compiler internal error: final predicate variable_types slotmap is missing corresponding key from variables slotmap"#]],
     );
 }
 

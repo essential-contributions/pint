@@ -1,7 +1,7 @@
 predicate test() {
-    state x = 1_100e3;
-    state y = 1_100.500_123e0_000_00;
-    state z = 1.2E5;
+    let x = 1_100e3;
+    let y = 1_100.500_123e0_000_00;
+    let z = 1.2E5;
 
     constraint x / y > z;
 }
@@ -9,9 +9,9 @@ predicate test() {
 // parsed <<<
 // predicate ::test(
 // ) {
-//     state ::x = 1.1e6;
-//     state ::y = 1.100500123e3;
-//     state ::z = 1.2e5;
+//     let ::x = 1.1e6;
+//     let ::y = 1.100500123e3;
+//     let ::z = 1.2e5;
 //     constraint ((::x / ::y) > ::z);
 // }
 // >>>
@@ -19,9 +19,9 @@ predicate test() {
 // flattened <<<
 // predicate ::test(
 // ) {
-//     state ::x: real = 1.1e6;
-//     state ::y: real = 1.100500123e3;
-//     state ::z: real = 1.2e5;
+//     let ::x: real = 1.1e6;
+//     let ::y: real = 1.100500123e3;
+//     let ::z: real = 1.2e5;
 //     constraint ((::x / ::y) > ::z);
 //     constraint __eq_set(__mut_keys(), {0});
 // }

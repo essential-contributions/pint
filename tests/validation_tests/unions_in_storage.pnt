@@ -11,11 +11,11 @@ storage {
 }
 
 predicate Foo() {
-    state u0 = mut storage::u0;
-    state u1 = mut storage::u1;
-    state m = mut storage::m[5];
-    state v0 = mut storage::v0;
-    state v1 = mut storage::v1;
+    let u0 = mut storage::u0;
+    let u1 = mut storage::u1;
+    let m = mut storage::m[5];
+    let v0 = mut storage::v0;
+    let v1 = mut storage::v1;
 
     constraint u0' == U::A(5);
     constraint u1' == U::B(0x0000000000000002000000000000000200000000000000020000000000000002);

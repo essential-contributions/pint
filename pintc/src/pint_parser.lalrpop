@@ -217,7 +217,7 @@ LetDecl: () = {
         let _ = context
             .current_pred()
             .expect("adding a variable to the predicate")
-            .insert_state(handler, mod_prefix, &name, ty, init, span)
+            .insert_variable(handler, mod_prefix, &name, ty, init, span)
             .map(|_| ());
     },
 }

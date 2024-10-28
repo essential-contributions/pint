@@ -18,10 +18,10 @@ predicate test(
     v: int,
     a: int[5],
 ) {
-    state x: int = storage::x;
-    state y: int = storage::y;
-    state z: int = storage::z;
-    state external: int = Foo[[0x44e1aa05940f0a9c02572fcffc641fa7b3a8f036f07c5b87f17d276e0957cf89]]
+    let x: int = storage::x;
+    let y: int = storage::y;
+    let z: int = storage::z;
+    let external: int = Foo[[0x44e1aa05940f0a9c02572fcffc641fa7b3a8f036f07c5b87f17d276e0957cf89]]
                           ::storage::external;
     constraint e_old == external;
     constraint e_new == external';
@@ -61,10 +61,10 @@ predicate test(
 //     ::v: int,
 //     ::a: int[5],
 // ) {
-//     state ::x: int = storage::x;
-//     state ::y: int = storage::y;
-//     state ::z: int = storage::z;
-//     state ::external: int = ::Foo[[0x44E1AA05940F0A9C02572FCFFC641FA7B3A8F036F07C5B87F17D276E0957CF89]]::storage::external;
+//     let ::x: int = storage::x;
+//     let ::y: int = storage::y;
+//     let ::z: int = storage::z;
+//     let ::external: int = ::Foo[[0x44E1AA05940F0A9C02572FCFFC641FA7B3A8F036F07C5B87F17D276E0957CF89]]::storage::external;
 //     constraint (::e_old == ::external);
 //     constraint (::e_new == ::external');
 //     constraint (::w == (::x + 99));
@@ -100,10 +100,10 @@ predicate test(
 //     ::v: int,
 //     ::a: int[5],
 // ) {
-//     state ::x: int = __storage_get({0});
-//     state ::y: int = __storage_get({1});
-//     state ::z: int = __storage_get({2});
-//     state ::external: int = __storage_get_extern(0x44E1AA05940F0A9C02572FCFFC641FA7B3A8F036F07C5B87F17D276E0957CF89, {0});
+//     let ::x: int = __storage_get({0});
+//     let ::y: int = __storage_get({1});
+//     let ::z: int = __storage_get({2});
+//     let ::external: int = __storage_get_extern(0x44E1AA05940F0A9C02572FCFFC641FA7B3A8F036F07C5B87F17D276E0957CF89, {0});
 //     constraint (::e_old == ::external);
 //     constraint (::e_new == ::external');
 //     constraint (::w == (::x + 99));

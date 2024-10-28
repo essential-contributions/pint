@@ -69,8 +69,8 @@ fn external_predicate_calls() {
                 r#"
 interface Foo { predicate Bar (x: int, y: b256); }
 predicate Bar(x: int, y: b256, bar_1: { x: int, y: b256 }, bar_2: { x: int, y: b256 }) {
-    state c_addr = 0x0000000000000000000000000000000000000000000000000000000000000000;
-    state p_addr = 0x1111111111111111111111111111111111111111111111111111111111111111;
+    let c_addr = 0x0000000000000000000000000000000000000000000000000000000000000000;
+    let p_addr = 0x1111111111111111111111111111111111111111111111111111111111111111;
 
     constraint Foo[[c_addr]]::Bar[[p_addr]](bar_1.x, bar_1.y);
     constraint Foo[[c_addr]]::Bar[[p_addr]](bar_2.x, bar_2.y);

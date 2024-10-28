@@ -1,3 +1,3 @@
 macro @d_macro_parse_error($val) {
-    state var foo bar
+    let var foo bar
 }

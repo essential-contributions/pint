@@ -2,18 +2,18 @@ union T = FortyTwo | FleventyFive;
 
 predicate test() {
     // Numerics are allowed, but they must match.
-    state f = 66 + 77.7;
-    state g = 88 - 99.9;
-    state h = 10.10 * 11;
-    state i = 12 / 13.13;
-    state j = 14.14 % 15;
+    let f = 66 + 77.7;
+    let g = 88 - 99.9;
+    let h = 10.10 * 11;
+    let i = 12 / 13.13;
+    let j = 14.14 % 15;
 
-    state n = 18 >= 19.19;
+    let n = 18 >= 19.19;
 
-    state r = 25.25 || false;
+    let r = 25.25 || false;
 
     // Tuples can compare with `==` or `!=` too.
-    state t = {28.28, 29} != {30, 31};
+    let t = {28.28, 29} != {30, 31};
 }
 
 // parsed <<<
@@ -21,40 +21,40 @@ predicate test() {
 // 
 // predicate ::test(
 // ) {
-//     state ::f = (66 + 7.77e1);
-//     state ::g = (88 - 9.99e1);
-//     state ::h = (1.01e1 * 11);
-//     state ::i = (12 / 1.313e1);
-//     state ::j = (1.414e1 % 15);
-//     state ::n = (18 >= 1.919e1);
-//     state ::r = (2.525e1 || false);
-//     state ::t = ({2.828e1, 29} != {30, 31});
+//     let ::f = (66 + 7.77e1);
+//     let ::g = (88 - 9.99e1);
+//     let ::h = (1.01e1 * 11);
+//     let ::i = (12 / 1.313e1);
+//     let ::j = (1.414e1 % 15);
+//     let ::n = (18 >= 1.919e1);
+//     let ::r = (2.525e1 || false);
+//     let ::t = ({2.828e1, 29} != {30, 31});
 // }
 // >>>
 
 // typecheck_failure <<<
 // binary operator type error
-// @124..128: operator `+` argument has unexpected type `real`
-// @119..121: expecting type `int`
+// @122..126: operator `+` argument has unexpected type `real`
+// @117..119: expecting type `int`
 // binary operator type error
-// @149..153: operator `-` argument has unexpected type `real`
-// @144..146: expecting type `int`
+// @145..149: operator `-` argument has unexpected type `real`
+// @140..142: expecting type `int`
 // binary operator type error
-// @177..179: operator `*` argument has unexpected type `int`
-// @169..174: expecting type `real`
+// @171..173: operator `*` argument has unexpected type `int`
+// @163..168: expecting type `real`
 // binary operator type error
-// @200..205: operator `/` argument has unexpected type `real`
-// @195..197: expecting type `int`
+// @192..197: operator `/` argument has unexpected type `real`
+// @187..189: expecting type `int`
 // binary operator type error
-// @229..231: operator `%` argument has unexpected type `int`
-// @221..226: expecting type `real`
+// @219..221: operator `%` argument has unexpected type `int`
+// @211..216: expecting type `real`
 // binary operator type error
-// @254..259: operator `>=` argument has unexpected type `real`
-// @248..250: expecting type `int`
+// @242..247: operator `>=` argument has unexpected type `real`
+// @236..238: expecting type `int`
 // binary operator type error
-// @276..281: operator `||` argument has unexpected type `real`
-// @276..290: expecting type `bool`
+// @262..267: operator `||` argument has unexpected type `real`
+// @262..276: expecting type `bool`
 // binary operator type error
-// @371..379: operator `!=` argument has unexpected type `{int, int}`
-// @356..367: expecting type `{real, int}`
+// @355..363: operator `!=` argument has unexpected type `{int, int}`
+// @340..351: expecting type `{real, int}`
 // >>>

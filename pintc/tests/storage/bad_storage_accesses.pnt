@@ -98,48 +98,48 @@ predicate Test(
 // typecheck_failure <<<
 // invalid position for accessing storage
 // @546..556: storage cannot be accessed in this position
-// storage can only be accessed in the initializer of `state` declaration
+// storage can only be accessed in the initializer of a `let` declaration
 // invalid position for accessing storage
 // @252..264: storage cannot be accessed in this position
-// storage can only be accessed in the initializer of `state` declaration
+// storage can only be accessed in the initializer of a `let` declaration
 // invalid position for accessing storage
 // @627..639: storage cannot be accessed in this position
-// storage can only be accessed in the initializer of `state` declaration
+// storage can only be accessed in the initializer of a `let` declaration
 // invalid position for accessing storage
 // @488..518: storage cannot be accessed in this position
-// storage can only be accessed in the initializer of `state` declaration
+// storage can only be accessed in the initializer of a `let` declaration
 // invalid position for accessing storage
 // @898..909: storage cannot be accessed in this position
-// storage can only be accessed in the initializer of `state` declaration
+// storage can only be accessed in the initializer of a `let` declaration
 // invalid position for accessing storage
 // @716..728: storage cannot be accessed in this position
-// storage can only be accessed in the initializer of `state` declaration
+// storage can only be accessed in the initializer of a `let` declaration
 // invalid position for accessing storage
 // @295..307: storage cannot be accessed in this position
-// storage can only be accessed in the initializer of `state` declaration
+// storage can only be accessed in the initializer of a `let` declaration
 // invalid position for accessing storage
 // @589..601: storage cannot be accessed in this position
-// storage can only be accessed in the initializer of `state` declaration
+// storage can only be accessed in the initializer of a `let` declaration
 // invalid position for accessing storage
 // @878..889: storage cannot be accessed in this position
-// storage can only be accessed in the initializer of `state` declaration
+// storage can only be accessed in the initializer of a `let` declaration
 // invalid position for accessing storage
 // @453..470: storage cannot be accessed in this position
-// storage can only be accessed in the initializer of `state` declaration
+// storage can only be accessed in the initializer of a `let` declaration
 // invalid position for accessing storage
 // @800..812: storage cannot be accessed in this position
-// storage can only be accessed in the initializer of `state` declaration
+// storage can only be accessed in the initializer of a `let` declaration
 // invalid position for accessing storage
 // @322..334: storage cannot be accessed in this position
-// storage can only be accessed in the initializer of `state` declaration
+// storage can only be accessed in the initializer of a `let` declaration
 // invalid position for accessing storage
 // @678..690: storage cannot be accessed in this position
-// storage can only be accessed in the initializer of `state` declaration
+// storage can only be accessed in the initializer of a `let` declaration
 // invalid position for accessing storage
 // @177..189: storage cannot be accessed in this position
-// storage can only be accessed in the initializer of `state` declaration
+// storage can only be accessed in the initializer of a `let` declaration
 // invalid position for accessing storage
 // @95..107: storage cannot be accessed in this position
-// storage can only be accessed in the initializer of `state` declaration
+// storage can only be accessed in the initializer of a `let` declaration
 // compiler internal error: unexpected expression during compile-time evaluation
 // >>>

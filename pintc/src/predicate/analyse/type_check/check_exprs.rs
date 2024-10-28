@@ -411,7 +411,7 @@ impl Contract {
             match expr_key.try_get(contract) {
                 Some(Expr::Path(name, span)) => {
                     if pred
-                        .map(|pred| pred.states().any(|(_, state)| state.name == *name))
+                        .map(|pred| pred.variables().any(|(_, variable)| variable.name == *name))
                         .unwrap_or(false)
                     {
                         Ok(())
@@ -454,7 +454,7 @@ impl Contract {
             }
 
             UnaryOp::NextState => {
-                // Next state access must be a path that resolves to a state variable.  It _may_ be
+                // Next state access must be a path that resolves to a variable.  It _may_ be
                 // via array indices or tuple fields or even other prime ops.
                 match drill_down_to_path(self, pred, &rhs_expr_key, span) {
                     Ok(()) => {

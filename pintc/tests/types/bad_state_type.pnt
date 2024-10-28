@@ -5,12 +5,12 @@ storage {
 
 predicate Foo() {
     // Bad
-    state map1 = storage::map1;
-    state map2_inner = storage::map2[69];
+    let map1 = storage::map1;
+    let map2_inner = storage::map2[69];
 
     // Ok
-    state entry = storage::map1[42];
-    state entry_inner = storage::map2[42][true];
+    let entry = storage::map1[42];
+    let entry_inner = storage::map2[42][true];
 }
 
 // parsed <<<
@@ -21,16 +21,16 @@ predicate Foo() {
 // 
 // predicate ::Foo(
 // ) {
-//     state ::map1 = storage::map1;
-//     state ::map2_inner = storage::map2[69];
-//     state ::entry = storage::map1[42];
-//     state ::entry_inner = storage::map2[42][true];
+//     let ::map1 = storage::map1;
+//     let ::map2_inner = storage::map2[69];
+//     let ::entry = storage::map1[42];
+//     let ::entry_inner = storage::map2[42][true];
 // }
 // >>>
 
 // typecheck_failure <<<
 // predicate parameters cannot have storage types
-// @106..132: found parameter of storage type ( int => bool ) here
+// @106..130: found parameter of storage type ( int => bool ) here
 // predicate parameters cannot have storage types
-// @138..174: found parameter of storage type ( bool => b256 ) here
+// @136..170: found parameter of storage type ( bool => b256 ) here
 // >>>

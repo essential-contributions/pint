@@ -6,8 +6,8 @@ storage {
 }
 
 predicate test() {
-    state d = storage::b;
-    state e = storage::c;
+    let d = storage::b;
+    let e = storage::c;
 }
 
 // parsed <<<
@@ -19,16 +19,16 @@ predicate test() {
 // 
 // predicate ::test(
 // ) {
-//     state ::d = storage::b;
-//     state ::e = storage::c;
+//     let ::d = storage::b;
+//     let ::e = storage::c;
 // }
 // >>>
 
 // typecheck_failure <<<
 // predicate parameters cannot have storage types
-// @124..144: found parameter of storage type {( int => int ), int} here
+// @124..142: found parameter of storage type {( int => int ), int} here
 // type of parameter depends on the storage type `( int => int )`
 // predicate parameters cannot have storage types
-// @150..170: found parameter of storage type {::a ({( bool => bool ), int}), int} here
+// @148..166: found parameter of storage type {::a ({( bool => bool ), int}), int} here
 // type of parameter depends on the storage type `( bool => bool )`
 // >>>

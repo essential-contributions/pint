@@ -12,35 +12,35 @@ storage {
 
 predicate test(value: int) {
 // ANCHOR: storage_access_1
-state x = storage::x;
-state a = storage::a;
-state t = storage::t;
-state t_1 = storage::t.1;
-state arr_2_1 = storage::arr[2].1;
+let x = storage::x;
+let a = storage::a;
+let t = storage::t;
+let t_1 = storage::t.1;
+let arr_2_1 = storage::arr[2].1;
 // ANCHOR_END: storage_access_1
 
-// ANCHOR: state 
-state not_annotated = (storage::x * storage::w) + 1;
-state annotated: { b256, b256, int[3] } = { storage::a, storage::v.1.1, [ 1, 2, 3 ] };
-// ANCHOR_END: state 
+// ANCHOR: let 
+let not_annotated = (storage::x * storage::w) + 1;
+let annotated: { b256, b256, int[3] } = { storage::a, storage::v.1.1, [ 1, 2, 3 ] };
+// ANCHOR_END: let 
 
 // ANCHOR: constraint
-state t_0 = storage::t.0 + 1;
-state y = !storage::y;
+let t_0 = storage::t.0 + 1;
+let y = !storage::y;
 constraint y && t_0 >= 42;
 // ANCHOR_END: constraint
 
 // ANCHOR: next_state
-state bal = mut storage::x;
+let bal = mut storage::x;
 constraint bal' >= bal + 42;
-// ANCHOR_END: next_state 
+// ANCHOR_END: next_let 
 
 // ANCHOR: mut 
-state inner: { bool, b256 } = mut storage::v.1;
+let inner: { bool, b256 } = mut storage::v.1;
 // ANCHOR_END: mut 
 
 // ANCHOR: nil 
-state w = mut storage::w;
+let w = mut storage::w;
 constraint value == (w == nil ? 0 : w);
 // ANCHOR_END: nil 
 

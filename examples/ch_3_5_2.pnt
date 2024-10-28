@@ -4,13 +4,13 @@ union Token = DAI | USDC | USDT;
 
 predicate test2(token_id: int) {
 // ANCHOR: simple_union_instances
-state dai: Token = Token::DAI;
-state usdc: Token = Token::USDC;
-state usdt: Token = Token::USDT;
+let dai: Token = Token::DAI;
+let usdc: Token = Token::USDC;
+let usdt: Token = Token::USDT;
 // ANCHOR_END: simple_union_instances
 
 // ANCHOR: union_selection
-state token_type: Token = cond {
+let token_type: Token = cond {
     token_id == 0 => Token::DAI,
     token_id == 1  => Token::USDC,
     else => Token::USDT,
@@ -25,12 +25,12 @@ type Balance = {
 };
 
 predicate balances_1() {
-    state alice_bal: Balance = {
+    let alice_bal: Balance = {
         token: Token::DAI,
         balance: 42,
     };
 
-    state bob_bal: Balance = {
+    let bob_bal: Balance = {
         token: Token::USDC,
         balance: 96,
     };
@@ -41,8 +41,8 @@ predicate balances_1() {
 union TokenBalance = DAI(int) | USDC(int) | USDT(int);
 
 predicate balances_2() {
-    state alice_bal: TokenBalance = TokenBalance::DAI(42);
-    state bob_bal: TokenBalance = TokenBalance::USDC(96);
+    let alice_bal: TokenBalance = TokenBalance::DAI(42);
+    let bob_bal: TokenBalance = TokenBalance::USDC(96);
 }
 // ANCHOR_END: int_in_union
 

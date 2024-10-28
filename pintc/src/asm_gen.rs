@@ -137,7 +137,7 @@ pub fn compile_contract(
 }
 
 /// Converts a `crate::Predicate` into a `CompiledPredicate` which
-/// includes generating assembly for the constraints and for state reads.
+/// includes generating assembly for the constraints and for variable reads.
 pub fn compile_predicate(
     handler: &Handler,
     contract: &Contract,
@@ -146,9 +146,9 @@ pub fn compile_predicate(
 ) -> Result<CompiledPredicate, ErrorEmitted> {
     let mut builder = AsmBuilder::new(compiled_predicates);
 
-    // Compile all state declarations into state programs
-    for (_, state) in pred.states() {
-        builder.compile_state(handler, state, contract, pred)?;
+    // Compile all variable declarations into variable programs
+    for (_, variable) in pred.variables() {
+        builder.compile_variable(handler, variable, contract, pred)?;
     }
 
     // Compile all constraint declarations into constraint programs

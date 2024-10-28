@@ -21,6 +21,6 @@ interface CounterInstance = Counter(ContractID);
 // ANCHOR_END: interface_instance
 
 // ANCHOR: access
-state counter = CounterInstance::storage::counter;
+let counter = CounterInstance::storage::counter;
 // ANCHOR_END: access
 }

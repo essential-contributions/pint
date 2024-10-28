@@ -15,12 +15,12 @@ mod analyse;
 mod display;
 mod exprs;
 mod optimize;
-mod states;
 mod transform;
+mod variables;
 
 pub(crate) use display::{DisplayWithContract, DisplayWithPred};
 pub use exprs::{ExprKey, Exprs};
-pub use states::{State, StateKey, States};
+pub use variables::{Variable, VariableKey, Variables};
 
 slotmap::new_key_type! { pub struct PredKey; }
 slotmap::new_key_type! { pub struct UnionKey; }
@@ -312,7 +312,7 @@ impl Contract {
         // Update every expression type in the contract.
         self.exprs.update_types(|_, expr_ty| f(expr_ty));
 
-        // Loop for each predicate and update their param types and state types.
+        // Loop for each predicate and update their param types and variables types.
         self.preds
             .keys()
             .collect::<Vec<_>>()
@@ -322,7 +322,7 @@ impl Contract {
                     for param in pred.params.iter_mut() {
                         f(&mut param.ty)
                     }
-                    pred.states.update_types(|_, state_ty| f(state_ty));
+                    pred.variables.update_types(|_, variable_ty| f(variable_ty));
                 }
             });
 
@@ -552,7 +552,7 @@ pub struct Predicate {
     pub name: String,
 
     pub params: Vec<Param>,
-    pub states: States,
+    pub variables: Variables,
 
     pub constraints: Vec<ConstraintDecl>,
     pub if_decls: Vec<IfDecl>,
@@ -621,11 +621,11 @@ impl Predicate {
             param.ty.replace_type_expr(old_expr, new_expr);
         }
 
-        self.states.update_types(|_state_key, state_ty| {
-            state_ty.replace_type_expr(old_expr, new_expr);
+        self.variables.update_types(|_variable_key, variable_ty| {
+            variable_ty.replace_type_expr(old_expr, new_expr);
         });
 
-        self.states.update_states(|State { expr, .. }| {
+        self.variables.update_variables(|Variable { expr, .. }| {
             if *expr == old_expr {
                 *expr = new_expr;
             }
@@ -644,13 +644,13 @@ impl Predicate {
         });
     }
 
-    /// Return an iterator to the 'root set' of expressions, based on the constraints, states,
+    /// Return an iterator to the 'root set' of expressions, based on the constraints, variables,
     /// interface instances, and predicate instances.
     fn root_set(&self) -> impl Iterator<Item = ExprKey> + '_ {
         self.constraints
             .iter()
             .map(|c| c.expr)
-            .chain(self.states().map(|(_, state)| state.expr))
+            .chain(self.variables().map(|(_, variable)| variable.expr))
             .chain(self.if_decls.iter().flat_map(|if_decl| if_decl.expr_iter()))
             .chain(
                 self.match_decls

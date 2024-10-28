@@ -18,7 +18,7 @@ predicate test() {
 // macro not found
 // @181..198: macro `::c::@c_macro` not found
 // expected `:`, or `=`, found `foo`
-// @49..52: expected `:`, or `=`
+// @47..50: expected `:`, or `=`
 // @320..347: when making macro call to '::d::@d_macro_parse_error'
 // unable to match macro call
 // @438..458: unable to match call to macro `::e::@e_macro`

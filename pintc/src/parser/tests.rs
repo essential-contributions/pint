@@ -1065,7 +1065,7 @@ fn params() {
 }
 
 #[test]
-fn state_decls() {
+fn variable_decls() {
     let pint = (yp::PintParser::new(), "");
 
     check(
@@ -3056,7 +3056,7 @@ fn experimental() {
         &run_parser!(pint, r#"predicate test() { let x = 5 as"#),
         expect_test::expect![[r#"
             expected `(`, `::`, `a type`, `an identifier`, or `{`, found `end of file`
-            @33..33: expected `(`, `::`, `a type`, `an identifier`, or `{`
+            @31..31: expected `(`, `::`, `a type`, `an identifier`, or `{`
         "#]],
     );
 
@@ -3151,7 +3151,7 @@ fn experimental() {
         &run_parser!(pint, "predicate test() { let blah: real; }", mod_path),
         expect_test::expect![[r#"
             expected `=`, found `;`
-            @35..36: expected `=`
+            @33..34: expected `=`
         "#]],
     );
 
