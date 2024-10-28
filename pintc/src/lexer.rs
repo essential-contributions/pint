@@ -119,8 +119,8 @@ pub enum Token {
     #[token("match")]
     Match,
 
-    #[token("state")]
-    State,
+    #[token("let")]
+    Let,
     #[token("const")]
     Const,
     #[token("storage")]
@@ -223,7 +223,7 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Mut,
     Token::Real,
     Token::SelfTok,
-    Token::State,
+    Token::Let,
     Token::Storage,
     Token::String,
     Token::True,
@@ -315,7 +315,7 @@ impl fmt::Display for Token {
             Token::Else => write!(f, "else"),
             Token::Cond => write!(f, "cond"),
             Token::Match => write!(f, "match"),
-            Token::State => write!(f, "state"),
+            Token::Let => write!(f, "let"),
             Token::Const => write!(f, "const"),
             Token::Storage => write!(f, "storage"),
             Token::Interface => write!(f, "interface"),

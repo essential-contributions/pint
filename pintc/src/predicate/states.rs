@@ -102,7 +102,7 @@ impl StateKey {
 impl DisplayWithPred for StateKey {
     fn fmt(&self, f: &mut Formatter, contract: &Contract, pred: &Predicate) -> fmt::Result {
         let state = &self.get(pred);
-        write!(f, "state {}", state.name)?;
+        write!(f, "let {}", state.name)?;
         let ty = self.get_ty(pred);
         if !ty.is_unknown() {
             write!(f, ": {}", contract.with_ctrct(ty))?;

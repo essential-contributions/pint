@@ -216,7 +216,7 @@ fn strings() {
 
 #[test]
 fn variables() {
-    assert_eq!(lex_one_success("state"), Token::State);
+    assert_eq!(lex_one_success("let"), Token::Let);
     assert_eq!(lex_one_success("const"), Token::Const);
 }
 
@@ -280,7 +280,7 @@ fn r#in() {
 
 #[test]
 fn blockchain_items() {
-    assert_eq!(lex_one_success("state"), Token::State);
+    assert_eq!(lex_one_success("let"), Token::Let);
     assert_eq!(lex_one_success("predicate"), Token::Predicate);
     assert_eq!(lex_one_success("storage"), Token::Storage);
     assert_eq!(lex_one_success("interface"), Token::Interface);
@@ -296,7 +296,7 @@ fn generators() {
 #[test]
 fn with_error() {
     let src = r#"
-state low_val: int = 5.0;
+let low_val: int = 5.0;
 constraint mid > low_val # 2;
 constraint mid < low_val @ 2;
 "#;
@@ -313,7 +313,7 @@ constraint mid < low_val @ 2;
     // Check tokens
     use Token::*;
     assert_eq!(tokens.len(), 19);
-    assert!(matches!(tokens[0].0, State));
+    assert!(matches!(tokens[0].0, Let));
     assert_eq!(tokens[1].0, Ident(("low_val".to_owned(), false)));
     assert!(matches!(tokens[2].0, Colon));
     assert!(matches!(tokens[3].0, Int));
@@ -407,7 +407,7 @@ fn macros_success() {
     assert!(toks.next().is_none());
 
     let mut toks = Lexer::new(
-        r#"macro @name() { state it "be" 88 ; }"#,
+        r#"macro @name() { let it "be" 88 ; }"#,
         &Rc::clone(&path),
         &[],
     );
@@ -425,7 +425,7 @@ fn macros_success() {
     if let MacroBody(body_toks) = body.1 {
         assert_eq!(body_toks.len(), 7);
         assert!(matches!(body_toks[0], (_, BraceOpen, _)));
-        assert!(matches!(body_toks[1], (_, State, _)));
+        assert!(matches!(body_toks[1], (_, Let, _)));
         assert_eq!(body_toks[2].1, Ident(("it".to_owned(), false)));
         assert!(matches!(body_toks[3], (_, StringLiteral(_), _)));
         assert_eq!(body_toks[4].1, IntLiteral("88".to_owned()));
@@ -437,7 +437,7 @@ fn macros_success() {
 
     // Nested braces.
     let mut toks = Lexer::new(
-        "macro @name() { a { b}{{}c}{ d }} state",
+        "macro @name() { a { b}{{}c}{ d }} let",
         &Rc::clone(&path),
         &[],
     );
@@ -450,7 +450,7 @@ fn macros_success() {
     assert!(matches!(toks.next().unwrap().unwrap(), (_, ParenClose, _)));
     let body = toks.next().unwrap().unwrap();
     assert!(matches!(body, (_, MacroBody(_), _)));
-    assert!(matches!(toks.next().unwrap().unwrap(), (_, State, _)));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, Let, _)));
     assert!(toks.next().is_none());
 
     if let MacroBody(body_toks) = body.1 {
@@ -540,7 +540,7 @@ fn macros_badly_formed() {
     assert!(toks.next().is_none());
 
     // Badly nested braces, should backtrack.
-    let mut toks = Lexer::new("macro @name() { { } state", &Rc::clone(&path), &[]);
+    let mut toks = Lexer::new("macro @name() { { } let", &Rc::clone(&path), &[]);
     assert!(matches!(toks.next().unwrap().unwrap(), (_, Macro, _)));
     assert_eq!(
         toks.next().unwrap().unwrap().1,
@@ -552,7 +552,7 @@ fn macros_badly_formed() {
     assert!(matches!(toks.next().unwrap().unwrap(), (_, BraceOpen, _)));
     assert!(matches!(toks.next().unwrap().unwrap(), (_, BraceOpen, _)));
     assert!(matches!(toks.next().unwrap().unwrap(), (_, BraceClose, _)));
-    assert!(matches!(toks.next().unwrap().unwrap(), (_, State, _)));
+    assert!(matches!(toks.next().unwrap().unwrap(), (_, Let, _)));
     assert!(toks.next().is_none());
 }
 
@@ -649,7 +649,7 @@ fn macros_call_success() {
         unreachable!()
     }
 
-    let mut toks = Lexer::new("@name(state i: int = 0;)", &Rc::clone(&path), &[]);
+    let mut toks = Lexer::new("@name(let i: int = 0;)", &Rc::clone(&path), &[]);
     assert_eq!(
         toks.next().unwrap().unwrap().1,
         MacroName("@name".to_owned()),
@@ -660,7 +660,7 @@ fn macros_call_success() {
     if let MacroCallArgs(args) = args.1 {
         assert_eq!(args.len(), 1);
         assert_eq!(args[0].len(), 6);
-        assert!(matches!(args[0][0], (_, State, _)));
+        assert!(matches!(args[0][0], (_, Let, _)));
         assert!(matches!(args[0][1], (_, Ident(_), _)));
         assert!(matches!(args[0][2], (_, Colon, _)));
         assert!(matches!(args[0][3], (_, Int, _)));
