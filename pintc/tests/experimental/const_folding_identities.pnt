@@ -1,0 +1,139 @@
+predicate Test(
+    x: real,
+    a: real,
+    b: real,
+    c: real,
+    d: real,
+    e: real,
+    f: real,
+    g: real,
+    h: real,
+    i: real,
+    j: real,
+    k: real,
+    l: real,
+    m: real,
+    n: real,
+) {
+    constraint a == 0.0 + x;
+    constraint b == x + 0.0;
+    constraint c == x - 0.0;
+    constraint d == 0.0 * x;
+    constraint e == x * 0.0;
+    constraint f == 0.0 / x - 0.0;
+    constraint g == x / 1.0;
+    constraint h == (0.0 + x) + (x - 0.0);
+    constraint i == (x + 0.0) * (0.0 * x);
+    constraint j == (x - 0.0) / (x / 1.0);
+    constraint k == (x * 0.0) - (0.0 + x);
+    constraint l == (0.0 / x) - (0.0 * x);
+    constraint m == (x / 1.0) + (x - 0.0);
+    constraint n == 0.0 - x;
+}
+
+// parsed <<<
+// predicate ::Test(
+//     ::x: real,
+//     ::a: real,
+//     ::b: real,
+//     ::c: real,
+//     ::d: real,
+//     ::e: real,
+//     ::f: real,
+//     ::g: real,
+//     ::h: real,
+//     ::i: real,
+//     ::j: real,
+//     ::k: real,
+//     ::l: real,
+//     ::m: real,
+//     ::n: real,
+// ) {
+//     constraint (::a == (0e0 + ::x));
+//     constraint (::b == (::x + 0e0));
+//     constraint (::c == (::x - 0e0));
+//     constraint (::d == (0e0 * ::x));
+//     constraint (::e == (::x * 0e0));
+//     constraint (::f == ((0e0 / ::x) - 0e0));
+//     constraint (::g == (::x / 1e0));
+//     constraint (::h == ((0e0 + ::x) + (::x - 0e0)));
+//     constraint (::i == ((::x + 0e0) * (0e0 * ::x)));
+//     constraint (::j == ((::x - 0e0) / (::x / 1e0)));
+//     constraint (::k == ((::x * 0e0) - (0e0 + ::x)));
+//     constraint (::l == ((0e0 / ::x) - (0e0 * ::x)));
+//     constraint (::m == ((::x / 1e0) + (::x - 0e0)));
+//     constraint (::n == (0e0 - ::x));
+// }
+// >>>
+
+// flattened <<<
+// predicate ::Test(
+//     ::x: real,
+//     ::a: real,
+//     ::b: real,
+//     ::c: real,
+//     ::d: real,
+//     ::e: real,
+//     ::f: real,
+//     ::g: real,
+//     ::h: real,
+//     ::i: real,
+//     ::j: real,
+//     ::k: real,
+//     ::l: real,
+//     ::m: real,
+//     ::n: real,
+// ) {
+//     constraint (::a == (0e0 + ::x));
+//     constraint (::b == (::x + 0e0));
+//     constraint (::c == (::x - 0e0));
+//     constraint (::d == (0e0 * ::x));
+//     constraint (::e == (::x * 0e0));
+//     constraint (::f == ((0e0 / ::x) - 0e0));
+//     constraint (::g == (::x / 1e0));
+//     constraint (::h == ((0e0 + ::x) + (::x - 0e0)));
+//     constraint (::i == ((::x + 0e0) * (0e0 * ::x)));
+//     constraint (::j == ((::x - 0e0) / (::x / 1e0)));
+//     constraint (::k == ((::x * 0e0) - (0e0 + ::x)));
+//     constraint (::l == ((0e0 / ::x) - (0e0 * ::x)));
+//     constraint (::m == ((::x / 1e0) + (::x - 0e0)));
+//     constraint (::n == (0e0 - ::x));
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>
+
+// optimized <<<
+// predicate ::Test(
+//     ::x: real,
+//     ::a: real,
+//     ::b: real,
+//     ::c: real,
+//     ::d: real,
+//     ::e: real,
+//     ::f: real,
+//     ::g: real,
+//     ::h: real,
+//     ::i: real,
+//     ::j: real,
+//     ::k: real,
+//     ::l: real,
+//     ::m: real,
+//     ::n: real,
+// ) {
+//     constraint (::a == ::x);
+//     constraint (::b == ::x);
+//     constraint (::c == ::x);
+//     constraint (::d == 0e0);
+//     constraint (::e == 0e0);
+//     constraint (::f == 0e0);
+//     constraint (::g == ::x);
+//     constraint (::h == (::x + ::x));
+//     constraint (::i == 0e0);
+//     constraint (::j == (::x / ::x));
+//     constraint (::k == -::x);
+//     constraint (::l == 0e0);
+//     constraint (::m == (::x + ::x));
+//     constraint (::n == -::x);
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>
