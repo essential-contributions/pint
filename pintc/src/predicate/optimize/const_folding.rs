@@ -15,17 +15,7 @@ pub(crate) fn const_folding(handler: &Handler, contract: &mut Contract) {
     // This is an unbound loop which breaks if when there are no more consts to fold.
     // It will also break after a gazillion iterations in case of an infinite loop bug.
     for loop_count in 0.. {
-        let mut passes_that_folded = 0;
-        if fold_consts(contract) {
-            passes_that_folded += 1;
-        }
-
-        if fold_identities(contract) {
-            passes_that_folded += 1;
-        }
-
-        // There are no more folds to do.
-        if passes_that_folded == 0 {
+        if !fold_consts(contract) && !fold_identities(contract) {
             break;
         }
 
