@@ -26,8 +26,8 @@ impl Contract {
         }
 
         for pred_key in self.preds.keys().collect::<Vec<_>>() {
-            // Check all the 'root' exprs (constraints, state init exprs, and var init exprs) one at a
-            // time, gathering errors as we go. Copying the keys out first to avoid borrowing conflict.
+            // Check all the 'root' exprs (constraints, state init exprs) one at a time, gathering
+            // errors as we go. Copying the keys out first to avoid borrowing conflict.
             let all_expr_keys = self.preds[pred_key]
                 .constraints
                 .iter()
@@ -110,10 +110,9 @@ impl Contract {
             // make sure they are integers or enums
             let mut checked_range_exprs = FxHashSet::default();
             for range_expr in self.preds[pred_key]
-                .vars()
-                .filter_map(|(var_key, _)| {
-                    var_key.get_ty(&self.preds[pred_key]).get_array_range_expr()
-                })
+                .params
+                .iter()
+                .filter_map(|param| param.ty.get_array_range_expr())
                 .chain(self.preds[pred_key].states().filter_map(|(state_key, _)| {
                     state_key
                         .get_ty(&self.preds[pred_key])

@@ -176,8 +176,8 @@ pub enum CompileError {
     },
     #[error("invalid array range type {found_ty}")]
     InvalidArrayRangeType { found_ty: String, span: Span },
-    #[error("variables cannot have storage types")]
-    VarHasStorageType {
+    #[error("predicate parameters cannot have storage types")]
+    ParamHasStorageType {
         ty: String,
         nested_ty: String,
         span: Span,
@@ -807,9 +807,9 @@ impl ReportableError for CompileError {
                 }]
             }
 
-            VarHasStorageType { ty, span, .. } => {
+            ParamHasStorageType { ty, span, .. } => {
                 vec![ErrorLabel {
-                    message: format!("found variable of storage type {ty} here"),
+                    message: format!("found parameter of storage type {ty} here"),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -1324,10 +1324,10 @@ impl ReportableError for CompileError {
                 Some(format!("found access using type `{found_ty}`"))
             }
 
-            VarHasStorageType { ty, nested_ty, .. } => {
+            ParamHasStorageType { ty, nested_ty, .. } => {
                 if ty != nested_ty {
                     Some(format!(
-                        "type of variable depends on the storage type `{nested_ty}`"
+                        "type of parameter depends on the storage type `{nested_ty}`"
                     ))
                 } else {
                     None
@@ -1595,7 +1595,7 @@ impl Spanned for CompileError {
             | IndexExprNonIndexable { span, .. }
             | ArrayAccessWithWrongType { span, .. }
             | InvalidArrayRangeType { span, .. }
-            | VarHasStorageType { span, .. }
+            | ParamHasStorageType { span, .. }
             | TypeNotAllowedInStorage { span, .. }
             | StorageMapAccessWithWrongType { span, .. }
             | MismatchedArrayComparisonSizes { span, .. }

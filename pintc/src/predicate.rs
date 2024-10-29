@@ -5,7 +5,7 @@ use crate::{
     types::{EphemeralDecl, NewTypeDecl, Type, UnionDecl, UnionVariant},
 };
 use exprs::ExprsIter;
-use pint_abi_types::{ContractABI, PredicateABI, VarABI};
+use pint_abi_types::{ContractABI, ParamABI, PredicateABI};
 
 use std::fmt::{self, Formatter};
 
@@ -17,12 +17,10 @@ mod exprs;
 mod optimize;
 mod states;
 mod transform;
-mod vars;
 
 pub(crate) use display::{DisplayWithContract, DisplayWithPred};
 pub use exprs::{ExprKey, Exprs};
 pub use states::{State, StateKey, States};
-pub use vars::{Var, VarKey, Vars};
 
 slotmap::new_key_type! { pub struct PredKey; }
 slotmap::new_key_type! { pub struct UnionKey; }
@@ -291,13 +289,13 @@ impl Contract {
                         .iter_mut()
                         .for_each(|StorageVar { ty, .. }| ty.replace_type_expr(old_expr, new_expr))
                 }
-                predicate_interfaces
-                    .iter_mut()
-                    .for_each(|PredicateInterface { vars, .. }| {
-                        vars.iter_mut().for_each(|InterfaceVar { ty, .. }| {
-                            ty.replace_type_expr(old_expr, new_expr)
-                        });
-                    });
+                predicate_interfaces.iter_mut().for_each(
+                    |PredicateInterface { params, .. }| {
+                        params
+                            .iter_mut()
+                            .for_each(|Param { ty, .. }| ty.replace_type_expr(old_expr, new_expr));
+                    },
+                );
             },
         );
 
@@ -314,14 +312,16 @@ impl Contract {
         // Update every expression type in the contract.
         self.exprs.update_types(|_, expr_ty| f(expr_ty));
 
-        // Loop for each predicate and update their var types and state types.
+        // Loop for each predicate and update their param types and state types.
         self.preds
             .keys()
             .collect::<Vec<_>>()
             .iter()
             .for_each(|pred_key| {
                 if let Some(pred) = self.preds.get_mut(*pred_key) {
-                    pred.vars.update_types(|_, var_ty| f(var_ty));
+                    for param in pred.params.iter_mut() {
+                        f(&mut param.ty)
+                    }
                     pred.states.update_types(|_, state_ty| f(state_ty));
                 }
             });
@@ -379,14 +379,14 @@ impl Contract {
                         .for_each(|StorageVar { ty, .. }| f(ty));
                 }
 
-                // Update every decision variable in the interface.
+                // Update every predicate parameter in the interface.
                 predicate_interfaces
                     .iter_mut()
                     .for_each(|predicate_interface| {
                         predicate_interface
-                            .vars
+                            .params
                             .iter_mut()
-                            .for_each(|InterfaceVar { ty, .. }| f(ty));
+                            .for_each(|Param { ty, .. }| f(ty));
                     });
             },
         );
@@ -410,7 +410,7 @@ impl Contract {
                             // The key of `ty` is either the `index` if the storage type is
                             // primitive or a map, or it's `[index, 0]`. The `0` here is a
                             // placeholder for offsets.
-                            Ok(VarABI {
+                            Ok(ParamABI {
                                 name: name.to_string(),
                                 ty: ty.abi(handler, self)?,
                             })
@@ -499,8 +499,8 @@ impl Contract {
                                     storage_vars.iter().map(|StorageVar { ty, .. }| ty)
                                 })
                                 .chain(predicate_interfaces.iter().flat_map(
-                                    |PredicateInterface { vars, .. }| {
-                                        vars.iter().map(|InterfaceVar { ty, .. }| ty)
+                                    |PredicateInterface { params, .. }| {
+                                        params.iter().map(|Param { ty, .. }| ty)
                                     },
                                 ))
                         },
@@ -528,13 +528,30 @@ impl Contract {
     }
 }
 
+/// A predicate parameter
+#[derive(Clone, Debug)]
+pub struct Param {
+    pub name: Ident,
+    pub ty: Type,
+    pub span: Span,
+}
+
+impl Param {
+    pub fn abi(&self, handler: &Handler, contract: &Contract) -> Result<ParamABI, ErrorEmitted> {
+        Ok(ParamABI {
+            name: self.name.name.clone(),
+            ty: self.ty.abi(handler, contract)?,
+        })
+    }
+}
+
 /// An in-progress predicate, possibly malformed or containing redundant information.  Designed to
 /// be iterated upon and to be reduced to a [Predicate].
 #[derive(Debug, Default, Clone)]
 pub struct Predicate {
     pub name: String,
 
-    pub vars: Vars,
+    pub params: Vec<Param>,
     pub states: States,
 
     pub constraints: Vec<ConstraintDecl>,
@@ -565,9 +582,10 @@ impl Predicate {
     ) -> Result<PredicateABI, ErrorEmitted> {
         Ok(PredicateABI {
             name: self.name.clone(),
-            vars: self
-                .vars()
-                .map(|(var_key, _)| var_key.abi(handler, contract, self))
+            params: self
+                .params
+                .iter()
+                .map(|param| param.abi(handler, contract))
                 .collect::<Result<_, _>>()?,
         })
     }
@@ -598,9 +616,10 @@ impl Predicate {
     }
 
     pub fn replace_exprs(&mut self, old_expr: ExprKey, new_expr: ExprKey) {
-        self.vars.update_types(|_var_key, var_ty| {
-            var_ty.replace_type_expr(old_expr, new_expr);
-        });
+        // TODO: fix
+        for param in self.params.iter_mut() {
+            param.ty.replace_type_expr(old_expr, new_expr);
+        }
 
         self.states.update_types(|_state_key, state_ty| {
             state_ty.replace_type_expr(old_expr, new_expr);
@@ -944,7 +963,7 @@ pub struct StorageVar {
 #[derive(Clone, Debug)]
 pub struct PredicateInterface {
     pub name: Ident,
-    pub vars: Vec<InterfaceVar>,
+    pub params: Vec<Param>,
     pub span: Span,
 }
 
@@ -962,15 +981,6 @@ pub struct Interface {
     pub name: Ident,
     pub storage: Option<(Vec<StorageVar>, Span)>,
     pub predicate_interfaces: Vec<PredicateInterface>,
-    pub span: Span,
-}
-
-/// A decision variable that lives inside a predicate interface. Unlike `Var`, the type here is not
-/// optional
-#[derive(Clone, Debug)]
-pub struct InterfaceVar {
-    pub name: Ident,
-    pub ty: Type,
     pub span: Span,
 }
 

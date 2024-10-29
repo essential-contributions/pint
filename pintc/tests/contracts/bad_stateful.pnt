@@ -21,6 +21,6 @@ predicate Baz() {}
 //
 
 // parse_failure <<<
-// expected `::`, `an identifier`, `const`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`, found `var`
-// @22..25: expected `::`, `an identifier`, `const`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`
+// expected `::`, found `x`
+// @26..27: expected `::`
 // >>>

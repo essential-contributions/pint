@@ -1,10 +1,10 @@
 //! Struct and impls for the decision variables `Vars` type.
 
 use crate::utils::{field_idents, fields};
-use pint_abi_types::VarABI;
+use pint_abi_types::ParamABI;
 
 /// Generate a struct for an predicate's decision variables.
-fn struct_decl(vars: &[VarABI]) -> syn::ItemStruct {
+fn struct_decl(vars: &[ParamABI]) -> syn::ItemStruct {
     let fields = fields(vars, 1);
     syn::parse_quote! {
         /// The predicate's decision variables.
@@ -18,7 +18,7 @@ fn struct_decl(vars: &[VarABI]) -> syn::ItemStruct {
 }
 
 /// Generate an `Encode` implementation for a `Vars` type.
-fn impl_encode(vars: &[VarABI]) -> syn::ItemImpl {
+fn impl_encode(vars: &[ParamABI]) -> syn::ItemImpl {
     let field_idents = field_idents(vars);
     syn::parse_quote! {
         impl pint_abi::Encode for Vars {
@@ -33,7 +33,7 @@ fn impl_encode(vars: &[VarABI]) -> syn::ItemImpl {
 }
 
 /// Generate a `Decode` implementation for a `Vars` type.
-fn impl_decode(vars: &[VarABI]) -> syn::ItemImpl {
+fn impl_decode(vars: &[ParamABI]) -> syn::ItemImpl {
     let field_idents: Vec<_> = field_idents(vars).collect();
     syn::parse_quote! {
         impl pint_abi::Decode for Vars {
@@ -58,7 +58,7 @@ fn impl_decode(vars: &[VarABI]) -> syn::ItemImpl {
 }
 
 /// Generate a `From<Vars>` implementation for converting `Vars` to `Vec<Value>`.
-fn impl_from_vars_for_vec_value(vars: &[VarABI]) -> syn::ItemImpl {
+fn impl_from_vars_for_vec_value(vars: &[ParamABI]) -> syn::ItemImpl {
     let field_idents = field_idents(vars);
     syn::parse_quote! {
         impl From<Vars> for Vec<pint_abi::types::essential::Value> {
@@ -73,7 +73,7 @@ fn impl_from_vars_for_vec_value(vars: &[VarABI]) -> syn::ItemImpl {
     }
 }
 
-fn impl_try_from_values_for_vars(vars: &[VarABI]) -> syn::ItemImpl {
+fn impl_try_from_values_for_vars(vars: &[ParamABI]) -> syn::ItemImpl {
     let field_idents: Vec<_> = field_idents(vars).collect();
     syn::parse_quote! {
         impl<'a> core::convert::TryFrom<&'a [pint_abi::types::essential::Value]> for Vars {
@@ -120,7 +120,7 @@ fn decode_error_struct() -> syn::ItemStruct {
 }
 
 /// Generate a type describing which field failed to decode.
-fn decode_field_error_enum(vars: &[VarABI]) -> syn::ItemEnum {
+fn decode_field_error_enum(vars: &[ParamABI]) -> syn::ItemEnum {
     let field_idents = field_idents(vars);
     syn::parse_quote! {
         /// A type describing which field failed to decode.
@@ -153,7 +153,7 @@ fn decode_error_impl_error() -> syn::ItemImpl {
 }
 
 /// Generate an enum for the `DecodeError` type.
-fn decode_error_items(vars: &[VarABI]) -> Vec<syn::Item> {
+fn decode_error_items(vars: &[ParamABI]) -> Vec<syn::Item> {
     vec![
         decode_error_struct().into(),
         decode_field_error_enum(vars).into(),
@@ -163,7 +163,7 @@ fn decode_error_items(vars: &[VarABI]) -> Vec<syn::Item> {
 }
 
 /// The struct decl and impls for the decision variables `Vars` type.
-pub(crate) fn items(vars: &[VarABI]) -> Vec<syn::Item> {
+pub(crate) fn items(vars: &[ParamABI]) -> Vec<syn::Item> {
     let mut items = vec![
         struct_decl(vars).into(),
         impl_encode(vars).into(),

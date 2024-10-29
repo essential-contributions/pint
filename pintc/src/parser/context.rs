@@ -161,19 +161,19 @@ impl<'a> ParserContext<'a> {
                         );
                     }
 
-                    // Ensure there are no duplciate vars
-                    let mut var_symbols: BTreeMap<String, Span> = BTreeMap::new();
-                    for var in &predicate_interface.vars {
-                        if let Some(prev_span) = var_symbols.get(&var.name.name) {
+                    // Ensure there are no duplciate params
+                    let mut param_symbols: BTreeMap<String, Span> = BTreeMap::new();
+                    for param in &predicate_interface.params {
+                        if let Some(prev_span) = param_symbols.get(&param.name.name) {
                             handler.emit_err(Error::Parse {
                                 error: ParseError::NameClash {
-                                    sym: var.name.name.clone(),
-                                    span: var.name.span.clone(),
+                                    sym: param.name.name.clone(),
+                                    span: param.name.span.clone(),
                                     prev_span: prev_span.clone(),
                                 },
                             });
                         } else {
-                            var_symbols.insert(var.name.name.clone(), var.name.span.clone());
+                            param_symbols.insert(param.name.name.clone(), param.name.span.clone());
                         }
                     }
 
@@ -188,7 +188,7 @@ impl<'a> ParserContext<'a> {
     /// Given an identifier (a string + a bool indicating whethere it's in a macro argument),
     /// produce an `Ident` and an optional string that contains the current local scope, if needed
     /// (useful for macros). `l` and `r` are the code locations before and after the identifier
-    pub fn parse_var_name(
+    pub fn parse_param_name(
         &mut self,
         id: (String, bool),
         (l, r): (usize, usize),

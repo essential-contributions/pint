@@ -6,8 +6,8 @@ use crate::{
     },
     predicate::{
         BlockStatement, Const, ConstraintDecl, Contract, ExprKey, ExprsIter, Ident, IfDecl,
-        Interface, InterfaceVar, MatchDecl, MatchDeclBranch, PredKey, PredicateInterface,
-        StorageVar, VisitorKind,
+        Interface, MatchDecl, MatchDeclBranch, Param, PredKey, PredicateInterface, StorageVar,
+        VisitorKind,
     },
     span::{empty_span, Span, Spanned},
     types::{self, NewTypeDecl, PrimitiveKind, Type},
@@ -151,9 +151,10 @@ pub(crate) fn lower_array_ranges(
         }
 
         array_range_expr_keys.extend(predicate_interfaces.iter().flat_map(
-            |PredicateInterface { vars, .. }| {
-                vars.iter()
-                    .filter_map(|InterfaceVar { ty, .. }| ty_non_int_range_expr(contract, None, ty))
+            |PredicateInterface { params, .. }| {
+                params
+                    .iter()
+                    .filter_map(|Param { ty, .. }| ty_non_int_range_expr(contract, None, ty))
             },
         ));
     }
@@ -165,9 +166,11 @@ pub(crate) fn lower_array_ranges(
 
         let pred = &contract.preds[pred_key];
 
-        array_range_expr_keys.extend(pred.vars.vars().filter_map(|(var_key, _var)| {
-            ty_non_int_range_expr(contract, Some(pred_key), var_key.get_ty(pred))
-        }));
+        array_range_expr_keys.extend(
+            pred.params
+                .iter()
+                .filter_map(|param| ty_non_int_range_expr(contract, Some(pred_key), &param.ty)),
+        );
 
         array_range_expr_keys.extend(pred.states.states().filter_map(|(state_key, _state)| {
             ty_non_int_range_expr(contract, Some(pred_key), state_key.get_ty(pred))
@@ -1150,7 +1153,6 @@ pub(super) fn lower_matches(
 // E.g.,
 //
 // union u = var1 | var2(bool) | var3(int);
-// var x: u;
 // match x {
 //     u::var1 => {
 //         constraint expr1;

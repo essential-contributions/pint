@@ -2,7 +2,7 @@
   "predicates": [
     {
       "name": "::Foo",
-      "vars": [
+      "params": [
         {
           "name": "::v0",
           "ty": "Int"

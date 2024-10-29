@@ -808,28 +808,26 @@ impl Contract {
             };
 
             // Check all the arg types against the predicate found above
-            for ((expected, _), arg) in called_predicate.vars().zip(args.iter()) {
-                let found = arg.get_ty(self);
-                if !expected.get_ty(called_predicate).eq(self, found) {
+            for (expected, found) in called_predicate.params.iter().zip(args.iter()) {
+                let found_ty = found.get_ty(self);
+                let expected_ty = &expected.ty;
+                if !expected_ty.eq(self, found_ty) {
                     handler.emit_err(Error::Compile {
                         error: CompileError::MismatchedPredicateArgType {
-                            expected: format!(
-                                "{}",
-                                self.with_ctrct(expected.get_ty(called_predicate).clone())
-                            ),
-                            found: format!("{}", self.with_ctrct(found)),
+                            expected: format!("{}", self.with_ctrct(expected_ty)),
+                            found: format!("{}", self.with_ctrct(found_ty)),
                             span: span.clone(),
-                            arg_span: arg.get(self).span().clone(),
+                            arg_span: found.get(self).span().clone(),
                         },
                     });
                 }
             }
 
             // Also, ensure that the number of arguments is correct
-            if called_predicate.vars.len() != args.len() {
+            if called_predicate.params.len() != args.len() {
                 handler.emit_err(Error::Compile {
                     error: CompileError::UnexpectedPredicateArgCount {
-                        expected: called_predicate.vars.len(),
+                        expected: called_predicate.params.len(),
                         found: args.len(),
                         span: span.clone(),
                     },
@@ -926,7 +924,7 @@ impl Contract {
             };
 
             // Check all the arg types against the predicate found above
-            for (expected, arg) in predicate_interface.vars.iter().zip(args.iter()) {
+            for (expected, arg) in predicate_interface.params.iter().zip(args.iter()) {
                 let found = arg.get_ty(self);
                 if !expected.ty.eq(self, found) {
                     handler.emit_err(Error::Compile {
@@ -941,10 +939,10 @@ impl Contract {
             }
 
             // Also, ensure that the number of arguments is correct
-            if predicate_interface.vars.len() != args.len() {
+            if predicate_interface.params.len() != args.len() {
                 handler.emit_err(Error::Compile {
                     error: CompileError::UnexpectedPredicateArgCount {
-                        expected: predicate_interface.vars.len(),
+                        expected: predicate_interface.params.len(),
                         found: args.len(),
                         span: span.clone(),
                     },

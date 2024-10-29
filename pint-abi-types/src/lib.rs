@@ -3,13 +3,13 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ContractABI {
     pub predicates: Vec<PredicateABI>,
-    pub storage: Vec<VarABI>,
+    pub storage: Vec<ParamABI>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct PredicateABI {
     pub name: String,
-    pub vars: Vec<VarABI>,
+    pub params: Vec<ParamABI>,
 }
 
 ////////////////////////////////////////
@@ -17,7 +17,7 @@ pub struct PredicateABI {
 ////////////////////////////////////////
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub struct VarABI {
+pub struct ParamABI {
     pub name: String,
     pub ty: TypeABI,
 }

@@ -9,20 +9,20 @@ use crate::{
 pub(crate) fn validate(handler: &Handler, contract: &mut Contract) {
     for (pred_key, pred) in contract.preds.iter() {
         check_constraints(contract, pred_key, handler);
-        check_vars(pred, handler);
+        check_params(pred, handler);
         check_states(pred, handler);
         check_ifs_and_matches(pred, handler);
     }
 }
 
-fn check_vars(pred: &Predicate, handler: &Handler) {
-    for (var_key, var) in pred.vars() {
-        if var_key.get_ty(pred).is_unknown() {
+fn check_params(pred: &Predicate, handler: &Handler) {
+    for param in &pred.params {
+        if param.ty.is_unknown() {
             handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
                     msg: "final predicate var_types slotmap is missing corresponding key from \
                     vars slotmap",
-                    span: var.span.clone(),
+                    span: param.span.clone(),
                 },
             });
         }
@@ -368,19 +368,23 @@ fn states() {
 
 #[test]
 fn vars() {
-    use crate::error;
-    use crate::predicate::Var;
+    use crate::{
+        error,
+        predicate::{Ident, Param},
+    };
 
     let src = "predicate test(a: int) { constraint a == 1; }";
     let (mut contract, handler) = run_without_transforms(src);
     contract.preds.iter_mut().for_each(|(_, pred)| {
-        pred.vars.insert(
-            Var {
+        pred.params.push(Param {
+            name: Ident {
                 name: "test".to_owned(),
+                hygienic: false,
                 span: empty_span(),
             },
-            Type::Unknown(empty_span()),
-        );
+            ty: Type::Unknown(empty_span()),
+            span: empty_span(),
+        });
     });
     validate(&handler, &mut contract);
     check(

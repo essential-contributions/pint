@@ -55,7 +55,7 @@ pub enum ExternalIntrinsic {
     // Returns a SHA 256 hash from the specified data.
     Sha256,
 
-    // Returns the length of a state variable.
+    // Returns the size, in words, of an expression.
     SizeOf,
 
     // Returns the content hash of this predicate.
@@ -99,9 +99,7 @@ impl ExternalIntrinsic {
             Self::Sha256 => vec![
                 any(), // data to hash
             ],
-            Self::SizeOf => vec![
-                any(), // path to a state var
-            ],
+            Self::SizeOf => vec![any()],
             Self::ThisAddress => vec![],
             Self::ThisContractAddress => vec![],
             Self::VecLen => vec![

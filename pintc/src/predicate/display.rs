@@ -110,9 +110,13 @@ impl Display for Contract {
 
         for pred in self.preds.values() {
             writeln!(f, "\npredicate {}(", pred.name)?;
-            for (var_key, var) in pred.vars() {
-                let ty = var_key.get_ty(pred);
-                writeln!(f, "    {}: {},", var.name, self.with_ctrct(ty))?;
+            for param in &pred.params {
+                writeln!(
+                    f,
+                    "    {}: {},",
+                    param.name.name,
+                    self.with_ctrct(param.ty.clone())
+                )?;
             }
 
             writeln!(f, ") {{")?;
@@ -148,16 +152,16 @@ impl Contract {
             for predicate_interface in predicate_interfaces {
                 write!(f, "    predicate {}", predicate_interface.name)?;
 
-                if predicate_interface.vars.is_empty() {
+                if predicate_interface.params.is_empty() {
                     writeln!(f, "();")?;
                 } else {
                     writeln!(f, " (")?;
-                    for var in &predicate_interface.vars {
+                    for param in &predicate_interface.params {
                         writeln!(
                             f,
                             "        {}: {},",
-                            var.name,
-                            self.with_ctrct(var.ty.clone())
+                            param.name,
+                            self.with_ctrct(param.ty.clone())
                         )?;
                     }
                     writeln!(f, "    );")?;

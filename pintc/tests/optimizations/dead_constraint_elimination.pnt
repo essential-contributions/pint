@@ -106,7 +106,6 @@ predicate Test(x: int, y: int) {
 //     constraint (::x == ::x);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
-
 // >>>
 
 // warnings <<<

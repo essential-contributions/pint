@@ -25,10 +25,10 @@ predicate test() {
 // >>>
 
 // typecheck_failure <<<
-// variables cannot have storage types
-// @124..144: found variable of storage type {( int => int ), int} here
-// type of variable depends on the storage type `( int => int )`
-// variables cannot have storage types
-// @150..170: found variable of storage type {::a ({( bool => bool ), int}), int} here
-// type of variable depends on the storage type `( bool => bool )`
+// predicate parameters cannot have storage types
+// @124..144: found parameter of storage type {( int => int ), int} here
+// type of parameter depends on the storage type `( int => int )`
+// predicate parameters cannot have storage types
+// @150..170: found parameter of storage type {::a ({( bool => bool ), int}), int} here
+// type of parameter depends on the storage type `( bool => bool )`
 // >>>
