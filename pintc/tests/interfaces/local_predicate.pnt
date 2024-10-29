@@ -1,25 +1,55 @@
-predicate Simple(z: int, q: int) {
-    predicate FooI = Foo();
+predicate Simple(
+    z: int, 
+    q: int,
 
-    constraint FooI::x + z == FooI::y + q;
-    constraint FooI::w == 0x0000000000000009000000000000000900000000000000090000000000000009;
-    constraint FooI::b == true;
-    constraint !FooI::b == false;
+    foo_nonce: int,
+    foo_x: int,
+    foo_y: int,
+    foo_w: b256,
+    foo_b: bool,
+    foo_c: { int, { int, b256 }, bool },
+    foo_d: int[3],
+    foo_e: { int, int }[2][3],
+        
+    bar_nonce: int,
+    bar_x: int,
+    bar_y: int,
+    bar_w: b256,
+    bar_b: bool,
+    bar_c: { int, { int, b256 }, bool },
+    bar_d: int[3],
+    bar_e: { int, int }[2][3],
+) {
+    constraint Foo[[]](
+        foo_nonce,
+        foo_x,
+        foo_y,
+        foo_w,
+        foo_b,
+        foo_c,
+        foo_d,
+        foo_e,
+    );
 
-    constraint FooI::c == 
+    constraint foo_x + z == foo_y + q;
+    constraint foo_w == 0x0000000000000009000000000000000900000000000000090000000000000009;
+    constraint foo_b == true;
+    constraint !foo_b == false;
+
+    constraint foo_c == 
         { 42, { 43, 0x0000000000000008000000000000000800000000000000080000000000000008}, true };
-    constraint FooI::c.0 == 42;
-    constraint FooI::c.1 == { 43, 0x0000000000000008000000000000000800000000000000080000000000000008};
-    constraint FooI::c.1.0 == 43;
-    constraint FooI::c.1.1 == 0x0000000000000008000000000000000800000000000000080000000000000008;
-    constraint FooI::c.2 == true;
+    constraint foo_c.0 == 42;
+    constraint foo_c.1 == { 43, 0x0000000000000008000000000000000800000000000000080000000000000008};
+    constraint foo_c.1.0 == 43;
+    constraint foo_c.1.1 == 0x0000000000000008000000000000000800000000000000080000000000000008;
+    constraint foo_c.2 == true;
 
-    constraint FooI::d == [91, 92, 93];
-    constraint FooI::d[0] == 91;
-    constraint FooI::d[1] == 92;
-    constraint FooI::d[2] == 93;
+    constraint foo_d == [91, 92, 93];
+    constraint foo_d[0] == 91;
+    constraint foo_d[1] == 92;
+    constraint foo_d[2] == 93;
 
-    constraint FooI::e == [
+    constraint foo_e == [
         [ 
             { 0, 1 },
             { 2, 3 },
@@ -32,30 +62,39 @@ predicate Simple(z: int, q: int) {
         ]
     ];
 
-    constraint FooI::e[0][0] == { 0, 1 };
-    constraint FooI::e[1] == [{ 6, 7 }, { 8, 9 }, { 10, 11 }];
+    constraint foo_e[0][0] == { 0, 1 };
+    constraint foo_e[1] == [{ 6, 7 }, { 8, 9 }, { 10, 11 }];
 
-    predicate BarI = Bar();
+    constraint Bar[[]](
+        bar_nonce,
+        bar_x,
+        bar_y,
+        bar_w,
+        bar_b,
+        bar_c,
+        bar_d,
+        bar_e,
+    );
 
-    constraint BarI::x + z == BarI::y + q;
-    constraint BarI::w == 0x000000000000000A000000000000000A000000000000000A000000000000000A;
-    constraint BarI::b == false;
-    constraint !BarI::b == true;
+    constraint bar_x + z == bar_y + q;
+    constraint bar_w == 0x000000000000000A000000000000000A000000000000000A000000000000000A;
+    constraint bar_b == false;
+    constraint !bar_b == true;
 
-    constraint BarI::c == 
+    constraint bar_c == 
         { 142, { 143, 0x0000000000000009000000000000000900000000000000090000000000000009}, false };
-    constraint BarI::c.0 == 142;
-    constraint BarI::c.1 == { 143, 0x0000000000000009000000000000000900000000000000090000000000000009};
-    constraint BarI::c.1.0 == 143;
-    constraint BarI::c.1.1 == 0x0000000000000009000000000000000900000000000000090000000000000009;
-    constraint BarI::c.2 == false;
+    constraint bar_c.0 == 142;
+    constraint bar_c.1 == { 143, 0x0000000000000009000000000000000900000000000000090000000000000009};
+    constraint bar_c.1.0 == 143;
+    constraint bar_c.1.1 == 0x0000000000000009000000000000000900000000000000090000000000000009;
+    constraint bar_c.2 == false;
 
-    constraint BarI::d == [191, 192, 193];
-    constraint BarI::d[0] == 191;
-    constraint BarI::d[1] == 192;
-    constraint BarI::d[2] == 193;
+    constraint bar_d == [191, 192, 193];
+    constraint bar_d[0] == 191;
+    constraint bar_d[1] == 192;
+    constraint bar_d[2] == 193;
 
-    constraint BarI::e == [
+    constraint bar_e == [
         [ 
             { 10, 11 },
             { 12, 13 },
@@ -68,29 +107,33 @@ predicate Simple(z: int, q: int) {
         ]
     ];
 
-    constraint BarI::e[0][0] == { 10, 11 };
-    constraint BarI::e[1] == [{ 16, 17 }, { 18, 19 }, { 110, 111 }];
+    constraint bar_e[0][0] == { 10, 11 };
+    constraint bar_e[1] == [{ 16, 17 }, { 18, 19 }, { 110, 111 }];
 }
 
-predicate Foo(nonce: int) {
-    pub var x: int;
-    pub var y: int;
-    pub var w: b256;
-    pub var b: bool;
-    pub var c: { int, { int, b256 }, bool };
-    pub var d: int[3]; 
-    pub var e: { int, int }[2][3];
+predicate Foo(
+    nonce: int,
+    x: int,
+    y: int,
+    w: b256,
+    b: bool,
+    c: { int, { int, b256 }, bool },
+    d: int[3], 
+    e: { int, int }[2][3],
+) {
     constraint nonce == 0;
 }
 
-predicate Bar(nonce: int) {
-    pub var x: int;
-    pub var y: int;
-    pub var w: b256;
-    pub var b: bool;
-    pub var c: { int, { int, b256 }, bool };
-    pub var d: int[3]; 
-    pub var e: { int, int }[2][3]; 
+predicate Bar(
+    nonce: int,
+    x: int,
+    y: int,
+    w: b256,
+    b: bool,
+    c: { int, { int, b256 }, bool },
+    d: int[3], 
+    e: { int, int }[2][3],
+) {
     constraint nonce == 1;
 }
 
@@ -98,70 +141,84 @@ predicate Bar(nonce: int) {
 // predicate ::Simple(
 //     ::z: int,
 //     ::q: int,
-//     __::FooI_pathway: int,
-//     __::BarI_pathway: int,
+//     ::foo_nonce: int,
+//     ::foo_x: int,
+//     ::foo_y: int,
+//     ::foo_w: b256,
+//     ::foo_b: bool,
+//     ::foo_c: {int, {int, b256}, bool},
+//     ::foo_d: int[3],
+//     ::foo_e: {int, int}[3][2],
+//     ::bar_nonce: int,
+//     ::bar_x: int,
+//     ::bar_y: int,
+//     ::bar_w: b256,
+//     ::bar_b: bool,
+//     ::bar_c: {int, {int, b256}, bool},
+//     ::bar_d: int[3],
+//     ::bar_e: {int, int}[3][2],
 // ) {
-//     predicate ::FooI = ::Foo()
-//     predicate ::BarI = ::Bar()
-//     constraint ((::FooI::x + ::z) == (::FooI::y + ::q));
-//     constraint (::FooI::w == 0x0000000000000009000000000000000900000000000000090000000000000009);
-//     constraint (::FooI::b == true);
-//     constraint (!::FooI::b == false);
-//     constraint (::FooI::c == {42, {43, 0x0000000000000008000000000000000800000000000000080000000000000008}, true});
-//     constraint (::FooI::c.0 == 42);
-//     constraint (::FooI::c.1 == {43, 0x0000000000000008000000000000000800000000000000080000000000000008});
-//     constraint (::FooI::c.1.0 == 43);
-//     constraint (::FooI::c.1.1 == 0x0000000000000008000000000000000800000000000000080000000000000008);
-//     constraint (::FooI::c.2 == true);
-//     constraint (::FooI::d == [91, 92, 93]);
-//     constraint (::FooI::d[0] == 91);
-//     constraint (::FooI::d[1] == 92);
-//     constraint (::FooI::d[2] == 93);
-//     constraint (::FooI::e == [[{0, 1}, {2, 3}, {4, 5}], [{6, 7}, {8, 9}, {10, 11}]]);
-//     constraint (::FooI::e[0][0] == {0, 1});
-//     constraint (::FooI::e[1] == [{6, 7}, {8, 9}, {10, 11}]);
-//     constraint ((::BarI::x + ::z) == (::BarI::y + ::q));
-//     constraint (::BarI::w == 0x000000000000000A000000000000000A000000000000000A000000000000000A);
-//     constraint (::BarI::b == false);
-//     constraint (!::BarI::b == true);
-//     constraint (::BarI::c == {142, {143, 0x0000000000000009000000000000000900000000000000090000000000000009}, false});
-//     constraint (::BarI::c.0 == 142);
-//     constraint (::BarI::c.1 == {143, 0x0000000000000009000000000000000900000000000000090000000000000009});
-//     constraint (::BarI::c.1.0 == 143);
-//     constraint (::BarI::c.1.1 == 0x0000000000000009000000000000000900000000000000090000000000000009);
-//     constraint (::BarI::c.2 == false);
-//     constraint (::BarI::d == [191, 192, 193]);
-//     constraint (::BarI::d[0] == 191);
-//     constraint (::BarI::d[1] == 192);
-//     constraint (::BarI::d[2] == 193);
-//     constraint (::BarI::e == [[{10, 11}, {12, 13}, {14, 15}], [{16, 17}, {18, 19}, {110, 111}]]);
-//     constraint (::BarI::e[0][0] == {10, 11});
-//     constraint (::BarI::e[1] == [{16, 17}, {18, 19}, {110, 111}]);
+//     constraint ::Foo[[]](::foo_nonce, ::foo_x, ::foo_y, ::foo_w, ::foo_b, ::foo_c, ::foo_d, ::foo_e);
+//     constraint ((::foo_x + ::z) == (::foo_y + ::q));
+//     constraint (::foo_w == 0x0000000000000009000000000000000900000000000000090000000000000009);
+//     constraint (::foo_b == true);
+//     constraint (!::foo_b == false);
+//     constraint (::foo_c == {42, {43, 0x0000000000000008000000000000000800000000000000080000000000000008}, true});
+//     constraint (::foo_c.0 == 42);
+//     constraint (::foo_c.1 == {43, 0x0000000000000008000000000000000800000000000000080000000000000008});
+//     constraint (::foo_c.1.0 == 43);
+//     constraint (::foo_c.1.1 == 0x0000000000000008000000000000000800000000000000080000000000000008);
+//     constraint (::foo_c.2 == true);
+//     constraint (::foo_d == [91, 92, 93]);
+//     constraint (::foo_d[0] == 91);
+//     constraint (::foo_d[1] == 92);
+//     constraint (::foo_d[2] == 93);
+//     constraint (::foo_e == [[{0, 1}, {2, 3}, {4, 5}], [{6, 7}, {8, 9}, {10, 11}]]);
+//     constraint (::foo_e[0][0] == {0, 1});
+//     constraint (::foo_e[1] == [{6, 7}, {8, 9}, {10, 11}]);
+//     constraint ::Bar[[]](::bar_nonce, ::bar_x, ::bar_y, ::bar_w, ::bar_b, ::bar_c, ::bar_d, ::bar_e);
+//     constraint ((::bar_x + ::z) == (::bar_y + ::q));
+//     constraint (::bar_w == 0x000000000000000A000000000000000A000000000000000A000000000000000A);
+//     constraint (::bar_b == false);
+//     constraint (!::bar_b == true);
+//     constraint (::bar_c == {142, {143, 0x0000000000000009000000000000000900000000000000090000000000000009}, false});
+//     constraint (::bar_c.0 == 142);
+//     constraint (::bar_c.1 == {143, 0x0000000000000009000000000000000900000000000000090000000000000009});
+//     constraint (::bar_c.1.0 == 143);
+//     constraint (::bar_c.1.1 == 0x0000000000000009000000000000000900000000000000090000000000000009);
+//     constraint (::bar_c.2 == false);
+//     constraint (::bar_d == [191, 192, 193]);
+//     constraint (::bar_d[0] == 191);
+//     constraint (::bar_d[1] == 192);
+//     constraint (::bar_d[2] == 193);
+//     constraint (::bar_e == [[{10, 11}, {12, 13}, {14, 15}], [{16, 17}, {18, 19}, {110, 111}]]);
+//     constraint (::bar_e[0][0] == {10, 11});
+//     constraint (::bar_e[1] == [{16, 17}, {18, 19}, {110, 111}]);
 // }
 // 
 // predicate ::Foo(
 //     ::nonce: int,
+//     ::x: int,
+//     ::y: int,
+//     ::w: b256,
+//     ::b: bool,
+//     ::c: {int, {int, b256}, bool},
+//     ::d: int[3],
+//     ::e: {int, int}[3][2],
 // ) {
-//     pub var ::x: int;
-//     pub var ::y: int;
-//     pub var ::w: b256;
-//     pub var ::b: bool;
-//     pub var ::c: {int, {int, b256}, bool};
-//     pub var ::d: int[3];
-//     pub var ::e: {int, int}[3][2];
 //     constraint (::nonce == 0);
 // }
 // 
 // predicate ::Bar(
 //     ::nonce: int,
+//     ::x: int,
+//     ::y: int,
+//     ::w: b256,
+//     ::b: bool,
+//     ::c: {int, {int, b256}, bool},
+//     ::d: int[3],
+//     ::e: {int, int}[3][2],
 // ) {
-//     pub var ::x: int;
-//     pub var ::y: int;
-//     pub var ::w: b256;
-//     pub var ::b: bool;
-//     pub var ::c: {int, {int, b256}, bool};
-//     pub var ::d: int[3];
-//     pub var ::e: {int, int}[3][2];
 //     constraint (::nonce == 1);
 // }
 // >>>
@@ -170,74 +227,86 @@ predicate Bar(nonce: int) {
 // predicate ::Simple(
 //     ::z: int,
 //     ::q: int,
-//     __::FooI_pathway: int,
-//     __::BarI_pathway: int,
+//     ::foo_nonce: int,
+//     ::foo_x: int,
+//     ::foo_y: int,
+//     ::foo_w: b256,
+//     ::foo_b: bool,
+//     ::foo_c: {int, {int, b256}, bool},
+//     ::foo_d: int[3],
+//     ::foo_e: {int, int}[3][2],
+//     ::bar_nonce: int,
+//     ::bar_x: int,
+//     ::bar_y: int,
+//     ::bar_w: b256,
+//     ::bar_b: bool,
+//     ::bar_c: {int, {int, b256}, bool},
+//     ::bar_d: int[3],
+//     ::bar_e: {int, int}[3][2],
 // ) {
-//     predicate ::FooI = ::Foo()
-//     predicate ::BarI = ::Bar()
-//     constraint ((__pub_var(__::FooI_pathway, {0}) + ::z) == (__pub_var(__::FooI_pathway, {1}) + ::q));
-//     constraint (__pub_var(__::FooI_pathway, {2}) == 0x0000000000000009000000000000000900000000000000090000000000000009);
-//     constraint (__pub_var(__::FooI_pathway, {3}) == true);
-//     constraint (!__pub_var(__::FooI_pathway, {3}) == false);
-//     constraint (__pub_var(__::FooI_pathway, {4}) == {42, {43, 0x0000000000000008000000000000000800000000000000080000000000000008}, true});
-//     constraint (__pub_var(__::FooI_pathway, {4}).0 == 42);
-//     constraint (__pub_var(__::FooI_pathway, {4}).1 == {43, 0x0000000000000008000000000000000800000000000000080000000000000008});
-//     constraint (__pub_var(__::FooI_pathway, {4}).1.0 == 43);
-//     constraint (__pub_var(__::FooI_pathway, {4}).1.1 == 0x0000000000000008000000000000000800000000000000080000000000000008);
-//     constraint (__pub_var(__::FooI_pathway, {4}).2 == true);
-//     constraint (__pub_var(__::FooI_pathway, {5}) == [91, 92, 93]);
-//     constraint (__pub_var(__::FooI_pathway, {5})[0] == 91);
-//     constraint (__pub_var(__::FooI_pathway, {5})[1] == 92);
-//     constraint (__pub_var(__::FooI_pathway, {5})[2] == 93);
-//     constraint (__pub_var(__::FooI_pathway, {6}) == [[{0, 1}, {2, 3}, {4, 5}], [{6, 7}, {8, 9}, {10, 11}]]);
-//     constraint (__pub_var(__::FooI_pathway, {6})[0][0] == {0, 1});
-//     constraint (__pub_var(__::FooI_pathway, {6})[1] == [{6, 7}, {8, 9}, {10, 11}]);
-//     constraint ((__pub_var(__::BarI_pathway, {0}) + ::z) == (__pub_var(__::BarI_pathway, {1}) + ::q));
-//     constraint (__pub_var(__::BarI_pathway, {2}) == 0x000000000000000A000000000000000A000000000000000A000000000000000A);
-//     constraint (__pub_var(__::BarI_pathway, {3}) == false);
-//     constraint (!__pub_var(__::BarI_pathway, {3}) == true);
-//     constraint (__pub_var(__::BarI_pathway, {4}) == {142, {143, 0x0000000000000009000000000000000900000000000000090000000000000009}, false});
-//     constraint (__pub_var(__::BarI_pathway, {4}).0 == 142);
-//     constraint (__pub_var(__::BarI_pathway, {4}).1 == {143, 0x0000000000000009000000000000000900000000000000090000000000000009});
-//     constraint (__pub_var(__::BarI_pathway, {4}).1.0 == 143);
-//     constraint (__pub_var(__::BarI_pathway, {4}).1.1 == 0x0000000000000009000000000000000900000000000000090000000000000009);
-//     constraint (__pub_var(__::BarI_pathway, {4}).2 == false);
-//     constraint (__pub_var(__::BarI_pathway, {5}) == [191, 192, 193]);
-//     constraint (__pub_var(__::BarI_pathway, {5})[0] == 191);
-//     constraint (__pub_var(__::BarI_pathway, {5})[1] == 192);
-//     constraint (__pub_var(__::BarI_pathway, {5})[2] == 193);
-//     constraint (__pub_var(__::BarI_pathway, {6}) == [[{10, 11}, {12, 13}, {14, 15}], [{16, 17}, {18, 19}, {110, 111}]]);
-//     constraint (__pub_var(__::BarI_pathway, {6})[0][0] == {10, 11});
-//     constraint (__pub_var(__::BarI_pathway, {6})[1] == [{16, 17}, {18, 19}, {110, 111}]);
+//     constraint ::Foo[[]](::foo_nonce, ::foo_x, ::foo_y, ::foo_w, ::foo_b, ::foo_c, ::foo_d, ::foo_e);
+//     constraint ((::foo_x + ::z) == (::foo_y + ::q));
+//     constraint (::foo_w == 0x0000000000000009000000000000000900000000000000090000000000000009);
+//     constraint (::foo_b == true);
+//     constraint (!::foo_b == false);
+//     constraint (::foo_c == {42, {43, 0x0000000000000008000000000000000800000000000000080000000000000008}, true});
+//     constraint (::foo_c.0 == 42);
+//     constraint (::foo_c.1 == {43, 0x0000000000000008000000000000000800000000000000080000000000000008});
+//     constraint (::foo_c.1.0 == 43);
+//     constraint (::foo_c.1.1 == 0x0000000000000008000000000000000800000000000000080000000000000008);
+//     constraint (::foo_c.2 == true);
+//     constraint (::foo_d == [91, 92, 93]);
+//     constraint (::foo_d[0] == 91);
+//     constraint (::foo_d[1] == 92);
+//     constraint (::foo_d[2] == 93);
+//     constraint (::foo_e == [[{0, 1}, {2, 3}, {4, 5}], [{6, 7}, {8, 9}, {10, 11}]]);
+//     constraint (::foo_e[0][0] == {0, 1});
+//     constraint (::foo_e[1] == [{6, 7}, {8, 9}, {10, 11}]);
+//     constraint ::Bar[[]](::bar_nonce, ::bar_x, ::bar_y, ::bar_w, ::bar_b, ::bar_c, ::bar_d, ::bar_e);
+//     constraint ((::bar_x + ::z) == (::bar_y + ::q));
+//     constraint (::bar_w == 0x000000000000000A000000000000000A000000000000000A000000000000000A);
+//     constraint (::bar_b == false);
+//     constraint (!::bar_b == true);
+//     constraint (::bar_c == {142, {143, 0x0000000000000009000000000000000900000000000000090000000000000009}, false});
+//     constraint (::bar_c.0 == 142);
+//     constraint (::bar_c.1 == {143, 0x0000000000000009000000000000000900000000000000090000000000000009});
+//     constraint (::bar_c.1.0 == 143);
+//     constraint (::bar_c.1.1 == 0x0000000000000009000000000000000900000000000000090000000000000009);
+//     constraint (::bar_c.2 == false);
+//     constraint (::bar_d == [191, 192, 193]);
+//     constraint (::bar_d[0] == 191);
+//     constraint (::bar_d[1] == 192);
+//     constraint (::bar_d[2] == 193);
+//     constraint (::bar_e == [[{10, 11}, {12, 13}, {14, 15}], [{16, 17}, {18, 19}, {110, 111}]]);
+//     constraint (::bar_e[0][0] == {10, 11});
+//     constraint (::bar_e[1] == [{16, 17}, {18, 19}, {110, 111}]);
 //     constraint __eq_set(__mut_keys(), {0});
-//     constraint (__predicate_at(__::FooI_pathway) == {__this_contract_address(), __address_of("::Foo")});
-//     constraint (__predicate_at(__::BarI_pathway) == {__this_contract_address(), __address_of("::Bar")});
 // }
 // 
 // predicate ::Foo(
 //     ::nonce: int,
+//     ::x: int,
+//     ::y: int,
+//     ::w: b256,
+//     ::b: bool,
+//     ::c: {int, {int, b256}, bool},
+//     ::d: int[3],
+//     ::e: {int, int}[3][2],
 // ) {
-//     pub var ::x: int;
-//     pub var ::y: int;
-//     pub var ::w: b256;
-//     pub var ::b: bool;
-//     pub var ::c: {int, {int, b256}, bool};
-//     pub var ::d: int[3];
-//     pub var ::e: {int, int}[3][2];
 //     constraint (::nonce == 0);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // 
 // predicate ::Bar(
 //     ::nonce: int,
+//     ::x: int,
+//     ::y: int,
+//     ::w: b256,
+//     ::b: bool,
+//     ::c: {int, {int, b256}, bool},
+//     ::d: int[3],
+//     ::e: {int, int}[3][2],
 // ) {
-//     pub var ::x: int;
-//     pub var ::y: int;
-//     pub var ::w: b256;
-//     pub var ::b: bool;
-//     pub var ::c: {int, {int, b256}, bool};
-//     pub var ::d: int[3];
-//     pub var ::e: {int, int}[3][2];
 //     constraint (::nonce == 1);
 //     constraint __eq_set(__mut_keys(), {0});
 // }

@@ -1,160 +1,86 @@
 use crate::{
-    error::{CompileError, Error, Handler, LargeTypeError},
+    error::{CompileError, Error, ErrorEmitted, Handler},
+    expr::{Expr, ExternalIntrinsic, Immediate, IntrinsicKind},
     predicate::{
-        BlockStatement, ConstraintDecl, Contract, ExprKey, Ident, IfDecl, InterfaceInstance,
-        MatchDecl, MatchDeclBranch, PredKey, PredicateInstance,
+        BlockStatement, ConstraintDecl, Contract, Ident, IfDecl, MatchDecl, MatchDeclBranch,
+        PredKey,
     },
-    types::{b256, Type},
+    span::Span,
+    types::Type,
     warning::Warning,
 };
 use fxhash::FxHashSet;
+use petgraph::{graph::NodeIndex, Graph};
+use std::collections::HashMap;
 
 impl Contract {
-    pub(in crate::predicate::analyse) fn check_iface_inst_addrs(&mut self, handler: &Handler) {
-        for pred_key in self.preds.keys().collect::<Vec<_>>() {
-            // Type check all interface instance declarations.
-            let mut addr_keys = Vec::default();
-            for InterfaceInstance {
-                interface,
-                address,
-                span,
-                ..
-            } in &self.preds[pred_key].interface_instances
-            {
-                if self
-                    .interfaces
-                    .iter()
-                    .any(|e| e.name.to_string() == *interface)
-                {
-                    // OK. Type check this address below.
-                    addr_keys.push(*address);
-                } else {
-                    handler.emit_err(Error::Compile {
-                        error: CompileError::MissingInterface {
-                            name: interface.clone(),
-                            span: span.clone(),
-                        },
-                    });
-                }
-            }
-
-            self.check_instance_addresses(handler, Some(pred_key), &addr_keys);
-        }
-    }
-
-    pub(in crate::predicate::analyse) fn check_pred_inst_addrs(&mut self, handler: &Handler) {
-        for pred_key in self.preds.keys().collect::<Vec<_>>() {
-            // Type check all predicate instance declarations.
-            let mut addr_keys = Vec::default();
-            for PredicateInstance {
-                interface_instance,
-                predicate,
-                address,
-                span,
-                ..
-            } in &self.preds[pred_key].predicate_instances
-            {
-                if let Some(interface_instance) = interface_instance {
-                    // Make sure that an appropriate interface instance exists and an appropriate
-                    // predicate interface exists.
-                    if let Some(interface_instance) = self.preds[pred_key]
-                        .interface_instances
-                        .iter()
-                        .find(|e| e.name.to_string() == *interface_instance)
-                    {
-                        if let Some(interface) = self
-                            .interfaces
-                            .iter()
-                            .find(|e| e.name.to_string() == *interface_instance.interface)
-                        {
-                            if interface
-                                .predicate_interfaces
-                                .iter()
-                                .any(|e| e.name.to_string() == *predicate.to_string())
-                            {
-                                // OK. Type check this address below.
-                                if let Some(address) = *address {
-                                    addr_keys.push(address);
-                                }
-                            } else {
-                                handler.emit_err(Error::Compile {
-                                    error: CompileError::MissingPredicate {
-                                        pred_name: predicate.name.to_string(),
-                                        interface_name: Some(interface.name.to_string()),
-                                        span: span.clone(),
-                                    },
-                                });
-                            }
-                        }
-                    } else {
-                        handler.emit_err(Error::Compile {
-                            error: CompileError::MissingInterfaceInstance {
-                                name: interface_instance.clone(),
-                                span: span.clone(),
-                            },
-                        });
-                    }
-                } else {
-                    // This predicate instance must reference a local predicate since
-                    // `interface_instance` is `None`. If not, emit an error.
-
-                    // Self referential predicates are not allowed.
-                    if "::".to_owned() + &predicate.name == self.preds[pred_key].name {
-                        handler.emit_err(Error::Compile {
-                            error: CompileError::SelfReferencialPredicate {
-                                pred_name: predicate.name.to_string(),
-                                span: span.clone(),
-                            },
-                        });
-                    }
-
-                    // If the predicate does not exist, emit an error
-                    if self
-                        .preds
-                        .iter()
-                        .all(|(_, pred)| pred.name != "::".to_owned() + &predicate.name)
-                    {
-                        handler.emit_err(Error::Compile {
-                            error: CompileError::MissingPredicate {
-                                pred_name: predicate.name.to_string(),
-                                interface_name: None,
-                                span: span.clone(),
-                            },
-                        });
-                    }
-                }
-            }
-
-            self.check_instance_addresses(handler, Some(pred_key), &addr_keys);
-        }
-    }
-
-    fn check_instance_addresses(
-        &mut self,
+    pub(in crate::predicate::analyse) fn check_cyclical_predicate_dependencies(
+        &self,
         handler: &Handler,
-        pred_key: Option<PredKey>,
-        addr_keys: &[ExprKey],
-    ) {
-        for address in addr_keys {
-            if self
-                .type_check_single_expr(handler, pred_key, *address)
-                .is_ok()
-            {
-                let ty = address.get_ty(self);
-                if !ty.is_b256() {
-                    handler.emit_err(Error::Compile {
-                        error: CompileError::AddressExpressionTypeError {
-                            large_err: Box::new(LargeTypeError::AddressExpressionTypeError {
-                                expected_ty: self.with_ctrct(b256()).to_string(),
-                                found_ty: self.with_ctrct(ty).to_string(),
-                                span: self.expr_key_to_span(*address),
-                                expected_span: Some(self.expr_key_to_span(*address)),
-                            }),
-                        },
-                    });
+    ) -> Result<(), ErrorEmitted> {
+        // This is a dependency graph between predicates. Predicates may depend on other predicates
+        // using local predicate calls or `__address_of` intrinsic calls that reference other
+        // predicates in the same contract
+        let mut dep_graph = Graph::<String, ()>::new();
+
+        // This map keeps track of what node indices (in the dependency graph) are assigned to what
+        // predicates (identified by names)
+        let mut names_to_indices = HashMap::<String, NodeIndex>::new();
+
+        // This is a map between node indices in the dependency graph and the spans of the
+        // corresponding predicate declarations.
+        let mut pred_spans = HashMap::<NodeIndex, Span>::new();
+
+        for (_, pred) in self.preds.iter() {
+            let new_node = dep_graph.add_node(pred.name.clone());
+            names_to_indices.insert(pred.name.clone(), new_node);
+            pred_spans.insert(new_node, self.symbols.symbols[&pred.name].clone());
+        }
+
+        for (pred_key, pred) in self.preds.iter() {
+            // If this predicate refers to another predicate using a `LocalPredicateCall` or an
+            // `AddressOf` intrinsic, then create a dependency edge from the other pedicate to this
+            // one.
+            for expr in self.exprs(pred_key) {
+                if let Some(Expr::LocalPredicateCall { predicate, .. }) = expr.try_get(self) {
+                    let from = names_to_indices[predicate];
+                    let to = names_to_indices[&pred.name];
+                    dep_graph.add_edge(from, to, ());
+                } else if let Some(Expr::IntrinsicCall {
+                    kind: (IntrinsicKind::External(ExternalIntrinsic::AddressOf), _),
+                    args,
+                    ..
+                }) = expr.try_get(self)
+                {
+                    if let Some(Expr::Immediate {
+                        value: Immediate::String(name),
+                        ..
+                    }) = args.first().and_then(|name| name.try_get(self))
+                    {
+                        let from = names_to_indices[name];
+                        let to = names_to_indices[&pred.name];
+                        dep_graph.add_edge(from, to, ());
+                    }
                 }
             }
         }
+
+        // Now, check if we have any dependency cycles. If so, print those cycles as errors
+
+        // Produce all the strongly connected components of the dependency graph
+        let sccs = petgraph::algo::kosaraju_scc(&dep_graph);
+        for scc in &sccs {
+            // Bad components are ones with more than 1 node. These contain cycles.
+            if scc.len() > 1 {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::DependencyCycle {
+                        spans: scc.iter().map(|idx| pred_spans[idx].clone()).collect(),
+                    },
+                });
+            }
+        }
+
+        handler.result(())
     }
 
     // Type check an if statement and all of its sub-statements including other ifs. This is a

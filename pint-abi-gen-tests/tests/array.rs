@@ -157,7 +157,6 @@ async fn test_array_solution_foo() {
     let solution_data = SolutionData {
         predicate_to_solve: array::Foo::ADDRESS,
         decision_variables: vec![],
-        transient_data: vec![],
         state_mutations,
     };
 

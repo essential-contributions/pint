@@ -575,9 +575,8 @@ impl Type {
         }
     }
 
-    /// Calculate the number of storage or pub var slots required for this type. All primitive
-    /// types fit in a single slot even if their size is > 1. The math is the same for storage and
-    /// pub var data
+    /// Calculate the number of storage required for this type. All primitive types fit in a single
+    /// slot even if their size is > 1.
     pub fn storage_slots(
         &self,
         handler: &Handler,

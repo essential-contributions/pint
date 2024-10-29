@@ -1,45 +1,43 @@
 predicate Foo() {
-    predicate Bar = Bar();
-    constraint Bar::x == 0;
+    constraint Bar[[]]();
 }
 predicate Baz() {
-    predicate Bar = Bar();
+    constraint Bar[[]]();
 }
 
 predicate P() {
-    pub var x: int;
-    predicate PI = P();
-    constraint PI::x == 0;
+    constraint P[[]]();
 }
 
 predicate A(x: int) {
 }
 
 predicate B() {
-    predicate AI = A();
-    constraint AI::x == 0; // `x` is not `pub` in `A`
+    constraint A[[]](1, 2);
+}
+
+predicate W(x: int, y: b256) {}
+
+predicate U() {
+    constraint W[[]](1, 2, 3);
+    constraint W[[]](0);
+    constraint W[[]](false, {2, 1});
 }
 
 // parsed <<<
 // predicate ::Foo(
-//     __::Bar_pathway: int,
 // ) {
-//     predicate ::Bar = ::Bar()
-//     constraint (::Bar::x == 0);
+//     constraint ::Bar[[]]();
 // }
 // 
 // predicate ::Baz(
-//     __::Bar_pathway: int,
 // ) {
-//     predicate ::Bar = ::Bar()
+//     constraint ::Bar[[]]();
 // }
 // 
 // predicate ::P(
-//     __::PI_pathway: int,
 // ) {
-//     predicate ::PI = ::P()
-//     pub var ::x: int;
-//     constraint (::PI::x == 0);
+//     constraint ::P[[]]();
 // }
 // 
 // predicate ::A(
@@ -48,24 +46,44 @@ predicate B() {
 // }
 // 
 // predicate ::B(
-//     __::AI_pathway: int,
 // ) {
-//     predicate ::AI = ::A()
-//     constraint (::AI::x == 0);
+//     constraint ::A[[]](1, 2);
+// }
+// 
+// predicate ::W(
+//     ::x: int,
+//     ::y: b256,
+// ) {
+// }
+// 
+// predicate ::U(
+// ) {
+//     constraint ::W[[]](1, 2, 3);
+//     constraint ::W[[]](0);
+//     constraint ::W[[]](false, {2, 1});
 // }
 // >>>
 
 // typecheck_failure <<<
-// cannot find predicate `Bar` in this contract
-// @22..43: this predicate instance references predicate `Bar` which does not exist in this contract
-// cannot find predicate `Bar` in this contract
-// @97..118: this predicate instance references predicate `Bar` which does not exist in this contract
-// self referential predicate `P`
-// @163..181: this predicate instance references the predicate it's declared in
-// cannot find value `::Bar::x` in this scope
-// @60..66: not found in this scope
-// cannot find value `::PI::x` in this scope
-// @198..203: not found in this scope
-// cannot find value `::AI::x` in this scope
-// @293..298: not found in this scope
+// cannot find predicate `::Bar` in this contract
+// @33..42: this predicate call references predicate `::Bar` which does not exist in this contract
+// cannot find predicate `::Bar` in this contract
+// @79..88: this predicate call references predicate `::Bar` which does not exist in this contract
+// self referential predicate `::P`
+// @124..131: this predicate call references the predicate it's declared in
+// this predicate takes 1 argument but 2 arguments were supplied
+// @192..203: unexpected number of arguments here
+// incorrect predicate argument
+// @281..282: expected `b256`, found `int`
+// @272..286: arguments to this predicate call are incorrect`
+// this predicate takes 2 arguments but 3 arguments were supplied
+// @272..286: unexpected number of arguments here
+// this predicate takes 2 arguments but 1 argument was supplied
+// @303..311: unexpected number of arguments here
+// incorrect predicate argument
+// @334..339: expected `int`, found `bool`
+// @328..348: arguments to this predicate call are incorrect`
+// incorrect predicate argument
+// @341..347: expected `b256`, found `{int, int}`
+// @328..348: arguments to this predicate call are incorrect`
 // >>>

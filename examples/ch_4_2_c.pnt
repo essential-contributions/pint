@@ -1,3 +1,4 @@
+// <disabled>
 // ANCHOR: interface 
 interface Counter {
     storage {

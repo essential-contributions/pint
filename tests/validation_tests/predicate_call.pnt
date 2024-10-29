@@ -1,0 +1,21 @@
+interface Baz {
+    predicate Foo(
+        x: int,
+        y: int,
+    );
+}
+
+predicate Simple(x: int, y: int) {
+    state c_addr = 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE;
+    state p_addr = 0x0000000000000000000000000000000000000000000000000000000000000000;
+
+    constraint  Baz[[c_addr]]::Foo[[p_addr]](x, y);
+
+    constraint x + y == 10;
+
+    constraint Other[[]](5, 3);
+}
+
+predicate Other(w: int, v: int) {
+
+}

@@ -19,14 +19,6 @@ predicate Foo(
     v4: { int, int, { int, int } },
     v5: { int, int[3], b256[2] },
 ) {
-    pub var t0: bool;
-    pub var t1: int;
-    pub var t2: b256;
-    pub var t3: { int, { int, b256 } };
-    pub var t4: { int, int[3], b256[2] };
-
-    @bar();
-
     // Here we write a bunch of arbitrary constraints to check encoding/decoding
     // of the different types etc.
 
@@ -42,20 +34,6 @@ predicate Foo(
         [
             0x3333333333333333333333333333333333333333333333333333333333333333,
             0x4444444444444444444444444444444444444444444444444444444444444444,
-        ]
-    };
-
-    // Now check pub decision variables.
-    constraint !t0;
-    constraint t1 == 11;
-    constraint t2 == 0x2222222222222222222222222222222222222222222222222222222222222222;
-    constraint t3 == { 42, { 43, 0x2222222222222222222222222222222222222222222222222222222222222222 }};
-    constraint t4 == {
-        73, 
-        [74, 75, 76], 
-        [
-            0x5555555555555555555555555555555555555555555555555555555555555555,
-            0x6666666666666666666666666666666666666666666666666666666666666666,
         ]
     };
 
@@ -83,9 +61,4 @@ predicate Foo(
     constraint my_nested_map0_key1_2' == 1234;
     constraint my_nested_map1_key2_3' == { 69, { 0x1111111100000000111111110000000011111111000000001111111100000000, 96 } };
     constraint my_array' == [11, 12, 13, 14, 15];
-}
-
-macro @bar() {
-    pub var t3: int;
-    constraint t3 == 45;
 }

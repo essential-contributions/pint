@@ -171,32 +171,6 @@ pub(crate) fn splice_args(
                         },
                     });
                 }
-            } else if let Some(var_init_key) = pred.var_inits.get(var_key) {
-                if let Some(Expr::Array { range_expr, .. }) = var_init_key.try_get(contract) {
-                    if let Some((size, opt_enumeration_union)) =
-                        splice_get_array_range_size(contract, *range_expr)
-                    {
-                        // Store where and what to replace in the new spliced args.
-                        replacements.insert(
-                            (arg_idx, tok_idx),
-                            (array_name.to_string(), size, opt_enumeration_union, range),
-                        );
-                    } else {
-                        handler.emit_err(Error::Compile {
-                            error: CompileError::MacroSpliceArrayUnknownSize {
-                                var_name: array_path,
-                                span: Span::new(call.span.context(), range),
-                            },
-                        });
-                    }
-                } else {
-                    handler.emit_err(Error::Compile {
-                        error: CompileError::MacroSpliceArrayUnknownSize {
-                            var_name: array_path,
-                            span: Span::new(call.span.context(), range),
-                        },
-                    });
-                }
             } else {
                 handler.emit_err(Error::Compile {
                     error: CompileError::Internal {

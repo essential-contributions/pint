@@ -57,7 +57,7 @@ pub(crate) fn legalize_vector_accesses_in_predicate(
                 ..
             } = init_expr.get(contract)
             {
-                if let Expr::StorageAccess {
+                if let Expr::LocalStorageAccess {
                     name: storage_vec_name,
                     ..
                 } = storage_vec_expr.get(contract)
@@ -130,7 +130,7 @@ pub(crate) fn legalize_vector_accesses_in_predicate(
                                     storage_vec_name: &String,
                                     storage_access_ty: &Type| {
         let vector_storage_access = contract.exprs.insert(
-            Expr::StorageAccess {
+            Expr::LocalStorageAccess {
                 name: storage_vec_name.clone(),
                 mutable: false,
                 span: empty_span(),

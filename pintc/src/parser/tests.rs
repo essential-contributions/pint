@@ -659,8 +659,8 @@ interface Foo {
         boolean: bool,
     }
 
-    predicate Bar;
-    predicate Baz { pub var x: int; }
+    predicate Bar();
+    predicate Baz(x: int);
 }
 "#;
 
@@ -672,10 +672,10 @@ interface Foo {
                     integer: int,
                     boolean: bool,
                 }
-                predicate Bar;
-                predicate Baz {
-                    pub var x: int;
-                }
+                predicate Bar();
+                predicate Baz (
+                    x: int,
+                );
             }"#]],
     );
 
@@ -747,13 +747,13 @@ interface Foo {
         &run_parser!(
             pint,
             r#"
-            interface Foo { storage { } predicate Baz { } }"#
+            interface Foo { storage { } predicate Baz(); }"#
         ),
         expect_test::expect![[r#"
             interface ::Foo {
                 storage {
                 }
-                predicate Baz;
+                predicate Baz();
             }"#]],
     );
     check(
@@ -791,43 +791,45 @@ interface Foo {
             pint,
             r#"
             interface Foo {
-                predicate Baz { var x: int }
-            }"#
-        ),
-        expect_test::expect![[r#"
-            expected `pub`, or `}`, found `var`
-            @61..64: expected `pub`, or `}`
-        "#]],
-    );
-
-    check(
-        &run_parser!(
-            pint,
-            r#"
-            interface Foo {
-                predicate Baz { pub var x; }
-            }"#
-        ),
-        expect_test::expect![[r#"
-            expected `:`, found `;`
-            @70..71: expected `:`
-        "#]],
-    );
-
-    check(
-        &run_parser!(
-            pint,
-            r#"
-            interface Foo {
-                predicate Baz { pub var x: int; pub var y: b256; }
+                predicate Baz(x: int);
             }"#
         ),
         expect_test::expect![[r#"
             interface ::Foo {
-                predicate Baz {
-                    pub var x: int;
-                    pub var y: b256;
-                }
+                predicate Baz (
+                    x: int,
+                );
+            }"#]],
+    );
+
+    check(
+        &run_parser!(
+            pint,
+            r#"
+            interface Foo {
+                predicate Baz(x);
+            }"#
+        ),
+        expect_test::expect![[r#"
+            expected `:`, found `)`
+            @60..61: expected `:`
+        "#]],
+    );
+
+    check(
+        &run_parser!(
+            pint,
+            r#"
+            interface Foo {
+                predicate Baz(x: int, y: b256,);
+            }"#
+        ),
+        expect_test::expect![[r#"
+            interface ::Foo {
+                predicate Baz (
+                    x: int,
+                    y: b256,
+                );
             }"#]],
     );
 
@@ -860,140 +862,7 @@ interface Foo {
 }
 
 #[test]
-fn interface_instance() {
-    let pint = (yp::PintParser::new(), "");
-
-    let src = r#"predicate test() {
-        interface FooInstance =
-            FooInstance(0x0000111100001111000011110000111100001111000011110000111100001111);
-    }"#;
-
-    check(
-        &run_parser!(pint, src),
-        expect_test::expect![[r#"
-
-            predicate ::test(
-            ) {
-                interface ::FooInstance = ::FooInstance(0x0000111100001111000011110000111100001111000011110000111100001111)
-            }"#]],
-    );
-
-    let src = r#"predicate test(addr: b256) {
-        interface FooInstance =
-            ::path::to::FooInstance(addr);
-    }"#;
-
-    check(
-        &run_parser!(pint, src),
-        expect_test::expect![[r#"
-
-            predicate ::test(
-                ::addr: b256,
-            ) {
-                interface ::FooInstance = ::path::to::FooInstance(::addr)
-            }"#]],
-    );
-}
-
-#[test]
-fn predicate_instance() {
-    let pint = (yp::PintParser::new(), "");
-
-    let src = r#" predicate test() {
-        predicate FooInstance =
-            InterfaceInstance::
-            FooInstance(0x0000111100001111000011110000111100001111000011110000111100001111);
-    }"#;
-
-    check(
-        &run_parser!(pint, src),
-        expect_test::expect![[r#"
-
-            predicate ::test(
-                __::FooInstance_pathway: int,
-            ) {
-                predicate ::FooInstance = ::InterfaceInstance::FooInstance(0x0000111100001111000011110000111100001111000011110000111100001111)
-            }"#]],
-    );
-
-    let src = r#"predicate test() {
-        predicate FooInstance =
-            ::InterfaceInstance::
-            FooInstance(0x0000111100001111000011110000111100001111000011110000111100001111);
-    }"#;
-
-    check(
-        &run_parser!(pint, src),
-        expect_test::expect![[r#"
-
-            predicate ::test(
-                __::FooInstance_pathway: int,
-            ) {
-                predicate ::FooInstance = ::InterfaceInstance::FooInstance(0x0000111100001111000011110000111100001111000011110000111100001111)
-            }"#]],
-    );
-
-    let src = r#"predicate test(addr: b256) {
-        predicate FooInstance = path::to::FooInstance(addr);
-    }"#;
-
-    check(
-        &run_parser!(pint, src),
-        expect_test::expect![[r#"
-
-            predicate ::test(
-                ::addr: b256,
-                __::FooInstance_pathway: int,
-            ) {
-                predicate ::FooInstance = ::path::to::FooInstance(::addr)
-            }"#]],
-    );
-
-    let src = r#"predicate test(addr: b256) {
-        predicate FooInstance = ::path::to::FooInstance(addr);
-    }"#;
-
-    check(
-        &run_parser!(pint, src),
-        expect_test::expect![[r#"
-
-            predicate ::test(
-                ::addr: b256,
-                __::FooInstance_pathway: int,
-            ) {
-                predicate ::FooInstance = ::path::to::FooInstance(::addr)
-            }"#]],
-    );
-
-    let src = r#"predicate test(addr: b256) {
-        predicate FooInstance = FooInstance(addr);
-    }"#;
-
-    check(
-        &run_parser!(pint, src),
-        expect_test::expect![[r#"
-            path `FooInstance` to a predicate interface is too short
-            @37..78: path `FooInstance` is too short and cannot refer to a predicate interface
-            a path to a predicate interface must contain a path to an interface instance followed by the name of the predicate, separated by a `::`
-        "#]],
-    );
-
-    let src = r#"predicate test(addr: b256) {
-        predicate FooInstance = ::FooInstance(addr);
-    }"#;
-
-    check(
-        &run_parser!(pint, src),
-        expect_test::expect![[r#"
-            path `::FooInstance` to a predicate interface is too short
-            @37..80: path `::FooInstance` is too short and cannot refer to a predicate interface
-            a path to a predicate interface must contain a path to an interface instance followed by the name of the predicate, separated by a `::`
-        "#]],
-    );
-}
-
-#[test]
-fn storage_access() {
+fn local_storage_access() {
     let expr = (yp::TestDelegateParser::new(), "expr");
 
     check(
@@ -1063,21 +932,22 @@ fn external_storage_access() {
     let expr = (yp::TestDelegateParser::new(), "expr");
 
     check(
-        &run_parser!(expr, r#"Foo::storage::foo"#),
-        expect_test::expect!["::Foo::storage::foo"],
+        &run_parser!(expr, r#"Foo[[addr]]::storage::foo"#),
+        expect_test::expect!["::Foo[[::addr]]::storage::foo"],
     );
 
     check(
-        &run_parser!(expr, r#"Foo::Bar::storage::balances[0x111]"#),
-        expect_test::expect!["::Foo::Bar::storage::balances[273]"],
+        &run_parser!(expr, r#"Foo::Bar[[c ? a1: a2]]::storage::balances[0x111]"#),
+        expect_test::expect!["::Foo::Bar[[(::c ? ::a1 : ::a2)]]::storage::balances[273]"],
     );
 
     check(
         &run_parser!(
             expr,
-            r#"::Foo::storage::balances[0x111][__this_address()][t[3].5]"#
+            r#"::Foo[[0x0000000000000000000000000000000000000000000000000000000000000000]]
+               ::storage::balances[0x111][__this_address()][t[3].5]"#
         ),
-        expect_test::expect!["::Foo::storage::balances[273][__this_address()][::t[3].5]"],
+        expect_test::expect!["::Foo[[0x0000000000000000000000000000000000000000000000000000000000000000]]::storage::balances[273][__this_address()][::t[3].5]"],
     );
 
     let pint = (yp::PintParser::new(), "");
@@ -1085,26 +955,26 @@ fn external_storage_access() {
     check(
         &run_parser!(
             pint,
-            r#"predicate test() { state x = ::Foo::storage::foo; }"#
+            r#"predicate test() { state x = ::Foo[[xx]]::storage::foo; }"#
         ),
         expect_test::expect![[r#"
 
             predicate ::test(
             ) {
-                state ::x = ::Foo::storage::foo;
+                state ::x = ::Foo[[::xx]]::storage::foo;
             }"#]],
     );
 
     check(
         &run_parser!(
             pint,
-            r#"predicate test() { state x = Bar::storage::map[4][3]; }"#
+            r#"predicate test() { state x = Bar[[a]]::storage::map[4][3]; }"#
         ),
         expect_test::expect![[r#"
 
             predicate ::test(
             ) {
-                state ::x = ::Bar::storage::map[4][3];
+                state ::x = ::Bar[[::a]]::storage::map[4][3];
             }"#]],
     );
 
@@ -1196,138 +1066,6 @@ fn var_decls() {
             predicate ::foo::test(
                 ::foo::blah: b256,
             ) {
-            }"#]],
-    );
-}
-
-#[test]
-fn pub_var_decls() {
-    let mod_path = vec!["foo".to_string()];
-    let pint = (yp::PintParser::new(), "");
-
-    check(
-        &run_parser!(pint, "predicate test() { pub var blah; }", mod_path),
-        expect_test::expect![[r#"
-            type annotation or initializer needed for variable `blah`
-            @19..31: type annotation or initializer needed
-            consider giving `blah` an explicit type or an initializer
-        "#]],
-    );
-    check(
-        &run_parser!(pint, "predicate test() { pub var blah = 1; }", mod_path),
-        expect_test::expect![[r#"
-
-            predicate ::foo::test(
-            ) {
-                pub var ::foo::blah;
-                constraint (::foo::blah == 1);
-            }"#]],
-    );
-    check(
-        &run_parser!(pint, "predicate test() { pub var blah = 1; }", mod_path),
-        expect_test::expect![[r#"
-
-            predicate ::foo::test(
-            ) {
-                pub var ::foo::blah;
-                constraint (::foo::blah == 1);
-            }"#]],
-    );
-    check(
-        &run_parser!(
-            pint,
-            "predicate test() { pub var blah: int = 1; }",
-            mod_path
-        ),
-        expect_test::expect![[r#"
-
-            predicate ::foo::test(
-            ) {
-                pub var ::foo::blah: int;
-                constraint (::foo::blah == 1);
-            }"#]],
-    );
-    check(
-        &run_parser!(pint, "predicate test() { pub var blah: int; }", mod_path),
-        expect_test::expect![[r#"
-
-            predicate ::foo::test(
-            ) {
-                pub var ::foo::blah: int;
-            }"#]],
-    );
-    check(
-        &run_parser!(pint, "predicate test() { pub var blah = true; }", mod_path),
-        expect_test::expect![[r#"
-
-            predicate ::foo::test(
-            ) {
-                pub var ::foo::blah;
-                constraint (::foo::blah == true);
-            }"#]],
-    );
-    check(
-        &run_parser!(
-            pint,
-            "predicate test() { pub var blah: bool = false; }",
-            mod_path
-        ),
-        expect_test::expect![[r#"
-
-            predicate ::foo::test(
-            ) {
-                pub var ::foo::blah: bool;
-                constraint (::foo::blah == false);
-            }"#]],
-    );
-    check(
-        &run_parser!(pint, "predicate test() { pub var blah: bool; }", mod_path),
-        expect_test::expect![[r#"
-
-            predicate ::foo::test(
-            ) {
-                pub var ::foo::blah: bool;
-            }"#]],
-    );
-    check(
-        &run_parser!(
-            pint,
-            r#"predicate test() { pub var blah = 0x0000000000000000000000000000000000000000000000000000000000000000; }"#,
-            mod_path
-        ),
-        expect_test::expect![[r#"
-
-            predicate ::foo::test(
-            ) {
-                pub var ::foo::blah;
-                constraint (::foo::blah == 0x0000000000000000000000000000000000000000000000000000000000000000);
-            }"#]],
-    );
-    check(
-        &run_parser!(
-            pint,
-            r#"predicate test() { pub var blah: b256 = 0x0000000000000000000000000000000000000000000000000000000000000000; }"#,
-            mod_path
-        ),
-        expect_test::expect![[r#"
-
-            predicate ::foo::test(
-            ) {
-                pub var ::foo::blah: b256;
-                constraint (::foo::blah == 0x0000000000000000000000000000000000000000000000000000000000000000);
-            }"#]],
-    );
-    check(
-        &run_parser!(
-            pint,
-            r#"predicate test() { pub var blah: b256; }"#,
-            mod_path
-        ),
-        expect_test::expect![[r#"
-
-            predicate ::foo::test(
-            ) {
-                pub var ::foo::blah: b256;
             }"#]],
     );
 }
@@ -1778,8 +1516,8 @@ fn parens_exprs() {
     check(
         &run_parser!(expr, "()"),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, `mut`, `storage`, or `{`, found `)`
-            @12..13: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, `mut`, `storage`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `[[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, `mut`, `storage`, or `{`, found `)`
+            @12..13: expected `!`, `(`, `+`, `-`, `::`, `[`, `[[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, `mut`, `storage`, or `{`
         "#]],
     );
 
@@ -1922,8 +1660,8 @@ fn ranges() {
     check(
         &run_parser!(range, "1...2"),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, `mut`, `storage`, or `{`, found `.`
-            @15..16: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, `mut`, `storage`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `[[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, `mut`, `storage`, or `{`, found `.`
+            @15..16: expected `!`, `(`, `+`, `-`, `::`, `[`, `[[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, `mut`, `storage`, or `{`
         "#]],
     );
 
@@ -2046,15 +1784,15 @@ fn paths() {
     check(
         &run_parser!(expr, "foo::"),
         expect_test::expect![[r#"
-            expected `an identifier`, `macro_name`, or `storage`, found `end of file`
-            @16..16: expected `an identifier`, `macro_name`, or `storage`
+            expected `an identifier`, or `macro_name`, found `end of file`
+            @16..16: expected `an identifier`, or `macro_name`
         "#]],
     );
     check(
         &run_parser!(expr, "::foo::"),
         expect_test::expect![[r#"
-            expected `an identifier`, `macro_name`, or `storage`, found `end of file`
-            @18..18: expected `an identifier`, `macro_name`, or `storage`
+            expected `an identifier`, or `macro_name`, found `end of file`
+            @18..18: expected `an identifier`, or `macro_name`
         "#]],
     );
 }
@@ -2268,8 +2006,8 @@ fn array_expressions() {
     );
 
     check(
-        &run_parser!(expr, r#"[[1, 2], 3]"#), // This should fail in semantic analysis
-        expect_test::expect!["[[1, 2], 3]"],
+        &run_parser!(expr, r#"[[1, 2], [3]]"#),
+        expect_test::expect!["[[1, 2], [3]]"],
     );
 
     check(
@@ -2647,8 +2385,8 @@ fn cond_exprs() {
     check(
         &run_parser!(expr, r#"cond { a => b, }"#),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `else`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, `mut`, `storage`, or `{`, found `}`
-            @26..27: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `else`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, `mut`, `storage`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `[[`, `a boolean`, `a literal`, `an identifier`, `cond`, `else`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, `mut`, `storage`, or `{`, found `}`
+            @26..27: expected `!`, `(`, `+`, `-`, `::`, `[`, `[[`, `a boolean`, `a literal`, `an identifier`, `cond`, `else`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, `mut`, `storage`, or `{`
         "#]],
     );
 
@@ -2733,8 +2471,8 @@ fn in_expr() {
             r#"predicate test() { state x = 5 in"#
         ),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, `mut`, `storage`, or `{`, found `end of file`
-            @33..33: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, `mut`, `storage`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `[[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, `mut`, `storage`, or `{`, found `end of file`
+            @33..33: expected `!`, `(`, `+`, `-`, `::`, `[`, `[[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, `mut`, `storage`, or `{`
         "#]],
     );
 }
@@ -2822,8 +2560,8 @@ fn forall_expr() {
             r#"predicate test() { constraint forall i in 0..3 { constraint x; true }; }"#
         ),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, `mut`, `storage`, or `{`, found `constraint`
-            @49..59: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, `mut`, `storage`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `[[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, `mut`, `storage`, or `{`, found `constraint`
+            @49..59: expected `!`, `(`, `+`, `-`, `::`, `[`, `[[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, `mut`, `storage`, or `{`
         "#]],
     );
 }
@@ -2910,8 +2648,8 @@ fn exists_expr() {
             r#"predicate test() { constraint exists i in 0..3 { constraint x; true }; }"#
         ),
         expect_test::expect![[r#"
-            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, `mut`, `storage`, or `{`, found `constraint`
-            @49..59: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, `mut`, `storage`, or `{`
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `[[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, `mut`, `storage`, or `{`, found `constraint`
+            @49..59: expected `!`, `(`, `+`, `-`, `::`, `[`, `[[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, `mut`, `storage`, or `{`
         "#]],
     );
 }
@@ -2928,6 +2666,50 @@ fn intrinsic_call() {
     check(
         &run_parser!(expr, "__this_address(-a, b+c)"),
         expect_test::expect!["__this_address(-::a, (::b + ::c))"],
+    );
+}
+
+#[test]
+fn predicate_calls() {
+    let expr = (yp::TestDelegateParser::new(), "expr");
+
+    check(
+        &run_parser!(expr, r#"foo[[]](x, y, 0, { false })"#),
+        expect_test::expect!["::foo[[]](::x, ::y, 0, {false})"],
+    );
+
+    check(
+        &run_parser!(expr, "bar[[addr]]::foo[[ a ? b : c ]]()"),
+        expect_test::expect!["::bar[[::addr]]::foo[[(::a ? ::b : ::c)]]()"],
+    );
+
+    check(
+        &run_parser!(expr, "bar[[addr]]::foo[[ a ? b : c ]](1, 2, 3, )"),
+        expect_test::expect!["::bar[[::addr]]::foo[[(::a ? ::b : ::c)]](1, 2, 3)"],
+    );
+
+    check(
+        &run_parser!(expr, "bar[[addr]]()"),
+        expect_test::expect![[r#"
+            expected `::`, found `(`
+            @22..23: expected `::`
+        "#]],
+    );
+
+    check(
+        &run_parser!(expr, "bar[[]]::foo[[addr]]()"),
+        expect_test::expect![[r#"
+            expected `(`, found `::`
+            @18..20: expected `(`
+        "#]],
+    );
+
+    check(
+        &run_parser!(expr, "bar[[addr]]::foo[[]]()"),
+        expect_test::expect![[r#"
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `[[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, `mut`, `storage`, or `{`, found `]`
+            @29..30: expected `!`, `(`, `+`, `-`, `::`, `[`, `[[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `match`, `mut`, `storage`, or `{`
+        "#]],
     );
 }
 
@@ -3368,30 +3150,6 @@ fn experimental() {
     );
 
     let mod_path = vec!["foo".to_string()];
-    check(
-        &run_parser!(
-            pint,
-            "predicate test() { pub var blah: real = 1.0; }",
-            mod_path
-        ),
-        expect_test::expect![[r#"
-
-            predicate ::foo::test(
-            ) {
-                pub var ::foo::blah: real;
-                constraint (::foo::blah == 1e0);
-            }"#]],
-    );
-    check(
-        &run_parser!(pint, "predicate test() { pub var blah: real; }", mod_path),
-        expect_test::expect![[r#"
-
-            predicate ::foo::test(
-            ) {
-                pub var ::foo::blah: real;
-            }"#]],
-    );
-
     check(
         &run_parser!(
             pint,

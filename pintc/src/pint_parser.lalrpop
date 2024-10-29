@@ -9,7 +9,7 @@ use crate::{
     },
     predicate::{
         BlockStatement, CallKey, Const, ConstraintDecl, ExprKey, IfDecl, InterfaceDecl,
-        InterfaceInstance, InterfaceVar, MatchDecl, MatchDeclBranch, Predicate, PredicateInterface,
+        InterfaceVar, MatchDecl, MatchDeclBranch, Predicate, PredicateInterface,
         StorageVar,
     },
     span::Spanned,
@@ -45,12 +45,9 @@ PredicateInnerDecl: () = {
     ConstraintDecl ";",
     IfDecl,
     MatchDecl,
-    InterfaceInstance ";",
     MacroCallDecl ";",
-    PredicateInstance ";",
     StateDecl ";",
     UseStatement ";",
-    PubVarDecl ";",
 }
 
 // Decls allowed inside macro bodies, which is ALL of them except `MacroDecl`, since we don't want
@@ -61,16 +58,13 @@ DeclInnerMacroBody: () = {
     ConstraintDecl ";",
     IfDecl,
     Interface,
-    InterfaceInstance ";",
     MacroCallDecl ";",
     NewTypeDecl ";",
     PredicateDecl,
-    PredicateInstance ";",
     StateDecl ";",
     StorageDecl,
     UnionDecl ";",
     UseStatement ";",
-    PubVarDecl ";",
 }
 
 PredicateDecl: () = {
@@ -79,7 +73,11 @@ PredicateDecl: () = {
 
 PredicateArg: () = {
     <l:@L> <name:VarName> ":" <ty:Type> <r:@R> => {
-        context.parse_var_decl(handler, false, name, Some(ty), None, (l, r));
+        let mod_prefix = context.mod_prefix;
+        let _ = context 
+            .current_pred()
+            .expect("can only parse vars within predicates")
+            .insert_var(handler, mod_prefix, name.1, &name.0, ty);
     }
 }
 
@@ -140,7 +138,7 @@ StorageDecl: () = {
 }
 
 InterfaceVar: InterfaceVar = {
-    <l:@L> "pub" "var" <name:VarName> ":" <ty:Type> ";" <r:@R> => {
+    <l:@L> <name:VarName> ":" <ty:Type> <r:@R> => {
         InterfaceVar {
             name: name.0,
             ty,
@@ -150,20 +148,13 @@ InterfaceVar: InterfaceVar = {
 }
 
 PredicateInterface: PredicateInterface = {
-    <l:@L> "predicate" <name:Ident> "{" <vars:InterfaceVar*> "}" <r:@R> => {
+    <l:@L> "predicate" <name:Ident> "(" <vars:SepList<InterfaceVar, ",">> ")" ";" <r:@R> => {
         PredicateInterface {
             name,
             vars,
             span: (context.span_from)(l, r),
         }
     },
-    <l:@L> "predicate" <name:Ident> ";" <r:@R> => {
-        PredicateInterface {
-            name,
-            vars: vec![],
-            span: (context.span_from)(l, r),
-        }
-    }
 }
 
 InterfaceDecl: InterfaceDecl = {
@@ -178,50 +169,6 @@ InterfaceDecl: InterfaceDecl = {
 Interface: () = {
     <l:@L> "interface" <name:Ident> "{" <interface_decls:InterfaceDecl*> "}" <r:@R> => {
         context.parse_interface(handler, name, interface_decls, (l, r));
-    }
-}
-
-InterfaceInstance: () = {
-    <l:@L> "interface" <name:Ident> "=" <interface:Path> "(" <address:Expr> ")" <r:@R> => {
-        let interface_instance = InterfaceInstance {
-            name: context.add_top_level_symbol(handler, name, context.mod_prefix),
-            interface,
-            address,
-            span: (context.span_from)(l, r),
-        };
-        context
-            .current_pred()
-            .expect("adding an interface to the predicate")
-            .interface_instances
-            .push(interface_instance);
-    }
-}
-
-PredicateInstance: () = {
-    <l:@L> "predicate" <name:Ident> "="
-        <l1:@L> <abs:"::"?> <els:(<Ident> "::")*> <r1:@R> <predicate:Ident>
-            "(" <address:Expr> ")" <r:@R> => {
-        context.parse_predicate_instance(
-            handler,
-            name,
-            abs.is_some(),
-            els,
-            predicate,
-            Some(address),
-            (l, l1, r1, r),
-        );
-    },
-    <l:@L> "predicate" <name:Ident> "="
-        <l1:@L> /* no els here */ <r1:@R> <predicate:Ident> "(" ")" <r:@R> => {
-        context.parse_predicate_instance(
-            handler,
-            name,
-            false,  // not absolute
-            vec![], // no path needed for an interface instance
-            predicate,
-            None, // no address here
-            (l, l1, r1, r),
-        );
     }
 }
 
@@ -244,25 +191,8 @@ UseTree: UseTree = {
     <name:UsePathIdent> "as" <alias:Ident> => UseTree::Alias { name, alias },
 }
 
-PubVarDecl: () = {
-    <l:@L> <r#pub:"pub"> "var" <name:VarName> ":" <ty:Type> <init:VarInit?> <r:@R> => {
-        context.parse_var_decl(handler, true, name, Some(ty), init, (l, r));
-    },
-    <l:@L> <r#pub:"pub"> "var" <name:VarName> <init:VarInit> <r:@R> => {
-        context.parse_var_decl(handler, true, name, None, Some(init), (l, r));
-    },
-    <l:@L> <r#pub:"pub"> "var" <name:VarName> <r:@R> => {
-        context.parse_var_decl(handler, true, name, None, None, (l, r));
-    }
-}
-
 VarName: (Ident, Option<&'a str>) = {
     <l:@L> <id:"ident"> <r:@R> => context.parse_var_name(id, (l, r)),
-}
-
-VarInit: ExprKey = {
-    "=" <Range>,
-    "=" <Expr>,
 }
 
 StateDecl: () = {
@@ -854,6 +784,7 @@ TermInner: Expr = {
     },
     GeneratorExpr,
     IntrinsicCallExpr,
+    PredicateCallExpr,
     ArrayExpr,
     TupleExpr,
     UnionExpr,
@@ -1070,21 +1001,63 @@ IntrinsicCallExpr: Expr = {
     },
 }
 
-ArrayExpr: Expr = {
-    <l:@L> "[" <il:@L> <elements:SepList<Expr, ",">> <ir:@R> "]" <r:@R> => {
-        let span = (context.span_from)(il, ir);
-        let range_expr = context.contract.exprs.insert(
-            Expr::Immediate {
-                value: Immediate::Int(elements.len() as i64),
-                span: span.clone(),
-            },
-            Type::Unknown(span),
-        );
-        Expr::Array {
-            elements,
-            range_expr,
+PredicateCallExpr: Expr = {
+    <l:@L> <predicate: Path> "[[" "]" "]"
+           "(" <args:SepList<Expr, ",">> ")" <r:@R> => {
+        Expr::LocalPredicateCall {
+            predicate,
+            args,
             span: (context.span_from)(l, r),
         }
+    },
+
+    <l:@L> <interface: Path> "[[" <c_addr: Expr> "]" "]"
+           "::" <predicate: Ident> "[[" <p_addr: Expr> "]" "]"
+           "(" <args:SepList<Expr, ",">> ")" <r:@R> => {
+        Expr::ExternalPredicateCall {
+            interface,
+            c_addr,
+            predicate: predicate.name,
+            p_addr,
+            args,
+            span: (context.span_from)(l, r),
+        }
+    },
+}
+
+ArrayExpr: Expr = {
+    <l:@L> "[" <elements:SepList<Expr, ",">> "]" <r:@R> => {
+        context.build_array_expr(elements, (context.span_from)(l, r))
+    },
+
+    <l:@L> "[[" <elements:SepList<Expr, ",">> "]" "]" <r:@R> => {
+        let inner_span = (context.span_from)(l + 1, r - 1);
+        let inner_expr = context.build_array_expr(elements, inner_span.clone());
+
+        let inner_expr_key = context
+            .contract
+            .exprs
+            .insert(inner_expr, Type::Unknown(inner_span));
+        context.build_array_expr(vec![inner_expr_key], (context.span_from)(l, r))
+    },
+
+    <l:@L> "[["
+        <first_els:SepList<Expr, ",">> "]" <ir:@R> ","
+        <mut ary_els:SepList<ArrayExpr, ",">>
+    "]" <r:@R> => {
+        let first_els_span = (context.span_from)(l + 1, ir);
+        let first_ary_expr = context.build_array_expr(first_els, first_els_span.clone());
+
+        ary_els.insert(0, first_ary_expr);
+
+        let ary_el_keys = ary_els
+            .into_iter()
+            .map(|expr| {
+                let el_span = expr.span().clone();
+                context.contract.exprs.insert(expr, Type::Unknown(el_span))
+            })
+            .collect();
+        context.build_array_expr(ary_el_keys, (context.span_from)(l, r))
     },
 }
 
@@ -1165,18 +1138,30 @@ PathWithLast<Last>: String = {
 
 StoragePath: Expr = {
     <l:@L> <mutable: "mut"?> "storage" "::" <name:Ident> <r:@R> => {
-        context.parse_storage_access(handler, false, None, name, mutable.is_some(), (l, l, r))
+        let span = (context.span_from)(l, r);
+        if !context.mod_path.is_empty() {
+            // `storage` blocks in sub-modules are not allowed
+            handler.emit_err(Error::Parse {
+                error: ParseError::StorageAccessMustBeTopLevel { span: span.clone() },
+            });
+            Expr::Error(span.clone())
+        } else {
+            Expr::LocalStorageAccess {
+                name: name.to_string(),
+                mutable: mutable.is_some(),
+                span,
+            }
+        }
     },
-    <l:@L> <abs:"::"?> <els:(<Ident> "::")*> <last:Ident> <m:@R> "::"
-           "storage" "::" <name:Ident> <r:@R> => {
-        context.parse_storage_access(
-            handler,
-            abs.is_some(),
-            Some((els, last)),
-            name,
-            false,
-            (l, m, r),
-        )
+
+    <l:@L> <interface: Path> "[[" <address: Expr> "]" "]" 
+        "::" "storage" "::" <name:Ident> <r:@R> => {
+        Expr::ExternalStorageAccess {
+            interface,
+            address,
+            name: name.to_string(),
+            span: (context.span_from)(l, r),
+        }
     },
 }
 
@@ -1300,6 +1285,7 @@ extern {
         "}" => lexer::Token::BraceClose,
         "[" => lexer::Token::BracketOpen,
         "]" => lexer::Token::BracketClose,
+        "[[" => lexer::Token::DoubleBracketOpen,
         "->" => lexer::Token::Arrow,
         "=>" => lexer::Token::HeavyArrow,
         "." => lexer::Token::Dot,
@@ -1325,11 +1311,9 @@ extern {
         "cond" => lexer::Token::Cond,
         "match" => lexer::Token::Match,
 
-        "pub" => lexer::Token::Pub,
         "mut" => lexer::Token::Mut,
         "use" => lexer::Token::Use,
         "self" => lexer::Token::SelfTok,
-        "var" => lexer::Token::Var,
         "state" => lexer::Token::State,
         "const" => lexer::Token::Const,
         "storage" => lexer::Token::Storage,

@@ -17,15 +17,6 @@ impl Contract {
         let ty = var_key.get_ty(pred);
         if !ty.is_unknown() {
             Inference::Type(ty.clone())
-        } else if let Some(init_expr_key) = pred.var_inits.get(var_key) {
-            let init_expr_ty = init_expr_key.get_ty(self);
-            if !init_expr_ty.is_unknown() {
-                Inference::Type(init_expr_ty.clone())
-            } else {
-                // We have a variable with an initialiser but don't know the initialiser type
-                // yet.
-                Inference::Dependant(*init_expr_key)
-            }
         } else {
             handler.emit_err(Error::Compile {
                 error: CompileError::Internal {
@@ -109,9 +100,6 @@ impl Contract {
                     {
                         // It's an ephemeral value.
                         Inference::Type(ty.clone())
-                    } else if let Some(ty) = self.infer_extern_var(pred, path) {
-                        // It's an external var
-                        ty
                     } else {
                         // None of the above.
                         handler.emit_err(Error::Compile {

@@ -1,34 +1,30 @@
 interface I {
-    predicate P {
-        pub var x: int;
-    }
+    predicate P(x: int);
 }
 
 const i_addr = 0x0000000000000000000000000000000000000000000000000000000000000000;
 const p_addr = 0x1111111111111111111111111111111111111111111111111111111111111111;
 
-predicate Q() {
-    interface Iface = I(i_addr);
-    predicate PInstance = Iface::P(p_addr);
+predicate Q(x: int) {
+    constraint I[[i_addr]]::P[[p_addr]](x);
 
-    constraint PInstance::x == 11;
+    constraint x == 11;
 }
 
 // parsed <<<
 // const ::p_addr = 0x1111111111111111111111111111111111111111111111111111111111111111;
 // const ::i_addr = 0x0000000000000000000000000000000000000000000000000000000000000000;
 // interface ::I {
-//     predicate P {
-//         pub var x: int;
-//     }
+//     predicate P (
+//         x: int,
+//     );
 // }
 // 
 // predicate ::Q(
-//     __::PInstance_pathway: int,
+//     ::x: int,
 // ) {
-//     interface ::Iface = ::I(::i_addr)
-//     predicate ::PInstance = ::Iface::P(::p_addr)
-//     constraint (::PInstance::x == 11);
+//     constraint ::I[[::i_addr]]::P[[::p_addr]](::x);
+//     constraint (::x == 11);
 // }
 // >>>
 
@@ -36,18 +32,16 @@ predicate Q() {
 // const ::p_addr: b256 = 0x1111111111111111111111111111111111111111111111111111111111111111;
 // const ::i_addr: b256 = 0x0000000000000000000000000000000000000000000000000000000000000000;
 // interface ::I {
-//     predicate P {
-//         pub var x: int;
-//     }
+//     predicate P (
+//         x: int,
+//     );
 // }
 // 
 // predicate ::Q(
-//     __::PInstance_pathway: int,
+//     ::x: int,
 // ) {
-//     interface ::Iface = ::I(0x0000000000000000000000000000000000000000000000000000000000000000)
-//     predicate ::PInstance = ::Iface::P(0x1111111111111111111111111111111111111111111111111111111111111111)
-//     constraint (__pub_var(__::PInstance_pathway, {0}) == 11);
+//     constraint ::I[[0x0000000000000000000000000000000000000000000000000000000000000000]]::P[[0x1111111111111111111111111111111111111111111111111111111111111111]](::x);
+//     constraint (::x == 11);
 //     constraint __eq_set(__mut_keys(), {0});
-//     constraint (__predicate_at(__::PInstance_pathway) == {0x0000000000000000000000000000000000000000000000000000000000000000, 0x1111111111111111111111111111111111111111111111111111111111111111});
 // }
 // >>>

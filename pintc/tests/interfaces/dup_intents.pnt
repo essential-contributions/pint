@@ -1,32 +1,32 @@
 interface I1 {
-    predicate A;
-    predicate A { }
-    predicate A { pub var x: int; }
-    predicate B;
+    predicate A();
+    predicate A();
+    predicate A(x: int);
+    predicate B();
 }
 
 interface I2 {
-    predicate C;
-    predicate C { }
-    predicate C { pub var y: bool; }
-    predicate B;
+    predicate C();
+    predicate C();
+    predicate C(y: bool);
+    predicate B();
 }
 
 // parse_failure <<<
 // symbol `A` has already been declared
 // @29..30: previous declaration of the symbol `A` here
-// @46..47: `A` redeclared here
+// @48..49: `A` redeclared here
 // `A` must be declared or imported only once in this scope
 // symbol `A` has already been declared
 // @29..30: previous declaration of the symbol `A` here
-// @66..67: `A` redeclared here
+// @67..68: `A` redeclared here
 // `A` must be declared or imported only once in this scope
 // symbol `C` has already been declared
-// @137..138: previous declaration of the symbol `C` here
-// @154..155: `C` redeclared here
+// @129..130: previous declaration of the symbol `C` here
+// @148..149: `C` redeclared here
 // `C` must be declared or imported only once in this scope
 // symbol `C` has already been declared
-// @137..138: previous declaration of the symbol `C` here
-// @174..175: `C` redeclared here
+// @129..130: previous declaration of the symbol `C` here
+// @167..168: `C` redeclared here
 // `C` must be declared or imported only once in this scope
 // >>>

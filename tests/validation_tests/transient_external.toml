@@ -1,29 +1,39 @@
 [[data]]
 predicate_to_solve = { predicate = "::Simple" }
 decision_variables = [
-  [0, 0, 0, 0], # foo_addr
-  [58],         # ::x
-  [31],         # ::y
-  [1798],       # ::z
-  [1],          #__::FooInstance1_pathway
-  [2],          #__::FooInstance2_pathway
+  [0, 0, 0, 0],                                      # foo_addr
+  [58],                                              # ::x
+  [31],                                              # ::y
+  [1798],                                            # ::z
+  [58],                                              # ::foo_1_x
+  [31],                                              # ::foo_1_y
+  [1, 1, 1, 1],                                      # ::foo_1_q
+  [42, 43, 8, 8, 8, 8, 1],                           # ::foo_1_c
+  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],            # ::foo_1_e
+  [42],                                              # ::foo_2_x
+  [69],                                              # ::foo_2_y
+  [3, 3, 3, 3],                                      # ::foo_2_q
+  [52, 53, 7, 7, 7, 7, 0],                           # ::foo_2_c
+  [0, 11, 22, 33, 44, 55, 66, 77, 88, 99, 110, 111], # ::foo_2_e
 ]
 
 [[data]]
 predicate_to_solve = { set = "0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", predicate = "0x0000000000000000000000000000000000000000000000000000000000000000" }
-transient_data = [
-  { key = [0], value = [58] },                    # ::x
-  { key = [1], value = [31] },                    # ::y
-  { key = [2], value = [1, 1, 1, 1] },            # ::q
-  { key = [3], value = [42, 43, 8, 8, 8, 8, 1] }, # ::c
+decision_variables = [
+  [58],                                   # ::x
+  [31],                                   # ::y
+  [1, 1, 1, 1],                           # ::q
+  [42, 43, 8, 8, 8, 8, 1],                # ::c
+  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], # ::e
 ]
+transient_data = []
 
 [[data]]
 predicate_to_solve = { set = "0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", predicate = "0x0000000000000000000000000000000000000000000000000000000000000000" }
-transient_data = [
-  { key = [0], value = [42] },                                   # ::x
-  { key = [1], value = [69] },                                   # ::y
-  { key = [2], value = [3, 3, 3, 3] },                           # ::q
-  { key = [3], value = [52, 53, 7, 7, 7, 7, 0] },                # ::c
-  { key = [4], value = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] }, # ::e
+decision_variables = [
+  [42],                                              # ::x
+  [69],                                              # ::y
+  [3, 3, 3, 3],                                      # ::q
+  [52, 53, 7, 7, 7, 7, 0],                           # ::c
+  [0, 11, 22, 33, 44, 55, 66, 77, 88, 99, 110, 111], # ::e
 ]

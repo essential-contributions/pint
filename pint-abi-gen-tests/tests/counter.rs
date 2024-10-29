@@ -43,7 +43,6 @@ async fn test_solution_increment() {
     let solution_data = SolutionData {
         predicate_to_solve: counter::Increment::ADDRESS,
         decision_variables: vec![],
-        transient_data: vec![],
         state_mutations,
     };
 
