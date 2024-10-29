@@ -238,8 +238,8 @@ added for each predicate instance declaration. Therefore, in the example below:<
     predicate FooInstance1 = MyInterfaceInstance::Foo(PredicateID);
     predicate FooInstance2 = MyInterfaceInstance::Foo(PredicateID);
     
-    state x1 = FooInstance1::x;
-    state x2 = FooInstance2::x;
+    let x1 = FooInstance1::x;
+    let x2 = FooInstance2::x;
 </code></pre>
 <p>the variables <code>x1</code> and <code>x2</code> may not be the same since they may refer to two different values of <code>x</code>
 in the solution (if <code>Foo</code> is solved multiple times).</p>

@@ -184,8 +184,8 @@ type as each other, and all of the values must have the same type as well.</p>
 <h4 id="accessing-values-in-a-hashmap"><a class="header" href="#accessing-values-in-a-hashmap">Accessing Values in a HashMap</a></h4>
 <p>We can get a value out of the storage map by providing its key in between square brackets, similar
 to how arrays are accessed:</p>
-<pre><code class="language-pint">state from_balance = storage::balances[from_address];
-state receiver_balance = storage::balances[receiver_address];
+<pre><code class="language-pint">let from_balance = storage::balances[from_address];
+let receiver_balance = storage::balances[receiver_address];
 </code></pre>
 <p>Here, <code>from_balance</code> will have the value that's associated with <code>from_address</code> and
 <code>receiver_balance</code> will have the value that's associated with <code>receiver_address</code>. Because the values
@@ -196,8 +196,15 @@ expression in any other context results in a compile error.</p>
 operation because Pint has no sequential execution. However, as in the case with statically-sized
 storage types, we can <em>require</em> that the next value of a specific entry in a storage map satisfy
 some constraint(s):</p>
-<pre><code class="language-pint">state my_bal = mut storage::balances[my_address];
+<pre><code class="language-pint">let my_bal = mut storage::balances[my_address];
 constraint my_bal' == my_bal + 1000000;
+
+if my_bal != nil {
+    constraint my_bal' == my_bal + 1000000;
+} else {
+    constraint my_bal' == 1000000;
+}
+}
 </code></pre>
 <p>Here, we're requiring that our balance go up by 1 million, by applying the &quot;prime&quot; operator on the
 state variable that holds our current balance. Of course, requiring a change in state does not mean
@@ -230,10 +237,10 @@ update <code>my_bal</code> to <code>1000000</code> (as if <code>my_bal</code> wa
 <p>In the example above, the fist storage map maps a tuple to another tuple. The second storage map
 maps a <code>b256</code> to another map! The way to access entries in these maps should is fairly intuitive and
 is exactly what you'd expect:</p>
-<pre><code class="language-pint">state complex_read: b256 = storage::complex_map[{42, 69}].1;
+<pre><code class="language-pint">let complex_read: b256 = storage::complex_map[{42, 69}].1;
 
 var addr1: b256;
-state nested_read: bool = storage::nested_map[addr1][100];
+let nested_read: bool = storage::nested_map[addr1][100];
 </code></pre>
 <p>The first storage access reads a tuple value using a key that itself is a tuple, and then accesses
 its second field. The second storage access is a nested map access using two index operators. Note

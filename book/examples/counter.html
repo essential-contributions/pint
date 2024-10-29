@@ -158,12 +158,12 @@ Guide</a></p>
 }
 
 predicate Initialize(value: int) {
-    state counter: int = mut storage::counter;
+    let counter: int = mut storage::counter;
     constraint counter' == value;
 }
 
 predicate Increment(amount: int) {
-    state counter: int = mut storage::counter;
+    let counter: int = mut storage::counter;
     constraint counter' == counter + amount;
 }
 </code></pre>

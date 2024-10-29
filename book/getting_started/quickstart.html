@@ -193,7 +193,7 @@ default project kind. Alternatively, <code>kind</code> can be a <em>library</em>
 }
 
 predicate Increment() {
-    state counter: int = mut storage::counter;
+    let counter: int = mut storage::counter;
 
     constraint (counter == nil &amp;&amp; counter' == 1) || counter' == counter + 1;
 }

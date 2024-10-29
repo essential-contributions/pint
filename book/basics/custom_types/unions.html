@@ -168,15 +168,15 @@ fundamentally <em>tokens</em>, so they should be treated as the same type when t
 situations that apply to any of these tokens.</p>
 <h3 id="union-values"><a class="header" href="#union-values">Union Values</a></h3>
 <p>We can now create an instance of each of the three variants of <code>Token</code> like this:</p>
-<pre><code class="language-pint">state dai: Token = Token::DAI;
-state usdc: Token = Token::USDC;
-state usdt: Token = Token::USDT;
+<pre><code class="language-pint">let dai: Token = Token::DAI;
+let usdc: Token = Token::USDC;
+let usdt: Token = Token::USDT;
 </code></pre>
 <p>Note that the variants of the union are namespaced under its identifier, and we use a double colon
 to separate the two. This is useful because now all three values <code>Token::DAI</code>, <code>Token::USDC</code>, and
 <code>Token::USDT</code> are of the same type: <code>Token</code>. We can then, for instance, declare a variable called
 <code>token_type</code> to be of type <code>Token</code> and assign it to either variants depending some token ID:</p>
-<pre><code class="language-pint">state token_type: Token = cond {
+<pre><code class="language-pint">let token_type: Token = cond {
     token_id == 0 =&gt; Token::DAI,
     token_id == 1  =&gt; Token::USDC,
     else =&gt; Token::USDT,
@@ -191,12 +191,12 @@ structs and tuples, you might be tempted to tackle this problem with structs as 
 };
 
 predicate balances_1() {
-    state alice_bal: Balance = {
+    let alice_bal: Balance = {
         token: Token::DAI,
         balance: 42,
     };
 
-    state bob_bal: Balance = {
+    let bob_bal: Balance = {
         token: Token::USDC,
         balance: 96,
     };
@@ -215,8 +215,8 @@ inside a struct, we can put data directly into each union variant. This new defi
 <pre><code class="language-pint">union TokenBalance = DAI(int) | USDC(int) | USDT(int);
 
 predicate balances_2() {
-    state alice_bal: TokenBalance = TokenBalance::DAI(42);
-    state bob_bal: TokenBalance = TokenBalance::USDC(96);
+    let alice_bal: TokenBalance = TokenBalance::DAI(42);
+    let bob_bal: TokenBalance = TokenBalance::USDC(96);
 }
 </code></pre>
 <p>We attach data to each variant of the union directly, so there is no need for an extra struct. Also

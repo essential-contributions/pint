@@ -194,11 +194,11 @@ that matter). Pint simply <em>expresses</em> a desired outcome using <code>const
 <p>Reading a storage variable should not be an unfamiliar concept to you if you've worked with other
 smart contract languages before like <a href="https://soliditylang.org/">Solidity</a>. The syntax for reading a
 storage variable in Pint requires the <code>storage</code> keyword again:</p>
-<pre><code class="language-pint">state x = storage::x;
-state a = storage::a;
-state t = storage::t;
-state t_1 = storage::t.1;
-state arr_2_1 = storage::arr[2].1;
+<pre><code class="language-pint">let x = storage::x;
+let a = storage::a;
+let t = storage::t;
+let t_1 = storage::t.1;
+let arr_2_1 = storage::arr[2].1;
 </code></pre>
 <p>A few things to note here:</p>
 <ol>
@@ -219,13 +219,12 @@ expression that may or may not depend on one or more storage read expressions. <
 expressions are in fact not allowed anywhere else in Pint.</strong></p>
 <p>Type annotations for <code>state</code> declarations are optional. Here's a simple example that declares tow
 <code>state</code> variables:</p>
-<pre><code class="language-pint">state not_annotated = (storage::x * storage::w) + 1;
-state annotated: { b256, b256, int[3] } = { storage::a, storage::v.1.1, [ 1, 2, 3 ] };
+<pre><code class="language-pint">
 </code></pre>
 <p>Once a <code>state</code> variable is declared, it can be used anywhere in its scope as if it were a decision
 variable:</p>
-<pre><code class="language-pint">state t_0 = storage::t.0 + 1;
-state y = !storage::y;
+<pre><code class="language-pint">let t_0 = storage::t.0 + 1;
+let y = !storage::y;
 constraint y &amp;&amp; t_0 &gt;= 42;
 </code></pre>
 <p>This is an example where two state variables are declared and later constrained as if they were
@@ -244,8 +243,18 @@ value of <code>x</code> to be equal to the <em>current</em> value of <code>x</co
 declarative language where the order of statements does not matter and there is no sequential
 execution, statements like <code>x = x + 1</code> cannot be written and are not logical. Instead, Pint offers a
 special syntax, reserved for <code>state</code> variables, that means &quot;the future value of&quot;. Here's an example:</p>
-<pre><code class="language-pint">state bal = mut storage::x;
+<pre><code class="language-pint">let bal = mut storage::x;
 constraint bal' &gt;= bal + 42;
+
+let inner: { bool, b256 } = mut storage::v.1;
+
+let w = mut storage::w;
+constraint value == (w == nil ? 0 : w);
+
+if w != nil {
+    constraint w' == nil;
+}
+}
 </code></pre>
 <p>Here, <code>bal'</code>, unlike <code>bal</code>, is actually unknown at solve-time. That is, <code>bal'</code> must be solved for as
 if it were a decision variable and every solution must include a proposed value for <code>bal'</code>. If, for
@@ -261,7 +270,7 @@ a solver can now propose a <em>state mutation</em> that updates the value of <co
 <p>When the <code>mut</code> keyword as added before a storage access into a compound type, mutability applies
 <strong>only</strong> to the portion of the compound type that is being accessed. For example, in the example
 below:</p>
-<pre><code class="language-pint">state inner: { bool, b256 } = mut storage::v.1;
+<pre><code class="language-pint">let inner: { bool, b256 } = mut storage::v.1;
 </code></pre>
 <p><code>v.1</code> is a storage access into nested tuple <code>v</code> defined in the <code>storage</code> block declared earlier.
 Here, both <code>v.1.0</code> ( a <code>bool</code>) and <code>v.1.1</code> (a <code>b256</code>) are both allowed to be mutated, but <code>v.0</code> is
@@ -271,7 +280,7 @@ not allowed to be.</p>
 anyways. In this case, there is no value stored at that storage variable and nothing can be read.
 To help you reason about this, Pint provides the literal <code>nil</code> to represent the <em>absence of a
 value</em>. For example,</p>
-<pre><code class="language-pint">state w = mut storage::w;
+<pre><code class="language-pint">let w = mut storage::w;
 constraint value == (w == nil ? 0 : w);
 </code></pre>
 <p>In the example above, we first check if <code>w</code> is <code>nil</code> before attempting to read it. If it is <code>nil</code>

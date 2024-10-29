@@ -178,20 +178,20 @@ will have the same value as if you had specified <code>1000</code>.</p>
 multiplication, division, and remainder. Integer division truncates toward zero to the nearest
 integer. The following code shows how you’d use each numeric operation in a <code>var</code> statement:</p>
 <pre><code class="language-pint">// addition
-state sum = 1 + 2 + 3;
+let sum = 1 + 2 + 3;
 
 // subtraction
-state difference = 15 - 1;
+let difference = 15 - 1;
 
 // multiplication
-state product = 42 * 42;
+let product = 42 * 42;
 
 // division
-state quotient = 3 / 2;
-state truncated = -5 / 3; // Results is -1
+let quotient = 3 / 2;
+let truncated = -5 / 3; // Results is -1
 
 // remainder
-state remainder = 34 % 3;
+let remainder = 34 % 3;
 </code></pre>
 <p>Note that binary operators in Pint are strict with regards to what types they allow, that is, only
 identical types can be used in a binary operator. For example, adding an <code>int</code> and a <code>bool</code> is not a
@@ -199,16 +199,16 @@ valid operation and will result in a compile error.</p>
 <h4 id="the-boolean-type"><a class="header" href="#the-boolean-type">The Boolean Type</a></h4>
 <p>As in most other programming languages, a Boolean type in Pint has two possible values: <code>true</code> and
 <code>false</code>. The Boolean type in Pint is specified using <code>bool</code>. For example:</p>
-<pre><code class="language-pint">state t = true;
-state f: bool = false;
+<pre><code class="language-pint">let t = true;
+let f: bool = false;
 </code></pre>
 <h4 id="the-b256-type"><a class="header" href="#the-b256-type">The <code>b256</code> Type</a></h4>
 <p>The <code>b256</code> is a special type that represents a 256-bit hash. It is often used to represent addresses
 or storage keys and cannot be used as a numerical integers. That is, two <code>b256</code> values cannot added
 for example.</p>
 <p>A <code>b256</code> literals can be represented using a Hexadecimal or a Binary literal as follows:</p>
-<pre><code class="language-pint">state addr1 = 0x3333333333333333333333333333333333333333333333333333333333333333;
-state addr2: b256 = 0b1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111;
+<pre><code class="language-pint">let addr1 = 0x3333333333333333333333333333333333333333333333333333333333333333;
+let addr2: b256 = 0b1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111;
 </code></pre>
 <h3 id="compound-types"><a class="header" href="#compound-types">Compound Types</a></h3>
 <p>Compound types can group multiple values into one type. Pint has two primitive compound types:
@@ -219,30 +219,30 @@ compound type. Tuples have a fixed length: once declared, they cannot grow or sh
 <p>We create a tuple by writing a comma-separated list of values inside curly brackets <code>{ .. }</code>. Each
 position in the tuple has a type, and the types of the different values in the tuple don’t have to
 be the same. We’ve added optional type annotations in this example:</p>
-<pre><code class="language-pint">state tup_1: { int, int, bool } = { 42, 4, true };
+<pre><code class="language-pint">let tup_1: { int, int, bool } = { 42, 4, true };
 </code></pre>
 <p>The variable <code>tup</code> binds to the entire tuple because a tuple is considered to be a single compound
 element. To get the individual values out of a tuple, we can use the period (<code>.</code>) operator followed
 by the index of the value we want to access. For example:</p>
-<pre><code class="language-pint">state tup_2: { int, int, bool } = { 42, 4, true };
-state tup_2_first = tup_2.0;
-state tup_2_second = tup_2.1;
-state tup_2_third = tup_2.2;
+<pre><code class="language-pint">let tup_2: { int, int, bool } = { 42, 4, true };
+let tup_2_first = tup_2.0;
+let tup_2_second = tup_2.1;
+let tup_2_third = tup_2.2;
 </code></pre>
 <p>This program creates the tuple <code>tup_2</code> and then accesses each element of the tuple using its
 respective index. As with most programming languages, the first index in a tuple is 0.</p>
 <p>It is also possible to name some or all the fields of a tuple type as follows:</p>
-<pre><code class="language-pint">state tup_3: { x: int, int, y: bool } = { 42, 4, true };
+<pre><code class="language-pint">let tup_3: { x: int, int, y: bool } = { 42, 4, true };
 </code></pre>
 <p>Note that, in this example, only two out of the 3 fields are named. In order to access the
 individual elements of a tuple with named fields, the period (<code>.</code>) can again be used with either the
 index of the tuple field or its name. For example:</p>
-<pre><code class="language-pint">state tup_4: { x: int, int, y: bool } = { 42, 4, true };
-state tup_4_first = tup_4.0;
-state tup_4_first_named = tup_4.x; // same as `tup_4.0`
-state tup_4_second = tup_4.1;
-state tup_4_third = tup_4.2;
-state tup_4_third_named = tup_4.y; // same as `tup_4.y`
+<pre><code class="language-pint">let tup_4: { x: int, int, y: bool } = { 42, 4, true };
+let tup_4_first = tup_4.0;
+let tup_4_first_named = tup_4.x; // same as `tup_4.0`
+let tup_4_second = tup_4.1;
+let tup_4_third = tup_4.2;
+let tup_4_third_named = tup_4.y; // same as `tup_4.y`
 </code></pre>
 <p>Tuples without any values are not allowed in <code>Pint</code>. That is, the following:</p>
 <pre><code class="language-pint">var empty: {} = {};
@@ -268,18 +268,18 @@ Error: empty tuple expressions are not allowed
 of an array must have the same type. Unlike arrays in some other languages, arrays in Pint have a
 fixed length.</p>
 <p>We write the values in an array as a comma-separated list inside square brackets:</p>
-<pre><code class="language-pint">state a = [1, 2, 3, 4, 5];
+<pre><code class="language-pint">let a = [1, 2, 3, 4, 5];
 </code></pre>
 <p>You write an array's type using the element type followed by its size between square brackets, like
 so:</p>
-<pre><code class="language-pint">state b: int[5] = [1, 2, 3, 4, 5];
+<pre><code class="language-pint">let b: int[5] = [1, 2, 3, 4, 5];
 </code></pre>
 <p>Here, <code>int</code> is the type of each element. The number <code>5</code> indicates that the array contains five
 elements.</p>
 <p>You can access elements of an array using by <em>indexing</em> into it, like this:</p>
-<pre><code class="language-pint">state c: int[5] = [1, 2, 3, 4, 5];
-state c_first = c[0];
-state c_second = c[1];
+<pre><code class="language-pint">let c: int[5] = [1, 2, 3, 4, 5];
+let c_first = c[0];
+let c_second = c[1];
 </code></pre>
 <p>In this example, the variable named <code>c_first</code> will get the value <code>1</code> because that is the value at
 index <code>0</code> in the array. The variable named <code>c_second</code> will get the value <code>2</code> from index <code>1</code> in the

@@ -256,7 +256,7 @@ default project kind. Alternatively, <code>kind</code> can be a <em>library</em>
 }
 
 predicate Increment() {
-    state counter: int = mut storage::counter;
+    let counter: int = mut storage::counter;
 
     constraint (counter == nil &amp;&amp; counter' == 1) || counter' == counter + 1;
 }
@@ -330,12 +330,12 @@ Guide</a></p>
 }
 
 predicate Initialize(value: int) {
-    state counter: int = mut storage::counter;
+    let counter: int = mut storage::counter;
     constraint counter' == value;
 }
 
 predicate Increment(amount: int) {
-    state counter: int = mut storage::counter;
+    let counter: int = mut storage::counter;
     constraint counter' == counter + amount;
 }
 </code></pre>
@@ -406,8 +406,8 @@ creation of new coins (i.e. minting) as well as sending coins from one address t
 
 // Sends an amount of newly created coins to an address
 predicate Mint(receiver: b256, amount: int) {
-    state receiver_balance = mut storage::balances[receiver];
-    state total_supply = mut storage::total_supply;
+    let receiver_balance = mut storage::balances[receiver];
+    let total_supply = mut storage::total_supply;
 
     constraint total_supply' == total_supply + amount;
     constraint receiver_balance' == receiver_balance + amount;
@@ -415,8 +415,8 @@ predicate Mint(receiver: b256, amount: int) {
 
 // Sends an amount of existing coins from address `from` to address `receiver`
 predicate Send(from: b256, receiver: b256, amount: int) {
-    state from_balance = mut storage::balances[from];
-    state receiver_balance = mut storage::balances[receiver];
+    let from_balance = mut storage::balances[from];
+    let receiver_balance = mut storage::balances[receiver];
 
     constraint amount &lt; from_balance;
     constraint from_balance' == from_balance - amount;
@@ -560,20 +560,20 @@ will have the same value as if you had specified <code>1000</code>.</p>
 multiplication, division, and remainder. Integer division truncates toward zero to the nearest
 integer. The following code shows how you’d use each numeric operation in a <code>var</code> statement:</p>
 <pre><code class="language-pint">// addition
-state sum = 1 + 2 + 3;
+let sum = 1 + 2 + 3;
 
 // subtraction
-state difference = 15 - 1;
+let difference = 15 - 1;
 
 // multiplication
-state product = 42 * 42;
+let product = 42 * 42;
 
 // division
-state quotient = 3 / 2;
-state truncated = -5 / 3; // Results is -1
+let quotient = 3 / 2;
+let truncated = -5 / 3; // Results is -1
 
 // remainder
-state remainder = 34 % 3;
+let remainder = 34 % 3;
 </code></pre>
 <p>Note that binary operators in Pint are strict with regards to what types they allow, that is, only
 identical types can be used in a binary operator. For example, adding an <code>int</code> and a <code>bool</code> is not a
@@ -581,16 +581,16 @@ valid operation and will result in a compile error.</p>
 <h4 id="the-boolean-type"><a class="header" href="#the-boolean-type">The Boolean Type</a></h4>
 <p>As in most other programming languages, a Boolean type in Pint has two possible values: <code>true</code> and
 <code>false</code>. The Boolean type in Pint is specified using <code>bool</code>. For example:</p>
-<pre><code class="language-pint">state t = true;
-state f: bool = false;
+<pre><code class="language-pint">let t = true;
+let f: bool = false;
 </code></pre>
 <h4 id="the-b256-type"><a class="header" href="#the-b256-type">The <code>b256</code> Type</a></h4>
 <p>The <code>b256</code> is a special type that represents a 256-bit hash. It is often used to represent addresses
 or storage keys and cannot be used as a numerical integers. That is, two <code>b256</code> values cannot added
 for example.</p>
 <p>A <code>b256</code> literals can be represented using a Hexadecimal or a Binary literal as follows:</p>
-<pre><code class="language-pint">state addr1 = 0x3333333333333333333333333333333333333333333333333333333333333333;
-state addr2: b256 = 0b1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111;
+<pre><code class="language-pint">let addr1 = 0x3333333333333333333333333333333333333333333333333333333333333333;
+let addr2: b256 = 0b1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111;
 </code></pre>
 <h3 id="compound-types"><a class="header" href="#compound-types">Compound Types</a></h3>
 <p>Compound types can group multiple values into one type. Pint has two primitive compound types:
@@ -601,30 +601,30 @@ compound type. Tuples have a fixed length: once declared, they cannot grow or sh
 <p>We create a tuple by writing a comma-separated list of values inside curly brackets <code>{ .. }</code>. Each
 position in the tuple has a type, and the types of the different values in the tuple don’t have to
 be the same. We’ve added optional type annotations in this example:</p>
-<pre><code class="language-pint">state tup_1: { int, int, bool } = { 42, 4, true };
+<pre><code class="language-pint">let tup_1: { int, int, bool } = { 42, 4, true };
 </code></pre>
 <p>The variable <code>tup</code> binds to the entire tuple because a tuple is considered to be a single compound
 element. To get the individual values out of a tuple, we can use the period (<code>.</code>) operator followed
 by the index of the value we want to access. For example:</p>
-<pre><code class="language-pint">state tup_2: { int, int, bool } = { 42, 4, true };
-state tup_2_first = tup_2.0;
-state tup_2_second = tup_2.1;
-state tup_2_third = tup_2.2;
+<pre><code class="language-pint">let tup_2: { int, int, bool } = { 42, 4, true };
+let tup_2_first = tup_2.0;
+let tup_2_second = tup_2.1;
+let tup_2_third = tup_2.2;
 </code></pre>
 <p>This program creates the tuple <code>tup_2</code> and then accesses each element of the tuple using its
 respective index. As with most programming languages, the first index in a tuple is 0.</p>
 <p>It is also possible to name some or all the fields of a tuple type as follows:</p>
-<pre><code class="language-pint">state tup_3: { x: int, int, y: bool } = { 42, 4, true };
+<pre><code class="language-pint">let tup_3: { x: int, int, y: bool } = { 42, 4, true };
 </code></pre>
 <p>Note that, in this example, only two out of the 3 fields are named. In order to access the
 individual elements of a tuple with named fields, the period (<code>.</code>) can again be used with either the
 index of the tuple field or its name. For example:</p>
-<pre><code class="language-pint">state tup_4: { x: int, int, y: bool } = { 42, 4, true };
-state tup_4_first = tup_4.0;
-state tup_4_first_named = tup_4.x; // same as `tup_4.0`
-state tup_4_second = tup_4.1;
-state tup_4_third = tup_4.2;
-state tup_4_third_named = tup_4.y; // same as `tup_4.y`
+<pre><code class="language-pint">let tup_4: { x: int, int, y: bool } = { 42, 4, true };
+let tup_4_first = tup_4.0;
+let tup_4_first_named = tup_4.x; // same as `tup_4.0`
+let tup_4_second = tup_4.1;
+let tup_4_third = tup_4.2;
+let tup_4_third_named = tup_4.y; // same as `tup_4.y`
 </code></pre>
 <p>Tuples without any values are not allowed in <code>Pint</code>. That is, the following:</p>
 <pre><code class="language-pint">var empty: {} = {};
@@ -650,18 +650,18 @@ Error: empty tuple expressions are not allowed
 of an array must have the same type. Unlike arrays in some other languages, arrays in Pint have a
 fixed length.</p>
 <p>We write the values in an array as a comma-separated list inside square brackets:</p>
-<pre><code class="language-pint">state a = [1, 2, 3, 4, 5];
+<pre><code class="language-pint">let a = [1, 2, 3, 4, 5];
 </code></pre>
 <p>You write an array's type using the element type followed by its size between square brackets, like
 so:</p>
-<pre><code class="language-pint">state b: int[5] = [1, 2, 3, 4, 5];
+<pre><code class="language-pint">let b: int[5] = [1, 2, 3, 4, 5];
 </code></pre>
 <p>Here, <code>int</code> is the type of each element. The number <code>5</code> indicates that the array contains five
 elements.</p>
 <p>You can access elements of an array using by <em>indexing</em> into it, like this:</p>
-<pre><code class="language-pint">state c: int[5] = [1, 2, 3, 4, 5];
-state c_first = c[0];
-state c_second = c[1];
+<pre><code class="language-pint">let c: int[5] = [1, 2, 3, 4, 5];
+let c_first = c[0];
+let c_second = c[1];
 </code></pre>
 <p>In this example, the variable named <code>c_first</code> will get the value <code>1</code> because that is the value at
 index <code>0</code> in the array. The variable named <code>c_second</code> will get the value <code>2</code> from index <code>1</code> in the
@@ -683,12 +683,12 @@ include <code>//</code> on each line, like this:</p>
 //    we're not gambling all the money away.
 </code></pre>
 <p>Comments can also be placed at the end of lines containing code:</p>
-<pre><code class="language-pint">state big_answer = 42; // answer to life, the universe, and everything
+<pre><code class="language-pint">let big_answer = 42; // answer to life, the universe, and everything
 </code></pre>
 <p>But you’ll more often see them used in this format, with the comment on a separate line above the
 code it’s annotating:</p>
 <pre><code class="language-pint">// answer to life, the universe, and everything
-state big_answer_too = 42;
+let big_answer_too = 42;
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h2 id="conditionals"><a class="header" href="#conditionals">Conditionals</a></h2>
@@ -703,7 +703,7 @@ will be discussed separately in <a href="basics/custom_types.html">Chapter 3.5</
 <p>A select expression allows you to select between two alternatives based on a condition. The two
 alternatives must have the same type and that type determines the type of the whole select
 expression. For example:</p>
-<pre><code class="language-pint">state y = (number &lt; 5 ? 1 : 2);
+<pre><code class="language-pint">let y = (number &lt; 5 ? 1 : 2);
 </code></pre>
 <p>All select expressions start with a condition followed by the <code>?</code> symbol. In this case, the
 condition checks whether or not the decision variable <code>number</code> has a value less than 5. We place the
@@ -748,7 +748,7 @@ explicit and always provide a select expression with a <code>Boolean</code> as i
 <p>Pint provides <code>cond</code> expressions. <code>cond</code> expressions are generalized select expressions that are not
 limited to only two branches. They provide selection from multiple alternatives, each based on some
 condition. For example:</p>
-<pre><code class="language-pint">state z = cond {
+<pre><code class="language-pint">let z = cond {
     x == 0 =&gt; 0,
     x &gt; 0 &amp;&amp; x &lt;= 10 =&gt; 1,
     x &gt; 10 &amp;&amp; x &lt;= 100 =&gt; 2,
@@ -766,7 +766,7 @@ equal to <code>2</code> if <code>x</code> is between <code>10</code> and <code>1
 <p>every <code>cond</code> expression can be rewritten using one or more select expressions. however, <code>cond</code> tends
 to be more compact and more readable than nested select expressions. for example, the <code>cond</code>
 expression in the example above is equivalent to:</p>
-<pre><code class="language-pint">state z = x == 0 ? 0 :
+<pre><code class="language-pint">let z = x == 0 ? 0 :
                x &gt; 0 &amp;&amp; x &lt;= 10 ? 1
                  : x &gt; 10 &amp;&amp; x &lt;= 100 ? 2 : 3;
 </code></pre>
@@ -830,8 +830,8 @@ use the <code>type</code> keyword. For example, we can create the alias <code>Ba
 </code></pre>
 <p>Now, the alias <code>Balance</code> is a synonym for <code>int</code>. Values that have the type <code>Balance</code> will be treated
 the same as values of type <code>int</code>:</p>
-<pre><code class="language-pint">state x: int = 5;
-state y: Balance = 5;
+<pre><code class="language-pint">let x: int = 5;
+let y: Balance = 5;
 constraint x == y;
 </code></pre>
 <p>Because <code>Balance</code> and <code>int</code> are the same type, we can compare values of both types.</p>
@@ -857,7 +857,7 @@ are the data we want to store in those fields. We don’t have to specify the fi
 in which we declared them in the struct. In other words, the struct definition is like a general
 template for the type, and instances fill in that template with particular data to create values of
 the type. For example, we can declare a particular <code>User</code> as shown below:</p>
-<pre><code class="language-pint">state user1: User = {
+<pre><code class="language-pint">let user1: User = {
     status: true,
     address: 0x1111111111111111111111111111111111111111111111111111111111111111,
     balance: 42,
@@ -886,15 +886,15 @@ fundamentally <em>tokens</em>, so they should be treated as the same type when t
 situations that apply to any of these tokens.</p>
 <h3 id="union-values"><a class="header" href="#union-values">Union Values</a></h3>
 <p>We can now create an instance of each of the three variants of <code>Token</code> like this:</p>
-<pre><code class="language-pint">state dai: Token = Token::DAI;
-state usdc: Token = Token::USDC;
-state usdt: Token = Token::USDT;
+<pre><code class="language-pint">let dai: Token = Token::DAI;
+let usdc: Token = Token::USDC;
+let usdt: Token = Token::USDT;
 </code></pre>
 <p>Note that the variants of the union are namespaced under its identifier, and we use a double colon
 to separate the two. This is useful because now all three values <code>Token::DAI</code>, <code>Token::USDC</code>, and
 <code>Token::USDT</code> are of the same type: <code>Token</code>. We can then, for instance, declare a variable called
 <code>token_type</code> to be of type <code>Token</code> and assign it to either variants depending some token ID:</p>
-<pre><code class="language-pint">state token_type: Token = cond {
+<pre><code class="language-pint">let token_type: Token = cond {
     token_id == 0 =&gt; Token::DAI,
     token_id == 1  =&gt; Token::USDC,
     else =&gt; Token::USDT,
@@ -909,12 +909,12 @@ structs and tuples, you might be tempted to tackle this problem with structs as 
 };
 
 predicate balances_1() {
-    state alice_bal: Balance = {
+    let alice_bal: Balance = {
         token: Token::DAI,
         balance: 42,
     };
 
-    state bob_bal: Balance = {
+    let bob_bal: Balance = {
         token: Token::USDC,
         balance: 96,
     };
@@ -933,8 +933,8 @@ inside a struct, we can put data directly into each union variant. This new defi
 <pre><code class="language-pint">union TokenBalance = DAI(int) | USDC(int) | USDT(int);
 
 predicate balances_2() {
-    state alice_bal: TokenBalance = TokenBalance::DAI(42);
-    state bob_bal: TokenBalance = TokenBalance::USDC(96);
+    let alice_bal: TokenBalance = TokenBalance::DAI(42);
+    let bob_bal: TokenBalance = TokenBalance::USDC(96);
 }
 </code></pre>
 <p>We attach data to each variant of the union directly, so there is no need for an extra struct. Also
@@ -971,7 +971,7 @@ returns its value in cents:</p>
 <pre><code class="language-pint">union Coin = Penny | Nickel | Dime | Quarter;
 
 predicate CoinConversion1(coin: Coin) {
-    state coin_in_cents = match coin {
+    let coin_in_cents = match coin {
         Coin::Penny =&gt; 1,
         Coin::Nickel =&gt; 5,
         Coin::Dime =&gt; 10,
@@ -995,7 +995,7 @@ expression.</p>
 For example, the following code requires the Boolean variable <code>is_lucky_penny</code> to be <code>true</code> if the
 value <code>coin</code> is a <code>Coin::Penny</code>.</p>
 <pre><code class="language-pint">predicate CoinConversion2(coin: Coin, is_lucky_penny: bool) {
-    state coin_in_cents = match coin {
+    let coin_in_cents = match coin {
         Coin::Penny =&gt; {
             constraint is_lucky_penny;
             1
@@ -1016,7 +1016,7 @@ variant to hold an <code>int</code> that represents the number of coins availabl
 <p>Now, given a value <code>coins</code> of type <code>Coins</code>, we can compute the total number of cents that <code>coins</code> is
 equivalent to as follows:</p>
 <pre><code class="language-pint">predicate CoinConversion3(coins: Coins) {
-    state coins_in_cents = match coins {
+    let coins_in_cents = match coins {
         Coins::Penny(n) =&gt; n,
         Coins::Nickel(n) =&gt; n * 5,
         Coins::Dime(n) =&gt; n * 10,
@@ -1037,7 +1037,7 @@ union CoinFace =  Penny(Face)
                 | Quarter(Face);
 
 predicate CoinGame1(coin: CoinFace) {
-    state prize = match coin {
+    let prize = match coin {
         CoinFace::Penny(f) =&gt; match f {
             Face::Head =&gt; 100,
             Face::Tail =&gt; 200,
@@ -1143,7 +1143,7 @@ evaluate to a default value for <code>match</code> expressions, or to contain de
 for <code>match</code> statements.</p>
 <p>To get the above example to compile with a default value of zero, implying any other coins actually
 have no value, an <code>else</code> may be used as follows:</p>
-<pre><code class="language-pint">    state coins_in_cents = match coins {
+<pre><code class="language-pint">    let coins_in_cents = match coins {
         Coins::Penny(n) =&gt; n,
         Coins::Nickel(n) =&gt; n * 5,
         Coins::Quarter(n) =&gt; n * 25,
@@ -1304,13 +1304,13 @@ have made all decision variables <code>pub</code>, which marks them as public:</
 
 predicate Initialize() {
     pub var value: int;
-    state counter: int = mut storage::counter;
+    let counter: int = mut storage::counter;
     constraint counter' == value;
 }
 
 predicate Increment() {
     pub var amount: int;
-    state counter: int = mut storage::counter;
+    let counter: int = mut storage::counter;
     constraint counter' == counter + amount;
 }
 </code></pre>
@@ -1396,11 +1396,11 @@ that matter). Pint simply <em>expresses</em> a desired outcome using <code>const
 <p>Reading a storage variable should not be an unfamiliar concept to you if you've worked with other
 smart contract languages before like <a href="https://soliditylang.org/">Solidity</a>. The syntax for reading a
 storage variable in Pint requires the <code>storage</code> keyword again:</p>
-<pre><code class="language-pint">state x = storage::x;
-state a = storage::a;
-state t = storage::t;
-state t_1 = storage::t.1;
-state arr_2_1 = storage::arr[2].1;
+<pre><code class="language-pint">let x = storage::x;
+let a = storage::a;
+let t = storage::t;
+let t_1 = storage::t.1;
+let arr_2_1 = storage::arr[2].1;
 </code></pre>
 <p>A few things to note here:</p>
 <ol>
@@ -1421,13 +1421,12 @@ expression that may or may not depend on one or more storage read expressions. <
 expressions are in fact not allowed anywhere else in Pint.</strong></p>
 <p>Type annotations for <code>state</code> declarations are optional. Here's a simple example that declares tow
 <code>state</code> variables:</p>
-<pre><code class="language-pint">state not_annotated = (storage::x * storage::w) + 1;
-state annotated: { b256, b256, int[3] } = { storage::a, storage::v.1.1, [ 1, 2, 3 ] };
+<pre><code class="language-pint">
 </code></pre>
 <p>Once a <code>state</code> variable is declared, it can be used anywhere in its scope as if it were a decision
 variable:</p>
-<pre><code class="language-pint">state t_0 = storage::t.0 + 1;
-state y = !storage::y;
+<pre><code class="language-pint">let t_0 = storage::t.0 + 1;
+let y = !storage::y;
 constraint y &amp;&amp; t_0 &gt;= 42;
 </code></pre>
 <p>This is an example where two state variables are declared and later constrained as if they were
@@ -1446,8 +1445,18 @@ value of <code>x</code> to be equal to the <em>current</em> value of <code>x</co
 declarative language where the order of statements does not matter and there is no sequential
 execution, statements like <code>x = x + 1</code> cannot be written and are not logical. Instead, Pint offers a
 special syntax, reserved for <code>state</code> variables, that means &quot;the future value of&quot;. Here's an example:</p>
-<pre><code class="language-pint">state bal = mut storage::x;
+<pre><code class="language-pint">let bal = mut storage::x;
 constraint bal' &gt;= bal + 42;
+
+let inner: { bool, b256 } = mut storage::v.1;
+
+let w = mut storage::w;
+constraint value == (w == nil ? 0 : w);
+
+if w != nil {
+    constraint w' == nil;
+}
+}
 </code></pre>
 <p>Here, <code>bal'</code>, unlike <code>bal</code>, is actually unknown at solve-time. That is, <code>bal'</code> must be solved for as
 if it were a decision variable and every solution must include a proposed value for <code>bal'</code>. If, for
@@ -1463,7 +1472,7 @@ a solver can now propose a <em>state mutation</em> that updates the value of <co
 <p>When the <code>mut</code> keyword as added before a storage access into a compound type, mutability applies
 <strong>only</strong> to the portion of the compound type that is being accessed. For example, in the example
 below:</p>
-<pre><code class="language-pint">state inner: { bool, b256 } = mut storage::v.1;
+<pre><code class="language-pint">let inner: { bool, b256 } = mut storage::v.1;
 </code></pre>
 <p><code>v.1</code> is a storage access into nested tuple <code>v</code> defined in the <code>storage</code> block declared earlier.
 Here, both <code>v.1.0</code> ( a <code>bool</code>) and <code>v.1.1</code> (a <code>b256</code>) are both allowed to be mutated, but <code>v.0</code> is
@@ -1473,7 +1482,7 @@ not allowed to be.</p>
 anyways. In this case, there is no value stored at that storage variable and nothing can be read.
 To help you reason about this, Pint provides the literal <code>nil</code> to represent the <em>absence of a
 value</em>. For example,</p>
-<pre><code class="language-pint">state w = mut storage::w;
+<pre><code class="language-pint">let w = mut storage::w;
 constraint value == (w == nil ? 0 : w);
 </code></pre>
 <p>In the example above, we first check if <code>w</code> is <code>nil</code> before attempting to read it. If it is <code>nil</code>
@@ -1525,8 +1534,8 @@ type as each other, and all of the values must have the same type as well.</p>
 <h4 id="accessing-values-in-a-hashmap"><a class="header" href="#accessing-values-in-a-hashmap">Accessing Values in a HashMap</a></h4>
 <p>We can get a value out of the storage map by providing its key in between square brackets, similar
 to how arrays are accessed:</p>
-<pre><code class="language-pint">state from_balance = storage::balances[from_address];
-state receiver_balance = storage::balances[receiver_address];
+<pre><code class="language-pint">let from_balance = storage::balances[from_address];
+let receiver_balance = storage::balances[receiver_address];
 </code></pre>
 <p>Here, <code>from_balance</code> will have the value that's associated with <code>from_address</code> and
 <code>receiver_balance</code> will have the value that's associated with <code>receiver_address</code>. Because the values
@@ -1537,8 +1546,15 @@ expression in any other context results in a compile error.</p>
 operation because Pint has no sequential execution. However, as in the case with statically-sized
 storage types, we can <em>require</em> that the next value of a specific entry in a storage map satisfy
 some constraint(s):</p>
-<pre><code class="language-pint">state my_bal = mut storage::balances[my_address];
+<pre><code class="language-pint">let my_bal = mut storage::balances[my_address];
 constraint my_bal' == my_bal + 1000000;
+
+if my_bal != nil {
+    constraint my_bal' == my_bal + 1000000;
+} else {
+    constraint my_bal' == 1000000;
+}
+}
 </code></pre>
 <p>Here, we're requiring that our balance go up by 1 million, by applying the &quot;prime&quot; operator on the
 state variable that holds our current balance. Of course, requiring a change in state does not mean
@@ -1571,10 +1587,10 @@ update <code>my_bal</code> to <code>1000000</code> (as if <code>my_bal</code> wa
 <p>In the example above, the fist storage map maps a tuple to another tuple. The second storage map
 maps a <code>b256</code> to another map! The way to access entries in these maps should is fairly intuitive and
 is exactly what you'd expect:</p>
-<pre><code class="language-pint">state complex_read: b256 = storage::complex_map[{42, 69}].1;
+<pre><code class="language-pint">let complex_read: b256 = storage::complex_map[{42, 69}].1;
 
 var addr1: b256;
-state nested_read: bool = storage::nested_map[addr1][100];
+let nested_read: bool = storage::nested_map[addr1][100];
 </code></pre>
 <p>The first storage access reads a tuple value using a key that itself is a tuple, and then accesses
 its second field. The second storage access is a nested map access using two index operators. Note
@@ -1658,7 +1674,7 @@ follows:</p>
 <h3 id="external-storage-access-using-the-interface-instance"><a class="header" href="#external-storage-access-using-the-interface-instance">External Storage Access Using the Interface Instance</a></h3>
 <p>Now that we have an instance of the interface, we can use it to create a path to the external
 storage variable. For example,</p>
-<pre><code class="language-pint">state counter = CounterInstance::storage::counter;
+<pre><code class="language-pint">let counter = CounterInstance::storage::counter;
 </code></pre>
 <p>Note that the path <code>CounterInstance::storage::counter</code> has three parts:</p>
 <ol>
@@ -2016,8 +2032,8 @@ added for each predicate instance declaration. Therefore, in the example below:<
     predicate FooInstance1 = MyInterfaceInstance::Foo(PredicateID);
     predicate FooInstance2 = MyInterfaceInstance::Foo(PredicateID);
     
-    state x1 = FooInstance1::x;
-    state x2 = FooInstance2::x;
+    let x1 = FooInstance1::x;
+    let x2 = FooInstance2::x;
 </code></pre>
 <p>the variables <code>x1</code> and <code>x2</code> may not be the same since they may refer to two different values of <code>x</code>
 in the solution (if <code>Foo</code> is solved multiple times).</p>

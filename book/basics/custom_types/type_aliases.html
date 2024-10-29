@@ -155,8 +155,8 @@ use the <code>type</code> keyword. For example, we can create the alias <code>Ba
 </code></pre>
 <p>Now, the alias <code>Balance</code> is a synonym for <code>int</code>. Values that have the type <code>Balance</code> will be treated
 the same as values of type <code>int</code>:</p>
-<pre><code class="language-pint">state x: int = 5;
-state y: Balance = 5;
+<pre><code class="language-pint">let x: int = 5;
+let y: Balance = 5;
 constraint x == y;
 </code></pre>
 <p>Because <code>Balance</code> and <code>int</code> are the same type, we can compare values of both types.</p>
@@ -182,7 +182,7 @@ are the data we want to store in those fields. We don’t have to specify the fi
 in which we declared them in the struct. In other words, the struct definition is like a general
 template for the type, and instances fill in that template with particular data to create values of
 the type. For example, we can declare a particular <code>User</code> as shown below:</p>
-<pre><code class="language-pint">state user1: User = {
+<pre><code class="language-pint">let user1: User = {
     status: true,
     address: 0x1111111111111111111111111111111111111111111111111111111111111111,
     balance: 42,
