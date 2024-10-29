@@ -46,7 +46,7 @@ PredicateInnerDecl: () = {
     IfDecl,
     MatchDecl,
     MacroCallDecl ";",
-    StateDecl ";",
+    LetDecl ";",
     UseStatement ";",
 }
 
@@ -61,7 +61,7 @@ DeclInnerMacroBody: () = {
     MacroCallDecl ";",
     NewTypeDecl ";",
     PredicateDecl,
-    StateDecl ";",
+    LetDecl ";",
     StorageDecl,
     UnionDecl ";",
     UseStatement ";",
@@ -210,15 +210,14 @@ ParamName: (Ident, Option<&'a str>) = {
     <l:@L> <id:"ident"> <r:@R> => context.parse_param_name(id, (l, r)),
 }
 
-StateDecl: () = {
-    <l:@L> "state" <name:Ident> <ty:(":" <Type>)?> "=" <init:Expr> <r:@R> => {
-        // Return the index to the new state in the Predicate::states Vec.
+LetDecl: () = {
+    <l:@L> "let" <name:Ident> <ty:(":" <Type>)?> "=" <init:Expr> <r:@R> => {
         let span = (context.span_from)(l, r);
         let mod_prefix = context.mod_prefix;
         let _ = context
             .current_pred()
-            .expect("adding a state to the predicate")
-            .insert_state(handler, mod_prefix, &name, ty, init, span)
+            .expect("adding a variable to the predicate")
+            .insert_variable(handler, mod_prefix, &name, ty, init, span)
             .map(|_| ());
     },
 }
@@ -1329,7 +1328,7 @@ extern {
         "mut" => lexer::Token::Mut,
         "use" => lexer::Token::Use,
         "self" => lexer::Token::SelfTok,
-        "state" => lexer::Token::State,
+        "let" => lexer::Token::Let,
         "const" => lexer::Token::Const,
         "storage" => lexer::Token::Storage,
         "interface" => lexer::Token::Interface,

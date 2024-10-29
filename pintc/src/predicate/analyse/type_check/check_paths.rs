@@ -59,18 +59,19 @@ impl Contract {
                         .find_map(|param| (&param.name.name == path).then_some(param.ty.clone()))
                     {
                         Inference::Type(param_ty.clone())
-                    } else if let Some((state_key, state)) =
-                        pred.states().find(|(_, state)| (&state.name == path))
+                    } else if let Some((variable_key, variable)) = pred
+                        .variables()
+                        .find(|(_, variable)| (&variable.name == path))
                     {
-                        // It's state.
-                        let state_expr_ty = state.expr.get_ty(self);
-                        let state_type = state_key.get_ty(pred);
-                        if !state_type.is_unknown() {
-                            Inference::Type(state_type.clone())
-                        } else if !state_expr_ty.is_unknown() {
-                            Inference::Type(state_expr_ty.clone())
+                        // It's variable.
+                        let variable_expr_ty = variable.expr.get_ty(self);
+                        let variable_type = variable_key.get_ty(pred);
+                        if !variable_type.is_unknown() {
+                            Inference::Type(variable_type.clone())
+                        } else if !variable_expr_ty.is_unknown() {
+                            Inference::Type(variable_expr_ty.clone())
                         } else {
-                            Inference::Dependant(state.expr)
+                            Inference::Dependant(variable.expr)
                         }
                     } else if let Some(EphemeralDecl { ty, .. }) = pred
                         .ephemerals

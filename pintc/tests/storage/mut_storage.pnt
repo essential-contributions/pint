@@ -9,18 +9,18 @@ storage {
 }
 
 predicate Foo() {
-    state x = mut storage::x;
-    state b = mut storage::b;
-    state y_2 = mut storage::y.2;
-    state z = mut storage::z;
-    state w_1 = mut storage::w[1];
-    state v_3 = mut storage::vec[3];
-    state map_69 = mut storage::map[69];
-    state map_42_1 = mut storage::map[42].1;
-    state vec_len = __vec_len(mut storage::vec); 
+    let x = mut storage::x;
+    let b = mut storage::b;
+    let y_2 = mut storage::y.2;
+    let z = mut storage::z;
+    let w_1 = mut storage::w[1];
+    let v_3 = mut storage::vec[3];
+    let map_69 = mut storage::map[69];
+    let map_42_1 = mut storage::map[42].1;
+    let vec_len = __vec_len(mut storage::vec); 
 
     // Should not show up in the list of mutable keys
-    state map_43 = storage::map[42].1;
+    let map_43 = storage::map[42].1;
 }
 
 // parsed <<<
@@ -36,16 +36,16 @@ predicate Foo() {
 // 
 // predicate ::Foo(
 // ) {
-//     state ::x = mut storage::x;
-//     state ::b = mut storage::b;
-//     state ::y_2 = mut storage::y.2;
-//     state ::z = mut storage::z;
-//     state ::w_1 = mut storage::w[1];
-//     state ::v_3 = mut storage::vec[3];
-//     state ::map_69 = mut storage::map[69];
-//     state ::map_42_1 = mut storage::map[42].1;
-//     state ::vec_len = __vec_len(mut storage::vec);
-//     state ::map_43 = storage::map[42].1;
+//     let ::x = mut storage::x;
+//     let ::b = mut storage::b;
+//     let ::y_2 = mut storage::y.2;
+//     let ::z = mut storage::z;
+//     let ::w_1 = mut storage::w[1];
+//     let ::v_3 = mut storage::vec[3];
+//     let ::map_69 = mut storage::map[69];
+//     let ::map_42_1 = mut storage::map[42].1;
+//     let ::vec_len = __vec_len(mut storage::vec);
+//     let ::map_43 = storage::map[42].1;
 // }
 // >>>
 
@@ -62,16 +62,16 @@ predicate Foo() {
 // 
 // predicate ::Foo(
 // ) {
-//     state ::x: int = __storage_get({0});
-//     state ::b: b256 = __storage_get({1});
-//     state ::y_2: {b256, int} = __storage_get({2, (0 + 2)});
-//     state ::z: int[3][2] = __storage_get({3, 0});
-//     state ::w_1: bool[3] = __storage_get({4, (0 + (1 * 3))});
-//     state ::v_3: b256 = __storage_get({5, 3});
-//     state ::map_69: {b256, int} = __storage_get({6, 69, 0});
-//     state ::map_42_1: int = __storage_get({6, 42, (0 + 1)});
-//     state ::vec_len: int = __storage_get({5});
-//     state ::map_43: int = __storage_get({6, 42, (0 + 1)});
+//     let ::x: int = __storage_get({0});
+//     let ::b: b256 = __storage_get({1});
+//     let ::y_2: {b256, int} = __storage_get({2, (0 + 2)});
+//     let ::z: int[3][2] = __storage_get({3, 0});
+//     let ::w_1: bool[3] = __storage_get({4, (0 + (1 * 3))});
+//     let ::v_3: b256 = __storage_get({5, 3});
+//     let ::map_69: {b256, int} = __storage_get({6, 69, 0});
+//     let ::map_42_1: int = __storage_get({6, 42, (0 + 1)});
+//     let ::vec_len: int = __storage_get({5});
+//     let ::map_43: int = __storage_get({6, 42, (0 + 1)});
 //     constraint __eq_set(__mut_keys(), {{5}, 1, {2, (0 + 2)}, 2, {2, ((0 + 2) + 1)}, 2, {0}, 1, {6, 69, 0}, 3, {6, 69, (0 + 1)}, 3, {5, 3}, 2, {4, (0 + (1 * 3))}, 2, {4, ((0 + (1 * 3)) + 1)}, 2, {4, ((0 + (1 * 3)) + 2)}, 2, {3, 0}, 2, {3, (0 + 1)}, 2, {3, (0 + 2)}, 2, {3, (0 + 3)}, 2, {3, (0 + 4)}, 2, {3, (0 + 5)}, 2, {1}, 1, {6, 42, (0 + 1)}, 3, 54});
 // }
 // >>>

@@ -3,30 +3,30 @@ use b::c::d::e;
 use b::c;
 
 predicate test() {
-    state v1 = e;
-    state v2 = d::e;
-    state v3 = ::b::c;
-    state v4 = c;
-    state v5 = b::c::d;
+    let v1 = e;
+    let v2 = d::e;
+    let v3 = ::b::c;
+    let v4 = c;
+    let v5 = b::c::d;
 }
 
 // parse_failure <<<
 // no file found for path
-// @76..77: failed to resolve path b::c::d::e
+// @74..75: failed to resolve path b::c::d::e
 // one of the modules `b::c::d` or `b::c` must exist
 // no file found for path
-// @94..98: failed to resolve path b::c::d::e
+// @90..94: failed to resolve path b::c::d::e
 // one of the modules `b::c::d` or `b::c` must exist
 // multiple source files found for module
-// @115..121: multiple source files found for module b
+// @109..115: multiple source files found for module b
 // both the files `tests/modules/07/b.pnt` and `tests/modules/07/b/b.pnt` exist, where only one or the other is allowed
 // multiple source files found for module
-// @138..139: multiple source files found for module b
+// @130..131: multiple source files found for module b
 // both the files `tests/modules/07/b.pnt` and `tests/modules/07/b/b.pnt` exist, where only one or the other is allowed
 // multiple source files found for module
-// @156..163: multiple source files found for module b
+// @146..153: multiple source files found for module b
 // both the files `tests/modules/07/b.pnt` and `tests/modules/07/b/b.pnt` exist, where only one or the other is allowed
 // no file found for path
-// @156..163: failed to resolve path b::c::d
+// @146..153: failed to resolve path b::c::d
 // one of the modules `b::c` or `b` must exist
 // >>>

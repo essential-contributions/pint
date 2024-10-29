@@ -11,7 +11,7 @@ type E = b256;
 predicate test(E: int) {
     constraint E == 4;
 
-    state E = __vec_len();
+    let E = __vec_len();
 }
 
 // parse_failure <<<
@@ -25,7 +25,7 @@ predicate test(E: int) {
 // `E` must be declared or imported only once in this scope
 // symbol `E` has already been declared
 // @85..86: previous declaration of the symbol `E` here
-// @129..130: `E` redeclared here
+// @127..128: `E` redeclared here
 // `E` must be declared or imported only once in this scope
 // symbol `F` has already been declared
 // @6..7: previous declaration of the symbol `F` here

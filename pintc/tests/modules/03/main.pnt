@@ -4,8 +4,8 @@ use a::a;
 use a::a;
 
 predicate test() {
-    state a = 12;
-    state a = 13;
+    let a = 12;
+    let a = 13;
 }
 
 // parse_failure <<<
@@ -14,11 +14,11 @@ predicate test() {
 // @83..84: `a` redeclared here
 // `a` must be declared or imported only once in this scope
 // symbol `a` has already been declared
-// @110..122: previous declaration of the symbol `a` here
-// @134..135: `a` redeclared here
+// @110..120: previous declaration of the symbol `a` here
+// @130..131: `a` redeclared here
 // `a` must be declared or imported only once in this scope
 // symbol `::a` has already been declared
 // @7..8: previous declaration of the symbol `::a` here
-// @110..122: `::a` redeclared here
+// @110..120: `::a` redeclared here
 // `::a` must be declared or imported only once in this scope
 // >>>

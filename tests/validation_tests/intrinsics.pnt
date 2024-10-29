@@ -65,28 +65,28 @@ predicate Foo(
             13
         };
 
-    state x = mut storage::x;
-    state y = mut storage::y;
-    state z = mut storage::z;
-    state w = mut storage::w;
+    let x = mut storage::x;
+    let y = mut storage::y;
+    let z = mut storage::z;
+    let w = mut storage::w;
 
-    // `x` is set in the pre state db and in the solution
+    // `x` is set in the pre let db and in the solution
     constraint __size_of(x) == 1;
     constraint __size_of(x) == 1;
 
-    // `y` is set in the pre state db and in the solution
+    // `y` is set in the pre let db and in the solution
     constraint __size_of(y) == 1;
     constraint __size_of(y') == 1;
 
-    // `z` is not set in the pre state db but is set in the solution
+    // `z` is not set in the pre let db but is set in the solution
     constraint __size_of(z) == 0;
     constraint __size_of(z') == 1;
 
-    // `w` is set in the pre state db but unset in the solution
+    // `w` is set in the pre let db but unset in the solution
     constraint __size_of(w) == 4;
     constraint __size_of(w') == 0;
 
-    // `__size_of` called on non-state vars.
+    // `__size_of` called on non-let vars.
     constraint __size_of(1) == 1;
     constraint __size_of(tuple) == 7;
     constraint __size_of(__size_of(w')) == 1;

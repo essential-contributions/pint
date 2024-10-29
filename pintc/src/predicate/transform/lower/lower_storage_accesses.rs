@@ -37,17 +37,17 @@ fn lower_storage_accesses_in_predicate(
         span: empty_span(),
     };
 
-    let state_exprs = contract
+    let variable_exprs = contract
         .preds
         .get(pred_key)
         .map(|pred| {
-            pred.states()
-                .map(|(_, state)| state.expr)
+            pred.variables()
+                .map(|(_, variable)| variable.expr)
                 .collect::<Vec<_>>()
         })
         .unwrap_or_default();
 
-    let storage_accesses: FxHashSet<_> = state_exprs
+    let storage_accesses: FxHashSet<_> = variable_exprs
         .iter()
         .flat_map(|expr| expr.collect_storage_accesses(contract))
         .collect();

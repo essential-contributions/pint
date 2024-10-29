@@ -26,11 +26,11 @@ predicate Simple(
     e_new: int,
     a: int[5],
 ) {
-    state x: int = mut storage::x;
-    state y: int = mut storage::y;
-    state z: int = mut storage::z;
+    let x: int = mut storage::x;
+    let y: int = mut storage::y;
+    let z: int = mut storage::z;
 
-    state external_1 
+    let external_1 
         = Foo[[0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE]]::storage::y; // 69
 
     constraint w == x + 99; // 141

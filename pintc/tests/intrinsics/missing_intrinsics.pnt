@@ -1,14 +1,14 @@
 predicate Foo() {
-    state x = __foo();
-    state y = __bar(0);
-    state z = __bazinga(0, 2);
+    let x = __foo();
+    let y = __bar(0);
+    let z = __bazinga(0, 2);
 }
 
 // parse_failure <<<
 // no intrinsic named `__foo` is found
-// @32..37: intrinsic not found
+// @30..35: intrinsic not found
 // no intrinsic named `__bar` is found
-// @55..60: intrinsic not found
+// @51..56: intrinsic not found
 // no intrinsic named `__bazinga` is found
-// @79..88: intrinsic not found
+// @73..82: intrinsic not found
 // >>>

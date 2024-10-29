@@ -1,25 +1,25 @@
 union T = FortyTwo | FleventyFive;
 
 predicate test() {
-    state a = 11 + false;
-    state b = 22 - true;
-    state c = [1,2] * 33;
-    state d = 0x0000111100001111000011110000111100001111000011110000111100001111 / 44;
+    let a = 11 + false;
+    let b = 22 - true;
+    let c = [1,2] * 33;
+    let d = 0x0000111100001111000011110000111100001111000011110000111100001111 / 44;
 
-    state e = 55 % T::FortyTwo;
+    let e = 55 % T::FortyTwo;
 
     // `==` and `!=` take any type but they must be equivalent.
-    state k = 16 == T::FleventyFive;
-    state l = 17 != true;
+    let k = 16 == T::FleventyFive;
+    let l = 17 != true;
 
-    state m = true > false;
-    state o = 20 < 0x0000111100001111000011110000111100001111000011110000111100001111;
-    state p = 22 <= [23, 23];
+    let m = true > false;
+    let o = 20 < 0x0000111100001111000011110000111100001111000011110000111100001111;
+    let p = 22 <= [23, 23];
 
-    state q = true && 24;
+    let q = true && 24;
 
     // Tuples can compare with `==` or `!=` too.
-    state s = {true, 26} == {27, false};
+    let s = {true, 26} == {27, false};
 }
 
 // parsed <<<
@@ -27,48 +27,48 @@ predicate test() {
 // 
 // predicate ::test(
 // ) {
-//     state ::a = (11 + false);
-//     state ::b = (22 - true);
-//     state ::c = ([1, 2] * 33);
-//     state ::d = (0x0000111100001111000011110000111100001111000011110000111100001111 / 44);
-//     state ::e = (55 % ::T::FortyTwo);
-//     state ::k = (16 == ::T::FleventyFive);
-//     state ::l = (17 != true);
-//     state ::m = (true > false);
-//     state ::o = (20 < 0x0000111100001111000011110000111100001111000011110000111100001111);
-//     state ::p = (22 <= [23, 23]);
-//     state ::q = (true && 24);
-//     state ::s = ({true, 26} == {27, false});
+//     let ::a = (11 + false);
+//     let ::b = (22 - true);
+//     let ::c = ([1, 2] * 33);
+//     let ::d = (0x0000111100001111000011110000111100001111000011110000111100001111 / 44);
+//     let ::e = (55 % ::T::FortyTwo);
+//     let ::k = (16 == ::T::FleventyFive);
+//     let ::l = (17 != true);
+//     let ::m = (true > false);
+//     let ::o = (20 < 0x0000111100001111000011110000111100001111000011110000111100001111);
+//     let ::p = (22 <= [23, 23]);
+//     let ::q = (true && 24);
+//     let ::s = ({true, 26} == {27, false});
 // }
 // >>>
 
 // typecheck_failure <<<
 // operator invalid type error
-// @69..79: invalid non-numeric type `bool` for operator `+`
+// @67..77: invalid non-numeric type `bool` for operator `+`
 // operator invalid type error
-// @95..104: invalid non-numeric type `bool` for operator `-`
+// @91..100: invalid non-numeric type `bool` for operator `-`
 // operator invalid type error
-// @120..130: invalid non-numeric type `int[2]` for operator `*`
+// @114..124: invalid non-numeric type `int[2]` for operator `*`
 // operator invalid type error
-// @146..217: invalid non-numeric type `b256` for operator `/`
+// @138..209: invalid non-numeric type `b256` for operator `/`
 // operator invalid type error
-// @234..250: invalid non-numeric type `::T` for operator `%`
+// @224..240: invalid non-numeric type `::T` for operator `%`
 // binary operator type error
-// @337..352: operator `==` argument has unexpected type `::T`
-// @331..333: expecting type `int`
+// @325..340: operator `==` argument has unexpected type `::T`
+// @319..321: expecting type `int`
 // binary operator type error
-// @374..378: operator `!=` argument has unexpected type `bool`
-// @368..370: expecting type `int`
+// @360..364: operator `!=` argument has unexpected type `bool`
+// @354..356: expecting type `int`
 // operator invalid type error
-// @395..407: invalid non-numeric type `bool` for operator `>`
+// @379..391: invalid non-numeric type `bool` for operator `>`
 // operator invalid type error
-// @423..494: invalid non-numeric type `b256` for operator `<`
+// @405..476: invalid non-numeric type `b256` for operator `<`
 // operator invalid type error
-// @510..524: invalid non-numeric type `int[2]` for operator `<=`
+// @490..504: invalid non-numeric type `int[2]` for operator `<=`
 // binary operator type error
-// @549..551: operator `&&` argument has unexpected type `int`
-// @541..551: expecting type `bool`
+// @527..529: operator `&&` argument has unexpected type `int`
+// @519..529: expecting type `bool`
 // binary operator type error
-// @631..642: operator `==` argument has unexpected type `{int, bool}`
-// @617..627: expecting type `{bool, int}`
+// @607..618: operator `==` argument has unexpected type `{int, bool}`
+// @593..603: expecting type `{bool, int}`
 // >>>

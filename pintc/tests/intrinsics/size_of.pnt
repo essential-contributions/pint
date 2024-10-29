@@ -13,10 +13,10 @@ predicate test(
     c_len: int,
     d_len: int,
 ) {
-    state a = storage::a;
-    state b = storage::b;
-    state c = storage::c;
-    state d = storage::d;
+    let a = storage::a;
+    let b = storage::b;
+    let c = storage::c;
+    let d = storage::d;
 
     constraint a_len == __size_of(a);
     constraint b_len == __size_of(b);
@@ -39,10 +39,10 @@ predicate test(
 //     ::c_len: int,
 //     ::d_len: int,
 // ) {
-//     state ::a = storage::a;
-//     state ::b = storage::b;
-//     state ::c = storage::c;
-//     state ::d = storage::d;
+//     let ::a = storage::a;
+//     let ::b = storage::b;
+//     let ::c = storage::c;
+//     let ::d = storage::d;
 //     constraint (::a_len == __size_of(::a));
 //     constraint (::b_len == __size_of(::b));
 //     constraint (::c_len == __size_of(::c));
@@ -65,10 +65,10 @@ predicate test(
 //     ::c_len: int,
 //     ::d_len: int,
 // ) {
-//     state ::a: int = __storage_get({0});
-//     state ::b: bool = __storage_get({1});
-//     state ::c: b256 = __storage_get({2});
-//     state ::d: {int, bool} = __storage_get({3, 0});
+//     let ::a: int = __storage_get({0});
+//     let ::b: bool = __storage_get({1});
+//     let ::c: b256 = __storage_get({2});
+//     let ::d: {int, bool} = __storage_get({3, 0});
 //     constraint (::a_len == __size_of(::a));
 //     constraint (::b_len == __size_of(::b));
 //     constraint (::c_len == __size_of(::c));

@@ -1,5 +1,5 @@
 macro @m($a, $b, &rest) {
-    state a = $a + $b;
+    let a = $a + $b;
     @m(&rest);
 }
 
@@ -14,7 +14,7 @@ predicate test() {
 
 // parse_failure <<<
 // unable to match macro call
-// @53..62: unable to match call to macro `::@m`
+// @51..60: unable to match call to macro `::@m`
 // the valid number of arguments must be either 1 or 3 or more but this call passes 2 arguments
 // a macro named `::@m` found with a different signature
 // >>>

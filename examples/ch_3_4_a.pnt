@@ -1,10 +1,10 @@
 predicate test(number: int, x: int) {
 // ANCHOR: basic_select
-state y = (number < 5 ? 1 : 2);
+let y = (number < 5 ? 1 : 2);
 // ANCHOR_END: basic_select
 
 // ANCHOR: basic_cond
-state z = cond {
+let z = cond {
     x == 0 => 0,
     x > 0 && x <= 10 => 1,
     x > 10 && x <= 100 => 2,

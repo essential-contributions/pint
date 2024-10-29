@@ -39,10 +39,11 @@ impl Contract {
             }
         }
 
-        // Now, check predicate parameters, state variables, and cast expressions, in every predicate
+        // Now, check predicate parameters, variable variables, and cast expressions, in every predicate
         for (pred_key, pred) in self.preds.iter() {
-            pred.states()
-                .for_each(|(state_key, _)| check_custom_type(state_key.get_ty(pred), handler));
+            pred.variables().for_each(|(variable_key, _)| {
+                check_custom_type(variable_key.get_ty(pred), handler)
+            });
 
             pred.params
                 .iter()
@@ -162,7 +163,7 @@ impl Contract {
         handler.result(())
     }
 
-    /// Collect all storage accesses that are *not* in a state var initializer. For each of those
+    /// Collect all storage accesses that are *not* in a variable var initializer. For each of those
     /// accesses, emit an error. These accesses are not legal.
     pub(in crate::predicate::analyse) fn check_storage_accesses(
         &self,
@@ -209,7 +210,7 @@ impl Contract {
         handler.result(())
     }
 
-    /// Check that all predicate parameters and state variables do not have storage only types like
+    /// Check that all predicate parameters and variable variables do not have storage only types like
     /// storage maps and storage vectors
     pub(in crate::predicate::analyse) fn check_types_of_variables(
         &self,
@@ -230,15 +231,15 @@ impl Contract {
                 }
             });
 
-            // Disallow state variables from having storage only types
-            pred.states().for_each(|(state_key, state)| {
-                let ty = state_key.get_ty(pred);
+            // Disallow variable variables from having storage only types
+            pred.variables().for_each(|(variable_key, variable)| {
+                let ty = variable_key.get_ty(pred);
                 if let Some(nested_ty) = ty.get_storage_only_ty() {
                     handler.emit_err(Error::Compile {
                         error: CompileError::ParamHasStorageType {
                             ty: self.with_ctrct(ty).to_string(),
                             nested_ty: self.with_ctrct(nested_ty).to_string(),
-                            span: state.span.clone(),
+                            span: variable.span.clone(),
                         },
                     });
                 }

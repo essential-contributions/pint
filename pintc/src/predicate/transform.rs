@@ -30,7 +30,7 @@ impl super::Contract {
         // Plug const decls in everywhere so they maybe lowered below.
         replace_const_refs(&mut self);
 
-        // Convert comparisons to `nil` into comparisons between __state_len() and 0.
+        // Convert comparisons to `nil` into comparisons between __size_of(..) and 0.
         lower_compares_to_nil(&mut self);
 
         // Unroll each generator into one large conjuction

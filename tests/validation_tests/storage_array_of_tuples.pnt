@@ -14,7 +14,7 @@ interface Foo {
 }
 
 predicate Bar() {
-    state a = mut storage::a;
+    let a = mut storage::a;
 
     constraint (a')[0][0].0 == 1;
     constraint (a')[0][0].1.0 == 1;
@@ -48,20 +48,20 @@ predicate Bar() {
         ],
     ];
 
-    state a_1_2_0 = mut storage::a[1][2].0;
-    state a_1_2_1_0 = mut storage::a[1][2].1.0;
-    state a_1_2_1_1 = mut storage::a[1][2].1.1;
+    let a_1_2_0 = mut storage::a[1][2].0;
+    let a_1_2_1_0 = mut storage::a[1][2].1.0;
+    let a_1_2_1_1 = mut storage::a[1][2].1.1;
     constraint a_1_2_0' == 6;
     constraint a_1_2_1_0' == 6;
     constraint a_1_2_1_1' == 0x0000000000000006000000000000000600000000000000060000000000000006;
 
-    state a_1_2 = mut storage::a[1][2];
+    let a_1_2 = mut storage::a[1][2];
     constraint a_1_2' == { 6, { 6, 0x0000000000000006000000000000000600000000000000060000000000000006
     }};
 
-    state addr = 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE;
+    let addr = 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE;
 
-    state foo_a = Foo[[addr]]::storage::a;
+    let foo_a = Foo[[addr]]::storage::a;
 
     constraint (foo_a')[0][0].0 == 1;
     constraint (foo_a')[0][0].1.0 == 1;
@@ -95,14 +95,14 @@ predicate Bar() {
         ],
     ];
 
-    state foo_a_1_2_0 = Foo[[addr]]::storage::a[1][2].0;
-    state foo_a_1_2_1_0 = Foo[[addr]]::storage::a[1][2].1.0;
-    state foo_a_1_2_1_1 = Foo[[addr]]::storage::a[1][2].1.1;
+    let foo_a_1_2_0 = Foo[[addr]]::storage::a[1][2].0;
+    let foo_a_1_2_1_0 = Foo[[addr]]::storage::a[1][2].1.0;
+    let foo_a_1_2_1_1 = Foo[[addr]]::storage::a[1][2].1.1;
     constraint foo_a_1_2_0' == 6;
     constraint foo_a_1_2_1_0' == 6;
     constraint foo_a_1_2_1_1' == 0x0000000000000006000000000000000600000000000000060000000000000006;
 
-    state foo_a_1_2 = Foo[[addr]]::storage::a[1][2];
+    let foo_a_1_2 = Foo[[addr]]::storage::a[1][2];
     constraint foo_a_1_2' == { 6, { 6, 0x0000000000000006000000000000000600000000000000060000000000000006
     }};
 }

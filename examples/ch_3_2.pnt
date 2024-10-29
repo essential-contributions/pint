@@ -1,68 +1,68 @@
 predicate test() {
 // ANCHOR: math_ops 
 // addition
-state sum = 1 + 2 + 3;
+let sum = 1 + 2 + 3;
 
 // subtraction
-state difference = 15 - 1;
+let difference = 15 - 1;
 
 // multiplication
-state product = 42 * 42;
+let product = 42 * 42;
 
 // division
-state quotient = 3 / 2;
-state truncated = -5 / 3; // Results is -1
+let quotient = 3 / 2;
+let truncated = -5 / 3; // Results is -1
 
 // remainder
-state remainder = 34 % 3;
+let remainder = 34 % 3;
 // ANCHOR_END: math_ops 
 
 // ANCHOR: bools
-state t = true;
-state f: bool = false;
+let t = true;
+let f: bool = false;
 // ANCHOR_END: bools 
 
 // ANCHOR: b256
-state addr1 = 0x3333333333333333333333333333333333333333333333333333333333333333;
-state addr2: b256 = 0b1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111;
+let addr1 = 0x3333333333333333333333333333333333333333333333333333333333333333;
+let addr2: b256 = 0b1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111;
 // ANCHOR_END: b256
 
 // ANCHOR: simple_tuple 
-state tup_1: { int, int, bool } = { 42, 4, true };
+let tup_1: { int, int, bool } = { 42, 4, true };
 // ANCHOR_END: simple_tuple
 
 // ANCHOR: tuple_access 
-state tup_2: { int, int, bool } = { 42, 4, true };
-state tup_2_first = tup_2.0;
-state tup_2_second = tup_2.1;
-state tup_2_third = tup_2.2;
+let tup_2: { int, int, bool } = { 42, 4, true };
+let tup_2_first = tup_2.0;
+let tup_2_second = tup_2.1;
+let tup_2_third = tup_2.2;
 // ANCHOR_END: tuple_access
 
 // ANCHOR: simple_tuple_named
-state tup_3: { x: int, int, y: bool } = { 42, 4, true };
+let tup_3: { x: int, int, y: bool } = { 42, 4, true };
 // ANCHOR_END: simple_tuple_named
 
 // ANCHOR: tuple_access_named 
-state tup_4: { x: int, int, y: bool } = { 42, 4, true };
-state tup_4_first = tup_4.0;
-state tup_4_first_named = tup_4.x; // same as `tup_4.0`
-state tup_4_second = tup_4.1;
-state tup_4_third = tup_4.2;
-state tup_4_third_named = tup_4.y; // same as `tup_4.y`
+let tup_4: { x: int, int, y: bool } = { 42, 4, true };
+let tup_4_first = tup_4.0;
+let tup_4_first_named = tup_4.x; // same as `tup_4.0`
+let tup_4_second = tup_4.1;
+let tup_4_third = tup_4.2;
+let tup_4_third_named = tup_4.y; // same as `tup_4.y`
 // ANCHOR_END: tuple_access_named
 
 
 // ANCHOR: simple_array
-state a = [1, 2, 3, 4, 5];
+let a = [1, 2, 3, 4, 5];
 // ANCHOR_END: simple_array
 
 // ANCHOR: array_type
-state b: int[5] = [1, 2, 3, 4, 5];
+let b: int[5] = [1, 2, 3, 4, 5];
 // ANCHOR_END: array_type
 
 // ANCHOR: array_access
-state c: int[5] = [1, 2, 3, 4, 5];
-state c_first = c[0];
-state c_second = c[1];
+let c: int[5] = [1, 2, 3, 4, 5];
+let c_first = c[0];
+let c_second = c[1];
 // ANCHOR_END: array_access
 }

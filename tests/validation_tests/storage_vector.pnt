@@ -29,10 +29,10 @@ predicate Bar() {
     // Test external storage vectors
 
     // v0 starts empty
-    state v0_0 = mut storage::v0[0];
-    state v0_1 = mut storage::v0[1];
-    state v0_2 = mut storage::v0[2];
-    state v0_len = __vec_len(mut storage::v0);
+    let v0_0 = mut storage::v0[0];
+    let v0_1 = mut storage::v0[1];
+    let v0_2 = mut storage::v0[2];
+    let v0_len = __vec_len(mut storage::v0);
 
     constraint v0_len == nil || v0_len == 0;
     constraint v0_len' == 3;
@@ -41,18 +41,18 @@ predicate Bar() {
     constraint v0_2' == 44;
 
     // v1 starts with 3 elements and then expands to 5
-    state v1_0 = storage::v1[0];
-    state v1_1 = storage::v1[1];
-    state v1_2 = storage::v1[2];
-    state v1_len = __vec_len(mut storage::v1);
+    let v1_0 = storage::v1[0];
+    let v1_1 = storage::v1[1];
+    let v1_2 = storage::v1[2];
+    let v1_len = __vec_len(mut storage::v1);
 
     constraint v1_len == 3;
     constraint v1_0 == 13;
     constraint v1_1 == 14;
     constraint v1_2 == 15;
 
-    state v1_3 = mut storage::v1[3];
-    state v1_4 = mut storage::v1[4];
+    let v1_3 = mut storage::v1[3];
+    let v1_4 = mut storage::v1[4];
 
     constraint v1_len' == 5;
     constraint v1_0' == 13; // did not change
@@ -62,10 +62,10 @@ predicate Bar() {
     constraint v1_4' == 17; // newly added
 
     // v2 starts empty
-    state v2_0 = mut storage::v2[0];
-    state v2_1 = mut storage::v2[1];
-    state v2_2 = mut storage::v2[2];
-    state v2_len = __vec_len(mut storage::v2);
+    let v2_0 = mut storage::v2[0];
+    let v2_1 = mut storage::v2[1];
+    let v2_2 = mut storage::v2[2];
+    let v2_len = __vec_len(mut storage::v2);
    
     constraint v2_len == nil || v2_len == 0;
     constraint v2_len' == 3;
@@ -75,13 +75,13 @@ predicate Bar() {
 
 
     // Test external storage vectors
-    state addr = 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE;
+    let addr = 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE;
 
     // v0 starts empty
-    state foo_v0_0 = Foo[[addr]]::storage::v0[0];
-    state foo_v0_1 = Foo[[addr]]::storage::v0[1];
-    state foo_v0_2 = Foo[[addr]]::storage::v0[2];
-    state foo_v0_len = __vec_len(Foo[[addr]]::storage::v0);
+    let foo_v0_0 = Foo[[addr]]::storage::v0[0];
+    let foo_v0_1 = Foo[[addr]]::storage::v0[1];
+    let foo_v0_2 = Foo[[addr]]::storage::v0[2];
+    let foo_v0_len = __vec_len(Foo[[addr]]::storage::v0);
 
     constraint foo_v0_len == nil || foo_v0_len == 0;
     constraint foo_v0_len' == 3;
@@ -90,18 +90,18 @@ predicate Bar() {
     constraint foo_v0_2' == 44;
 
     // v1 starts with 3 elements and then expands to 5
-    state foo_v1_0 = Foo[[addr]]::storage::v1[0];
-    state foo_v1_1 = Foo[[addr]]::storage::v1[1];
-    state foo_v1_2 = Foo[[addr]]::storage::v1[2];
-    state foo_v1_len = __vec_len(Foo[[addr]]::storage::v1);
+    let foo_v1_0 = Foo[[addr]]::storage::v1[0];
+    let foo_v1_1 = Foo[[addr]]::storage::v1[1];
+    let foo_v1_2 = Foo[[addr]]::storage::v1[2];
+    let foo_v1_len = __vec_len(Foo[[addr]]::storage::v1);
 
     constraint foo_v1_len == 3;
     constraint foo_v1_0 == 13;
     constraint foo_v1_1 == 14;
     constraint foo_v1_2 == 15;
 
-    state foo_v1_3 = Foo[[addr]]::storage::v1[3];
-    state foo_v1_4 = Foo[[addr]]::storage::v1[4];
+    let foo_v1_3 = Foo[[addr]]::storage::v1[3];
+    let foo_v1_4 = Foo[[addr]]::storage::v1[4];
 
     constraint foo_v1_len' == 5;
     constraint foo_v1_0' == 13; // did not change
@@ -111,10 +111,10 @@ predicate Bar() {
     constraint foo_v1_4' == 17; // newly added
 
     // v2 starts empty
-    state foo_v2_0 = Foo[[addr]]::storage::v2[0];
-    state foo_v2_1 = Foo[[addr]]::storage::v2[1];
-    state foo_v2_2 = Foo[[addr]]::storage::v2[2];
-    state foo_v2_len = __vec_len(Foo[[addr]]::storage::v2);
+    let foo_v2_0 = Foo[[addr]]::storage::v2[0];
+    let foo_v2_1 = Foo[[addr]]::storage::v2[1];
+    let foo_v2_2 = Foo[[addr]]::storage::v2[2];
+    let foo_v2_len = __vec_len(Foo[[addr]]::storage::v2);
    
     constraint foo_v2_len == nil || foo_v2_len == 0;
     constraint foo_v2_len' == 3;

@@ -8,18 +8,18 @@ storage {
 }
 
 predicate test() {
-    state i: I = 11;
-    state j: {I, real} = {22, 33.3};
+    let i: I = 11;
+    let j: {I, real} = {22, 33.3};
 
-    state r: Real = 44.4;
-    state e: Experience = Experience::Real;
+    let r: Real = 44.4;
+    let e: Experience = Experience::Real;
 
-    state p: Point = { 66.6, 77.7 };
+    let p: Point = { 66.6, 77.7 };
     constraint r < p.y;
 
-    state q: real = i as Real;
+    let q: real = i as Real;
 
-    state x: Real = storage::x;
+    let x: Real = storage::x;
 }
 
 // parsed <<<
@@ -33,13 +33,13 @@ predicate test() {
 // 
 // predicate ::test(
 // ) {
-//     state ::i: ::I = 11;
-//     state ::j: {::I, real} = {22, 3.33e1};
-//     state ::r: ::Real = 4.44e1;
-//     state ::e: ::Experience = ::Experience::Real;
-//     state ::p: ::Point = {6.66e1, 7.77e1};
-//     state ::q: real = ::i as ::Real;
-//     state ::x: ::Real = storage::x;
+//     let ::i: ::I = 11;
+//     let ::j: {::I, real} = {22, 3.33e1};
+//     let ::r: ::Real = 4.44e1;
+//     let ::e: ::Experience = ::Experience::Real;
+//     let ::p: ::Point = {6.66e1, 7.77e1};
+//     let ::q: real = ::i as ::Real;
+//     let ::x: ::Real = storage::x;
 //     constraint (::r < ::p.y);
 // }
 // >>>
@@ -55,13 +55,13 @@ predicate test() {
 // 
 // predicate ::test(
 // ) {
-//     state ::i: int = 11;
-//     state ::j: {int, real} = {22, 3.33e1};
-//     state ::r: real = 4.44e1;
-//     state ::e: ::Experience = ::Experience::Real;
-//     state ::p: {x: real, y: real} = {6.66e1, 7.77e1};
-//     state ::q: real = ::i as real;
-//     state ::x: real = __storage_get({0});
+//     let ::i: int = 11;
+//     let ::j: {int, real} = {22, 3.33e1};
+//     let ::r: real = 4.44e1;
+//     let ::e: ::Experience = ::Experience::Real;
+//     let ::p: {x: real, y: real} = {6.66e1, 7.77e1};
+//     let ::q: real = ::i as real;
+//     let ::x: real = __storage_get({0});
 //     constraint (::r < ::p.y);
 //     constraint __eq_set(__mut_keys(), {0});
 // }

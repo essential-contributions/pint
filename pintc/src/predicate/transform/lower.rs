@@ -172,8 +172,8 @@ pub(crate) fn lower_array_ranges(
                 .filter_map(|param| ty_non_int_range_expr(contract, Some(pred_key), &param.ty)),
         );
 
-        array_range_expr_keys.extend(pred.states.states().filter_map(|(state_key, _state)| {
-            ty_non_int_range_expr(contract, Some(pred_key), state_key.get_ty(pred))
+        array_range_expr_keys.extend(pred.variables.variables().filter_map(|(variable_key, _)| {
+            ty_non_int_range_expr(contract, Some(pred_key), variable_key.get_ty(pred))
         }));
     }
 
@@ -678,15 +678,15 @@ pub(crate) fn lower_ins(handler: &Handler, contract: &mut Contract) -> Result<()
 /// Convert all comparisons to `nil` to comparisons between the intrinsic `__size_of` and 0.
 /// For example:
 ///
-/// state x = storage::x;
-/// state y = storage::x;
+/// let x = storage::x;
+/// let y = storage::x;
 /// constraint x == nil;
 /// constraint y != nil;
 ///
 /// becomes:
 ///
-/// state x = storage::x;
-/// state y = storage::x;
+/// let x = storage::x;
+/// let y = storage::x;
 /// constraint __size_of(x) == 0;
 /// constraint __size_of(y) != 0;
 ///

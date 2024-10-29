@@ -1,4 +1,4 @@
-state bry: int[4];
+let bry: int[4];
 
 constraint forall i in 1..3 {
     bry[i] < bry[i - 1]

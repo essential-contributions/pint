@@ -4,7 +4,7 @@ use crate::{
         BinaryOp, Expr, ExternalIntrinsic, Immediate, InternalIntrinsic, IntrinsicKind,
         TupleAccess, UnaryOp,
     },
-    predicate::{Contract, ExprKey, Predicate, State as StateVar},
+    predicate::{Contract, ExprKey, Predicate, Variable},
     span::empty_span,
     types::Type,
 };
@@ -29,9 +29,9 @@ pub struct AsmBuilder<'a> {
     // addresses
     compiled_predicates: &'a HashMap<String, (CompiledPredicate, ContentAddress)>,
 
-    // A map from names of state variables to their chosen state slot indices. Each state variable
-    // is stored in a single slot.
-    state_var_to_slot_indices: HashMap<String, usize>,
+    // A map from names of variables to their chosen state slot indices. Each variable is stored in
+    // a single slot.
+    variables_to_slot_indices: HashMap<String, usize>,
 
     // A map from storage access expressions to their chosen state slot indices. Each storage
     // access spans one or more consecutive slots, hence the `Range`.
@@ -124,7 +124,7 @@ impl<'a> AsmBuilder<'a> {
             state_programs: Vec::new(),
             constraint_programs: Vec::new(),
             compiled_predicates,
-            state_var_to_slot_indices: HashMap::new(),
+            variables_to_slot_indices: HashMap::new(),
             storage_access_to_slot_indices: HashMap::new(),
             global_state_slots: 0,
         }
@@ -140,10 +140,10 @@ impl<'a> AsmBuilder<'a> {
     }
 
     /// Generates assembly for a given state read and adds the resulting program to `self.
-    pub(super) fn compile_state(
+    pub(super) fn compile_variable(
         &mut self,
         handler: &Handler,
-        state: &StateVar,
+        variable: &Variable,
         contract: &Contract,
         pred: &Predicate,
     ) -> Result<(), ErrorEmitted> {
@@ -165,15 +165,15 @@ impl<'a> AsmBuilder<'a> {
             ))
         };
 
-        // Allocate a single slot for the state var. Keep track of the local and global indices for
+        // Allocate a single slot for the variable. Keep track of the local and global indices for
         // this newly allocated slot.
-        let (state_var_local_slot_index, state_var_global_slot_index) = allocate(1)?;
+        let (local_slot_index, global_slot_index) = allocate(1)?;
 
-        // Collect all storage accesses used in the state var initializer, and allocate enough
+        // Collect all storage accesses used in the variable initializer, and allocate enough
         // slots for all of them. We do this ahead of time so that we know exactly how many slots
         // are allocated. Due to short-circuting, this also means that some allocations may not be
         // used, but this is okay for now.
-        for access in state.expr.collect_storage_accesses(contract) {
+        for access in variable.expr.collect_storage_accesses(contract) {
             // This is how many slots this storage access requires
             let num_keys_to_read = access.get_ty(contract).storage_slots(handler, contract)?;
 
@@ -186,11 +186,11 @@ impl<'a> AsmBuilder<'a> {
         }
 
         // Prepare for the `StateMemory::Store` opcode
-        asm.push(Stack::Push(state_var_local_slot_index as i64).into()); // slot_ix
+        asm.push(Stack::Push(local_slot_index as i64).into()); // slot_ix
         asm.push(Stack::Push(0).into()); // value_ix
 
         if let Some(state_slots) =
-            self.compile_expr_pointer_deref(handler, &mut asm, &state.expr, contract, pred)?
+            self.compile_expr_pointer_deref(handler, &mut asm, &variable.expr, contract, pred)?
         {
             // If the result is stored state slots, then load those slots to the stack
             for i in state_slots.start..state_slots.end {
@@ -213,21 +213,21 @@ impl<'a> AsmBuilder<'a> {
             }
         } else {
             // Otherwise, the data is already on the stack. Just follow with the size of the data
-            // according to the state expr type.
+            // according to the variable init expr type.
             asm.push(
-                Stack::Push(state.expr.get_ty(contract).size(handler, contract)? as i64).into(),
+                Stack::Push(variable.expr.get_ty(contract).size(handler, contract)? as i64).into(),
             );
         }
 
-        // Now, store the result into the slot allocated for the state var
+        // Now, store the result into the slot allocated for the variable
         asm.try_push(handler, StateMemory::Store.into())?;
         asm.try_push(handler, TotalControlFlow::Halt.into())?;
 
-        // Keep track of the global index of the state slot where this state variable lives
-        self.state_var_to_slot_indices
-            .insert(state.name.clone(), state_var_global_slot_index);
+        // Keep track of the global index of the state slot where this variable lives
+        self.variables_to_slot_indices
+            .insert(variable.name.clone(), global_slot_index);
 
-        // Clear out this map because it's local to each state variable
+        // Clear out this map because it's local to each variable
         self.storage_access_to_slot_indices.clear();
 
         self.push_asm_program(asm);
@@ -477,7 +477,7 @@ impl<'a> AsmBuilder<'a> {
     }
 
     /// Compile a path expression. Assumes that each path expressions corresponds to a predicate
-    /// parameter or a state variable. All other paths should have been lowered to something else
+    /// parameter or a variable. All other paths should have been lowered to something else
     /// by now.
     fn compile_path(
         &mut self,
@@ -497,8 +497,8 @@ impl<'a> AsmBuilder<'a> {
 
             // predicate parameters are implemented using `DecisionVar`
             Ok(Location::DecisionVar)
-        } else if pred.states().any(|(_, state)| &state.name == path) {
-            asm.push(Stack::Push(self.state_var_to_slot_indices[path] as i64).into()); // slot
+        } else if pred.variables().any(|(_, variable)| &variable.name == path) {
+            asm.push(Stack::Push(self.variables_to_slot_indices[path] as i64).into()); // slot
             asm.push(Stack::Push(0).into()); // placeholder for index computation
             Ok(Location::State(false))
         } else {
@@ -529,8 +529,7 @@ impl<'a> AsmBuilder<'a> {
                 Ok(Location::Value)
             }
             UnaryOp::NextState => {
-                // Next state expressions produce state expressions (i.e. ones that require `State`
-                // or `StateRange`
+                // Next state expressions produce state expressions (ones that require `State`)
                 self.compile_expr_pointer(handler, asm, expr, contract, pred)?;
                 Ok(Location::State(true))
             }

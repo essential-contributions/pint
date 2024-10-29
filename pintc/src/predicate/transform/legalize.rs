@@ -1,7 +1,7 @@
 use crate::{
     error::{ErrorEmitted, Handler},
     expr::{BinaryOp, Expr, ExternalIntrinsic, IntrinsicKind, UnaryOp},
-    predicate::{ConstraintDecl, Contract, ExprKey, PredKey, State},
+    predicate::{ConstraintDecl, Contract, ExprKey, PredKey, Variable},
     span::empty_span,
     types::{PrimitiveKind, Type},
 };
@@ -39,18 +39,18 @@ pub(crate) fn legalize_vector_accesses_in_predicate(
         span: empty_span(),
     };
 
-    // Collect all state variables that are initialized to index expressions to storage vector
-    let state_vector_accesses = contract
+    // Collect all variable variables that are initialized to index expressions to storage vector
+    let variable_vector_accesses = contract
         .preds
         .get(pred_key)
         .unwrap()
-        .states()
-        .filter_map(|(_, state)| {
-            let State {
-                name: state_var_name,
+        .variables()
+        .filter_map(|(_, variable)| {
+            let Variable {
+                name: variable_var_name,
                 expr: init_expr,
                 ..
-            } = state;
+            } = variable;
             if let Expr::Index {
                 expr: storage_vec_expr,
                 index,
@@ -64,7 +64,7 @@ pub(crate) fn legalize_vector_accesses_in_predicate(
                 {
                     if contract.storage_var(storage_vec_name).1.ty.is_vector() {
                         return Some((
-                            state_var_name.clone(),
+                            variable_var_name.clone(),
                             (storage_vec_name.clone(), *index, *storage_vec_expr),
                         ));
                     }
@@ -74,8 +74,8 @@ pub(crate) fn legalize_vector_accesses_in_predicate(
         })
         .collect::<FxHashMap<String, (String, ExprKey, ExprKey)>>();
 
-    // Collect all `Path` expressions that reference one of the state variables collected in
-    // `state_vector_accesses` and are "primed", i.e., they are used in a `NextState` unary op
+    // Collect all `Path` expressions that reference one of the variable variables collected in
+    // `variable_vector_accesses` and are "primed", i.e., they are used in a `NextState` unary op
     // expression
     let primed_exprs = contract
         .exprs(pred_key)
@@ -88,7 +88,7 @@ pub(crate) fn legalize_vector_accesses_in_predicate(
             {
                 if let Expr::Path(name, _) = primed_expr.get(contract) {
                     if let Some((storage_vec_name, index, storage_vec_expr)) =
-                        state_vector_accesses.get(name)
+                        variable_vector_accesses.get(name)
                     {
                         return Some((
                             *primed_expr,
@@ -101,8 +101,8 @@ pub(crate) fn legalize_vector_accesses_in_predicate(
         })
         .collect::<FxHashMap<ExprKey, (String, ExprKey, ExprKey)>>();
 
-    // Collect all `Path` expression that reference one of the state variables collected in
-    // `state_vector_accesses` and are *not* "primed".
+    // Collect all `Path` expression that reference one of the variable variables collected in
+    // `variable_vector_accesses` and are *not* "primed".
     //
     // The I'm doing this is probably okay but I think can fail in situations where the `Path`
     // expression key is used in a prime expression AND outside a prime expression.
@@ -111,7 +111,7 @@ pub(crate) fn legalize_vector_accesses_in_predicate(
         .filter_map(|expr| {
             if let Expr::Path(name, _) = expr.get(contract) {
                 if let Some((storage_vec_name, index, storage_vec_expr)) =
-                    state_vector_accesses.get(name)
+                    variable_vector_accesses.get(name)
                 {
                     if !primed_exprs.contains_key(&expr) {
                         return Some((storage_vec_name.clone(), *index, *storage_vec_expr));
@@ -122,58 +122,59 @@ pub(crate) fn legalize_vector_accesses_in_predicate(
         })
         .collect::<FxHashSet<(String, ExprKey, ExprKey)>>();
 
-    // This is a helper closure that creates a `state` variable initialized the `__vec_len` of a
+    // This is a helper closure that creates a `variable` variable initialized the `__vec_len` of a
     // storage access expression to storage variable named `storage_vec_name` and with type
     // `storage_access_ty`
-    let create_vec_len_state_var = |contract: &mut Contract,
-                                    vec_len_name: String,
-                                    storage_vec_name: &String,
-                                    storage_access_ty: &Type| {
-        let vector_storage_access = contract.exprs.insert(
-            Expr::LocalStorageAccess {
-                name: storage_vec_name.clone(),
-                mutable: false,
-                span: empty_span(),
-            },
-            storage_access_ty.clone(),
-        );
-        let intrinsic = contract.exprs.insert(
-            Expr::IntrinsicCall {
-                kind: (
-                    IntrinsicKind::External(ExternalIntrinsic::VecLen),
-                    empty_span(),
-                ),
-                args: vec![vector_storage_access],
-                span: empty_span(),
-            },
-            int_ty.clone(),
-        );
-        if let Some(pred) = contract.preds.get_mut(pred_key) {
-            pred.states.insert(
-                State {
-                    name: vec_len_name,
-                    expr: intrinsic,
+    let create_vec_len_variable_var =
+        |contract: &mut Contract,
+         vec_len_name: String,
+         storage_vec_name: &String,
+         storage_access_ty: &Type| {
+            let vector_storage_access = contract.exprs.insert(
+                Expr::LocalStorageAccess {
+                    name: storage_vec_name.clone(),
+                    mutable: false,
+                    span: empty_span(),
+                },
+                storage_access_ty.clone(),
+            );
+            let intrinsic = contract.exprs.insert(
+                Expr::IntrinsicCall {
+                    kind: (
+                        IntrinsicKind::External(ExternalIntrinsic::VecLen),
+                        empty_span(),
+                    ),
+                    args: vec![vector_storage_access],
                     span: empty_span(),
                 },
                 int_ty.clone(),
             );
-        }
-    };
+            if let Some(pred) = contract.preds.get_mut(pred_key) {
+                pred.variables.insert(
+                    Variable {
+                        name: vec_len_name,
+                        expr: intrinsic,
+                        span: empty_span(),
+                    },
+                    int_ty.clone(),
+                );
+            }
+        };
 
-    // Keep track of all created vector length `state` variables so that we don't create them
+    // Keep track of all created vector length `variable` variables so that we don't create them
     // again.
-    let mut vec_len_state_var_names = FxHashSet::default();
+    let mut vec_len_variable_var_names = FxHashSet::default();
 
     // Handle "non" primed vector first
     for (storage_vec_name, index, storage_vec_expr) in &non_primed_exprs {
-        let vec_len_state_var_name = "__".to_owned() + storage_vec_name + "_len";
+        let vec_len_variable_var_name = "__".to_owned() + storage_vec_name + "_len";
 
-        // Insert a new state variable that contains the length of the vector being accessed
-        if vec_len_state_var_names.insert(vec_len_state_var_name.clone()) {
+        // Insert a new variable variable that contains the length of the vector being accessed
+        if vec_len_variable_var_names.insert(vec_len_variable_var_name.clone()) {
             let ty = storage_vec_expr.get_ty(contract).clone();
-            create_vec_len_state_var(
+            create_vec_len_variable_var(
                 contract,
-                vec_len_state_var_name.clone(),
+                vec_len_variable_var_name.clone(),
                 storage_vec_name,
                 &ty,
             );
@@ -182,7 +183,7 @@ pub(crate) fn legalize_vector_accesses_in_predicate(
         // Now create insert a new constraint that ensures that the index is smaller than the
         // current length of the vector
         let vec_len_path = contract.exprs.insert(
-            Expr::Path(vec_len_state_var_name.clone(), empty_span()),
+            Expr::Path(vec_len_variable_var_name.clone(), empty_span()),
             int_ty.clone(),
         );
 
@@ -206,14 +207,14 @@ pub(crate) fn legalize_vector_accesses_in_predicate(
 
     // Now handle primed vector first
     for (storage_vec_name, index, storage_vec_expr) in primed_exprs.values() {
-        let vec_len_state_var_name = "__".to_owned() + storage_vec_name + "_len";
+        let vec_len_variable_var_name = "__".to_owned() + storage_vec_name + "_len";
 
-        // Insert a new state variable that contains the length of the vector being accessed
-        if vec_len_state_var_names.insert(vec_len_state_var_name.clone()) {
+        // Insert a new variable variable that contains the length of the vector being accessed
+        if vec_len_variable_var_names.insert(vec_len_variable_var_name.clone()) {
             let ty = storage_vec_expr.get_ty(contract).clone();
-            create_vec_len_state_var(
+            create_vec_len_variable_var(
                 contract,
-                vec_len_state_var_name.clone(),
+                vec_len_variable_var_name.clone(),
                 storage_vec_name,
                 &ty,
             );
@@ -222,7 +223,7 @@ pub(crate) fn legalize_vector_accesses_in_predicate(
         // Now create insert a new constraint that ensures that the index is smaller than the
         // future length of the vector
         let vec_len_path = contract.exprs.insert(
-            Expr::Path(vec_len_state_var_name.clone(), empty_span()),
+            Expr::Path(vec_len_variable_var_name.clone(), empty_span()),
             int_ty.clone(),
         );
 

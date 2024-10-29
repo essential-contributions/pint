@@ -179,8 +179,12 @@ impl Predicate {
     fn fmt_with_indent(&self, f: &mut Formatter, contract: &Contract, indent: usize) -> Result {
         let indentation = " ".repeat(4 * indent);
 
-        for (state_key, _) in self.states() {
-            writeln!(f, "{indentation}{};", self.with_pred(contract, state_key))?;
+        for (variable_key, _) in self.variables() {
+            writeln!(
+                f,
+                "{indentation}{};",
+                self.with_pred(contract, variable_key)
+            )?;
         }
 
         for constraint in &self.constraints {

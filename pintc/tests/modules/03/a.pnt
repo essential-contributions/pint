@@ -1,1 +1,1 @@
-state a = 22;
+let a = 22;

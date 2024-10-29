@@ -40,7 +40,7 @@ predicate test(
     constraint recover_secp256k1_2 == __recover_secp256k1(hash0);
     constraint recover_secp256k1_3 == __recover_secp256k1(hash0, {hash0, hash0, 69}, hash0);
 
-    state x = storage::x;
+    let x = storage::x;
 
     constraint bad_size_of_1 == __size_of(x, 0);
     constraint bad_size_of_2 == __size_of();
@@ -68,7 +68,7 @@ predicate test(
 //     ::bad_size_of_1: int,
 //     ::bad_size_of_2: int,
 // ) {
-//     state ::x = storage::x;
+//     let ::x = storage::x;
 //     constraint (::this_address == __this_address(42));
 //     constraint (::this_contract_address == __this_contract_address(42));
 //     constraint (::sha256_0 == __sha256());
@@ -116,7 +116,7 @@ predicate test(
 // this intrinsic takes 2 arguments but 3 arguments were supplied
 // @1417..1470: unexpected number of arguments here
 // this intrinsic takes 1 argument but 2 arguments were supplied
-// @1532..1547: unexpected number of arguments here
+// @1530..1545: unexpected number of arguments here
 // this intrinsic takes 1 argument but 0 arguments were supplied
-// @1581..1592: unexpected number of arguments here
+// @1579..1590: unexpected number of arguments here
 // >>>
