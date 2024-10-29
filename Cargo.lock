@@ -1181,7 +1181,7 @@ checksum = "915a1e146535de9163f3987b8944ed8cf49a18bb0056bcebcdcece385cece4ff"
 
 [[package]]
 name = "pint-abi"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "essential-types",
  "pint-abi-gen",
@@ -1192,7 +1192,7 @@ dependencies = [
 
 [[package]]
 name = "pint-abi-gen"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "essential-hash",
  "essential-types",
@@ -1222,14 +1222,14 @@ dependencies = [
 
 [[package]]
 name = "pint-abi-types"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "pint-abi-visit"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "essential-types",
  "petgraph",
@@ -1238,7 +1238,7 @@ dependencies = [
 
 [[package]]
 name = "pint-cli"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -1249,7 +1249,7 @@ dependencies = [
 
 [[package]]
 name = "pint-manifest"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "serde",
  "serde_ignored",
@@ -1259,7 +1259,7 @@ dependencies = [
 
 [[package]]
 name = "pint-pkg"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "essential-hash",
  "essential-types",
@@ -1290,7 +1290,7 @@ dependencies = [
 
 [[package]]
 name = "pintc"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "ariadne",
