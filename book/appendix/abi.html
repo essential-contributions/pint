@@ -284,9 +284,8 @@ storage {
 predicate Foo(
     v0: int,
     v1: bool[5],
+    v2: U,
 ) {
-    pub var t0: { int, int }[5];
-    pub var t1: b256[3];
 }
 
 </code></pre>
@@ -307,35 +306,31 @@ predicate Foo(
               &quot;size&quot;: 5
             }
           }
-        }
-      ],
-      &quot;pub_vars&quot;: [
-        {
-          &quot;name&quot;: &quot;::t0&quot;,
-          &quot;ty&quot;: {
-            &quot;Array&quot;: {
-              &quot;ty&quot;: {
-                &quot;Tuple&quot;: [
-                  {
-                    &quot;name&quot;: null,
-                    &quot;ty&quot;: &quot;Int&quot;
-                  },
-                  {
-                    &quot;name&quot;: null,
-                    &quot;ty&quot;: &quot;Int&quot;
-                  }
-                ]
-              },
-              &quot;size&quot;: 5
-            }
-          }
         },
         {
-          &quot;name&quot;: &quot;::t1&quot;,
+          &quot;name&quot;: &quot;::v2&quot;,
           &quot;ty&quot;: {
-            &quot;Array&quot;: {
-              &quot;ty&quot;: &quot;B256&quot;,
-              &quot;size&quot;: 3
+            &quot;Union&quot;: {
+              &quot;name&quot;: &quot;::U&quot;,
+              &quot;variants&quot;: [
+                {
+                  &quot;name&quot;: &quot;U::A&quot;,
+                  &quot;ty&quot;: &quot;Int&quot;
+                },
+                {
+                  &quot;name&quot;: &quot;U::B&quot;,
+                  &quot;ty&quot;: null
+                },
+                {
+                  &quot;name&quot;: &quot;U::C&quot;,
+                  &quot;ty&quot;: {
+                    &quot;Array&quot;: {
+                      &quot;ty&quot;: &quot;Int&quot;,
+                      &quot;size&quot;: 3
+                    }
+                  }
+                }
+              ]
             }
           }
         }
