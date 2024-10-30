@@ -483,7 +483,10 @@ impl Type {
         match self {
             Type::Map { ty_from, ty_to, .. } => {
                 // We only support maps from these types for now
-                (ty_from.is_bool() || ty_from.is_int() || ty_from.is_b256())
+                (ty_from.is_bool()
+                    || ty_from.is_int()
+                    || ty_from.is_b256()
+                    || ty_from.is_allowed_in_storage())
                     && ty_to.is_allowed_in_storage()
             }
             Type::Vector { ty, .. } => {

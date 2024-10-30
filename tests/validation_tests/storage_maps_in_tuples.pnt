@@ -2,6 +2,7 @@ storage {
     t: { (int => int), int },
     u: { (int => int), { (bool => int), int } },
     v: (int => { int, (int => { int, int }) }),
+    w: ( { int, int } => { bool, int } ),
 }
 
 predicate Test() {
@@ -15,4 +16,9 @@ predicate Test() {
     constraint v_0_0' == 12;
     let v_0_1 = mut storage::v[6].1[2].1;
     constraint v_0_1' == 13;
+
+    let w_0_0 = mut storage::w[{ 10, 11 }].0;
+    constraint w_0_0' == false;
+    let w_0_1 = mut storage::w[{ 10, 11 }].1;
+    constraint w_0_1' == 4;
 }

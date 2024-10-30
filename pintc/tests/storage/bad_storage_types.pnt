@@ -2,38 +2,26 @@ union MyUnion = A | B;
 type MyAlias = MyUnion;
 
 storage {
-    a: ({ int, int } => int),
-    b: (int[5] => int),
-    c: (int[]  => int),
-    d: {int, int}[],
-    e: (int => int)[],
-    f: MyAlias,
-    g: MyUnion,
+    a: {int, int}[],
+    b: (int => int)[],
+    c: MyAlias,
+    d: MyUnion,
 }
 
 // parsed <<<
 // union ::MyUnion = A | B;
 // type ::MyAlias = ::MyUnion;
 // storage {
-//     a: ( {int, int} => int ),
-//     b: ( int[5] => int ),
-//     c: ( int[] => int ),
-//     d: {int, int}[],
-//     e: ( int => int )[],
-//     f: ::MyAlias,
-//     g: ::MyUnion,
+//     a: {int, int}[],
+//     b: ( int => int )[],
+//     c: ::MyAlias,
+//     d: ::MyUnion,
 // }
 // >>>
 
 // typecheck_failure <<<
 // type not allowed in storage
-// @65..86: found type ( {int, int} => int ) in storage
+// @65..77: found type {int, int}[] in storage
 // type not allowed in storage
-// @95..110: found type ( int[5] => int ) in storage
-// type not allowed in storage
-// @119..134: found type ( int[] => int ) in storage
-// type not allowed in storage
-// @143..155: found type {int, int}[] in storage
-// type not allowed in storage
-// @164..178: found type ( int => int )[] in storage
+// @86..100: found type ( int => int )[] in storage
 // >>>
