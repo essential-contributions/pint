@@ -1,0 +1,9 @@
+predicate foo(
+    x: int,
+    y: bool,
+    t: { int, bool },
+) {
+    // predicate logic
+}
+
+// other predicates

@@ -12,7 +12,7 @@ available tokens on an exchange: DAI, USDC, and USDT. Because these are the only
 with, we can enumerate them all as different _variants_:
 
 ```pint
-{{#include ../../../../../examples/ch_3_5_2.pnt:simple_union}}
+{{#include ../../../../../examples/unions.pnt:simple_union}}
 ```
 
 Note how the possible variants of `Token` are separated by a `|`. `Token` is now a custom data type
@@ -27,7 +27,7 @@ situations that apply to any of these tokens.
 We can now create an instance of each of the three variants of `Token` like this:
 
 ```pint
-{{#include ../../../../../examples/ch_3_5_2.pnt:simple_union_instances}}
+{{#include ../../../../../examples/unions.pnt:simple_union_instances}}
 ```
 
 Note that the variants of the union are namespaced under its identifier, and we use a double colon
@@ -36,7 +36,7 @@ to separate the two. This is useful because now all three values `Token::DAI`, `
 `token_type` to be of type `Token` and assign it to either variants depending some token ID:
 
 ```pint
-{{#include ../../../../../examples/ch_3_5_2.pnt:union_selection}}
+{{#include ../../../../../examples/unions.pnt:union_selection}}
 ```
 
 Using unions has even more advantages. Thinking more about our `Token` type, at the moment we don’t
@@ -44,7 +44,7 @@ have a way to store the actual token amount; we only know what kind it is. Given
 structs and tuples, you might be tempted to tackle this problem with structs as follows:
 
 ```pint
-{{#include ../../../../../examples/ch_3_5_2.pnt:union_in_struct}}
+{{#include ../../../../../examples/unions.pnt:union_in_struct}}
 ```
 
 Here, we've defined a new type called `Balance` that has two fields: a `token` field that is of type
@@ -60,7 +60,7 @@ inside a struct, we can put data directly into each union variant. This new defi
 `Token` union says that the variants `DAI`, `USDC`, and `USDT` will have associated `int` values:
 
 ```pint
-{{#include ../../../../../examples/ch_3_5_2.pnt:int_in_union}}
+{{#include ../../../../../examples/unions.pnt:int_in_union}}
 ```
 
 We attach data to each variant of the union directly, so there is no need for an extra struct. Also
@@ -72,7 +72,7 @@ types and amounts of associated data. Let's look at another example of a union t
 variety of types embedded in its variants:
 
 ```pint
-{{#include ../../../../../examples/ch_3_5_2.pnt:action_union}}
+{{#include ../../../../../examples/unions.pnt:action_union}}
 ```
 
 This union has four variants with different types:

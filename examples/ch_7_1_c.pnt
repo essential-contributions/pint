@@ -1,8 +1,0 @@
-// <disabled>
-// ANCHOR: self_ref
-predicate C() {
-    pub var x: int;    
-
-    predicate CI = C();
-    constraint CI::x == 69;
-}

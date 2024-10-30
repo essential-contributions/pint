@@ -7,7 +7,7 @@ and compound.
 Keep in mind that Pint is a _statically typed_ language, which means that it must know the types of
 all variables at compile time. The compiler can often infer what type we want to use based on the
 value and how we use it. In cases where many types are possible, we must add a type annotation as
-described in the [chapter on decision variables](./variables.md).
+described in the [chapter on local variables](./variables.md).
 
 ### Scalar Types
 
@@ -35,10 +35,10 @@ will have the same value as if you had specified `1000`.
 
 Pint supports the basic mathematical operations you’d expect for integers: addition, subtraction,
 multiplication, division, and remainder. Integer division truncates toward zero to the nearest
-integer. The following code shows how you’d use each numeric operation in a `var` statement:
+integer. The following code shows how you’d use each numeric operation in a `let` statement:
 
 ```pint
-{{#include ../../../../examples/ch_3_2.pnt:math_ops}}
+{{#include ../../../../examples/data_types.pnt:math_ops}}
 ```
 
 Note that binary operators in Pint are strict with regards to what types they allow, that is, only
@@ -51,7 +51,7 @@ As in most other programming languages, a Boolean type in Pint has two possible 
 `false`. The Boolean type in Pint is specified using `bool`. For example:
 
 ```pint
-{{#include ../../../../examples/ch_3_2.pnt:bools}}
+{{#include ../../../../examples/data_types.pnt:bools}}
 ```
 
 #### The `b256` Type
@@ -63,7 +63,7 @@ for example.
 A `b256` literals can be represented using a Hexadecimal or a Binary literal as follows:
 
 ```pint
-{{#include ../../../../examples/ch_3_2.pnt:b256}}
+{{#include ../../../../examples/data_types.pnt:b256}}
 ```
 
 ### Compound Types
@@ -81,7 +81,7 @@ position in the tuple has a type, and the types of the different values in the t
 be the same. We’ve added optional type annotations in this example:
 
 ```pint
-{{#include ../../../../examples/ch_3_2.pnt:simple_tuple}}
+{{#include ../../../../examples/data_types.pnt:simple_tuple}}
 ```
 
 The variable `tup` binds to the entire tuple because a tuple is considered to be a single compound
@@ -89,7 +89,7 @@ element. To get the individual values out of a tuple, we can use the period (`.`
 by the index of the value we want to access. For example:
 
 ```pint
-{{#include ../../../../examples/ch_3_2.pnt:tuple_access}}
+{{#include ../../../../examples/data_types.pnt:tuple_access}}
 ```
 
 This program creates the tuple `tup_2` and then accesses each element of the tuple using its
@@ -98,7 +98,7 @@ respective index. As with most programming languages, the first index in a tuple
 It is also possible to name some or all the fields of a tuple type as follows:
 
 ```pint
-{{#include ../../../../examples/ch_3_2.pnt:simple_tuple_named}}
+{{#include ../../../../examples/data_types.pnt:simple_tuple_named}}
 ```
 
 Note that, in this example, only two out of the 3 fields are named. In order to access the
@@ -106,29 +106,29 @@ individual elements of a tuple with named fields, the period (`.`) can again be 
 index of the tuple field or its name. For example:
 
 ```pint
-{{#include ../../../../examples/ch_3_2.pnt:tuple_access_named}}
+{{#include ../../../../examples/data_types.pnt:tuple_access_named}}
 ```
 
 Tuples without any values are not allowed in `Pint`. That is, the following:
 
 ```pint
-var empty: {} = {};
+let empty: {} = {};
 ```
 
 is disallowed and errors out as follows:
 
 ```console
 Error: empty tuple types are not allowed
-    ╭─[ch_3_2.pnt:43:12]
+    ╭─[data_types.pnt:43:12]
     │
- 43 │ var empty: {} = {};
+ 43 │ let empty: {} = {};
     │            ─┬
     │             ╰── empty tuple type found
 ────╯
 Error: empty tuple expressions are not allowed
-    ╭─[ch_3_2.pnt:43:17]
+    ╭─[data_types.pnt:43:17]
     │
- 43 │ var empty: {} = {};
+ 43 │ let empty: {} = {};
     │                 ─┬
     │                  ╰── empty tuple expression found
 ────╯
@@ -143,14 +143,14 @@ fixed length.
 We write the values in an array as a comma-separated list inside square brackets:
 
 ```pint
-{{#include ../../../../examples/ch_3_2.pnt:simple_array}}
+{{#include ../../../../examples/data_types.pnt:simple_array}}
 ```
 
 You write an array's type using the element type followed by its size between square brackets, like
 so:
 
 ```pint
-{{#include ../../../../examples/ch_3_2.pnt:array_type}}
+{{#include ../../../../examples/data_types.pnt:array_type}}
 ```
 
 Here, `int` is the type of each element. The number `5` indicates that the array contains five
@@ -159,7 +159,7 @@ elements.
 You can access elements of an array using by _indexing_ into it, like this:
 
 ```pint
-{{#include ../../../../examples/ch_3_2.pnt:array_access}}
+{{#include ../../../../examples/data_types.pnt:array_access}}
 ```
 
 In this example, the variable named `c_first` will get the value `1` because that is the value at

@@ -1,0 +1,26 @@
+// <disabled> due to a bug. See #957
+// ANCHOR: interface
+interface Counter {
+    storage {
+        counter: int,
+    }
+
+    predicate Initialize(value: int);
+
+    predicate Increment(amount: int);
+}
+// ANCHOR_END: interface
+
+// ANCHOR: id
+const ContractID: b256 = 0x6D05CB94739FFB92CA96750EBF262A82C3ED8F05262DD26B503D732F0B74777E;
+// ANCHOR_END: id
+
+predicate foo() {
+// ANCHOR: access 
+let counter = Counter[[ContractID]]::storage::counter;
+// ANCHOR_END: access
+
+// ANCHOR: constraint
+constraint counter' >= 100;
+// ANCHOR_END: constraint
+}

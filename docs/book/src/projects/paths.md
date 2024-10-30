@@ -33,7 +33,7 @@ Choosing whether to use a relative or absolute path is a decision you’ll make 
 and depends on whether you’re more likely to move item definition code separately from or together
 with the code that uses the item. For example, if we move the `garden` module to a module named
 `estate`, we’d need to update the absolute path to `Asparagus`, but the relative path would still be
-valid. However, if we moved `var first_asparagus` into a module named `salad`, the absolute path to
-`Asparagus` would stay the same, but the relative path would need to be updated. Our preference in
-general is to specify absolute paths because it’s more likely we’ll want to move code definitions
-and item calls independently of each other.
+valid. However, if we moved the parameter `first_asparagus` into a module named `salad`, the
+absolute path to `Asparagus` would stay the same, but the relative path would need to be updated.
+Our preference in general is to specify absolute paths because it’s more likely we’ll want to move
+code definitions and item calls independently of each other.

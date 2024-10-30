@@ -1,56 +1,70 @@
-## Decision Variables
+## Local Variables
 
-A decision variable is a named variable that every solution is required to assign a value for.
-Decision variables are quite different from "regular" variables that you might be used to in
-imperative programming languages. Decision variables do not get "computed" or "assigned to" in a
-Pint program since a Pint program is **not actually executed but solved** (and later validated
-against a solution).
+Local variables in Pint are similar to local variables in other languages with a few restrictions.
+In Pint, variables **must** be initialized and are **immutable**. They basically hold values and
+help you write readable code, but are not meant to be modified. This is an important property that
+allows Pint to be fully declarative with _no control flow_. In Pint, the order in which you write
+your statements (variable declarations, constraints, etc.) is completely irrelevant and has no
+impact on the behavior of the code.
 
-Decision variables can be declared using the `var` keyword and may be annotated with a type. We will
-go over the available data types in Pint, in detail, in a later chapter.
-
-Here's an example that shows how to declared a decision variable named `foo` of type `int`:
+In order to declare a new variable, we use the `let` keyword:
 
 ```pint
-{{#include ../../../../examples/ch_3_1_a.pnt:annotated}}
+{{#include ../../../../examples/variables.pnt:basic_let}}
 ```
 
-You can actually think of the type annotation as a "constraint" on the decision variable: this
-decision variable can only take values in the set of signed integers (64-bit signed integers when
-targeting the EssentialVM). Any solution that proposes a value of `foo` must satisfy that
-constraint. We will go over constraints in more detail in [Chapter 3.6](constraints.md).
+The first `let` declares a variable named `x` and assigns its value to `5`. The second `let`
+declares a variable named `y` and assigns its value to `6`. The constraint `y - x == 1` references
+`x` and `y` using their names and is obviously always `true` in this case since `6 - 5 == 1`.
 
-A decision variable can also be "initialized". Initializing a decision variable may seem like an odd
-concept because decision variables are declared to be solved for. However, an initialized decision
-variable is simply a decision variable with an extra implicit constraint. Here's how an initialized
-decision variable can be declared:
+Note that, while `y` is annotated with type `int`, we opted not annotate `x` with a type; we're
+relying on the compiler to _infer_ its type to be `int` since the initializing expression is `5`
+which is an `int`.
+
+If we were to declare `y` as follows:
 
 ```pint
-{{#include ../../../../examples/ch_3_1_a.pnt:initialized}}
+let y: int = true;
 ```
 
-The above is equivalent to:
+then the compiler would emit an error because the type annotation `int` and the type of the
+initializing expressions `true` do not match:
 
-```pint
-{{#include ../../../../examples/ch_3_1_b.pnt:initialized}}
+```console
+Error: variable initialization type error
+   ╭─[variables.pnt:4:18]
+   │
+ 4 │     let y: int = true;
+   │            ─┬─   ──┬─
+   │             ╰────────── expecting type `int`
+   │                    │
+   │                    ╰─── initializing expression has unexpected type `bool`
+───╯
 ```
 
-We will go over `constraint` statements in more details later but it should hopefully be intuitive
-that this statement enforces `bar` to be equal to `42`. Therefore, every proposed solution must also
-set `bar` to `42`. Otherwise, this particular constraint will fail and the whole solution will be
-deemed invalid.
+### Shadowing
 
-Skipping the type annotation is only allowed if the decision variable is "initialized":
+Name shadowing is not allowed in Pint. Declaring two variables with the same name will result in a
+compiler error. For example, the following code fails to compile:
 
 ```pint
-{{#include ../../../../examples/ch_3_1_a.pnt:initialized_unannotated}}
+let y = 5;
+let y: int = 6;
 ```
 
-In this case, the compiler is able to _infer_ the type of `baz` by realizing that the initializer
-`42` is of type `int`.
+and the following error is emitted:
 
-Again, the above is equivalent to:
-
-```pint
-{{#include ../../../../examples/ch_3_1_b.pnt:initialized_unannotated}}
+```console
+Error: symbol `y` has already been declared
+   ╭─[variables.pnt:4:9]
+   │
+ 3 │     let y = 5;
+   │     ────┬────
+   │         ╰────── previous declaration of the symbol `y` here
+ 4 │     let y: int = 6;
+   │         ┬
+   │         ╰── `y` redeclared here
+   │
+   │ Note: `y` must be declared or imported only once in this scope
+───╯
 ```

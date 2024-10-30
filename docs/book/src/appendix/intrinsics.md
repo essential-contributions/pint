@@ -18,17 +18,6 @@ predicate it's used in.
 ---
 
 ```pint
-__predicate_at(pathway: int) -> { b256, b256 }
-```
-
-**Description:** Returns the full address of predicate at pathway `<pathway>`. The pathway of a
-predicate is the index of the solution data currently being used to check the predicate. The full
-address contains both the content hash of the contract to which the predicate belongs and the
-content hash of the predicate itself
-
----
-
-```pint
 __recover_secp256k1(data_hash: b256, sig: { b256, b256, int }) -> { b256, int }
 ```
 
@@ -51,7 +40,7 @@ __size_of(data: _) -> int
 **Description:** Returns the size, in words, of an expression. This is often the same as the size of
 the type of the expression (e.g. 1 word for `int`, 4 words for `b256`, 3 words for `{int, int,
 bool}`, and so on). However, it can also be different, namely for expressions that can be `nil` such
-as storage accesses and paths to state variables.
+as storage accesses and paths local variables.
 
 ---
 
@@ -68,15 +57,6 @@ __this_contract_address() -> b256
 ```
 
 **Description:** Returns the content hash of the contract that this predicate belongs to.
-
----
-
-```pint
-__this_pathway() -> int
-```
-
-**Description:** Returns the "pathway" of this predicate. The pathway of a predicate is the index of
-the solution data currently being used to check the predicate.
 
 <!---
 Uncomment when we officially support storage vectors

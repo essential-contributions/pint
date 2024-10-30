@@ -6,7 +6,7 @@ in this chapter are unique to Pint, but we’ll discuss them in the context of P
 how they work in a constraint-based environment as opposed to imperative environments that you might
 be more familiar with.
 
-Specifically, you’ll learn about decision variables, basic types, custom types, `match` constructs,
+Specifically, you’ll learn about local variables, basic types, custom types, `match` constructs,
 comments, and conditionals. These foundations will be in every Pint program, and learning them early
 will give you a strong core to start from.
 

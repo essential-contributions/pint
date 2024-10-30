@@ -1,9 +1,9 @@
 ## External Storage Access
 
 It is common for one smart contract to want to reason about the state of another external smart
-contract. For example, a Decentralized Exchange contract typically requires reading and modifying
-the state (balances!) owned by the external contracts of the tokens that are being traded through
-the exchange.
+contract. For example, a decentralized exchange contract typically requires reading and modifying
+the state (balances) owned by the external contracts of the tokens that are to be traded through the
+exchange.
 
 In imperative smart contract languages like [Solidity](https://soliditylang.org/), reasoning about
 external state is typically done by _calling_ some methods in the external contract that access or
@@ -11,57 +11,55 @@ modify that contract's state. In Pint however, the storage variables of a contra
 and can be accessed from outside the contract using the contract's
 [interface](../smart_contracts/index.md#contract-interfaces).
 
-### Interface Instance
-
 While a contract's interface contains all the public symbols that can be externally accessed, it
-does not specify the _address_ of the contract. The _address_ of a contract is 256-bit value that
+does not specify the _address_ of the contract. The _address_ of a contract is a 256-bit value that
 uniquely identify the contract on the blockchain. Specifying the address is required because
-multiple contracts with different addresses may share the same interface.
+multiple contracts with different implementations may share the same interface.
 
-In order to specify which external contract to actually interact with, we need an **interface
-instance**. Consider the [counter example](../examples/counter.md) that we presented earlier and its
-interface that looks like this:
+Recall the interface of the [counter example](../examples/counter.md) that we presented earlier:
 
 ```pint
-{{#include ../../../../examples/ch_5_3.pnt:interface}}
+{{#include ../../../../examples/smart_contracts_d.pnt:interface}}
 ```
 
 Assume that a contract with that interface has been deployed and has the following address:
 
 ```pint
-{{#include ../../../../examples/ch_5_3.pnt:id}}
+{{#include ../../../../examples/storage_external.pnt:id}}
 ```
 
-In order to interact with that particular contract, we would first declare an interface instance as
-follows:
+In order to access storage variable `counter` from interface `Counter`, we can create a path to
+`conter` as follows:
 
 ```pint
-{{#include ../../../../examples/ch_5_3.pnt:interface_instance}}
+{{#include ../../../../examples/storage_external.pnt:access}}
 ```
 
-### External Storage Access Using the Interface Instance
+The path `Counter[[ContractID]]::storage::counter` has three parts separated by `::`:
 
-Now that we have an instance of the interface, we can use it to create a path to the external
-storage variable. For example,
-
-```pint
-{{#include ../../../../examples/ch_5_3.pnt:access}}
-```
-
-Note that the path `CounterInstance::storage::counter` has three parts:
-
-1. The name of the interface instance `CounterInstance` that indicates which instance we would like
-   to access. Recall that there could be multiple interface instances, with different addresses, for
-   the same `interface`, hence the need to start the path with the name of the interface instance
-   and not the name of interface itself.
-1. The keyword `storage` to indicate that we're accessing the `storage` block of `CounterInstance`.
+1. The name of the interface `Counter` followed by the address of the corresponding deployed
+   contract in between `[[..]]`.
+1. The keyword `storage` to indicate that we're accessing the `storage` block of `Counter`.
 1. `counter`, the name of the storage variable we want to access.
 
-Once we have assigned the external storage expression to a `state` variable, we can then use that
-variable as we usually do.
+We can now use the local variable `counter` as usual. For example, we can constrain it as follows:
 
-Similarly to local storage access expressions, the expression `CounterInstance::storage::counter`
-can only be used on the right-hand side of a `state` declaration.
+```pint
+{{#include ../../../../examples/storage_external.pnt:constraint}}
+```
+
+This implies that we want that new value of the counter (which is owned by the external contract) to
+be at least `100`. This could be accomplished in different ways:
+
+1. If the current value of the counter is at least `100`, then nothing needs to be done. We don't
+   even need to propose a solution for any predicates in the external contract.
+1. If the current value of the counter is less than `100`, then the solution **must**:
+   1. Either solve predicate `Initialize` with parameter `value` set to `100` or more.
+   1. Or solve predicate `Increment` with parameter `amount` set to `100 - counter` or more.
+
+Similarly to local storage access expressions, the expression
+`Counter[[ContractID]]::storage::counter` can only be used in the right-hand side of a `let`
+declaration.
 
 > **Note**: The `mut` keyword cannot be added to external storage accesses. External storage
 > locations belong to the external contract that owns and it's up to the predicates in that contract

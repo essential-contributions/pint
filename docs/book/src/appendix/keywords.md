@@ -21,17 +21,16 @@ modules, or types.
 - `in` - checks if an element belongs to a range or to an array
 - `int` - basic integer type
 - `interface` - declare an external interface
+- `let` - declare a local variable
 - `macro` - define a macro
 - `match` - match a value to patterns
 - `mut` - allows a storage location to be mutable
 - `nil` - an _empty_ storage value
 - `predicate` - define a predicate
-- `pub` -
 - `self` - used in `use` statements
-- `state` - bind a state variable
 - `storage` - declare a storage block
 - `true` -
 - `type` - define a new type
+- `union` - declare a new union
 - `use` - bring symbols into scope
-- `var` - bind a decision variable
 - `where` - denote clauses that constraint generator indices

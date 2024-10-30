@@ -1,7 +1,7 @@
 {
   "predicates": [
     {
-      "name": "::Foo",
+      "name": "::foo",
       "params": [
         {
           "name": "::v0",
@@ -40,6 +40,26 @@
                   }
                 }
               ]
+            }
+          }
+        },
+        {
+          "name": "::v3",
+          "ty": {
+            "Array": {
+              "ty": {
+                "Tuple": [
+                  {
+                    "name": null,
+                    "ty": "Int"
+                  },
+                  {
+                    "name": null,
+                    "ty": "Int"
+                  }
+                ]
+              },
+              "size": 5
             }
           }
         }
