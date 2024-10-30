@@ -5,14 +5,14 @@ storage {
 }
 
 predicate Test() {
-    state t = mut storage::t.0[0];
+    let t = mut storage::t.0[0];
     constraint t' == 1;
     
-    state u = mut storage::u.1.0[false];
+    let u = mut storage::u.1.0[false];
     constraint u' == 3;
 
-    state v_0_0 = mut storage::v[6].1[2].0;
+    let v_0_0 = mut storage::v[6].1[2].0;
     constraint v_0_0' == 12;
-    state v_0_1 = mut storage::v[6].1[2].1;
+    let v_0_1 = mut storage::v[6].1[2].1;
     constraint v_0_1' == 13;
 }
