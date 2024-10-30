@@ -94,6 +94,7 @@ async fn test_solution_foo() {
                 .enumerate()
                 .fold(arr, |arr, (ix, val)| arr.entry(ix, val))
         })
+        .my_tuple_map(|tup| tup._0(|map| map.entry(0, 1)))
         .into();
 
     // Build the same set of keys, so we can ensure they match the mutations.
@@ -114,6 +115,7 @@ async fn test_solution_foo() {
             })
         })
         .my_array(|arr| (0..[11, 12, 13, 14, 15].len()).fold(arr, |arr, ix| arr.entry(ix)))
+        .my_tuple_map(|tup| tup._0(|map| map.entry(0))._1())
         .into();
 
     // Check keys match the mutation keys.
