@@ -17,7 +17,8 @@ pub(crate) struct Args {
     /// recursively until a manifest is found.
     #[arg(long = "manifest-path")]
     manifest_path: Option<PathBuf>,
-    /// A 256-bit unsigned integer in hexadeciaml format that represents the contract "salt".
+    /// A 256-bit unsigned integer in hexadeciaml format that represents the contract "salt". The
+    /// value is left padded with zeros if it has less than 64 hexadecimal digits.
     ///
     /// The "salt" is hashed along with the contract's bytecode in order to make the address of the
     /// contract unique.
@@ -37,20 +38,22 @@ pub(crate) struct Args {
 }
 
 /// Parses a `&str` that represents a 256-bit unsigned integer in hexadecimal format and converts
-/// it into a `[u8; 32]`.
+/// it into a `[u8; 32]`. If the string has less than 64 hexadecimal digits, left pad with zeros.
 ///
 /// Emits an error if the conversion is not possible.
 fn parse_hex(value: &str) -> Result<[u8; 32], String> {
-    if value.len() == 64 && value.chars().all(|c| c.is_ascii_hexdigit()) {
-        let mut salt = [0u8; 32];
-        for i in 0..32 {
-            salt[i] = u8::from_str_radix(&value[2 * i..2 * i + 2], 16)
-                .map_err(|_| "Invalid hexadecimal value")?;
-        }
-        Ok(salt)
-    } else {
-        Err("Salt must be a 256-bit hexadecimal string (64 hex characters)".to_string())
+    if value.len() > 64 || !value.chars().all(|c| c.is_ascii_hexdigit()) {
+        return Err("Salt must be a hexadecimal number with up to 64 digts (256 bits)".to_string());
     }
+
+    // Pad the value to 64 characters by prepending zeros if needed
+    let padded_value = format!("{:0>64}", value);
+    let mut salt = [0u8; 32];
+    for i in 0..32 {
+        salt[i] = u8::from_str_radix(&padded_value[2 * i..2 * i + 2], 16)
+            .map_err(|_| "Invalid hexadecimal value")?;
+    }
+    Ok(salt)
 }
 
 // Find the file within the current directory or parent directories with the given name.

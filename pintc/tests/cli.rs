@@ -151,8 +151,18 @@ fn explicit_salt() {
     let mut input_file = tempfile::NamedTempFile::new().unwrap();
     write!(input_file.as_file_mut(), "predicate test() {{}}").unwrap();
 
+    // Salt has 64 digits
     let output = pintc_command(&format!(
         "{} --salt 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF",
+        input_file.path().to_str().unwrap(),
+    ));
+
+    check(&output.stderr, expect_test::expect![""]);
+    check(&output.stdout, expect_test::expect![""]);
+
+    // Salt has less than 64 digits
+    let output = pintc_command(&format!(
+        "{} --salt 123456789ABCDEF",
         input_file.path().to_str().unwrap(),
     ));
 
@@ -165,33 +175,18 @@ fn explicit_salt_err() {
     let mut input_file = tempfile::NamedTempFile::new().unwrap();
     write!(input_file.as_file_mut(), "predicate test() {{}}").unwrap();
 
-    // Salt too short
-    let output = pintc_command(&format!(
-        "{} --salt 0123456789ABCDEF0123456789ABCDEF0123456789ABC",
-        input_file.path().to_str().unwrap(),
-    ));
-    check(
-        &output.stderr,
-        expect_test::expect![[r#"
-        error: invalid value '0123456789ABCDEF0123456789ABCDEF0123456789ABC' for '--salt <SALT>': Salt must be a 256-bit hexadecimal string (64 hex characters)
-
-        For more information, try '--help'.
-    "#]],
-    );
-    check(&output.stdout, expect_test::expect![""]);
-
     // Salt too long
     let output = pintc_command(&format!(
-        "{} --salt 0123456789ABCDEF0123456789ABCDEF0123456789ABC",
+        "{} --salt 3456789ABCDEF0123456789ABCDEF0123456789ABC0123456789ABCDEF0123456789ABCDEF01234",
         input_file.path().to_str().unwrap(),
     ));
     check(
         &output.stderr,
         expect_test::expect![[r#"
-        error: invalid value '0123456789ABCDEF0123456789ABCDEF0123456789ABC' for '--salt <SALT>': Salt must be a 256-bit hexadecimal string (64 hex characters)
+            error: invalid value '3456789ABCDEF0123456789ABCDEF0123456789ABC0123456789ABCDEF0123456789ABCDEF01234' for '--salt <SALT>': Salt must be a hexadecimal number with up to 64 digts (256 bits)
 
-        For more information, try '--help'.
-    "#]],
+            For more information, try '--help'.
+        "#]],
     );
     check(&output.stdout, expect_test::expect![""]);
 
@@ -203,10 +198,10 @@ fn explicit_salt_err() {
     check(
         &output.stderr,
         expect_test::expect![[r#"
-        error: invalid value 'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY' for '--salt <SALT>': Salt must be a 256-bit hexadecimal string (64 hex characters)
+            error: invalid value 'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY' for '--salt <SALT>': Salt must be a hexadecimal number with up to 64 digts (256 bits)
 
-        For more information, try '--help'.
-    "#]],
+            For more information, try '--help'.
+        "#]],
     );
     check(&output.stdout, expect_test::expect![""]);
 
