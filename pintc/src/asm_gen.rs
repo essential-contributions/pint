@@ -24,6 +24,7 @@ pub struct CompiledContract {
 /// Convert a `Contract` into `CompiledContract`
 pub fn compile_contract(
     handler: &Handler,
+    salt: [u8; 32],
     contract: &Contract,
 ) -> Result<CompiledContract, ErrorEmitted> {
     // This is a dependency graph between predicates. Predicates may depend on other predicates via
@@ -130,7 +131,7 @@ pub fn compile_contract(
     } else {
         Ok(CompiledContract {
             names,
-            salt: Default::default(), // Salt is not used by pint yet.
+            salt,
             predicates,
         })
     }

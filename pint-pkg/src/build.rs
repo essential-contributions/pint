@@ -158,9 +158,13 @@ impl<'p> PlanBuilder<'p> {
     }
 
     /// Build all remaining packages.
-    pub fn build_all(mut self, skip_optimize: bool) -> Result<BuiltPkgs, BuildError> {
+    pub fn build_all(
+        mut self,
+        salt: [u8; 32],
+        skip_optimize: bool,
+    ) -> Result<BuiltPkgs, BuildError> {
         while let Some(prebuilt) = self.next_pkg() {
-            if let Err(pkg_err) = prebuilt.build(skip_optimize) {
+            if let Err(pkg_err) = prebuilt.build(salt, skip_optimize) {
                 let built_pkgs = self.built_pkgs;
                 return Err(BuildError {
                     built_pkgs,
@@ -184,13 +188,13 @@ impl<'p, 'b> PrebuiltPkg<'p, 'b> {
     }
 
     /// Build this package.
-    pub fn build(self, skip_optimize: bool) -> Result<&'b BuiltPkg, BuildPkgError> {
+    pub fn build(self, salt: [u8; 32], skip_optimize: bool) -> Result<&'b BuiltPkg, BuildPkgError> {
         let Self {
             plan,
             built_pkgs,
             n,
         } = self;
-        let built = build_pkg(plan, built_pkgs, n, skip_optimize)?;
+        let built = build_pkg(plan, built_pkgs, n, salt, skip_optimize)?;
         built_pkgs.insert(n, built);
         Ok(&built_pkgs[&n])
     }
@@ -301,6 +305,7 @@ fn build_pkg(
     plan: &Plan,
     built_pkgs: &BuiltPkgs,
     n: NodeIx,
+    salt: [u8; 32],
     skip_optimize: bool,
 ) -> Result<BuiltPkg, BuildPkgError> {
     let graph = plan.graph();
@@ -357,7 +362,7 @@ fn build_pkg(
             };
 
             // Generate the assembly and the predicates.
-            let Ok(contract) = handler.scope(|h| compile_contract(h, &optimized)) else {
+            let Ok(contract) = handler.scope(|h| compile_contract(h, salt, &optimized)) else {
                 let kind = BuildPkgErrorKind::from(PintcError::AsmGen);
                 return Err(BuildPkgError { handler, kind });
             };

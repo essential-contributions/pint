@@ -145,3 +145,76 @@ fn explicit_output() {
     check(&output.stderr, expect_test::expect![""]);
     check(&output.stdout, expect_test::expect![""]);
 }
+
+#[test]
+fn explicit_salt() {
+    let mut input_file = tempfile::NamedTempFile::new().unwrap();
+    write!(input_file.as_file_mut(), "predicate test() {{}}").unwrap();
+
+    // Salt has 64 digits
+    let output = pintc_command(&format!(
+        "{} --salt 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF",
+        input_file.path().to_str().unwrap(),
+    ));
+
+    check(&output.stderr, expect_test::expect![""]);
+    check(&output.stdout, expect_test::expect![""]);
+
+    // Salt has less than 64 digits
+    let output = pintc_command(&format!(
+        "{} --salt 123456789ABCDEF",
+        input_file.path().to_str().unwrap(),
+    ));
+
+    check(&output.stderr, expect_test::expect![""]);
+    check(&output.stdout, expect_test::expect![""]);
+}
+
+#[test]
+fn explicit_salt_err() {
+    let mut input_file = tempfile::NamedTempFile::new().unwrap();
+    write!(input_file.as_file_mut(), "predicate test() {{}}").unwrap();
+
+    // Salt too long
+    let output = pintc_command(&format!(
+        "{} --salt 3456789ABCDEF0123456789ABCDEF0123456789ABC0123456789ABCDEF0123456789ABCDEF01234",
+        input_file.path().to_str().unwrap(),
+    ));
+    check(
+        &output.stderr,
+        expect_test::expect![[r#"
+            error: invalid value '3456789ABCDEF0123456789ABCDEF0123456789ABC0123456789ABCDEF0123456789ABCDEF01234' for '--salt <SALT>': Salt must be a hexadecimal number with up to 64 digts (256 bits)
+
+            For more information, try '--help'.
+        "#]],
+    );
+    check(&output.stdout, expect_test::expect![""]);
+
+    // Salt illegal hex characters
+    let output = pintc_command(&format!(
+        "{} --salt YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY",
+        input_file.path().to_str().unwrap(),
+    ));
+    check(
+        &output.stderr,
+        expect_test::expect![[r#"
+            error: invalid value 'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY' for '--salt <SALT>': Salt must be a hexadecimal number with up to 64 digts (256 bits)
+
+            For more information, try '--help'.
+        "#]],
+    );
+    check(&output.stdout, expect_test::expect![""]);
+
+    // Missing salt with --salt flag
+    let output = pintc_command(&format!("{} --salt", input_file.path().to_str().unwrap(),));
+
+    check(
+        &output.stderr,
+        expect_test::expect![[r#"
+        error: a value is required for '--salt <SALT>' but none was supplied
+
+        For more information, try '--help'.
+    "#]],
+    );
+    check(&output.stdout, expect_test::expect![""]);
+}

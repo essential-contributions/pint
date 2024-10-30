@@ -79,7 +79,7 @@ async fn validation_e2e() -> anyhow::Result<()> {
 
         // Flattened contract -> Assembly (aka collection of compiled predicates)
         let compiled_contract = unwrap_or_continue!(
-            pintc::asm_gen::compile_contract(&handler, &flattened),
+            pintc::asm_gen::compile_contract(&handler, Default::default(), &flattened),
             "asm gen",
             failed_tests,
             path,
