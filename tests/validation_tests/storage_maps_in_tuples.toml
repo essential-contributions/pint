@@ -5,6 +5,6 @@ state_mutations = [
   { key = [1, 1, 0], value = [3] },        # storage::u.1.0[false]
   { key = [2, 6, 1, 2, 0], value = [12] }, # storage::v.0[6].1[2].0
   { key = [2, 6, 1, 2, 1], value = [13] }, # storage::v.0[6].1[2].1
-  { key = [3, 10, 11, 0], value = [0] }, # storage::w[ {10, 11}].0
-  { key = [3, 10, 11, 1], value = [4] }, # storage::w[ {10, 11}].1
+  { key = [3, 10, 11, 0], value = [0] },   # storage::w[ {10, 11}].0
+  { key = [3, 10, 11, 1], value = [4] },   # storage::w[ {10, 11}].1
 ]
