@@ -6,13 +6,12 @@ interface i {
         x: ary,
     }
 
-    predicate p {
-        pub var x1: ary;
-    }
+    predicate p(x1: ary);
 }
 
 predicate test(addr1: b256) {
-    interface inst = i(addr1);
+    let x = i[[addr1]]::storage::x;
+    constraint x == [1, 2, 3];
 }
 
 // parsed <<<
@@ -22,15 +21,16 @@ predicate test(addr1: b256) {
 //     storage {
 //         x: ::ary,
 //     }
-//     predicate p {
-//         pub var x1: ::ary;
-//     }
+//     predicate p (
+//         x1: ::ary,
+//     );
 // }
 // 
 // predicate ::test(
 //     ::addr1: b256,
 // ) {
-//     interface ::inst = ::i(::addr1)
+//     let ::x = ::i[[::addr1]]::storage::x;
+//     constraint (::x == [1, 2, 3]);
 // }
 // >>>
 
@@ -41,15 +41,16 @@ predicate test(addr1: b256) {
 //     storage {
 //         x: int[3],
 //     }
-//     predicate p {
-//         pub var x1: int[3];
-//     }
+//     predicate p (
+//         x1: int[3],
+//     );
 // }
 // 
 // predicate ::test(
 //     ::addr1: b256,
 // ) {
-//     interface ::inst = ::i(::addr1)
+//     let ::x: int[3] = __storage_get_extern(::addr1, {0, 0});
+//     constraint (::x == [1, 2, 3]);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

@@ -1,14 +1,14 @@
 use crate::{
     error::{Error, Handler, ParseError},
-    expr::{BinaryOp, Expr, ExternalIntrinsic, Immediate, IntrinsicKind, TupleAccess},
+    expr::{Expr, ExternalIntrinsic, Immediate, IntrinsicKind, TupleAccess},
     macros::{MacroCall, MacroDecl},
     parser::{Ident, NextModPath, UsePath, UseTree},
     predicate::{
-        CallKey, ConstraintDecl, Contract, ExprKey, Interface, InterfaceDecl, PredKey, Predicate,
-        PredicateInstance, StorageVar, SymbolTable, Var,
+        CallKey, Contract, ExprKey, Interface, InterfaceDecl, PredKey, Predicate, StorageVar,
+        SymbolTable,
     },
     span::{self, Span},
-    types::{PrimitiveKind, Type},
+    types::{self, Type},
 };
 use std::collections::BTreeMap;
 
@@ -161,19 +161,19 @@ impl<'a> ParserContext<'a> {
                         );
                     }
 
-                    // Ensure there are no duplciate vars
-                    let mut var_symbols: BTreeMap<String, Span> = BTreeMap::new();
-                    for var in &predicate_interface.vars {
-                        if let Some(prev_span) = var_symbols.get(&var.name.name) {
+                    // Ensure there are no duplciate params
+                    let mut param_symbols: BTreeMap<String, Span> = BTreeMap::new();
+                    for param in &predicate_interface.params {
+                        if let Some(prev_span) = param_symbols.get(&param.name.name) {
                             handler.emit_err(Error::Parse {
                                 error: ParseError::NameClash {
-                                    sym: var.name.name.clone(),
-                                    span: var.name.span.clone(),
+                                    sym: param.name.name.clone(),
+                                    span: param.name.span.clone(),
                                     prev_span: prev_span.clone(),
                                 },
                             });
                         } else {
-                            var_symbols.insert(var.name.name.clone(), var.name.span.clone());
+                            param_symbols.insert(param.name.name.clone(), param.name.span.clone());
                         }
                     }
 
@@ -185,193 +185,10 @@ impl<'a> ParserContext<'a> {
         self.contract.interfaces.push(interface);
     }
 
-    /// Given a predicate instance name as a `Predicate`, a list `els` of `Ident`s forming a path,
-    /// an predicate name as a `Predicate` and an address as an `ExprKey`, produce an
-    /// `PredicateInstance` object and insert it into the current Pred. `l` and `r` are the code
-    /// locations before and after the predicate instance declaration. `l1` and `r1` are the code
-    /// locations before and after the path represented by `els`. Uses `is_abs` to decide how to
-    /// handle the path `els`.
-    #[allow(clippy::too_many_arguments)]
-    pub fn parse_predicate_instance(
-        &mut self,
-        handler: &Handler,
-        name: Ident,
-        is_abs: bool,
-        els: Vec<Ident>,
-        predicate: Ident,
-        address: Option<ExprKey>,
-        (l, l1, r1, r): (usize, usize, usize, usize),
-    ) {
-        let interface_instance = if els.is_empty() {
-            if address.is_some() {
-                // Path is too short if an address is provided. That's because we're expecting an
-                // interface instance to show up before the name of the predicate
-                handler.emit_err(Error::Parse {
-                    error: ParseError::PathTooShort {
-                        path: if is_abs {
-                            "::".to_owned() + &predicate.name
-                        } else {
-                            predicate.name.clone()
-                        },
-                        span: (self.span_from)(l, r),
-                    },
-                });
-            }
-            None
-        } else {
-            let els_len = els.len();
-            let path_span = (self.span_from)(l1, r1);
-            Some(if is_abs {
-                self.parse_absolute_path(
-                    els[..els_len - 1].to_vec(),
-                    els[els_len - 1].clone(),
-                    false,
-                    path_span,
-                )
-            } else {
-                self.parse_relative_path(
-                    els[..els_len - 1].to_vec(),
-                    els[els_len - 1].clone(),
-                    false,
-                    path_span,
-                )
-            })
-        };
-
-        let span = (self.span_from)(l, r);
-        let full_predicate_instance_name =
-            self.add_top_level_symbol(handler, name.clone(), self.mod_prefix);
-        let predicate_instance = PredicateInstance {
-            name: full_predicate_instance_name.clone(),
-            interface_instance,
-            predicate,
-            address,
-            span: span.clone(),
-        };
-        self.current_pred()
-            .expect("can only parse instances within predicates")
-            .predicate_instances
-            .push(predicate_instance);
-
-        // Also insert a local integer decision variable that represents the pathway corresponding
-        // to this particular predicate instance
-        self.current_pred()
-            .expect("can only parse instances within predicates")
-            .vars
-            .insert(
-                Var {
-                    name: "__".to_string() + &full_predicate_instance_name.to_string() + "_pathway",
-                    is_pub: false,
-                    span,
-                },
-                Type::Primitive {
-                    kind: PrimitiveKind::Int,
-                    span: span::empty_span(),
-                },
-            );
-    }
-
-    /// Given an identifier an optional type, and an optional initializer `ExprKey`, produce a
-    /// `Var` and insert it into the current Pred. `l` and `r` are the code locations before and
-    /// after the var declaration. `is_pub` determines the visibility of the `Var`.
-    pub fn parse_var_decl(
-        &mut self,
-        handler: &Handler,
-        is_pub: bool,
-        name: (Ident, Option<&'a str>),
-        ty: Option<Type>,
-        init: Option<ExprKey>,
-        (l, r): (usize, usize),
-    ) {
-        if ty.is_none() && init.is_none() {
-            handler.emit_err(Error::Parse {
-                error: ParseError::UntypedVariable {
-                    name: name.0.name,
-                    span: (self.span_from)(l, r),
-                },
-            });
-        } else {
-            let mod_prefix = self.mod_prefix;
-            let _ = self
-                .current_pred()
-                .expect("can only parse vars within predicates")
-                .insert_var(handler, mod_prefix, name.1, is_pub, &name.0, ty)
-                .map(|(var_key, var_full_name)| {
-                    if let Some(expr_key) = init {
-                        self.current_pred()
-                            .expect("can only parse vars within predicates")
-                            .var_inits
-                            .insert(var_key, expr_key);
-                        let span = (self.span_from)(l, r);
-                        let var_span = name.0.span;
-
-                        let var_expr_key = self.contract.exprs.insert(
-                            Expr::Path(var_full_name, var_span.clone()),
-                            Type::Unknown(var_span.clone()),
-                        );
-
-                        if let Some(Expr::Range { lb, ub, .. }) =
-                            expr_key.try_get(self.contract).cloned()
-                        {
-                            let geq_expr_key = self.contract.exprs.insert(
-                                Expr::BinaryOp {
-                                    op: BinaryOp::GreaterThanOrEqual,
-                                    lhs: var_expr_key,
-                                    rhs: lb,
-                                    span: span.clone(),
-                                },
-                                Type::Unknown(span.clone()),
-                            );
-                            self.current_pred()
-                                .expect("can only parse vars within predicates")
-                                .constraints
-                                .push(ConstraintDecl {
-                                    expr: geq_expr_key,
-                                    span: span.clone(),
-                                });
-                            let geq_expr_key = self.contract.exprs.insert(
-                                Expr::BinaryOp {
-                                    op: BinaryOp::LessThanOrEqual,
-                                    lhs: var_expr_key,
-                                    rhs: ub,
-                                    span: span.clone(),
-                                },
-                                Type::Unknown(span.clone()),
-                            );
-                            self.current_pred()
-                                .expect("can only parse vars within predicates")
-                                .constraints
-                                .push(ConstraintDecl {
-                                    expr: geq_expr_key,
-                                    span,
-                                });
-                        } else {
-                            let eq_expr_key = self.contract.exprs.insert(
-                                Expr::BinaryOp {
-                                    op: BinaryOp::Equal,
-                                    lhs: var_expr_key,
-                                    rhs: expr_key,
-                                    span: span.clone(),
-                                },
-                                Type::Unknown(span.clone()),
-                            );
-                            self.current_pred()
-                                .expect("can only parse vars within predicates")
-                                .constraints
-                                .push(ConstraintDecl {
-                                    expr: eq_expr_key,
-                                    span,
-                                });
-                        }
-                    }
-                });
-        }
-    }
-
     /// Given an identifier (a string + a bool indicating whethere it's in a macro argument),
     /// produce an `Ident` and an optional string that contains the current local scope, if needed
     /// (useful for macros). `l` and `r` are the code locations before and after the identifier
-    pub fn parse_var_name(
+    pub fn parse_param_name(
         &mut self,
         id: (String, bool),
         (l, r): (usize, usize),
@@ -678,7 +495,6 @@ impl<'a> ParserContext<'a> {
             kind: (
                 match &name.name[..] {
                     "__address_of" => IntrinsicKind::External(ExternalIntrinsic::AddressOf),
-                    "__predicate_at" => IntrinsicKind::External(ExternalIntrinsic::PredicateAt),
                     "__recover_secp256k1" => {
                         IntrinsicKind::External(ExternalIntrinsic::RecoverSECP256k1)
                     }
@@ -688,7 +504,6 @@ impl<'a> ParserContext<'a> {
                     "__this_contract_address" => {
                         IntrinsicKind::External(ExternalIntrinsic::ThisContractAddress)
                     }
-                    "__this_pathway" => IntrinsicKind::External(ExternalIntrinsic::ThisPathway),
                     "__vec_len" => IntrinsicKind::External(ExternalIntrinsic::VecLen),
                     "__verify_ed25519" => IntrinsicKind::External(ExternalIntrinsic::VerifyEd25519),
                     _ => {
@@ -959,48 +774,19 @@ impl<'a> ParserContext<'a> {
         }
     }
 
-    /// Given an optional path (a list of identifiers followed by a final one) and a var `name`,
-    /// produce a `StorageAccess`. Uses `is_abs` to decide how to handle the path. `l` and `r` are
-    /// the code locations before and after the storage access. `r` is the code location right
-    /// after the path (before `::storage::` shows up).
-    pub fn parse_storage_access(
-        &mut self,
-        handler: &Handler,
-        is_abs: bool,
-        path: Option<(Vec<Ident>, Ident)>,
-        name: Ident,
-        mutable: bool,
-        (l, m, r): (usize, usize, usize),
-    ) -> Expr {
-        if let Some((els, last)) = path {
-            let path_span = (self.span_from)(l, m);
-            let interface_instance = if is_abs {
-                self.parse_absolute_path(els, last, false, path_span)
-            } else {
-                self.parse_relative_path(els, last, false, path_span)
-            };
-
-            let span = (self.span_from)(l, r);
-            Expr::ExternalStorageAccess {
-                interface_instance,
-                name: name.to_string(),
+    pub fn build_array_expr(&mut self, elements: Vec<ExprKey>, span: Span) -> Expr {
+        let range_expr = self.contract.exprs.insert(
+            Expr::Immediate {
+                value: Immediate::Int(elements.len() as i64),
                 span: span.clone(),
-            }
-        } else {
-            let span = (self.span_from)(l, r);
-            if !self.mod_path.is_empty() {
-                // `storage` blocks in sub-modules are not allowed
-                handler.emit_err(Error::Parse {
-                    error: ParseError::StorageAccessMustBeTopLevel { span: span.clone() },
-                });
-                Expr::Error(span.clone())
-            } else {
-                Expr::StorageAccess {
-                    name: name.to_string(),
-                    mutable,
-                    span: span.clone(),
-                }
-            }
+            },
+            types::int(),
+        );
+
+        Expr::Array {
+            elements,
+            range_expr,
+            span,
         }
     }
 }

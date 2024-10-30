@@ -11,6 +11,6 @@ predicate test(y: int) {
 // >>>
 
 // typecheck_failure <<<
-// `next state` access must be bound to a state variable
-// @40..41: `next state` access must be bound to a state variable
+// `next state` access must be bound to a variable
+// @40..41: `next state` access must be bound to a variable
 // >>>

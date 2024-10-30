@@ -7,22 +7,22 @@ storage {
 }
 
 predicate test() {
-    state a = storage::v;
+    let a = storage::v;
     constraint a' > a;
     constraint a'' > a;
     constraint (a'')''' > a;
 
-    state b = storage::w;
+    let b = storage::w;
     constraint b[0]' > a;
     constraint b'[0] > a;
     constraint b'[0]' > a;
 
-    state c = storage::x;
+    let c = storage::x;
     constraint c'.0 > a;
     constraint c.0' > a;
     constraint c'.0' > a;
 
-    state d = storage::y;
+    let d = storage::y;
     constraint d'.0[0] > a;
     constraint d.0'[0] > a;
     constraint d.0[0]' > a;
@@ -30,7 +30,7 @@ predicate test() {
     constraint d.0'[0]' > a;
     constraint d'.0'[0]' > a;
 
-    state e = storage::z;
+    let e = storage::z;
     constraint e'[0].0 > a;
     constraint e[0]'.0 > a;
     constraint e[0].0' > a;
@@ -51,11 +51,11 @@ predicate test() {
 // 
 // predicate ::test(
 // ) {
-//     state ::a = storage::v;
-//     state ::b = storage::w;
-//     state ::c = storage::x;
-//     state ::d = storage::y;
-//     state ::e = storage::z;
+//     let ::a = storage::v;
+//     let ::b = storage::w;
+//     let ::c = storage::x;
+//     let ::d = storage::y;
+//     let ::e = storage::z;
 //     constraint (::a' > ::a);
 //     constraint (::a'' > ::a);
 //     constraint (::a''''' > ::a);
@@ -92,11 +92,11 @@ predicate test() {
 // 
 // predicate ::test(
 // ) {
-//     state ::a: int = __storage_get({0});
-//     state ::b: int[2] = __storage_get({1, 0});
-//     state ::c: {int, int} = __storage_get({2, 0});
-//     state ::d: {int[2], int[2]} = __storage_get({3, 0});
-//     state ::e: {int, int}[2] = __storage_get({4, 0});
+//     let ::a: int = __storage_get({0});
+//     let ::b: int[2] = __storage_get({1, 0});
+//     let ::c: {int, int} = __storage_get({2, 0});
+//     let ::d: {int[2], int[2]} = __storage_get({3, 0});
+//     let ::e: {int, int}[2] = __storage_get({4, 0});
 //     constraint (::a' > ::a);
 //     constraint (::a' > ::a);
 //     constraint (::a' > ::a);

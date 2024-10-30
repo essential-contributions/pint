@@ -1,7 +1,7 @@
 predicate test(u: real, w: real) {
-    // All the decision variables in this test are known. The only purpose of this test make sure that
-    // all the listed constraints are satisfied and not conflicting. This helps ensure correctness of
-    // logical operators in various forms.
+    // All the predicate parameters in this test are known. The only purpose of this test make sure
+    // that all the listed constraints are satisfied and not conflicting. This helps ensure
+    // correctness of logical operators in various forms.
 
     constraint u == 40.0;
     constraint w == 50.0;

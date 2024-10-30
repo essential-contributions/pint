@@ -6,8 +6,8 @@ use crate::{
     },
     predicate::{
         BlockStatement, Const, ConstraintDecl, Contract, ExprKey, ExprsIter, Ident, IfDecl,
-        Interface, InterfaceVar, MatchDecl, MatchDeclBranch, PredKey, PredicateInterface,
-        StorageVar, VisitorKind,
+        Interface, MatchDecl, MatchDeclBranch, Param, PredKey, PredicateInterface, StorageVar,
+        VisitorKind,
     },
     span::{empty_span, Span, Spanned},
     types::{self, NewTypeDecl, PrimitiveKind, Type},
@@ -17,9 +17,7 @@ use fxhash::FxHashMap;
 
 use std::{collections::VecDeque, rc::Rc};
 
-mod lower_pub_var_accesses;
 mod lower_storage_accesses;
-pub(crate) use lower_pub_var_accesses::lower_pub_var_accesses;
 pub(crate) use lower_storage_accesses::lower_storage_accesses;
 
 pub(crate) fn lower_casts(handler: &Handler, contract: &mut Contract) -> Result<(), ErrorEmitted> {
@@ -153,9 +151,10 @@ pub(crate) fn lower_array_ranges(
         }
 
         array_range_expr_keys.extend(predicate_interfaces.iter().flat_map(
-            |PredicateInterface { vars, .. }| {
-                vars.iter()
-                    .filter_map(|InterfaceVar { ty, .. }| ty_non_int_range_expr(contract, None, ty))
+            |PredicateInterface { params, .. }| {
+                params
+                    .iter()
+                    .filter_map(|Param { ty, .. }| ty_non_int_range_expr(contract, None, ty))
             },
         ));
     }
@@ -167,12 +166,14 @@ pub(crate) fn lower_array_ranges(
 
         let pred = &contract.preds[pred_key];
 
-        array_range_expr_keys.extend(pred.vars.vars().filter_map(|(var_key, _var)| {
-            ty_non_int_range_expr(contract, Some(pred_key), var_key.get_ty(pred))
-        }));
+        array_range_expr_keys.extend(
+            pred.params
+                .iter()
+                .filter_map(|param| ty_non_int_range_expr(contract, Some(pred_key), &param.ty)),
+        );
 
-        array_range_expr_keys.extend(pred.states.states().filter_map(|(state_key, _state)| {
-            ty_non_int_range_expr(contract, Some(pred_key), state_key.get_ty(pred))
+        array_range_expr_keys.extend(pred.variables.variables().filter_map(|(variable_key, _)| {
+            ty_non_int_range_expr(contract, Some(pred_key), variable_key.get_ty(pred))
         }));
     }
 
@@ -677,15 +678,15 @@ pub(crate) fn lower_ins(handler: &Handler, contract: &mut Contract) -> Result<()
 /// Convert all comparisons to `nil` to comparisons between the intrinsic `__size_of` and 0.
 /// For example:
 ///
-/// state x = storage::x;
-/// state y = storage::x;
+/// let x = storage::x;
+/// let y = storage::x;
 /// constraint x == nil;
 /// constraint y != nil;
 ///
 /// becomes:
 ///
-/// state x = storage::x;
-/// state y = storage::x;
+/// let x = storage::x;
+/// let y = storage::x;
 /// constraint __size_of(x) == 0;
 /// constraint __size_of(y) != 0;
 ///
@@ -1030,12 +1031,14 @@ pub(super) fn coalesce_prime_ops(contract: &mut Contract) {
                 | Expr::Tuple { .. }
                 | Expr::UnionVariant { .. }
                 | Expr::Path(..)
-                | Expr::StorageAccess { .. }
+                | Expr::LocalStorageAccess { .. }
                 | Expr::ExternalStorageAccess { .. }
                 | Expr::UnaryOp { .. }
                 | Expr::BinaryOp { .. }
                 | Expr::MacroCall { .. }
                 | Expr::IntrinsicCall { .. }
+                | Expr::LocalPredicateCall { .. }
+                | Expr::ExternalPredicateCall { .. }
                 | Expr::Select { .. }
                 | Expr::Match { .. }
                 | Expr::Cast { .. }
@@ -1150,7 +1153,6 @@ pub(super) fn lower_matches(
 // E.g.,
 //
 // union u = var1 | var2(bool) | var3(int);
-// var x: u;
 // match x {
 //     u::var1 => {
 //         constraint expr1;

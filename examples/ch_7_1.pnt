@@ -1,3 +1,4 @@
+// <disabled>
 // ANCHOR: predicate_foo 
 predicate Foo(a: int, b: bool, c: int[4]) {
     pub var x: int;
@@ -49,8 +50,8 @@ predicate Baz() {
     predicate FooInstance1 = MyInterfaceInstance::Foo(PredicateID);
     predicate FooInstance2 = MyInterfaceInstance::Foo(PredicateID);
     
-    state x1 = FooInstance1::x;
-    state x2 = FooInstance2::x;
+    let x1 = FooInstance1::x;
+    let x2 = FooInstance2::x;
     // ANCHOR_END: multiple_instances
 }
 

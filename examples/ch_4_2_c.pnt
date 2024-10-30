@@ -1,3 +1,4 @@
+// <disabled>
 // ANCHOR: interface 
 interface Counter {
     storage {
@@ -21,13 +22,13 @@ storage {
 
 predicate Initialize() {
     pub var value: int;
-    state counter: int = mut storage::counter;
+    let counter: int = mut storage::counter;
     constraint counter' == value;
 }
 
 predicate Increment() {
     pub var amount: int;
-    state counter: int = mut storage::counter;
+    let counter: int = mut storage::counter;
     constraint counter' == counter + amount;
 }
 // ANCHOR_END: contract 

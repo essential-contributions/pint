@@ -549,7 +549,7 @@ impl Type {
 
             // The point here is that a `Map` takes up a storage slot, even though it doesn't
             // actually store anything in it. The `Map` type is not really allowed anywhere else,
-            // so we can't have a decision variable of type `Map` for example.
+            // so we can't have a predicate parameter of type `Map` for example.
             Self::Map { .. } => Ok(1),
 
             // `Vector` also takes up a single storage slot that stores the length of the vector
@@ -575,9 +575,8 @@ impl Type {
         }
     }
 
-    /// Calculate the number of storage or pub var slots required for this type. All primitive
-    /// types fit in a single slot even if their size is > 1. The math is the same for storage and
-    /// pub var data
+    /// Calculate the number of storage required for this type. All primitive types fit in a single
+    /// slot even if their size is > 1.
     pub fn storage_slots(
         &self,
         handler: &Handler,
@@ -613,7 +612,7 @@ impl Type {
 
             // The point here is that a `Map` takes up a storage slot, even though it doesn't
             // actually store anything in it. The `Map` type is not really allowed anywhere else,
-            // so we can't have a decision variable of type `Map` for example.
+            // so we can't have a predicate parameter of type `Map` for example.
             Self::Map { .. } => Ok(1),
 
             // `Vector` also takes up a single storage slot that stores the length of the vector

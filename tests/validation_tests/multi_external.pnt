@@ -22,13 +22,13 @@ interface Baz {
 }
 
 predicate Foo() {
-    interface BarInstance = Bar(0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE);
-    interface BazInstance = Baz(0xDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD);
+    let bar_addr = 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE;
+    let baz_addr = 0xDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD;
 
-    state x = BarInstance::storage::x;
-    state y = BarInstance::storage::y;
-    state w = BazInstance::storage::w;
-    state z = BazInstance::storage::z;
+    let x = Bar[[bar_addr]]::storage::x;
+    let y = Bar[[bar_addr]]::storage::y;
+    let w = Baz[[baz_addr]]::storage::w;
+    let z = Baz[[baz_addr]]::storage::z;
 
     constraint x' - x == 1;
     constraint y' - y == 2;

@@ -1,1 +1,1 @@
-state c = 5;
+let c = 5;

@@ -12,14 +12,14 @@ predicate test(
     my_address: b256,
 ) {
 // ANCHOR: storage_access_1
-state from_balance = storage::balances[from_address];
-state receiver_balance = storage::balances[receiver_address];
+let from_balance = storage::balances[from_address];
+let receiver_balance = storage::balances[receiver_address];
 // ANCHOR_END: storage_access_1
 
 // ANCHOR: next_state
-state my_bal = mut storage::balances[my_address];
+let my_bal = mut storage::balances[my_address];
 constraint my_bal' == my_bal + 1000000;
-// ANCHOR_END: next_state 
+// ANCHOR_END: next_let 
 
 // ANCHOR: next_state_with_check
 if my_bal != nil {

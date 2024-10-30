@@ -34,13 +34,14 @@ pub enum Expr {
         span: Span,
     },
     Path(String, Span),
-    StorageAccess {
+    LocalStorageAccess {
         name: String,
         mutable: bool,
         span: Span,
     },
     ExternalStorageAccess {
-        interface_instance: String,
+        interface: String,
+        address: ExprKey,
         name: String,
         span: Span,
     },
@@ -62,6 +63,19 @@ pub enum Expr {
     },
     IntrinsicCall {
         kind: (IntrinsicKind, Span),
+        args: Vec<ExprKey>,
+        span: Span,
+    },
+    LocalPredicateCall {
+        predicate: String,
+        args: Vec<ExprKey>,
+        span: Span,
+    },
+    ExternalPredicateCall {
+        interface: String,
+        c_addr: ExprKey,
+        predicate: String,
+        p_addr: ExprKey,
         args: Vec<ExprKey>,
         span: Span,
     },
@@ -287,12 +301,14 @@ impl Spanned for Expr {
             | Expr::Tuple { span, .. }
             | Expr::UnionVariant { span, .. }
             | Expr::Path(_, span)
-            | Expr::StorageAccess { span, .. }
+            | Expr::LocalStorageAccess { span, .. }
             | Expr::ExternalStorageAccess { span, .. }
             | Expr::UnaryOp { span, .. }
             | Expr::BinaryOp { span, .. }
             | Expr::MacroCall { span, .. }
             | Expr::IntrinsicCall { span, .. }
+            | Expr::LocalPredicateCall { span, .. }
+            | Expr::ExternalPredicateCall { span, .. }
             | Expr::Select { span, .. }
             | Expr::Match { span, .. }
             | Expr::Index { span, .. }
@@ -345,6 +361,17 @@ impl Expr {
                 replace(rhs);
             }
             Expr::IntrinsicCall { args, .. } => args.iter_mut().for_each(replace),
+            Expr::LocalPredicateCall { args, .. } => args.iter_mut().for_each(replace),
+            Expr::ExternalPredicateCall {
+                c_addr,
+                p_addr,
+                args,
+                ..
+            } => {
+                replace(c_addr);
+                replace(p_addr);
+                args.iter_mut().for_each(replace)
+            }
             Expr::Select {
                 condition,
                 then_expr,
@@ -408,7 +435,7 @@ impl Expr {
 
             Expr::MacroCall { .. }
             | Expr::Path(_, _)
-            | Expr::StorageAccess { .. }
+            | Expr::LocalStorageAccess { .. }
             | Expr::ExternalStorageAccess { .. }
             | Expr::Error(_) => {}
         }

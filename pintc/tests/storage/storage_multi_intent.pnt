@@ -15,20 +15,20 @@ predicate Foo(
     constraint x == 5;
     constraint address == 0x2222222222222222222222222222222222222222222222222222222222222222;
 
-    state i0 = storage::i;
-    state i1: int = storage::i;
+    let i0 = storage::i;
+    let i1: int = storage::i;
 
-    state b0 = storage::b;
-    state b1: bool = storage::b;
+    let b0 = storage::b;
+    let b1: bool = storage::b;
 
-    state map_1_access_1 = storage::map1[7];
-    state map_1_access_2: int = storage::map1[x];
+    let map_1_access_1 = storage::map1[7];
+    let map_1_access_2: int = storage::map1[x];
 
-    state map_2_access_1 = storage::map2[0x1111111111111111111111111111111111111111111111111111111111111111];
-    state map_2_access_2: bool = storage::map2[address];
+    let map_2_access_1 = storage::map2[0x1111111111111111111111111111111111111111111111111111111111111111];
+    let map_2_access_2: bool = storage::map2[address];
 
-    state map_3_access_1 = storage::map3[42][69];
-    state map_3_access_2: b256 = storage::map3[42][69];
+    let map_3_access_1 = storage::map3[42][69];
+    let map_3_access_2: b256 = storage::map3[42][69];
 
     constraint and == (b1 && map_2_access_1 && map_2_access_2);
     constraint sum == x + i0 + map_1_access_1 + map_1_access_2;
@@ -43,20 +43,20 @@ predicate Bar(
     constraint x == 5;
     constraint address == 0x2222222222222222222222222222222222222222222222222222222222222222;
 
-    state i0 = storage::i;
-    state i1: int = storage::i;
+    let i0 = storage::i;
+    let i1: int = storage::i;
 
-    state b0 = storage::b;
-    state b1: bool = storage::b;
+    let b0 = storage::b;
+    let b1: bool = storage::b;
 
-    state map_1_access_1 = storage::map1[7];
-    state map_1_access_2: int = storage::map1[x];
+    let map_1_access_1 = storage::map1[7];
+    let map_1_access_2: int = storage::map1[x];
 
-    state map_2_access_1 = storage::map2[0x1111111111111111111111111111111111111111111111111111111111111111];
-    state map_2_access_2: bool = storage::map2[address];
+    let map_2_access_1 = storage::map2[0x1111111111111111111111111111111111111111111111111111111111111111];
+    let map_2_access_2: bool = storage::map2[address];
 
-    state map_3_access_1 = storage::map3[42][69];
-    state map_3_access_2: b256 = storage::map3[42][69];
+    let map_3_access_1 = storage::map3[42][69];
+    let map_3_access_2: b256 = storage::map3[42][69];
 
     constraint and == (b1 && map_2_access_1 && map_2_access_2);
     constraint sum == x + i0 + map_1_access_1 + map_1_access_2;
@@ -77,16 +77,16 @@ predicate Bar(
 //     ::and: bool,
 //     ::sum: int,
 // ) {
-//     state ::i0 = storage::i;
-//     state ::i1: int = storage::i;
-//     state ::b0 = storage::b;
-//     state ::b1: bool = storage::b;
-//     state ::map_1_access_1 = storage::map1[7];
-//     state ::map_1_access_2: int = storage::map1[::x];
-//     state ::map_2_access_1 = storage::map2[0x1111111111111111111111111111111111111111111111111111111111111111];
-//     state ::map_2_access_2: bool = storage::map2[::address];
-//     state ::map_3_access_1 = storage::map3[42][69];
-//     state ::map_3_access_2: b256 = storage::map3[42][69];
+//     let ::i0 = storage::i;
+//     let ::i1: int = storage::i;
+//     let ::b0 = storage::b;
+//     let ::b1: bool = storage::b;
+//     let ::map_1_access_1 = storage::map1[7];
+//     let ::map_1_access_2: int = storage::map1[::x];
+//     let ::map_2_access_1 = storage::map2[0x1111111111111111111111111111111111111111111111111111111111111111];
+//     let ::map_2_access_2: bool = storage::map2[::address];
+//     let ::map_3_access_1 = storage::map3[42][69];
+//     let ::map_3_access_2: b256 = storage::map3[42][69];
 //     constraint (::x == 5);
 //     constraint (::address == 0x2222222222222222222222222222222222222222222222222222222222222222);
 //     constraint (::and == ((::b1 && ::map_2_access_1) && ::map_2_access_2));
@@ -99,16 +99,16 @@ predicate Bar(
 //     ::and: bool,
 //     ::sum: int,
 // ) {
-//     state ::i0 = storage::i;
-//     state ::i1: int = storage::i;
-//     state ::b0 = storage::b;
-//     state ::b1: bool = storage::b;
-//     state ::map_1_access_1 = storage::map1[7];
-//     state ::map_1_access_2: int = storage::map1[::x];
-//     state ::map_2_access_1 = storage::map2[0x1111111111111111111111111111111111111111111111111111111111111111];
-//     state ::map_2_access_2: bool = storage::map2[::address];
-//     state ::map_3_access_1 = storage::map3[42][69];
-//     state ::map_3_access_2: b256 = storage::map3[42][69];
+//     let ::i0 = storage::i;
+//     let ::i1: int = storage::i;
+//     let ::b0 = storage::b;
+//     let ::b1: bool = storage::b;
+//     let ::map_1_access_1 = storage::map1[7];
+//     let ::map_1_access_2: int = storage::map1[::x];
+//     let ::map_2_access_1 = storage::map2[0x1111111111111111111111111111111111111111111111111111111111111111];
+//     let ::map_2_access_2: bool = storage::map2[::address];
+//     let ::map_3_access_1 = storage::map3[42][69];
+//     let ::map_3_access_2: b256 = storage::map3[42][69];
 //     constraint (::x == 5);
 //     constraint (::address == 0x2222222222222222222222222222222222222222222222222222222222222222);
 //     constraint (::and == ((::b1 && ::map_2_access_1) && ::map_2_access_2));
@@ -131,16 +131,16 @@ predicate Bar(
 //     ::and: bool,
 //     ::sum: int,
 // ) {
-//     state ::i0: int = __storage_get({0});
-//     state ::i1: int = __storage_get({0});
-//     state ::b0: bool = __storage_get({1});
-//     state ::b1: bool = __storage_get({1});
-//     state ::map_1_access_1: int = __storage_get({2, 7});
-//     state ::map_1_access_2: int = __storage_get({2, ::x});
-//     state ::map_2_access_1: bool = __storage_get({3, 0x1111111111111111111111111111111111111111111111111111111111111111});
-//     state ::map_2_access_2: bool = __storage_get({3, ::address});
-//     state ::map_3_access_1: b256 = __storage_get({4, 42, 69});
-//     state ::map_3_access_2: b256 = __storage_get({4, 42, 69});
+//     let ::i0: int = __storage_get({0});
+//     let ::i1: int = __storage_get({0});
+//     let ::b0: bool = __storage_get({1});
+//     let ::b1: bool = __storage_get({1});
+//     let ::map_1_access_1: int = __storage_get({2, 7});
+//     let ::map_1_access_2: int = __storage_get({2, ::x});
+//     let ::map_2_access_1: bool = __storage_get({3, 0x1111111111111111111111111111111111111111111111111111111111111111});
+//     let ::map_2_access_2: bool = __storage_get({3, ::address});
+//     let ::map_3_access_1: b256 = __storage_get({4, 42, 69});
+//     let ::map_3_access_2: b256 = __storage_get({4, 42, 69});
 //     constraint (::x == 5);
 //     constraint (::address == 0x2222222222222222222222222222222222222222222222222222222222222222);
 //     constraint (::and == ((::b1 && ::map_2_access_1) && ::map_2_access_2));
@@ -154,16 +154,16 @@ predicate Bar(
 //     ::and: bool,
 //     ::sum: int,
 // ) {
-//     state ::i0: int = __storage_get({0});
-//     state ::i1: int = __storage_get({0});
-//     state ::b0: bool = __storage_get({1});
-//     state ::b1: bool = __storage_get({1});
-//     state ::map_1_access_1: int = __storage_get({2, 7});
-//     state ::map_1_access_2: int = __storage_get({2, ::x});
-//     state ::map_2_access_1: bool = __storage_get({3, 0x1111111111111111111111111111111111111111111111111111111111111111});
-//     state ::map_2_access_2: bool = __storage_get({3, ::address});
-//     state ::map_3_access_1: b256 = __storage_get({4, 42, 69});
-//     state ::map_3_access_2: b256 = __storage_get({4, 42, 69});
+//     let ::i0: int = __storage_get({0});
+//     let ::i1: int = __storage_get({0});
+//     let ::b0: bool = __storage_get({1});
+//     let ::b1: bool = __storage_get({1});
+//     let ::map_1_access_1: int = __storage_get({2, 7});
+//     let ::map_1_access_2: int = __storage_get({2, ::x});
+//     let ::map_2_access_1: bool = __storage_get({3, 0x1111111111111111111111111111111111111111111111111111111111111111});
+//     let ::map_2_access_2: bool = __storage_get({3, ::address});
+//     let ::map_3_access_1: b256 = __storage_get({4, 42, 69});
+//     let ::map_3_access_2: b256 = __storage_get({4, 42, 69});
 //     constraint (::x == 5);
 //     constraint (::address == 0x2222222222222222222222222222222222222222222222222222222222222222);
 //     constraint (::and == ((::b1 && ::map_2_access_1) && ::map_2_access_2));

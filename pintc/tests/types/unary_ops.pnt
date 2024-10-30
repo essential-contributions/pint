@@ -1,28 +1,28 @@
 predicate test() {
-    state a = -true;
-    state b = -{1,2};
+    let a = -true;
+    let b = -{1,2};
 
-    state c = !11;
-    state d = !0x0000111100001111000011110000111100001111000011110000111100001111;
+    let c = !11;
+    let d = !0x0000111100001111000011110000111100001111000011110000111100001111;
 }
 
 // parsed <<<
 // predicate ::test(
 // ) {
-//     state ::a = -true;
-//     state ::b = -{1, 2};
-//     state ::c = !11;
-//     state ::d = !0x0000111100001111000011110000111100001111000011110000111100001111;
+//     let ::a = -true;
+//     let ::b = -{1, 2};
+//     let ::c = !11;
+//     let ::d = !0x0000111100001111000011110000111100001111000011110000111100001111;
 // }
 // >>>
 
 // typecheck_failure <<<
 // unary operator type error
-// @33..38: operator `-` argument has unexpected type `bool`
+// @31..36: operator `-` argument has unexpected type `bool`
 // unary operator type error
-// @54..60: operator `-` argument has unexpected type `{int, int}`
+// @50..56: operator `-` argument has unexpected type `{int, int}`
 // unary operator type error
-// @77..80: operator `!` argument has unexpected type `int`
+// @71..74: operator `!` argument has unexpected type `int`
 // unary operator type error
-// @96..163: operator `!` argument has unexpected type `b256`
+// @88..155: operator `!` argument has unexpected type `b256`
 // >>>

@@ -2,7 +2,7 @@ use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{Expr, Ident, Immediate},
     lexer::Token,
-    predicate::{Contract, ExprKey, Predicate, Var},
+    predicate::{Contract, ExprKey, Param, Predicate},
     span::Span,
     types::UnionDecl,
 };
@@ -140,13 +140,13 @@ pub(crate) fn splice_args(
         // `mod_path_str` above, taken from the call).
         let array_path = mod_path_str.clone() + "::" + array_name;
 
-        if let Some(var_key) = pred
-            .vars()
-            .find_map(|(var_key, Var { name, .. })| (name == &array_path).then_some(var_key))
+        if let Some(param_ty) = pred
+            .params
+            .iter()
+            .find_map(|Param { name, ty, .. }| (name.name == array_path).then_some(ty))
         {
-            let var_ty = var_key.get_ty(pred);
-            if !var_ty.is_unknown() {
-                if let Some(range_expr_key) = var_ty.get_array_range_expr() {
+            if !param_ty.is_unknown() {
+                if let Some(range_expr_key) = param_ty.get_array_range_expr() {
                     if let Some((size, opt_enumeration_union)) =
                         splice_get_array_range_size(contract, range_expr_key)
                     {
@@ -166,32 +166,6 @@ pub(crate) fn splice_args(
                 } else {
                     handler.emit_err(Error::Compile {
                         error: CompileError::MacroSpliceVarNotArray {
-                            var_name: array_path,
-                            span: Span::new(call.span.context(), range),
-                        },
-                    });
-                }
-            } else if let Some(var_init_key) = pred.var_inits.get(var_key) {
-                if let Some(Expr::Array { range_expr, .. }) = var_init_key.try_get(contract) {
-                    if let Some((size, opt_enumeration_union)) =
-                        splice_get_array_range_size(contract, *range_expr)
-                    {
-                        // Store where and what to replace in the new spliced args.
-                        replacements.insert(
-                            (arg_idx, tok_idx),
-                            (array_name.to_string(), size, opt_enumeration_union, range),
-                        );
-                    } else {
-                        handler.emit_err(Error::Compile {
-                            error: CompileError::MacroSpliceArrayUnknownSize {
-                                var_name: array_path,
-                                span: Span::new(call.span.context(), range),
-                            },
-                        });
-                    }
-                } else {
-                    handler.emit_err(Error::Compile {
-                        error: CompileError::MacroSpliceArrayUnknownSize {
                             var_name: array_path,
                             span: Span::new(call.span.context(), range),
                         },

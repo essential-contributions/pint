@@ -37,17 +37,17 @@ fn lower_storage_accesses_in_predicate(
         span: empty_span(),
     };
 
-    let state_exprs = contract
+    let variable_exprs = contract
         .preds
         .get(pred_key)
         .map(|pred| {
-            pred.states()
-                .map(|(_, state)| state.expr)
+            pred.variables()
+                .map(|(_, variable)| variable.expr)
                 .collect::<Vec<_>>()
         })
         .unwrap_or_default();
 
-    let storage_accesses: FxHashSet<_> = state_exprs
+    let storage_accesses: FxHashSet<_> = variable_exprs
         .iter()
         .flat_map(|expr| expr.collect_storage_accesses(contract))
         .collect();
@@ -58,7 +58,7 @@ fn lower_storage_accesses_in_predicate(
 
     for expr in storage_accesses {
         let expr_ty = expr.get_ty(contract).clone();
-        let (addr, mutable, key) = get_base_storage_key(handler, &expr, contract, pred_key)?;
+        let (addr, mutable, key) = get_base_storage_key(handler, &expr, contract)?;
 
         // Type of this key is a tuple of all the elements of this key
         let key_ty = Type::Tuple {
@@ -240,7 +240,6 @@ fn get_base_storage_key(
     handler: &Handler,
     expr: &ExprKey,
     contract: &mut Contract,
-    pred_key: PredKey,
 ) -> Result<(Option<ExprKey>, bool, Vec<ExprKey>), ErrorEmitted> {
     let int_ty = Type::Primitive {
         kind: PrimitiveKind::Int,
@@ -253,7 +252,7 @@ fn get_base_storage_key(
             if let (IntrinsicKind::External(ExternalIntrinsic::VecLen), _) = kind {
                 assert_eq!(args.len(), 1);
                 match args[0].try_get(contract) {
-                    Some(Expr::StorageAccess { name, .. }) => {
+                    Some(Expr::LocalStorageAccess { name, .. }) => {
                         if !contract.storage_var(name).1.ty.is_vector() {
                             return Err(handler.emit_err(Error::Compile {
                                 error: CompileError::Internal {
@@ -264,19 +263,10 @@ fn get_base_storage_key(
                         }
                     }
                     Some(Expr::ExternalStorageAccess {
-                        interface_instance,
-                        name,
-                        ..
+                        interface, name, ..
                     }) => {
-                        let pred = contract.preds.get(pred_key).unwrap();
-                        let interface_instance = &pred
-                            .interface_instances
-                            .iter()
-                            .find(|e| e.name.to_string() == *interface_instance)
-                            .expect("missing interface instance");
-
                         if !contract
-                            .external_storage_var(&interface_instance.interface, name)
+                            .external_storage_var(interface, name)
                             .1
                             .ty
                             .is_vector()
@@ -299,7 +289,7 @@ fn get_base_storage_key(
                     }
                 };
 
-                get_base_storage_key(handler, &args[0], contract, pred_key)
+                get_base_storage_key(handler, &args[0], contract)
             } else {
                 Err(handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
@@ -309,7 +299,7 @@ fn get_base_storage_key(
                 }))
             }
         }
-        Expr::StorageAccess { name, mutable, .. } => {
+        Expr::LocalStorageAccess { name, mutable, .. } => {
             let (storage_index, storage_var) = contract.storage_var(name);
 
             Ok((
@@ -331,26 +321,18 @@ fn get_base_storage_key(
         }
 
         Expr::ExternalStorageAccess {
-            interface_instance,
+            interface,
+            address,
             name,
             ..
         } => {
-            // Get the `interface_instance` declaration that the storage access refers to
-            let pred = contract.preds.get(pred_key).unwrap();
-            let interface_instance = &pred
-                .interface_instances
-                .iter()
-                .find(|e| e.name.to_string() == *interface_instance)
-                .expect("missing interface instance");
-
-            let (storage_index, storage_var) =
-                contract.external_storage_var(&interface_instance.interface, name);
+            let (storage_index, storage_var) = contract.external_storage_var(interface, name);
 
             // This is the key. It's either the `storage_index` if the storage type primitive
             // or a map, or it's `[storage_index, 0]`. The `0` here is a placeholder for
             // offsets.
             Ok((
-                Some(interface_instance.address), // interface instance address
+                Some(*address), // interface instance address
                 // mutability is not relevant for external accesses. External keys are
                 // constrained by their own contracts.
                 false,
@@ -371,7 +353,7 @@ fn get_base_storage_key(
 
         Expr::Index { expr, index, .. } => {
             let inner_expr_ty = expr.get_ty(contract).clone();
-            let (addr, mutable, mut key) = get_base_storage_key(handler, expr, contract, pred_key)?;
+            let (addr, mutable, mut key) = get_base_storage_key(handler, expr, contract)?;
             if inner_expr_ty.is_map() || inner_expr_ty.is_vector() {
                 // next key element is the index itself
                 key.push(*index);
@@ -421,8 +403,7 @@ fn get_base_storage_key(
         }
 
         Expr::TupleFieldAccess { tuple, field, .. } => {
-            let (addr, mutable, mut key) =
-                get_base_storage_key(handler, tuple, contract, pred_key)?;
+            let (addr, mutable, mut key) = get_base_storage_key(handler, tuple, contract)?;
 
             // Grab the fields of the tuple
             let Type::Tuple { ref fields, .. } = tuple.get_ty(contract) else {

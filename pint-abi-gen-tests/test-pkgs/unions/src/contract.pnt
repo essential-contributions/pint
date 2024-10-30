@@ -48,51 +48,23 @@ predicate Foo(
     constraint v_array == [ RR::B, RR::A(lib::PP::T(lib::QQ::M))];
     constraint v_tuple == { lib2::A::B, lib3::foo::TT::A };
 
-    pub var p_v_u1: UU;
-    pub var p_v_u2: UU;
-    pub var p_v_u3: UU;
-    pub var p_v_w1: WW;
-    pub var p_v_pp1: lib::PP;
-    pub var p_v_pp2: lib::PP;
-    pub var p_v_aa: lib2::A;
-    pub var p_v_dd: lib2::D;
-    pub var p_v_tt: lib3::foo::TT;
-    pub var p_v_rr: RR;
-    pub var p_v_oo: lib3::foo::OO;
-    pub var p_v_array: RR[2];
-    pub var p_v_tuple: { lib2::A, lib3::foo::TT };
-
-    constraint p_v_u1 == UU::A(69);
-    constraint p_v_u2 == UU::B;
-    constraint p_v_u3 == UU::C(0x6969696969696969696969696969696969696969696969696969696969696969);
-    constraint p_v_w1 == WW::E(UU::A(69));
-    constraint p_v_pp1 == lib::PP::T(lib::QQ::M);
-    constraint p_v_pp2 == lib::PP::JJ(0x1111111111111111111111111111111111111111111111111111111111111111);
-    constraint p_v_aa == lib2::A::C;
-    constraint p_v_dd == lib2::D::E(lib3::foo::TT::B); 
-    constraint p_v_tt == lib3::foo::TT::B;
-    constraint p_v_rr == RR::A(lib::PP::T(lib::QQ::N(42)));
-    constraint p_v_oo == lib3::foo::OO::B({lib3::foo::TT::A, lib3::foo::TT::B});
-    constraint p_v_array == [ RR::B, RR::A(lib::PP::T(lib::QQ::M))];
-    constraint p_v_tuple == { lib2::A::B, lib3::foo::TT::A };
-
-    // Read some state.
-    state u1 = mut storage::u1;
-    state u2 = mut storage::u2;
-    state u3 = mut storage::u3;
-    state w1 = mut storage::w1;
-    state pp1 = mut storage::pp1;
-    state pp2 = mut storage::pp2;
-    state aa = mut storage::aa;
-    state dd = mut storage::dd;
-    state tt = mut storage::tt;
-    state rr = mut storage::rr;
-    state oo = mut storage::oo;
-    state array = mut storage::array;
-    state tuple = mut storage::tuple;
-    state map_1 = mut
+    // Declare some local variables.
+    let u1 = mut storage::u1;
+    let u2 = mut storage::u2;
+    let u3 = mut storage::u3;
+    let w1 = mut storage::w1;
+    let pp1 = mut storage::pp1;
+    let pp2 = mut storage::pp2;
+    let aa = mut storage::aa;
+    let dd = mut storage::dd;
+    let tt = mut storage::tt;
+    let rr = mut storage::rr;
+    let oo = mut storage::oo;
+    let array = mut storage::array;
+    let tuple = mut storage::tuple;
+    let map_1 = mut
     storage::map[0x2222222222222222222222222222222222222222222222222222222222222222];
-     state map_2 = mut
+    let map_2 = mut
     storage::map[0x3333333333333333333333333333333333333333333333333333333333333333];
 
     constraint u1' == UU::A(69);

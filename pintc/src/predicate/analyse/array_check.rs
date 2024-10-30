@@ -39,8 +39,8 @@ impl Contract {
 
         let pred = &self.preds[pred_key];
 
-        for var_key in pred.vars().map(|(k, _)| k) {
-            check_array_type(self, handler, var_key.get_ty(pred));
+        for param in &pred.params {
+            check_array_type(self, handler, &param.ty);
         }
 
         for expr_key in self.exprs(pred_key) {

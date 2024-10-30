@@ -6,16 +6,16 @@ storage {
 }
 
 predicate test() {
-    state x = 5;
-    state address = 0x2222222222222222222222222222222222222222222222222222222222222222;
+    let x = 5;
+    let address = 0x2222222222222222222222222222222222222222222222222222222222222222;
 
-    state i1: bool = storage::i;
+    let i1: bool = storage::i;
 
-    state b1: int = storage::b;
+    let b1: int = storage::b;
 
-    state map_1_access: bool = storage::map1[x];
+    let map_1_access: bool = storage::map1[x];
 
-    state map_2_access: int = storage::map2[address];
+    let map_2_access: int = storage::map2[address];
 }
 
 // parsed <<<
@@ -28,26 +28,26 @@ predicate test() {
 // 
 // predicate ::test(
 // ) {
-//     state ::x = 5;
-//     state ::address = 0x2222222222222222222222222222222222222222222222222222222222222222;
-//     state ::i1: bool = storage::i;
-//     state ::b1: int = storage::b;
-//     state ::map_1_access: bool = storage::map1[::x];
-//     state ::map_2_access: int = storage::map2[::address];
+//     let ::x = 5;
+//     let ::address = 0x2222222222222222222222222222222222222222222222222222222222222222;
+//     let ::i1: bool = storage::i;
+//     let ::b1: int = storage::b;
+//     let ::map_1_access: bool = storage::map1[::x];
+//     let ::map_2_access: int = storage::map2[::address];
 // }
 // >>>
 
 // typecheck_failure <<<
-// state variable initialization type error
-// @234..244: initializing expression has unexpected type `int`
-// @227..231: expecting type `bool`
-// state variable initialization type error
-// @267..277: initializing expression has unexpected type `bool`
-// @261..264: expecting type `int`
-// state variable initialization type error
-// @311..327: initializing expression has unexpected type `int`
-// @304..308: expecting type `bool`
-// state variable initialization type error
-// @360..382: initializing expression has unexpected type `bool`
-// @354..357: expecting type `int`
+// variable initialization type error
+// @228..238: initializing expression has unexpected type `int`
+// @221..225: expecting type `bool`
+// variable initialization type error
+// @259..269: initializing expression has unexpected type `bool`
+// @253..256: expecting type `int`
+// variable initialization type error
+// @301..317: initializing expression has unexpected type `int`
+// @294..298: expecting type `bool`
+// variable initialization type error
+// @348..370: initializing expression has unexpected type `bool`
+// @342..345: expecting type `int`
 // >>>

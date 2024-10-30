@@ -35,6 +35,7 @@ pub enum Token {
     LtEq,
     #[token(">=")]
     GtEq,
+
     #[token("==")]
     EqEq,
     #[token("!=")]
@@ -66,6 +67,8 @@ pub enum Token {
     BracketOpen,
     #[token("]")]
     BracketClose,
+    #[token("[[")]
+    DoubleBracketOpen,
     #[token("->")]
     Arrow,
     #[token("=>")]
@@ -116,10 +119,8 @@ pub enum Token {
     #[token("match")]
     Match,
 
-    #[token("var")]
-    Var,
-    #[token("state")]
-    State,
+    #[token("let")]
+    Let,
     #[token("const")]
     Const,
     #[token("storage")]
@@ -133,8 +134,6 @@ pub enum Token {
     #[token("constraint")]
     Constraint,
 
-    #[token("pub")]
-    Pub,
     #[token("mut")]
     Mut,
     #[token("use")]
@@ -221,18 +220,16 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Match,
     Token::Nil,
     Token::Predicate,
-    Token::Pub,
     Token::Mut,
     Token::Real,
     Token::SelfTok,
-    Token::State,
+    Token::Let,
     Token::Storage,
     Token::String,
     Token::True,
     Token::Type,
     Token::Union,
     Token::Use,
-    Token::Var,
     Token::Where,
 ];
 
@@ -267,6 +264,7 @@ impl fmt::Display for Token {
             Token::ParenClose => write!(f, ")"),
             Token::BracketOpen => write!(f, "["),
             Token::BracketClose => write!(f, "]"),
+            Token::DoubleBracketOpen => write!(f, "[["),
             Token::Arrow => write!(f, "->"),
             Token::HeavyArrow => write!(f, "=>"),
             Token::Dot => write!(f, "."),
@@ -317,15 +315,13 @@ impl fmt::Display for Token {
             Token::Else => write!(f, "else"),
             Token::Cond => write!(f, "cond"),
             Token::Match => write!(f, "match"),
-            Token::Var => write!(f, "var"),
-            Token::State => write!(f, "state"),
+            Token::Let => write!(f, "let"),
             Token::Const => write!(f, "const"),
             Token::Storage => write!(f, "storage"),
             Token::Interface => write!(f, "interface"),
             Token::Type => write!(f, "type"),
             Token::Union => write!(f, "union"),
             Token::Constraint => write!(f, "constraint"),
-            Token::Pub => write!(f, "pub"),
             Token::Mut => write!(f, "mut"),
             Token::Use => write!(f, "use"),
             Token::SelfTok => write!(f, "self"),

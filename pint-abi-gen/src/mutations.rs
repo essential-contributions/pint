@@ -3,7 +3,7 @@
 //! [`Mutation`][essential_types::solution::Mutation]s for a solution.
 
 use crate::{array, map, tuple, SingleKeyTy};
-use pint_abi_types::{TypeABI, VarABI};
+use pint_abi_types::{ParamABI, TypeABI};
 use pint_abi_visit::{KeyedVarTree, Nesting, NodeIx};
 use proc_macro2::Span;
 
@@ -33,7 +33,7 @@ fn nested_items_from_node(tree: &KeyedVarTree, n: NodeIx) -> Vec<syn::Item> {
 
 /// Recursively traverse the given keyed vars and create a builder structs and
 /// impls for each tuple, map and array.
-fn nested_items_from_keyed_vars(vars: &[VarABI]) -> Vec<syn::Item> {
+fn nested_items_from_keyed_vars(vars: &[ParamABI]) -> Vec<syn::Item> {
     let mut items = vec![];
     let tree = KeyedVarTree::from_keyed_vars(vars);
     tree.dfs(|n| {
@@ -156,7 +156,7 @@ pub(crate) fn method_from_node(tree: &KeyedVarTree, n: NodeIx, name: &str) -> sy
 }
 
 /// All builder methods for the `Mutations` builder type.
-fn impl_mutations_methods(vars: &[VarABI]) -> Vec<syn::ImplItemFn> {
+fn impl_mutations_methods(vars: &[ParamABI]) -> Vec<syn::ImplItemFn> {
     let tree = KeyedVarTree::from_keyed_vars(vars);
     tree.roots()
         .iter()
@@ -168,7 +168,7 @@ fn impl_mutations_methods(vars: &[VarABI]) -> Vec<syn::ImplItemFn> {
 }
 
 /// The implementation for the `Mutations` builder type.
-fn impl_mutations(vars: &[VarABI]) -> syn::ItemImpl {
+fn impl_mutations(vars: &[ParamABI]) -> syn::ItemImpl {
     let methods = impl_mutations_methods(vars);
     syn::parse_quote! {
         impl Mutations {
@@ -235,7 +235,7 @@ pub(crate) fn impl_deref_for_nested(struct_name: &str) -> Vec<syn::ItemImpl> {
 }
 
 /// All items for the `Mutations` type, nested mutations builder types and their impls.
-fn items(vars: &[VarABI]) -> Vec<syn::Item> {
+fn items(vars: &[ParamABI]) -> Vec<syn::Item> {
     let mut items = vec![
         mutations_struct().into(),
         mutations_fn().into(),
@@ -247,7 +247,7 @@ fn items(vars: &[VarABI]) -> Vec<syn::Item> {
 }
 
 /// A `mutations` module for all `Mutations`-related items.
-pub(crate) fn module(vars: &[VarABI]) -> syn::ItemMod {
+pub(crate) fn module(vars: &[ParamABI]) -> syn::ItemMod {
     let items = items(vars);
 
     syn::parse_quote! {

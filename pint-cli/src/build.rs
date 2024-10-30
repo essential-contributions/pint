@@ -2,7 +2,10 @@
 
 use anyhow::Context;
 use clap::{builder::styling::Style, Parser};
-use pint_pkg::{build::BuiltPkg, manifest::ManifestFile};
+use pint_pkg::{
+    build::BuiltPkg,
+    manifest::{ManifestFile, PackageKind},
+};
 use std::path::{Path, PathBuf};
 
 /// Build a package, writing the generated artifacts to `out/`.
@@ -14,6 +17,15 @@ pub(crate) struct Args {
     /// recursively until a manifest is found.
     #[arg(long = "manifest-path")]
     manifest_path: Option<PathBuf>,
+    /// A 256-bit unsigned integer in hexadeciaml format that represents the contract "salt". The
+    /// value is left padded with zeros if it has less than 64 hexadecimal digits.
+    ///
+    /// The "salt" is hashed along with the contract's bytecode in order to make the address of the
+    /// contract unique.
+    ///
+    /// If "salt" is provided for a library package, an error is emitted.
+    #[arg(long, value_parser = parse_hex)]
+    salt: Option<[u8; 32]>,
     /// Print the flattened pint program.
     #[arg(long = "print-optimized")]
     print_optimized: bool,
@@ -23,6 +35,25 @@ pub(crate) struct Args {
     /// Don't print anything that wasn't explicitly requested.
     #[arg(long)]
     silent: bool,
+}
+
+/// Parses a `&str` that represents a 256-bit unsigned integer in hexadecimal format and converts
+/// it into a `[u8; 32]`. If the string has less than 64 hexadecimal digits, left pad with zeros.
+///
+/// Emits an error if the conversion is not possible.
+fn parse_hex(value: &str) -> Result<[u8; 32], String> {
+    if value.len() > 64 || !value.chars().all(|c| c.is_ascii_hexdigit()) {
+        return Err("Salt must be a hexadecimal number with up to 64 digts (256 bits)".to_string());
+    }
+
+    // Pad the value to 64 characters by prepending zeros if needed
+    let padded_value = format!("{:0>64}", value);
+    let mut salt = [0u8; 32];
+    for i in 0..32 {
+        salt[i] = u8::from_str_radix(&padded_value[2 * i..2 * i + 2], 16)
+            .map_err(|_| "Invalid hexadecimal value")?;
+    }
+    Ok(salt)
 }
 
 // Find the file within the current directory or parent directories with the given name.
@@ -58,6 +89,12 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
 
     // Prepare the compilation plan.
     let manifest = ManifestFile::from_path(&manifest_path).context("failed to load manifest")?;
+    if let PackageKind::Library = manifest.pkg.kind {
+        if args.salt.is_some() {
+            anyhow::bail!("specifying `salt` for a library package is not allowed");
+        }
+    }
+
     let name = manifest.pkg.name.to_string();
     let members = [(name, manifest)].into_iter().collect();
     // TODO: Print fetching process here when remote deps included.
@@ -82,7 +119,7 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
         }
 
         // Build the package.
-        let _built = match prebuilt.build(args.skip_optimize) {
+        let _built = match prebuilt.build(args.salt.unwrap_or_default(), args.skip_optimize) {
             Ok(built) => {
                 built.print_warnings();
                 built

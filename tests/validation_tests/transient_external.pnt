@@ -4,18 +4,18 @@ interface Baz {
         y: int,
     }
 
-    predicate Foo {
-        pub var x: int;
-        pub var y: int;
-        pub var q: b256;
-        pub var c: { int, { int, b256 }, bool };
-        pub var e: { int, int }[2][3]; 
-    }
+    predicate Foo(
+        x: int,
+        y: int,
+        q: b256,
+        c: { int, { int, b256 }, bool },
+        e: { int, int }[2][3], 
+    );
 
-    predicate Bar {
-        pub var w: int;
-        pub var p: int;
-    }
+    predicate Bar(
+        w: int,
+        p: int,
+    );
 }
 
 predicate Simple(
@@ -23,38 +23,39 @@ predicate Simple(
     x: int,
     y: int,
     z: int,
+
+    foo_1_x: int,
+    foo_1_y: int,
+    foo_1_q: b256,
+    foo_1_c: { int, { int, b256 }, bool },
+    foo_1_e: { int, int }[2][3], 
+
+    foo_2_x: int,
+    foo_2_y: int,
+    foo_2_q: b256,
+    foo_2_c: { int, { int, b256 }, bool },
+    foo_2_e: { int, int }[2][3], 
 ) {
     constraint foo_addr == 0x0000000000000000000000000000000000000000000000000000000000000000;
 
-    interface BazInstance = Baz(0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE);
-    predicate FooInstance1 = BazInstance::Foo(foo_addr);
+    constraint   Baz[[0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE]]
+               ::Foo[[0x0000000000000000000000000000000000000000000000000000000000000000]]
+               (foo_1_x, foo_1_y, foo_1_q, foo_1_c, foo_1_e);
 
-    constraint x == FooInstance1::x;
-    constraint y == FooInstance1::y;
-    constraint z == FooInstance1::x * FooInstance1::y;
-    constraint FooInstance1::q == 0x0000000000000001000000000000000100000000000000010000000000000001;
+    constraint x == foo_1_x;
+    constraint y == foo_1_y;
+    constraint z == foo_1_x * foo_1_y;
+    constraint foo_1_q == 0x0000000000000001000000000000000100000000000000010000000000000001;
 
-    constraint FooInstance1::c == 
+    constraint foo_1_c == 
         { 42, { 43, 0x0000000000000008000000000000000800000000000000080000000000000008}, true };
-    constraint FooInstance1::c.0 == 42;
-    constraint FooInstance1::c.1 == { 43, 0x0000000000000008000000000000000800000000000000080000000000000008};
-    constraint FooInstance1::c.1.0 == 43;
-    constraint FooInstance1::c.1.1 == 0x0000000000000008000000000000000800000000000000080000000000000008;
-    constraint FooInstance1::c.2 == true;
+    constraint foo_1_c.0 == 42;
+    constraint foo_1_c.1 == { 43, 0x0000000000000008000000000000000800000000000000080000000000000008};
+    constraint foo_1_c.1.0 == 43;
+    constraint foo_1_c.1.1 == 0x0000000000000008000000000000000800000000000000080000000000000008;
+    constraint foo_1_c.2 == true;
 
-    predicate FooInstance2 = BazInstance::Foo(foo_addr);
-    constraint FooInstance2::x * FooInstance2::y == 2898;
-    constraint FooInstance2::q == 0x0000000000000003000000000000000300000000000000030000000000000003;
-
-    constraint FooInstance2::c == 
-        { 52, { 53, 0x0000000000000007000000000000000700000000000000070000000000000007}, false };
-    constraint FooInstance2::c.0 == 52;
-    constraint FooInstance2::c.1 == { 53, 0x0000000000000007000000000000000700000000000000070000000000000007};
-    constraint FooInstance2::c.1.0 == 53;
-    constraint FooInstance2::c.1.1 == 0x0000000000000007000000000000000700000000000000070000000000000007;
-    constraint FooInstance2::c.2 == false;
-
-    constraint FooInstance2::e == [
+    constraint foo_1_e == [
         [ 
             { 0, 1 },
             { 2, 3 },
@@ -67,7 +68,34 @@ predicate Simple(
         ]
     ];
 
-    constraint FooInstance2::e[0][0] == { 0, 1 };
-    constraint FooInstance2::e[1] == [{ 6, 7 }, { 8, 9 }, { 10, 11 }];
+    constraint   Baz[[0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE]]
+               ::Foo[[0x0000000000000000000000000000000000000000000000000000000000000000]]
+               (foo_2_x, foo_2_y, foo_2_q, foo_2_c, foo_2_e);
 
+    constraint foo_2_x * foo_2_y == 2898;
+    constraint foo_2_q == 0x0000000000000003000000000000000300000000000000030000000000000003;
+
+    constraint foo_2_c == 
+        { 52, { 53, 0x0000000000000007000000000000000700000000000000070000000000000007}, false };
+    constraint foo_2_c.0 == 52;
+    constraint foo_2_c.1 == { 53, 0x0000000000000007000000000000000700000000000000070000000000000007};
+    constraint foo_2_c.1.0 == 53;
+    constraint foo_2_c.1.1 == 0x0000000000000007000000000000000700000000000000070000000000000007;
+    constraint foo_2_c.2 == false;
+
+    constraint foo_2_e == [
+        [ 
+            { 0, 11 },
+            { 22, 33 },
+            { 44, 55 },
+        ],
+        [
+            { 66, 77 },
+            { 88, 99 },
+            { 110, 111 },
+        ]
+    ];
+
+    constraint foo_2_e[0][0] == { 0, 11 };
+    constraint foo_2_e[1] == [{ 66, 77 }, { 88, 99 }, { 110, 111 }];
 }

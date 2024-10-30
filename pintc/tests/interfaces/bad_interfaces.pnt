@@ -4,10 +4,10 @@ interface Foo {
         y: int,
     }
 
-    predicate I1 {
-        pub var x: int;
-        pub var y: b256;
-    }
+    predicate I1(
+        x: int,
+        y: b256,
+    );
 }
 
 predicate Simple(
@@ -17,18 +17,17 @@ predicate Simple(
 ) {
 
     // Missing interface
-    interface Instance1 = MissingInterface(addr1);
+    constraint MissingInterface[[addr1]]::Bar[[addr2]]();
 
-    // Missing interface instance
-    interface FooInstance = Foo(addr2);
-    predicate Bad1 = MissingInterfaceInstance::Foo(addr2);
+    // Missing predicate
+    constraint Foo[[addr1]]::MissingPredicate[[addr3]]();
 
-    // Missing intent
-    predicate Missing = FooInstance::MissingPredicate(addr3);
+    // wrong number of arguments 
+    constraint Foo[[addr1]]::I1[[addr3]](1, 2, 3);
+    constraint Foo[[addr1]]::I1[[addr3]](1);
 
-    // Missing pub var
-    predicate I1 = FooInstance::I1(addr3);
-    state missing_var = I1::missing_var;
+    constraint Foo[[addr1]]::I1[[addr3]](1, true);
+    constraint Foo[[addr1]]::I1[[addr3]]({1, 2}, 3);
 }
 
 // parsed <<<
@@ -37,36 +36,45 @@ predicate Simple(
 //         x: int,
 //         y: int,
 //     }
-//     predicate I1 {
-//         pub var x: int;
-//         pub var y: b256;
-//     }
+//     predicate I1 (
+//         x: int,
+//         y: b256,
+//     );
 // }
 // 
 // predicate ::Simple(
 //     ::addr1: b256,
 //     ::addr2: b256,
 //     ::addr3: b256,
-//     __::Bad1_pathway: int,
-//     __::Missing_pathway: int,
-//     __::I1_pathway: int,
 // ) {
-//     interface ::Instance1 = ::MissingInterface(::addr1)
-//     interface ::FooInstance = ::Foo(::addr2)
-//     predicate ::Bad1 = ::MissingInterfaceInstance::Foo(::addr2)
-//     predicate ::Missing = ::FooInstance::MissingPredicate(::addr3)
-//     predicate ::I1 = ::FooInstance::I1(::addr3)
-//     state ::missing_var = ::I1::missing_var;
+//     constraint ::MissingInterface[[::addr1]]::Bar[[::addr2]]();
+//     constraint ::Foo[[::addr1]]::MissingPredicate[[::addr3]]();
+//     constraint ::Foo[[::addr1]]::I1[[::addr3]](1, 2, 3);
+//     constraint ::Foo[[::addr1]]::I1[[::addr3]](1);
+//     constraint ::Foo[[::addr1]]::I1[[::addr3]](1, true);
+//     constraint ::Foo[[::addr1]]::I1[[::addr3]]({1, 2}, 3);
 // }
 // >>>
 
 // typecheck_failure <<<
 // cannot find interface declaration `::MissingInterface`
-// @249..294: cannot find interface declaration `::MissingInterface`
-// cannot find interface instance `::MissingInterfaceInstance`
-// @375..428: cannot find interface instance `::MissingInterfaceInstance`
+// @244..285: cannot find interface declaration `::MissingInterface`
 // cannot find predicate `MissingPredicate` in interface `::Foo`
-// @457..513: this predicate instance references predicate `MissingPredicate` which does not exist in interface `::Foo`
-// cannot find value `::I1::missing_var` in this scope
-// @606..621: not found in this scope
+// @328..369: this predicate call references predicate `MissingPredicate` which does not exist in interface `::Foo`
+// incorrect predicate argument
+// @450..451: expected `b256`, found `int`
+// @421..455: arguments to this predicate call are incorrect`
+// this predicate takes 2 arguments but 3 arguments were supplied
+// @421..455: unexpected number of arguments here
+// this predicate takes 2 arguments but 1 argument was supplied
+// @472..500: unexpected number of arguments here
+// incorrect predicate argument
+// @547..551: expected `b256`, found `bool`
+// @518..552: arguments to this predicate call are incorrect`
+// incorrect predicate argument
+// @595..601: expected `int`, found `{int, int}`
+// @569..605: arguments to this predicate call are incorrect`
+// incorrect predicate argument
+// @603..604: expected `b256`, found `int`
+// @569..605: arguments to this predicate call are incorrect`
 // >>>

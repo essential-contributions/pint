@@ -110,11 +110,13 @@ impl Display for Contract {
 
         for pred in self.preds.values() {
             writeln!(f, "\npredicate {}(", pred.name)?;
-            for (var_key, var) in pred.vars() {
-                let ty = var_key.get_ty(pred);
-                if !var.is_pub {
-                    writeln!(f, "    {}: {},", var.name, self.with_ctrct(ty))?;
-                }
+            for param in &pred.params {
+                writeln!(
+                    f,
+                    "    {}: {},",
+                    param.name.name,
+                    self.with_ctrct(param.ty.clone())
+                )?;
             }
 
             writeln!(f, ") {{")?;
@@ -150,19 +152,19 @@ impl Contract {
             for predicate_interface in predicate_interfaces {
                 write!(f, "    predicate {}", predicate_interface.name)?;
 
-                if predicate_interface.vars.is_empty() {
-                    writeln!(f, ";")?;
+                if predicate_interface.params.is_empty() {
+                    writeln!(f, "();")?;
                 } else {
-                    writeln!(f, " {{")?;
-                    for var in &predicate_interface.vars {
+                    writeln!(f, " (")?;
+                    for param in &predicate_interface.params {
                         writeln!(
                             f,
-                            "        pub var {}: {};",
-                            var.name,
-                            self.with_ctrct(var.ty.clone())
+                            "        {}: {},",
+                            param.name,
+                            self.with_ctrct(param.ty.clone())
                         )?;
                     }
-                    writeln!(f, "    }}")?;
+                    writeln!(f, "    );")?;
                 }
             }
 
@@ -177,50 +179,12 @@ impl Predicate {
     fn fmt_with_indent(&self, f: &mut Formatter, contract: &Contract, indent: usize) -> Result {
         let indentation = " ".repeat(4 * indent);
 
-        for InterfaceInstance {
-            name,
-            interface,
-            address,
-            ..
-        } in &self.interface_instances
-        {
+        for (variable_key, _) in self.variables() {
             writeln!(
                 f,
-                "{indentation}interface {name} = {interface}({})",
-                contract.with_ctrct(address)
+                "{indentation}{};",
+                self.with_pred(contract, variable_key)
             )?;
-        }
-
-        for PredicateInstance {
-            name,
-            interface_instance,
-            predicate,
-            address,
-            ..
-        } in &self.predicate_instances
-        {
-            writeln!(
-                f,
-                "{indentation}predicate {name} = {}::{predicate}({})",
-                interface_instance
-                    .as_ref()
-                    .map(|instance| instance.to_string())
-                    .unwrap_or(String::new()),
-                address
-                    .as_ref()
-                    .map(|address| format!("{}", contract.with_ctrct(address)))
-                    .unwrap_or(String::new()),
-            )?;
-        }
-
-        for (var_key, var) in self.vars() {
-            if var.is_pub {
-                writeln!(f, "{indentation}{};", self.with_pred(contract, var_key))?;
-            }
-        }
-
-        for (state_key, _) in self.states() {
-            writeln!(f, "{indentation}{};", self.with_pred(contract, state_key))?;
         }
 
         for constraint in &self.constraints {

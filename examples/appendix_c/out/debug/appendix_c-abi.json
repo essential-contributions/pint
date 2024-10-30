@@ -2,7 +2,7 @@
   "predicates": [
     {
       "name": "::Foo",
-      "vars": [
+      "params": [
         {
           "name": "::v0",
           "ty": "Int"
@@ -15,35 +15,31 @@
               "size": 5
             }
           }
-        }
-      ],
-      "pub_vars": [
-        {
-          "name": "::t0",
-          "ty": {
-            "Array": {
-              "ty": {
-                "Tuple": [
-                  {
-                    "name": null,
-                    "ty": "Int"
-                  },
-                  {
-                    "name": null,
-                    "ty": "Int"
-                  }
-                ]
-              },
-              "size": 5
-            }
-          }
         },
         {
-          "name": "::t1",
+          "name": "::v2",
           "ty": {
-            "Array": {
-              "ty": "B256",
-              "size": 3
+            "Union": {
+              "name": "::U",
+              "variants": [
+                {
+                  "name": "U::A",
+                  "ty": "Int"
+                },
+                {
+                  "name": "U::B",
+                  "ty": null
+                },
+                {
+                  "name": "U::C",
+                  "ty": {
+                    "Array": {
+                      "ty": "Int",
+                      "size": 3
+                    }
+                  }
+                }
+              ]
             }
           }
         }

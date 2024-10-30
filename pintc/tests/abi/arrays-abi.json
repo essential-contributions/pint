@@ -2,7 +2,7 @@
   "predicates": [
     {
       "name": "::Foo",
-      "vars": [
+      "params": [
         {
           "name": "::b1",
           "ty": {
@@ -64,56 +64,6 @@
                 }
               },
               "size": 2
-            }
-          }
-        }
-      ],
-      "pub_vars": [
-        {
-          "name": "::a1",
-          "ty": {
-            "Array": {
-              "ty": "Int",
-              "size": 5
-            }
-          }
-        },
-        {
-          "name": "::a2",
-          "ty": {
-            "Array": {
-              "ty": {
-                "Array": {
-                  "ty": "B256",
-                  "size": 2
-                }
-              },
-              "size": 3
-            }
-          }
-        },
-        {
-          "name": "::a3",
-          "ty": {
-            "Array": {
-              "ty": {
-                "Array": {
-                  "ty": {
-                    "Tuple": [
-                      {
-                        "name": null,
-                        "ty": "Int"
-                      },
-                      {
-                        "name": null,
-                        "ty": "B256"
-                      }
-                    ]
-                  },
-                  "size": 4
-                }
-              },
-              "size": 3
             }
           }
         }

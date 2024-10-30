@@ -1,17 +1,11 @@
 predicate test(
     this_address: b256,
     this_contract_address: b256,
-    this_pathway: int,
-    predicate_at: { b256, b256 },
     predicate_address: b256,
 ) {
     constraint this_address == __this_address();
 
     constraint this_contract_address == __this_contract_address();
-
-    constraint this_pathway == __this_pathway();
-
-    constraint predicate_at == __predicate_at(5);
 
     constraint predicate_address == __address_of("::Foo");
 }
@@ -24,14 +18,10 @@ predicate Foo() {
 // predicate ::test(
 //     ::this_address: b256,
 //     ::this_contract_address: b256,
-//     ::this_pathway: int,
-//     ::predicate_at: {b256, b256},
 //     ::predicate_address: b256,
 // ) {
 //     constraint (::this_address == __this_address());
 //     constraint (::this_contract_address == __this_contract_address());
-//     constraint (::this_pathway == __this_pathway());
-//     constraint (::predicate_at == __predicate_at(5));
 //     constraint (::predicate_address == __address_of("::Foo"));
 // }
 // 
@@ -44,14 +34,10 @@ predicate Foo() {
 // predicate ::test(
 //     ::this_address: b256,
 //     ::this_contract_address: b256,
-//     ::this_pathway: int,
-//     ::predicate_at: {b256, b256},
 //     ::predicate_address: b256,
 // ) {
 //     constraint (::this_address == __this_address());
 //     constraint (::this_contract_address == __this_contract_address());
-//     constraint (::this_pathway == __this_pathway());
-//     constraint (::predicate_at == __predicate_at(5));
 //     constraint (::predicate_address == __address_of("::Foo"));
 //     constraint __eq_set(__mut_keys(), {0});
 // }

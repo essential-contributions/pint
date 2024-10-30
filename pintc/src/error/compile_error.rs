@@ -117,7 +117,7 @@ pub enum CompileError {
     StorageSymbolNotFound { name: String, span: Span },
     #[error("cannot find storage variable `{name}`")]
     MissingStorageBlock { name: String, span: Span },
-    #[error("`next state` access must be bound to a state variable")]
+    #[error("`next state` access must be bound to a variable")]
     InvalidNextStateAccess { span: Span },
     #[error("cannot find interface declaration `{name}`")]
     MissingInterface { name: String, span: Span },
@@ -135,10 +135,6 @@ pub enum CompileError {
     },
     #[error("self referential predicate `{pred_name}`")]
     SelfReferencialPredicate { pred_name: String, span: Span },
-    #[error("cannot find interface instance `{name}`")]
-    MissingInterfaceInstance { name: String, span: Span },
-    #[error("cannot find predicate instance `{name}`")]
-    MissingPredicateInstance { name: String, span: Span },
     #[error("address expression type error")]
     AddressExpressionTypeError { large_err: Box<LargeTypeError> },
     #[error("attempt to use a non-constant value as an array length")]
@@ -180,8 +176,8 @@ pub enum CompileError {
     },
     #[error("invalid array range type {found_ty}")]
     InvalidArrayRangeType { found_ty: String, span: Span },
-    #[error("variables cannot have storage types")]
-    VarHasStorageType {
+    #[error("predicate parameters cannot have storage types")]
+    ParamHasStorageType {
         ty: String,
         nested_ty: String,
         span: Span,
@@ -234,8 +230,8 @@ pub enum CompileError {
         init_kind: &'static str,
         large_err: Box<LargeTypeError>,
     },
-    #[error("state variable initialization type error")]
-    StateVarInitTypeError { large_err: Box<LargeTypeError> },
+    #[error("variable initialization type error")]
+    VarInitTypeError { large_err: Box<LargeTypeError> },
     #[error("expression has a recursive dependency")]
     ExprRecursion {
         dependant_span: Span,
@@ -282,6 +278,23 @@ pub enum CompileError {
         found: usize,
         span: Span,
     },
+    #[error("this predicate takes {} but {}",
+        if *expected == 1 {
+            format!("{expected} argument")
+        } else {
+            format!("{expected} arguments")
+        },
+        if *found == 1 {
+            format!("{found} argument was supplied")
+        } else {
+            format!("{found} arguments were supplied")
+        }
+    )]
+    UnexpectedPredicateArgCount {
+        expected: usize,
+        found: usize,
+        span: Span,
+    },
     #[error("incorrect intrinsic argument")]
     MismatchedIntrinsicArgType {
         expected: String,
@@ -289,20 +302,19 @@ pub enum CompileError {
         intrinsic_span: Span,
         arg_span: Span,
     },
-    #[error("intrinsic argument must be a state variable")]
-    IntrinsicArgMustBeStateVar { span: Span },
-    #[error("intrinsic argument must be a storage access")]
-    IntrinsicArgMustBeStorageAccess { span: Span },
-    #[error("binary operator type error")]
-    CompareToNilError { op: &'static str, span: Span },
+    #[error("incorrect predicate argument")]
+    MismatchedPredicateArgType {
+        expected: String,
+        found: String,
+        span: Span,
+        arg_span: Span,
+    },
     #[error("type alias refers to itself")]
     RecursiveNewType {
         name: String,
         decl_span: Span,
         use_span: Span,
     },
-    #[error("invalid range for `in` operator")]
-    InRangeInvalid { found_ty: String, span: Span },
     #[error("dependency cycle detected between predicates")]
     DependencyCycle { spans: Vec<Span> },
     #[error("intrinsic `__address_of` cannot refer to the predicate it's used in")]
@@ -380,7 +392,7 @@ pub enum LargeTypeError {
         span: Span,
         expected_span: Option<Span>,
     },
-    StateVarInitTypeError {
+    VarInitTypeError {
         expected_ty: String,
         found_ty: String,
         span: Span,
@@ -657,7 +669,7 @@ impl ReportableError for CompileError {
 
             InvalidNextStateAccess { span } => {
                 vec![ErrorLabel {
-                    message: "`next state` access must be bound to a state variable".to_string(),
+                    message: "`next state` access must be bound to a variable".to_string(),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -678,7 +690,7 @@ impl ReportableError for CompileError {
             } => {
                 vec![ErrorLabel {
                     message: format!(
-                        "this predicate instance references predicate `{pred_name}` \
+                        "this predicate call references predicate `{pred_name}` \
                          which does not exist in {}",
                         if let Some(interface_name) = interface_name {
                             format!("interface `{interface_name}`")
@@ -693,24 +705,8 @@ impl ReportableError for CompileError {
 
             SelfReferencialPredicate { span, .. } => {
                 vec![ErrorLabel {
-                    message: "this predicate instance references the predicate it's declared in"
+                    message: "this predicate call references the predicate it's declared in"
                         .to_string(),
-                    span: span.clone(),
-                    color: Color::Red,
-                }]
-            }
-
-            MissingInterfaceInstance { name, span } => {
-                vec![ErrorLabel {
-                    message: format!("cannot find interface instance `{name}`"),
-                    span: span.clone(),
-                    color: Color::Red,
-                }]
-            }
-
-            MissingPredicateInstance { name, span } => {
-                vec![ErrorLabel {
-                    message: format!("cannot find predicate instance `{name}`"),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -811,9 +807,9 @@ impl ReportableError for CompileError {
                 }]
             }
 
-            VarHasStorageType { ty, span, .. } => {
+            ParamHasStorageType { ty, span, .. } => {
                 vec![ErrorLabel {
-                    message: format!("found variable of storage type {ty} here"),
+                    message: format!("found parameter of storage type {ty} here"),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -892,7 +888,7 @@ impl ReportableError for CompileError {
 
             SelectBranchesTypeMismatch { large_err }
             | OperatorTypeError { large_err, .. }
-            | StateVarInitTypeError { large_err, .. }
+            | VarInitTypeError { large_err, .. }
             | ConstraintExpressionTypeError { large_err, .. }
             | AddressExpressionTypeError { large_err, .. }
             | InitTypeError { large_err, .. } => match large_err.as_ref() {
@@ -928,7 +924,7 @@ impl ReportableError for CompileError {
                     generate_type_error_labels(&what, found_ty, expected_ty, span, expected_span)
                 }
 
-                LargeTypeError::StateVarInitTypeError {
+                LargeTypeError::VarInitTypeError {
                     found_ty,
                     expected_ty,
                     span,
@@ -1054,6 +1050,12 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
+            UnexpectedPredicateArgCount { span, .. } => vec![ErrorLabel {
+                message: "unexpected number of arguments here".to_string(),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
             MismatchedIntrinsicArgType {
                 expected,
                 found,
@@ -1072,25 +1074,23 @@ impl ReportableError for CompileError {
                 },
             ],
 
-            IntrinsicArgMustBeStateVar { span } => vec![ErrorLabel {
-                message: "intrinsic argument must be a state variable".to_string(),
-                span: span.clone(),
-                color: Color::Red,
-            }],
-
-            IntrinsicArgMustBeStorageAccess { span } => vec![ErrorLabel {
-                message: "intrinsic argument must be a storage access".to_string(),
-                span: span.clone(),
-                color: Color::Red,
-            }],
-
-            CompareToNilError { op, span } => {
-                vec![ErrorLabel {
-                    message: format!("unexpected argument for operator `{op}`"),
+            MismatchedPredicateArgType {
+                expected,
+                found,
+                span,
+                arg_span,
+            } => vec![
+                ErrorLabel {
+                    message: format!("expected `{expected}`, found `{found}`"),
+                    span: arg_span.clone(),
+                    color: Color::Blue,
+                },
+                ErrorLabel {
+                    message: "arguments to this predicate call are incorrect`".to_string(),
                     span: span.clone(),
                     color: Color::Red,
-                }]
-            }
+                },
+            ],
 
             RecursiveNewType {
                 name,
@@ -1108,15 +1108,6 @@ impl ReportableError for CompileError {
                     color: Color::Blue,
                 },
             ],
-
-            InRangeInvalid { found_ty, span } => vec![ErrorLabel {
-                message: format!(
-                    "`in` operator range must be either an enumeration union or an array, \
-                    found `{found_ty}`"
-                ),
-                span: span.clone(),
-                color: Color::Red,
-            }],
 
             DependencyCycle { spans } => spans
                 .iter()
@@ -1333,10 +1324,10 @@ impl ReportableError for CompileError {
                 Some(format!("found access using type `{found_ty}`"))
             }
 
-            VarHasStorageType { ty, nested_ty, .. } => {
+            ParamHasStorageType { ty, nested_ty, .. } => {
                 if ty != nested_ty {
                     Some(format!(
-                        "type of variable depends on the storage type `{nested_ty}`"
+                        "type of parameter depends on the storage type `{nested_ty}`"
                     ))
                 } else {
                     None
@@ -1350,7 +1341,7 @@ impl ReportableError for CompileError {
             ),
 
             InvalidStorageAccess { .. } => Some(
-                "storage can only be accessed in the initializer of `state` declaration"
+                "storage can only be accessed in the initializer of a `let` declaration"
                     .to_string(),
             ),
 
@@ -1365,8 +1356,6 @@ impl ReportableError for CompileError {
             | MissingInterface { .. }
             | MissingPredicate { .. }
             | SelfReferencialPredicate { .. }
-            | MissingInterfaceInstance { .. }
-            | MissingPredicateInstance { .. }
             | AddressExpressionTypeError { .. }
             | NonConstArrayLength { .. }
             | InvalidConstArrayLength { .. }
@@ -1387,7 +1376,7 @@ impl ReportableError for CompileError {
             | OperatorTypeError { .. }
             | OperatorInvalidType { .. }
             | InitTypeError { .. }
-            | StateVarInitTypeError { .. }
+            | VarInitTypeError { .. }
             | IndexExprNonIndexable { .. }
             | TupleAccessNonTuple { .. }
             | EmptyArrayExpression { .. }
@@ -1402,12 +1391,10 @@ impl ReportableError for CompileError {
             | NonBoolGeneratorCondition { .. }
             | NonBoolGeneratorBody { .. }
             | UnexpectedIntrinsicArgCount { .. }
-            | IntrinsicArgMustBeStateVar { .. }
-            | IntrinsicArgMustBeStorageAccess { .. }
+            | UnexpectedPredicateArgCount { .. }
             | MismatchedIntrinsicArgType { .. }
-            | CompareToNilError { .. }
+            | MismatchedPredicateArgType { .. }
             | RecursiveNewType { .. }
-            | InRangeInvalid { .. }
             | AddressOfSelf { .. }
             | TypeNotAllowedInStorage { .. }
             | PredicateNameNotFound { .. }
@@ -1478,11 +1465,6 @@ impl ReportableError for CompileError {
                     )
                 }
             }
-
-            CompareToNilError { .. } => Some(
-                "only state variables and next state expressions can be compared to `nil`"
-                    .to_string(),
-            ),
 
             UnknownUnionVariant { valid_variants, .. } if !valid_variants.is_empty() => {
                 Some(format!(
@@ -1601,8 +1583,6 @@ impl Spanned for CompileError {
             | MissingInterface { span, .. }
             | MissingPredicate { span, .. }
             | SelfReferencialPredicate { span, .. }
-            | MissingInterfaceInstance { span, .. }
-            | MissingPredicateInstance { span, .. }
             | NonConstArrayIndex { span }
             | InvalidConstArrayLength { span }
             | NonConstArrayLength { span }
@@ -1615,7 +1595,7 @@ impl Spanned for CompileError {
             | IndexExprNonIndexable { span, .. }
             | ArrayAccessWithWrongType { span, .. }
             | InvalidArrayRangeType { span, .. }
-            | VarHasStorageType { span, .. }
+            | ParamHasStorageType { span, .. }
             | TypeNotAllowedInStorage { span, .. }
             | StorageMapAccessWithWrongType { span, .. }
             | MismatchedArrayComparisonSizes { span, .. }
@@ -1634,12 +1614,10 @@ impl Spanned for CompileError {
             | InExprTypesMismatch { span, .. }
             | InExprTypesArrayMismatch { span, .. }
             | UnexpectedIntrinsicArgCount { span, .. }
+            | UnexpectedPredicateArgCount { span, .. }
             | MismatchedIntrinsicArgType { arg_span: span, .. }
-            | IntrinsicArgMustBeStateVar { span, .. }
-            | IntrinsicArgMustBeStorageAccess { span, .. }
-            | CompareToNilError { span, .. }
+            | MismatchedPredicateArgType { arg_span: span, .. }
             | RecursiveNewType { use_span: span, .. }
-            | InRangeInvalid { span, .. }
             | AddressOfSelf { span, .. }
             | PredicateNameNotFound { span, .. }
             | MatchExprNotUnion { span, .. }
@@ -1659,13 +1637,13 @@ impl Spanned for CompileError {
 
             SelectBranchesTypeMismatch { large_err }
             | OperatorTypeError { large_err, .. }
-            | StateVarInitTypeError { large_err, .. }
+            | VarInitTypeError { large_err, .. }
             | ConstraintExpressionTypeError { large_err, .. }
             | AddressExpressionTypeError { large_err, .. }
             | InitTypeError { large_err, .. } => match large_err.as_ref() {
                 LargeTypeError::SelectBranchesTypeMismatch { span, .. }
                 | LargeTypeError::OperatorTypeError { span, .. }
-                | LargeTypeError::StateVarInitTypeError { span, .. }
+                | LargeTypeError::VarInitTypeError { span, .. }
                 | LargeTypeError::ConstraintExpressionTypeError { span, .. }
                 | LargeTypeError::AddressExpressionTypeError { span, .. }
                 | LargeTypeError::InitTypeError {

@@ -4,7 +4,7 @@ use crate::{
         BinaryOp, Expr, ExternalIntrinsic, Immediate, InternalIntrinsic, IntrinsicKind,
         TupleAccess, UnaryOp,
     },
-    predicate::{Contract, ExprKey, Predicate, State as StateVar},
+    predicate::{Contract, ExprKey, Predicate, Variable},
     span::empty_span,
     types::Type,
 };
@@ -29,9 +29,9 @@ pub struct AsmBuilder<'a> {
     // addresses
     compiled_predicates: &'a HashMap<String, (CompiledPredicate, ContentAddress)>,
 
-    // A map from names of state variables to their chosen state slot indices. Each state variable
-    // is stored in a single slot.
-    state_var_to_slot_indices: HashMap<String, usize>,
+    // A map from names of variables to their chosen state slot indices. Each variable is stored in
+    // a single slot.
+    variables_to_slot_indices: HashMap<String, usize>,
 
     // A map from storage access expressions to their chosen state slot indices. Each storage
     // access spans one or more consecutive slots, hence the `Range`.
@@ -107,13 +107,11 @@ impl Asm {
 /// 3. `Storage` expressions refer to expressions that are storage keys and need to be read from
 ///    using `KeyRange` or `KeyRangeExtern`. The `bool` is `true` if the storage access is external
 ///    (i.e. requires `KeyRangeExtern`) and `false` otherwise.
-/// 4. `PubVar` expressions refer to expressions that require the `PubVar` opcode.
 /// 5. `Value` expressions are just raw values such as immediates or the outputs of binary ops.
 enum Location {
     DecisionVar,
     State(bool),
     Storage(bool),
-    PubVar,
     Value,
 }
 
@@ -126,7 +124,7 @@ impl<'a> AsmBuilder<'a> {
             state_programs: Vec::new(),
             constraint_programs: Vec::new(),
             compiled_predicates,
-            state_var_to_slot_indices: HashMap::new(),
+            variables_to_slot_indices: HashMap::new(),
             storage_access_to_slot_indices: HashMap::new(),
             global_state_slots: 0,
         }
@@ -142,10 +140,10 @@ impl<'a> AsmBuilder<'a> {
     }
 
     /// Generates assembly for a given state read and adds the resulting program to `self.
-    pub(super) fn compile_state(
+    pub(super) fn compile_variable(
         &mut self,
         handler: &Handler,
-        state: &StateVar,
+        variable: &Variable,
         contract: &Contract,
         pred: &Predicate,
     ) -> Result<(), ErrorEmitted> {
@@ -167,15 +165,15 @@ impl<'a> AsmBuilder<'a> {
             ))
         };
 
-        // Allocate a single slot for the state var. Keep track of the local and global indices for
+        // Allocate a single slot for the variable. Keep track of the local and global indices for
         // this newly allocated slot.
-        let (state_var_local_slot_index, state_var_global_slot_index) = allocate(1)?;
+        let (local_slot_index, global_slot_index) = allocate(1)?;
 
-        // Collect all storage accesses used in the state var initializer, and allocate enough
+        // Collect all storage accesses used in the variable initializer, and allocate enough
         // slots for all of them. We do this ahead of time so that we know exactly how many slots
         // are allocated. Due to short-circuting, this also means that some allocations may not be
         // used, but this is okay for now.
-        for access in state.expr.collect_storage_accesses(contract) {
+        for access in variable.expr.collect_storage_accesses(contract) {
             // This is how many slots this storage access requires
             let num_keys_to_read = access.get_ty(contract).storage_slots(handler, contract)?;
 
@@ -188,11 +186,11 @@ impl<'a> AsmBuilder<'a> {
         }
 
         // Prepare for the `StateMemory::Store` opcode
-        asm.push(Stack::Push(state_var_local_slot_index as i64).into()); // slot_ix
+        asm.push(Stack::Push(local_slot_index as i64).into()); // slot_ix
         asm.push(Stack::Push(0).into()); // value_ix
 
         if let Some(state_slots) =
-            self.compile_expr_pointer_deref(handler, &mut asm, &state.expr, contract, pred)?
+            self.compile_expr_pointer_deref(handler, &mut asm, &variable.expr, contract, pred)?
         {
             // If the result is stored state slots, then load those slots to the stack
             for i in state_slots.start..state_slots.end {
@@ -215,21 +213,21 @@ impl<'a> AsmBuilder<'a> {
             }
         } else {
             // Otherwise, the data is already on the stack. Just follow with the size of the data
-            // according to the state expr type.
+            // according to the variable init expr type.
             asm.push(
-                Stack::Push(state.expr.get_ty(contract).size(handler, contract)? as i64).into(),
+                Stack::Push(variable.expr.get_ty(contract).size(handler, contract)? as i64).into(),
             );
         }
 
-        // Now, store the result into the slot allocated for the state var
+        // Now, store the result into the slot allocated for the variable
         asm.try_push(handler, StateMemory::Store.into())?;
         asm.try_push(handler, TotalControlFlow::Halt.into())?;
 
-        // Keep track of the global index of the state slot where this state variable lives
-        self.state_var_to_slot_indices
-            .insert(state.name.clone(), state_var_global_slot_index);
+        // Keep track of the global index of the state slot where this variable lives
+        self.variables_to_slot_indices
+            .insert(variable.name.clone(), global_slot_index);
 
-        // Clear out this map because it's local to each state variable
+        // Clear out this map because it's local to each variable
         self.storage_access_to_slot_indices.clear();
 
         self.push_asm_program(asm);
@@ -329,20 +327,14 @@ impl<'a> AsmBuilder<'a> {
                 Ok(Some(base_slot_index..num_keys_to_read + base_slot_index))
             }
 
-            Location::PubVar => {
-                asm.push(Stack::Push(expr_ty.size(handler, contract)? as i64).into()); // value_len
-                asm.push(ConstraintOp::Access(Access::PubVar));
-                Ok(None)
-            }
-
             Location::Value => Ok(None),
         }
     }
 
     /// Generates assembly for an `ExprKey` as a _pointer_. What this means is that, if the expr
     /// refers to something other than a "value" (like an immedate), we generate assembly for the
-    /// pointer (i.e. `Location`) only. A "pointer" may be a state slot or a  pub var data key for
-    /// example.
+    /// pointer (i.e. `Location`) only. A "pointer" may be to a decision variable or a state slot
+    /// for example.
     fn compile_expr_pointer(
         &mut self,
         handler: &Handler,
@@ -436,6 +428,17 @@ impl<'a> AsmBuilder<'a> {
             Expr::IntrinsicCall { kind, args, .. } => {
                 self.compile_intrinsic_call(handler, asm, &kind.0, args, contract, pred)
             }
+            Expr::LocalPredicateCall {
+                predicate, args, ..
+            } => self.compile_local_predicate_call(handler, asm, predicate, args, contract, pred),
+            Expr::ExternalPredicateCall {
+                c_addr,
+                p_addr,
+                args,
+                ..
+            } => self.compile_external_predicate_call(
+                handler, asm, c_addr, p_addr, args, contract, pred,
+            ),
             Expr::Select {
                 condition,
                 then_expr,
@@ -457,7 +460,7 @@ impl<'a> AsmBuilder<'a> {
                 self.compile_union_get_value(handler, asm, union_expr, contract, pred)
             }
             Expr::Error(_)
-            | Expr::StorageAccess { .. }
+            | Expr::LocalStorageAccess { .. }
             | Expr::ExternalStorageAccess { .. }
             | Expr::MacroCall { .. }
             | Expr::Cast { .. }
@@ -473,9 +476,9 @@ impl<'a> AsmBuilder<'a> {
         }
     }
 
-    /// Compile a path expression. Assumes that each path expressions corresponds to a decision
-    /// variable or a state variable. All other paths should have been lowered to something else by
-    /// now.
+    /// Compile a path expression. Assumes that each path expressions corresponds to a predicate
+    /// parameter or a variable. All other paths should have been lowered to something else
+    /// by now.
     fn compile_path(
         &mut self,
         handler: &Handler,
@@ -483,17 +486,19 @@ impl<'a> AsmBuilder<'a> {
         path: &String,
         pred: &Predicate,
     ) -> Result<Location, ErrorEmitted> {
-        if let Some((var_index, _)) = pred
-            .vars()
-            .filter(|(_, var)| !var.is_pub)
+        if let Some((param_index, _)) = pred
+            .params
+            .iter()
             .enumerate()
-            .find(|(_, (_, var))| &var.name == path)
+            .find(|(_, param)| &param.name.name == path)
         {
-            asm.push(Stack::Push(var_index as i64).into()); // slot
+            asm.push(Stack::Push(param_index as i64).into()); // slot
             asm.push(Stack::Push(0).into()); // placeholder for index computation
+
+            // predicate parameters are implemented using `DecisionVar`
             Ok(Location::DecisionVar)
-        } else if pred.states().any(|(_, state)| &state.name == path) {
-            asm.push(Stack::Push(self.state_var_to_slot_indices[path] as i64).into()); // slot
+        } else if pred.variables().any(|(_, variable)| &variable.name == path) {
+            asm.push(Stack::Push(self.variables_to_slot_indices[path] as i64).into()); // slot
             asm.push(Stack::Push(0).into()); // placeholder for index computation
             Ok(Location::State(false))
         } else {
@@ -524,8 +529,7 @@ impl<'a> AsmBuilder<'a> {
                 Ok(Location::Value)
             }
             UnaryOp::NextState => {
-                // Next state expressions produce state expressions (i.e. ones that require `State`
-                // or `StateRange`
+                // Next state expressions produce state expressions (ones that require `State`)
                 self.compile_expr_pointer(handler, asm, expr, contract, pred)?;
                 Ok(Location::State(true))
             }
@@ -764,7 +768,7 @@ impl<'a> AsmBuilder<'a> {
                             asm.push(Alu::Add.into());
                         }
                     }
-                    Location::DecisionVar | Location::PubVar | Location::Value => {
+                    Location::DecisionVar | Location::Value => {
                         // These "locations" can just rely on the knwon size of the type since they
                         // can't be `nil`.
                         asm.push(
@@ -799,10 +803,6 @@ impl<'a> AsmBuilder<'a> {
                 }
 
                 match kind {
-                    ExternalIntrinsic::PredicateAt => {
-                        asm.push(ConstraintOp::Access(Access::PredicateAt))
-                    }
-
                     ExternalIntrinsic::RecoverSECP256k1 => {
                         asm.push(ConstraintOp::Crypto(Crypto::RecoverSecp256k1))
                     }
@@ -819,10 +819,6 @@ impl<'a> AsmBuilder<'a> {
 
                     ExternalIntrinsic::ThisContractAddress => {
                         asm.push(ConstraintOp::Access(Access::ThisContractAddress))
-                    }
-
-                    ExternalIntrinsic::ThisPathway => {
-                        asm.push(ConstraintOp::Access(Access::ThisPathway))
                     }
 
                     ExternalIntrinsic::AddressOf
@@ -880,12 +876,87 @@ impl<'a> AsmBuilder<'a> {
             }
             InternalIntrinsic::StorageGet => Ok(Location::Storage(false)),
             InternalIntrinsic::StorageGetExtern => Ok(Location::Storage(true)),
-            InternalIntrinsic::PubVar => {
-                asm.push(ConstraintOp::Stack(Stack::Push(0))); // placeholder for index
-                                                               // computations
-                Ok(Location::PubVar)
-            }
         }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn compile_local_predicate_call(
+        &mut self,
+        handler: &Handler,
+        asm: &mut Asm,
+        predicate: &String,
+        args: &[ExprKey],
+        contract: &Contract,
+        pred: &Predicate,
+    ) -> Result<Location, ErrorEmitted> {
+        // Use `PredicateExists` here which takes the following as input:
+        //
+        // [sha256(arg0len, arg0, argNlen, argN, contract_addr, predicate_addr)]
+        //
+        // First compute the total size, in bytes, of the data to hash. This includes 2 `b256` for
+        // the contract and predicate addresses (hence why we start with 64 bytes), the size of
+        // each arg, and an integer per arg desribing the arg length
+        let data_to_hash_size = args.iter().try_fold(64, |acc, arg| {
+            let arg_size = arg.get_ty(contract).size(handler, contract)?;
+            asm.push(ConstraintOp::Stack(Stack::Push(arg_size as i64)));
+            self.compile_expr(handler, asm, arg, contract, pred)?;
+            Ok(acc + 8 * (1 + arg_size))
+        })?;
+
+        // This is a local predicate call: use the current contract address here.
+        asm.push(ConstraintOp::Access(Access::ThisContractAddress));
+
+        // This is a local predicate call: use the pre-computed predicate address of the called
+        // predicate
+        let predicate_address = &self
+            .compiled_predicates
+            .get(predicate)
+            .expect("predicate address should exist!")
+            .1;
+        for word in essential_types::convert::word_4_from_u8_32(predicate_address.0) {
+            asm.push(ConstraintOp::Stack(Stack::Push(word)));
+        }
+
+        asm.push(ConstraintOp::Stack(Stack::Push(data_to_hash_size as i64)));
+        asm.push(ConstraintOp::Crypto(Crypto::Sha256));
+        asm.push(ConstraintOp::Access(Access::PredicateExists));
+
+        Ok(Location::Value)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn compile_external_predicate_call(
+        &mut self,
+        handler: &Handler,
+        asm: &mut Asm,
+        c_addr: &ExprKey,
+        p_addr: &ExprKey,
+        args: &[ExprKey],
+        contract: &Contract,
+        pred: &Predicate,
+    ) -> Result<Location, ErrorEmitted> {
+        // Use `PredicateExists` here which takes the following as input:
+        //
+        // [sha256(arg0len, arg0, argNlen, argN, contract_addr, predicate_addr)]
+        //
+        // First compute the total size, in bytes, of the data to hash. This includes 2 `b256` for
+        // the contract and predicate addresses (hence why we start with 64 bytes), the size of
+        // each arg, and an integer per arg desribing the arg length
+        let data_to_hash_size = args.iter().try_fold(64, |acc, arg| {
+            let arg_size = arg.get_ty(contract).size(handler, contract)?;
+            asm.push(ConstraintOp::Stack(Stack::Push(arg_size as i64)));
+            self.compile_expr(handler, asm, arg, contract, pred)?;
+            Ok(acc + 8 * (1 + arg_size))
+        })?;
+
+        self.compile_expr(handler, asm, c_addr, contract, pred)?;
+        self.compile_expr(handler, asm, p_addr, contract, pred)?;
+
+        asm.push(ConstraintOp::Stack(Stack::Push(data_to_hash_size as i64)));
+        asm.push(ConstraintOp::Crypto(Crypto::Sha256));
+        asm.push(ConstraintOp::Access(Access::PredicateExists));
+
+        Ok(Location::Value)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -1123,10 +1194,9 @@ impl<'a> AsmBuilder<'a> {
             }
 
             // Are these supported?
-            Location::State(_)
-            | Location::Storage { .. }
-            | Location::PubVar { .. }
-            | Location::Value => todo!("support union matches in non- decision variables?"),
+            Location::State(_) | Location::Storage { .. } | Location::Value => {
+                todo!("support union matches in non- decision variables?")
+            }
         }
 
         Ok(Location::Value)
@@ -1142,7 +1212,7 @@ impl<'a> AsmBuilder<'a> {
     ) -> Result<Location, ErrorEmitted> {
         let location = self.compile_expr_pointer(handler, asm, union_expr_key, contract, pred)?;
         match location {
-            Location::State(_) | Location::PubVar { .. } | Location::DecisionVar => {
+            Location::State(_) | Location::DecisionVar => {
                 // Skip the tag.
                 asm.push(Stack::Push(1).into());
                 asm.push(Alu::Add.into());

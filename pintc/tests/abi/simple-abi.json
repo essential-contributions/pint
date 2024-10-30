@@ -2,7 +2,7 @@
   "predicates": [
     {
       "name": "::Foo",
-      "vars": [
+      "params": [
         {
           "name": "::v0",
           "ty": "Bool"
@@ -59,20 +59,6 @@
               }
             ]
           }
-        }
-      ],
-      "pub_vars": [
-        {
-          "name": "::t0",
-          "ty": "Bool"
-        },
-        {
-          "name": "::t1",
-          "ty": "Int"
-        },
-        {
-          "name": "::t2",
-          "ty": "B256"
         }
       ]
     }

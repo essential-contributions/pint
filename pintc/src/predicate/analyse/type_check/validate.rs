@@ -1,6 +1,6 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler, LargeTypeError},
-    predicate::{Const, Contract, Expr, Interface, InterfaceVar, StorageVar},
+    predicate::{Const, Contract, Expr, Interface, Param, StorageVar},
     span::{empty_span, Spanned},
     types::{NewTypeDecl, PrimitiveKind, Type, UnionDecl},
 };
@@ -39,13 +39,15 @@ impl Contract {
             }
         }
 
-        // Now, check decision variables, state variables, and cast expressions, in every predicate
+        // Now, check predicate parameters, variable variables, and cast expressions, in every predicate
         for (pred_key, pred) in self.preds.iter() {
-            pred.states()
-                .for_each(|(state_key, _)| check_custom_type(state_key.get_ty(pred), handler));
+            pred.variables().for_each(|(variable_key, _)| {
+                check_custom_type(variable_key.get_ty(pred), handler)
+            });
 
-            pred.vars()
-                .for_each(|(var_key, _)| check_custom_type(var_key.get_ty(pred), handler));
+            pred.params
+                .iter()
+                .for_each(|param| check_custom_type(&param.ty, handler));
 
             self.exprs(pred_key).for_each(|expr_key| {
                 check_custom_type(expr_key.get_ty(self), handler);
@@ -77,7 +79,7 @@ impl Contract {
                 .for_each(|StorageVar { ty, .. }| check_custom_type(ty, handler))
         }
 
-        // Check storage variables and public decision variables in every interface
+        // Check storage variables and predicate parameters in every interface
         self.interfaces.iter().for_each(
             |Interface {
                  storage,
@@ -92,9 +94,9 @@ impl Contract {
 
                 predicate_interfaces.iter().for_each(|predicate_interface| {
                     predicate_interface
-                        .vars
+                        .params
                         .iter()
-                        .for_each(|InterfaceVar { ty, .. }| check_custom_type(ty, handler));
+                        .for_each(|Param { ty, .. }| check_custom_type(ty, handler));
                 });
             },
         );
@@ -161,7 +163,7 @@ impl Contract {
         handler.result(())
     }
 
-    /// Collect all storage accesses that are *not* in a state var initializer. For each of those
+    /// Collect all storage accesses that are *not* in a variable var initializer. For each of those
     /// accesses, emit an error. These accesses are not legal.
     pub(in crate::predicate::analyse) fn check_storage_accesses(
         &self,
@@ -192,17 +194,6 @@ impl Contract {
                     bad_storage_accesses.extend(constraint.expr.collect_storage_accesses(self));
                 }
             }
-
-            for interface_instance in &pred.interface_instances {
-                bad_storage_accesses
-                    .extend(interface_instance.address.collect_storage_accesses(self));
-            }
-
-            for predicate_instance in &pred.predicate_instances {
-                if let Some(address) = predicate_instance.address {
-                    bad_storage_accesses.extend(address.collect_storage_accesses(self));
-                }
-            }
         }
 
         for expr in bad_storage_accesses {
@@ -219,36 +210,36 @@ impl Contract {
         handler.result(())
     }
 
-    /// Check that all decision variables and state variables do not have storage only types like
+    /// Check that all predicate parameters and variable variables do not have storage only types like
     /// storage maps and storage vectors
     pub(in crate::predicate::analyse) fn check_types_of_variables(
         &self,
         handler: &Handler,
     ) -> Result<(), ErrorEmitted> {
         for pred in self.preds.values() {
-            // Disallow decision variables from having storage only types
-            pred.vars().for_each(|(var_key, var)| {
-                let ty = var_key.get_ty(pred);
+            // Disallow predicate parameters from having storage only types
+            pred.params.iter().for_each(|param| {
+                let ty = &param.ty;
                 if let Some(nested_ty) = ty.get_storage_only_ty() {
                     handler.emit_err(Error::Compile {
-                        error: CompileError::VarHasStorageType {
+                        error: CompileError::ParamHasStorageType {
                             ty: self.with_ctrct(ty).to_string(),
                             nested_ty: self.with_ctrct(nested_ty).to_string(),
-                            span: var.span.clone(),
+                            span: param.span.clone(),
                         },
                     });
                 }
             });
 
-            // Disallow state variables from having storage only types
-            pred.states().for_each(|(state_key, state)| {
-                let ty = state_key.get_ty(pred);
+            // Disallow variable variables from having storage only types
+            pred.variables().for_each(|(variable_key, variable)| {
+                let ty = variable_key.get_ty(pred);
                 if let Some(nested_ty) = ty.get_storage_only_ty() {
                     handler.emit_err(Error::Compile {
-                        error: CompileError::VarHasStorageType {
+                        error: CompileError::ParamHasStorageType {
                             ty: self.with_ctrct(ty).to_string(),
                             nested_ty: self.with_ctrct(nested_ty).to_string(),
-                            span: state.span.clone(),
+                            span: variable.span.clone(),
                         },
                     });
                 }
@@ -258,39 +249,11 @@ impl Contract {
         handler.result(())
     }
 
-    // Confirm that all var init exprs and const init exprs match their declared type, if they have
-    // one.
+    // Confirm that all const init exprs match their declared type, if they have one.
     pub(in crate::predicate::analyse) fn check_inits(
         &self,
         handler: &Handler,
     ) -> Result<(), ErrorEmitted> {
-        for pred in self.preds.values() {
-            // Confirm types for all the variable initialisers first.
-            for (var_key, init_expr_key) in &pred.var_inits {
-                let var_decl_ty = var_key.get_ty(pred);
-
-                // Reporting an error that we're expecting 'Unknown' is not useful.
-                if !var_decl_ty.is_unknown() {
-                    let init_ty = init_expr_key.get_ty(self);
-
-                    if !var_decl_ty.eq(self, init_ty) {
-                        handler.emit_err(Error::Compile {
-                            error: CompileError::InitTypeError {
-                                init_kind: "variable",
-                                large_err: Box::new(LargeTypeError::InitTypeError {
-                                    init_kind: "variable",
-                                    expected_ty: self.with_ctrct(var_decl_ty).to_string(),
-                                    found_ty: self.with_ctrct(init_ty).to_string(),
-                                    expected_ty_span: var_decl_ty.span().clone(),
-                                    init_span: self.expr_key_to_span(*init_expr_key),
-                                }),
-                            },
-                        });
-                    }
-                }
-            }
-        }
-
         // Now confirm that every const initialiser type matches the const decl type.
         for Const {
             expr: init_expr_key,

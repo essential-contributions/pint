@@ -15,27 +15,27 @@ interface Foo {
 }
 
 predicate Bar() {
-    interface FooInstance = Foo(0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE);
+    let addr = 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE;
 
-    state w = storage::w;
-    state w0 = mut storage::w.addr;
-    state w10 = mut storage::w.inner.x;
-    state w11 = mut storage::w.inner.1;
+    let w = storage::w;
+    let w0 = mut storage::w.addr;
+    let w10 = mut storage::w.inner.x;
+    let w11 = mut storage::w.inner.1;
 
-    state foo_w = FooInstance::storage::w;
-    state foo_w0 = FooInstance::storage::w.addr;
-    state foo_w10 = FooInstance::storage::w.inner.x;
-    state foo_w11 = FooInstance::storage::w.inner.1;
+    let foo_w = Foo[[addr]]::storage::w;
+    let foo_w0 = Foo[[addr]]::storage::w.addr;
+    let foo_w10 = Foo[[addr]]::storage::w.inner.x;
+    let foo_w11 = Foo[[addr]]::storage::w.inner.1;
 
-    state map_to_tuples_69 = storage::map_to_tuples[69];
-    state map_to_tuples_69_0 =  mut storage::map_to_tuples[69].0;
-    state map_to_tuples_69_1_0 = mut storage::map_to_tuples[69].1.0;
-    state map_to_tuples_69_1_1 = mut storage::map_to_tuples[69].1.1;
+    let map_to_tuples_69 = storage::map_to_tuples[69];
+    let map_to_tuples_69_0 =  mut storage::map_to_tuples[69].0;
+    let map_to_tuples_69_1_0 = mut storage::map_to_tuples[69].1.0;
+    let map_to_tuples_69_1_1 = mut storage::map_to_tuples[69].1.1;
 
-    state foo_map_to_tuples_69 = FooInstance::storage::map_to_tuples[69];
-    state foo_map_to_tuples_69_0 = FooInstance::storage::map_to_tuples[69].0;
-    state foo_map_to_tuples_69_1_0 = FooInstance::storage::map_to_tuples[69].1.0;
-    state foo_map_to_tuples_69_1_1 = FooInstance::storage::map_to_tuples[69].1.1;
+    let foo_map_to_tuples_69 = Foo[[addr]]::storage::map_to_tuples[69];
+    let foo_map_to_tuples_69_0 = Foo[[addr]]::storage::map_to_tuples[69].0;
+    let foo_map_to_tuples_69_1_0 = Foo[[addr]]::storage::map_to_tuples[69].1.0;
+    let foo_map_to_tuples_69_1_1 = Foo[[addr]]::storage::map_to_tuples[69].1.1;
 
     constraint w' == {0x0000000000000009000000000000000900000000000000090000000000000009, {2, 3}};
     constraint (w').0 == 0x0000000000000009000000000000000900000000000000090000000000000009;

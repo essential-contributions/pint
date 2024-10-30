@@ -1,6 +1,5 @@
 // These are not okay
-var x: int;
-state y: int = __foo();
+let y: int = __foo();
 constraint x == 3;
 
 if true { }
@@ -17,10 +16,10 @@ predicate BamPredicateInstance =
 predicate Baz() {}
 
 // The parser changed to simply disallow these decls outside of predicates.  So it barfs on the
-// first `var`.
+// first `let`.
 //
 
 // parse_failure <<<
-// expected `::`, `an identifier`, `const`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`, found `var`
+// expected `::`, `an identifier`, `const`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`, found `let`
 // @22..25: expected `::`, `an identifier`, `const`, `interface`, `macro`, `macro_name`, `predicate`, `storage`, `type`, `union`, or `use`
 // >>>

@@ -1,42 +1,12 @@
 use super::Inference;
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
-    predicate::{Const, Contract, Ident, Predicate, VarKey},
+    predicate::{Const, Contract, Ident, Predicate},
     span::Span,
     types::{EphemeralDecl, NewTypeDecl, Type, UnionDecl},
 };
 
 impl Contract {
-    fn infer_path_by_key(
-        &self,
-        handler: &Handler,
-        pred: &Predicate,
-        var_key: VarKey,
-        span: &Span,
-    ) -> Inference {
-        let ty = var_key.get_ty(pred);
-        if !ty.is_unknown() {
-            Inference::Type(ty.clone())
-        } else if let Some(init_expr_key) = pred.var_inits.get(var_key) {
-            let init_expr_ty = init_expr_key.get_ty(self);
-            if !init_expr_ty.is_unknown() {
-                Inference::Type(init_expr_ty.clone())
-            } else {
-                // We have a variable with an initialiser but don't know the initialiser type
-                // yet.
-                Inference::Dependant(*init_expr_key)
-            }
-        } else {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "untyped variable doesn't have initialiser",
-                    span: span.clone(),
-                },
-            });
-            Inference::Type(Type::Error(span.clone()))
-        }
-    }
-
     pub(super) fn infer_path_by_name(
         &self,
         handler: &Handler,
@@ -83,24 +53,25 @@ impl Contract {
 
                 // For all other paths we need a predicate.
                 if let Some(pred) = pred {
-                    if let Some(var_key) = pred
-                        .vars()
-                        .find_map(|(var_key, var)| (&var.name == path).then_some(var_key))
+                    if let Some(param_ty) = pred
+                        .params
+                        .iter()
+                        .find_map(|param| (&param.name.name == path).then_some(param.ty.clone()))
                     {
-                        // It's a var.
-                        self.infer_path_by_key(handler, pred, var_key, span)
-                    } else if let Some((state_key, state)) =
-                        pred.states().find(|(_, state)| (&state.name == path))
+                        Inference::Type(param_ty.clone())
+                    } else if let Some((variable_key, variable)) = pred
+                        .variables()
+                        .find(|(_, variable)| (&variable.name == path))
                     {
-                        // It's state.
-                        let state_expr_ty = state.expr.get_ty(self);
-                        let state_type = state_key.get_ty(pred);
-                        if !state_type.is_unknown() {
-                            Inference::Type(state_type.clone())
-                        } else if !state_expr_ty.is_unknown() {
-                            Inference::Type(state_expr_ty.clone())
+                        // It's variable.
+                        let variable_expr_ty = variable.expr.get_ty(self);
+                        let variable_type = variable_key.get_ty(pred);
+                        if !variable_type.is_unknown() {
+                            Inference::Type(variable_type.clone())
+                        } else if !variable_expr_ty.is_unknown() {
+                            Inference::Type(variable_expr_ty.clone())
                         } else {
-                            Inference::Dependant(state.expr)
+                            Inference::Dependant(variable.expr)
                         }
                     } else if let Some(EphemeralDecl { ty, .. }) = pred
                         .ephemerals
@@ -109,9 +80,6 @@ impl Contract {
                     {
                         // It's an ephemeral value.
                         Inference::Type(ty.clone())
-                    } else if let Some(ty) = self.infer_extern_var(pred, path) {
-                        // It's an external var
-                        ty
                     } else {
                         // None of the above.
                         handler.emit_err(Error::Compile {

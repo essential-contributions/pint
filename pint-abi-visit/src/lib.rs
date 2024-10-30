@@ -4,11 +4,11 @@
 
 use essential_types::Word;
 use petgraph::visit::EdgeRef;
-use pint_abi_types::{TupleField, TypeABI, VarABI};
+use pint_abi_types::{ParamABI, TupleField, TypeABI};
 
 /// The [`TypeABI`] rose tree represented as a graph.
 ///
-/// By flattening the [`VarABI`]s into an indexable tree type, we gain
+/// By flattening the [`ParamABI`]s into an indexable tree type, we gain
 /// more flexibility around inspecting both parent and child nodes during
 /// traversal.
 ///
@@ -84,9 +84,9 @@ pub enum Nesting {
 }
 
 impl<'a> KeyedVarTree<'a> {
-    /// Construct a new tree from the given list of `VarABI`s from a
+    /// Construct a new tree from the given list of `ParamABI`s from a
     /// `storage` or `pub_vars`instance.
-    pub fn from_keyed_vars(vars: &'a [VarABI]) -> Self {
+    pub fn from_keyed_vars(vars: &'a [ParamABI]) -> Self {
         // Construct the graph.
         let mut graph = KeyedVarGraph::default();
 

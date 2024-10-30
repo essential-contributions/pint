@@ -52,20 +52,6 @@ async fn test_solution_foo() {
         ),
     };
 
-    // Public decision variables (i.e. transient data).
-    let pub_vars = simple::Foo::PubVars {
-        t0: false,
-        t1: 11,
-        t2: [0x2222222222222222; 4],
-        t3: (42, (43, [0x2222222222222222; 4])),
-        t4: (
-            73,
-            [74, 75, 76],
-            [[0x5555555555555555; 4], [0x6666666666666666; 4]],
-        ),
-        anon_0_t3: 45,
-    };
-
     // State mutations.
     let state_mutations: Vec<Mutation> = simple::storage::mutations()
         .s0(true)
@@ -137,7 +123,6 @@ async fn test_solution_foo() {
     let solution_data = SolutionData {
         predicate_to_solve: simple::Foo::ADDRESS,
         decision_variables: vars.into(),
-        transient_data: pub_vars.into(),
         state_mutations,
     };
 

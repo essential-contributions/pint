@@ -4,8 +4,8 @@ type Balance = int;
 
 predicate test0() {
 // ANCHOR: alias_same
-state x: int = 5;
-state y: Balance = 5;
+let x: int = 5;
+let y: Balance = 5;
 constraint x == y;
 // ANCHOR_END: alias_same
 }
@@ -20,7 +20,7 @@ type User = {
 
 predicate test1() {
 // ANCHOR: simple_struct_instance
-state user1: User = {
+let user1: User = {
     status: true,
     address: 0x1111111111111111111111111111111111111111111111111111111111111111,
     balance: 42,

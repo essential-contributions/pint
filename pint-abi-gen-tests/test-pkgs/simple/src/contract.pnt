@@ -20,14 +20,6 @@ predicate Foo(
     v4: { int, int, { int, int } },
     v5: { int, int[3], b256[2] },
 ) {
-    pub var t0: bool;
-    pub var t1: int;
-    pub var t2: b256;
-    pub var t3: { int, { int, b256 } };
-    pub var t4: { int, int[3], b256[2] };
-
-    @bar();
-
     // Here we write a bunch of arbitrary constraints to check encoding/decoding
     // of the different types etc.
 
@@ -46,34 +38,20 @@ predicate Foo(
         ]
     };
 
-    // Now check pub decision variables.
-    constraint !t0;
-    constraint t1 == 11;
-    constraint t2 == 0x2222222222222222222222222222222222222222222222222222222222222222;
-    constraint t3 == { 42, { 43, 0x2222222222222222222222222222222222222222222222222222222222222222 }};
-    constraint t4 == {
-        73, 
-        [74, 75, 76], 
-        [
-            0x5555555555555555555555555555555555555555555555555555555555555555,
-            0x6666666666666666666666666666666666666666666666666666666666666666,
-        ]
-    };
+    // Declare some local variables.
+    let s0: bool = mut storage::s0;
+    let s1: int = mut storage::s1;
+    let s2: b256 = mut storage::s2;
+    let s3: { int, int } = mut storage::s3;
+    let s4: { int, int, { int, int } } = mut storage::s4;
+    let my_map0_key42: int = mut storage::my_map0[42];
+    let my_map1_key1: { int, { b256, int } } = mut storage::my_map1[1];
+    let my_nested_map0_key1_2: int = mut storage::my_nested_map0[1][2];
+    let my_nested_map1_key2_3: { int, { b256, int } } = mut storage::my_nested_map1[2][0x3333333333333333333333333333333333333333333333333333333333333333];
+    let my_array: int[5] = mut storage::my_array;
+    let my_tuple_map: int = mut storage::my_tuple_map.0[0];
 
-    // Read some state.
-    state s0: bool = mut storage::s0;
-    state s1: int = mut storage::s1;
-    state s2: b256 = mut storage::s2;
-    state s3: { int, int } = mut storage::s3;
-    state s4: { int, int, { int, int } } = mut storage::s4;
-    state my_map0_key42: int = mut storage::my_map0[42];
-    state my_map1_key1: { int, { b256, int } } = mut storage::my_map1[1];
-    state my_nested_map0_key1_2: int = mut storage::my_nested_map0[1][2];
-    state my_nested_map1_key2_3: { int, { b256, int } } = mut storage::my_nested_map1[2][0x3333333333333333333333333333333333333333333333333333333333333333];
-    state my_array: int[5] = mut storage::my_array;
-    state my_tuple_map: int = mut storage::my_tuple_map.0[0];
-
-    // Check the state.
+    // Check the let.
     constraint s0' == true;
     constraint s1' == 42;
     constraint s2' == 0x4242424242424242424242424242424242424242424242424242424242424242;
@@ -85,10 +63,4 @@ predicate Foo(
     constraint my_nested_map0_key1_2' == 1234;
     constraint my_nested_map1_key2_3' == { 69, { 0x1111111100000000111111110000000011111111000000001111111100000000, 96 } };
     constraint my_array' == [11, 12, 13, 14, 15];
-    constraint my_tuple_map' == 1;
-}
-
-macro @bar() {
-    pub var t3: int;
-    constraint t3 == 45;
 }

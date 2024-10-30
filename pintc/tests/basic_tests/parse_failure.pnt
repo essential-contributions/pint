@@ -1,33 +1,33 @@
 predicate test() {
-    state clash = 5;
-    state clash = 5;
-    state clash = 5;
-    state empty_tuple: {} = {};
-    state empty_array: int[] = [];
-    state empty_index = a[];
-    state bad_integer_index = t.0x5;
-    state bad_real_index = t.1e5;
-    state parse_error
+    let clash = 5;
+    let clash = 5;
+    let clash = 5;
+    let empty_tuple: {} = {};
+    let empty_array: int[] = [];
+    let empty_index = a[];
+    let bad_integer_index = t.0x5;
+    let bad_real_index = t.1e5;
+    let parse_error
 
 // parse_failure <<<
 // symbol `clash` has already been declared
-// @23..38: previous declaration of the symbol `clash` here
-// @50..55: `clash` redeclared here
+// @23..36: previous declaration of the symbol `clash` here
+// @46..51: `clash` redeclared here
 // `clash` must be declared or imported only once in this scope
 // symbol `clash` has already been declared
-// @23..38: previous declaration of the symbol `clash` here
-// @71..76: `clash` redeclared here
+// @23..36: previous declaration of the symbol `clash` here
+// @65..70: `clash` redeclared here
 // `clash` must be declared or imported only once in this scope
 // empty tuple types are not allowed
-// @105..107: empty tuple type found
+// @97..99: empty tuple type found
 // empty tuple expressions are not allowed
-// @110..112: empty tuple expression found
+// @102..104: empty tuple expression found
 // missing array or map index
-// @173..176: missing array or map element index
+// @161..164: missing array or map element index
 // invalid integer `0x5` as tuple index
-// @210..213: invalid integer as tuple index
+// @196..199: invalid integer as tuple index
 // invalid value `1e5` as tuple index
-// @244..247: invalid value as tuple index
+// @228..231: invalid value as tuple index
 // expected `:`, or `=`, found `end of file`
-// @270..270: expected `:`, or `=`
+// @252..252: expected `:`, or `=`
 // >>>

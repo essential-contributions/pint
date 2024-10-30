@@ -49,17 +49,13 @@ pub enum ExternalIntrinsic {
     // Returns the address of a predicate in the same contract
     AddressOf,
 
-    // Returns the address of the predicate at a given pathway. Returns both the contract
-    // address and the predicate address.
-    PredicateAt,
-
     // Recovers the public key from a secp256k1 signature.
     RecoverSECP256k1,
 
     // Returns a SHA 256 hash from the specified data.
     Sha256,
 
-    // Returns the length of a state variable.
+    // Returns the size, in words, of an expression.
     SizeOf,
 
     // Returns the content hash of this predicate.
@@ -67,10 +63,6 @@ pub enum ExternalIntrinsic {
 
     // Returns the content hash of the contract that this predicate belongs to.
     ThisContractAddress,
-
-    // Returns the "pathway" of this predicate. The pathway of a predicate is the index of
-    // the solution data currently being used to check the predicate.
-    ThisPathway,
 
     // Returns the length of a storage vector.
     VecLen,
@@ -83,13 +75,11 @@ impl Display for ExternalIntrinsic {
     fn fmt(&self, f: &mut Formatter) -> Result {
         match self {
             Self::AddressOf => write!(f, "__address_of"),
-            Self::PredicateAt => write!(f, "__predicate_at"),
             Self::RecoverSECP256k1 => write!(f, "__recover_secp256k1"),
             Self::Sha256 => write!(f, "__sha256"),
             Self::SizeOf => write!(f, "__size_of"),
             Self::ThisAddress => write!(f, "__this_address"),
             Self::ThisContractAddress => write!(f, "__this_contract_address"),
-            Self::ThisPathway => write!(f, "__this_pathway"),
             Self::VecLen => write!(f, "__vec_len"),
             Self::VerifyEd25519 => write!(f, "__verify_ed25519"),
         }
@@ -102,9 +92,6 @@ impl ExternalIntrinsic {
             Self::AddressOf => vec![
                 string(), // path to a predicate in the contract
             ],
-            Self::PredicateAt => vec![
-                int(), // pathway
-            ],
             Self::RecoverSECP256k1 => vec![
                 b256(),                             // data hash
                 tuple(vec![b256(), b256(), int()]), // signature
@@ -112,12 +99,9 @@ impl ExternalIntrinsic {
             Self::Sha256 => vec![
                 any(), // data to hash
             ],
-            Self::SizeOf => vec![
-                any(), // path to a state var
-            ],
+            Self::SizeOf => vec![any()],
             Self::ThisAddress => vec![],
             Self::ThisContractAddress => vec![],
-            Self::ThisPathway => vec![],
             Self::VecLen => vec![
                 vector(any()), // storage vector to find the length of
             ],
@@ -132,13 +116,11 @@ impl ExternalIntrinsic {
     pub fn ty(&self) -> Type {
         match self {
             Self::AddressOf => b256(),
-            Self::PredicateAt => tuple(vec![b256(), b256()]),
             Self::RecoverSECP256k1 => tuple(vec![b256(), int()]),
             Self::Sha256 => b256(),
             Self::SizeOf => int(),
             Self::ThisAddress => b256(),
             Self::ThisContractAddress => b256(),
-            Self::ThisPathway => int(),
             Self::VecLen => int(),
             Self::VerifyEd25519 => r#bool(),
         }
@@ -162,9 +144,6 @@ pub enum InternalIntrinsic {
 
     // Reads from an external storage key.
     StorageGetExtern,
-
-    // Reads from a "pub var" key at a given pathway.
-    PubVar,
 }
 
 impl Display for InternalIntrinsic {
@@ -174,7 +153,6 @@ impl Display for InternalIntrinsic {
             Self::MutKeys => write!(f, "__mut_keys"),
             Self::StorageGet => write!(f, "__storage_get"),
             Self::StorageGetExtern => write!(f, "__storage_get_extern"),
-            Self::PubVar => write!(f, "__pub_var"),
         }
     }
 }
@@ -194,10 +172,6 @@ impl InternalIntrinsic {
                 b256(), // external contract address
                 any(),  // storage key
             ],
-            Self::PubVar => vec![
-                int(), // pathway
-                any(), // pub var key
-            ],
         }
     }
 
@@ -207,7 +181,6 @@ impl InternalIntrinsic {
             Self::MutKeys => any(), // should be "set" if and when we have sets.
             Self::StorageGet => any(),
             Self::StorageGetExtern => any(),
-            Self::PubVar => any(),
         }
     }
 }

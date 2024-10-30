@@ -122,9 +122,9 @@ impl ExprKey {
     /// Return whether this expression can panic (typically related to storage).
     pub fn can_panic(&self, contract: &Contract, pred: &Predicate) -> bool {
         contract.exprs.get(*self).map_or(false, |expr| match expr {
-            Expr::StorageAccess { .. } | Expr::ExternalStorageAccess { .. } => true,
+            Expr::LocalStorageAccess { .. } | Expr::ExternalStorageAccess { .. } => true,
 
-            Expr::Path(path, _) => pred.states().any(|(_, state)| &state.name == path),
+            Expr::Path(path, _) => pred.variables().any(|(_, variable)| &variable.name == path),
 
             Expr::Error(_) | Expr::Immediate { .. } | Expr::MacroCall { .. } => false,
 
@@ -155,7 +155,22 @@ impl ExprKey {
                     IntrinsicKind::Internal(
                         InternalIntrinsic::StorageGet | InternalIntrinsic::StorageGetExtern
                     ) | IntrinsicKind::External(ExternalIntrinsic::VecLen)
-                ) | args.iter().any(|arg| arg.can_panic(contract, pred))
+                ) || args.iter().any(|arg| arg.can_panic(contract, pred))
+            }
+
+            Expr::LocalPredicateCall { args, .. } => {
+                args.iter().any(|arg| arg.can_panic(contract, pred))
+            }
+
+            Expr::ExternalPredicateCall {
+                c_addr,
+                p_addr,
+                args,
+                ..
+            } => {
+                c_addr.can_panic(contract, pred)
+                    || p_addr.can_panic(contract, pred)
+                    || args.iter().any(|arg| arg.can_panic(contract, pred))
             }
 
             Expr::Select {
@@ -261,7 +276,7 @@ impl ExprKey {
                     }
                 }
 
-                Expr::StorageAccess { .. } | Expr::ExternalStorageAccess { .. } => {
+                Expr::LocalStorageAccess { .. } | Expr::ExternalStorageAccess { .. } => {
                     storage_accesses.insert(*self);
                 }
 
@@ -289,6 +304,25 @@ impl ExprKey {
                             storage_accesses.extend(arg.collect_storage_accesses(contract));
                         });
                     }
+                }
+
+                Expr::ExternalPredicateCall {
+                    c_addr,
+                    p_addr,
+                    args,
+                    ..
+                } => {
+                    storage_accesses.extend(c_addr.collect_storage_accesses(contract));
+                    storage_accesses.extend(p_addr.collect_storage_accesses(contract));
+                    args.iter().for_each(|arg| {
+                        storage_accesses.extend(arg.collect_storage_accesses(contract));
+                    });
+                }
+
+                Expr::LocalPredicateCall { args, .. } => {
+                    args.iter().for_each(|arg| {
+                        storage_accesses.extend(arg.collect_storage_accesses(contract));
+                    });
                 }
 
                 Expr::Select {
@@ -370,7 +404,7 @@ impl ExprKey {
 
     pub fn is_storage_access(&self, contract: &Contract) -> bool {
         match self.get(contract) {
-            Expr::StorageAccess { .. } | Expr::ExternalStorageAccess { .. } => true,
+            Expr::LocalStorageAccess { .. } | Expr::ExternalStorageAccess { .. } => true,
             Expr::TupleFieldAccess { tuple, .. } => tuple.is_storage_access(contract),
             Expr::Index { expr, .. } => expr.is_storage_access(contract),
             _ => false,
@@ -385,7 +419,7 @@ impl ExprKey {
 /// times.
 ///
 /// An alternative is to use `[Predicate::visitor]` which will also iterate
-/// for each reachable expression but does not implement `Interator` and instead takes a closure.
+/// for each reachable expression but does not implement `Iterator` and instead takes a closure.
 
 #[derive(Debug)]
 pub(crate) struct ExprsIter<'a> {
@@ -396,7 +430,7 @@ pub(crate) struct ExprsIter<'a> {
 
 impl<'a> ExprsIter<'a> {
     pub(super) fn new(contract: &'a Contract, pred_key: PredKey) -> ExprsIter<'a> {
-        // We start with all the constraint and state exprs.
+        // We start with all the constraint and variable exprs.
         let queue = contract.root_set(pred_key).collect();
 
         ExprsIter {
@@ -508,6 +542,25 @@ impl<'a> Iterator for ExprsIter<'a> {
                 }
             }
 
+            Expr::ExternalPredicateCall {
+                c_addr,
+                p_addr,
+                args,
+                ..
+            } => {
+                queue_if_new!(self, c_addr);
+                queue_if_new!(self, p_addr);
+                for arg in args {
+                    queue_if_new!(self, arg);
+                }
+            }
+
+            Expr::LocalPredicateCall { args, .. } => {
+                for arg in args {
+                    queue_if_new!(self, arg);
+                }
+            }
+
             Expr::Select {
                 condition,
                 then_expr,
@@ -591,7 +644,7 @@ impl<'a> Iterator for ExprsIter<'a> {
             }
 
             Expr::Error(_)
-            | Expr::StorageAccess { .. }
+            | Expr::LocalStorageAccess { .. }
             | Expr::ExternalStorageAccess { .. }
             | Expr::Path(_, _)
             | Expr::MacroCall { .. } => {}

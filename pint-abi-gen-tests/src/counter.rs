@@ -13,23 +13,20 @@ mod counter_from_str {
         "predicates": [
           {
             "name": "",
-            "vars": [],
-            "pub_vars": []
+            "params": []
           },
           {
             "name": "::Increment",
-            "vars": [],
-            "pub_vars": []
+            "params": []
           },
           {
             "name": "::Init",
-            "vars": [
+            "params": [
               {
                 "name": "::value",
                 "ty": "Int"
               }
-            ],
-            "pub_vars": []
+            ]
           }
         ],
         "storage": [

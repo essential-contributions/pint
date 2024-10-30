@@ -5,9 +5,9 @@ use crate::{
         BinaryOp, ExternalIntrinsic, GeneratorKind, Immediate, IntrinsicKind, MatchBranch,
         MatchElse, TupleAccess, UnaryOp,
     },
-    predicate::{Contract, Expr, ExprKey, Ident, PredKey, Predicate, PredicateInstance},
+    predicate::{Contract, Expr, ExprKey, Ident, PredKey, Predicate},
     span::{empty_span, Span, Spanned},
-    types::{PrimitiveKind, Type, UnionVariant},
+    types::{b256, r#bool, PrimitiveKind, Type, UnionVariant},
     warning::Warning,
 };
 use fxhash::FxHashSet;
@@ -156,22 +156,17 @@ impl Contract {
 
             Expr::Path(path, span) => Ok(self.infer_path_by_name(handler, pred, path, span)),
 
-            Expr::StorageAccess { name, span, .. } => {
-                Ok(self.infer_storage_access(handler, name, span))
+            Expr::LocalStorageAccess { name, span, .. } => {
+                Ok(self.infer_local_storage_access(handler, name, span))
             }
 
             Expr::ExternalStorageAccess {
-                interface_instance,
+                interface,
+                address,
                 name,
                 span,
                 ..
-            } => Ok(self.infer_external_storage_access(
-                handler,
-                pred,
-                interface_instance,
-                name,
-                span,
-            )),
+            } => Ok(self.infer_external_storage_access(handler, interface, *address, name, span)),
 
             Expr::UnaryOp {
                 op,
@@ -180,7 +175,7 @@ impl Contract {
             } => Ok(self.infer_unary_op(handler, pred, *op, *op_expr_key, span)),
 
             Expr::BinaryOp { op, lhs, rhs, span } => {
-                Ok(self.infer_binary_op(handler, pred, *op, *lhs, *rhs, span))
+                Ok(self.infer_binary_op(handler, *op, *lhs, *rhs, span))
             }
 
             Expr::MacroCall { .. } => Ok(Inference::Ignored),
@@ -188,6 +183,29 @@ impl Contract {
             Expr::IntrinsicCall { kind, args, span } => {
                 self.infer_intrinsic_call_expr(handler, pred, kind, args, span)
             }
+
+            Expr::LocalPredicateCall {
+                predicate: called_predicate,
+                args,
+                span,
+            } => self.infer_local_predicate_call(handler, pred, called_predicate, args, span),
+
+            Expr::ExternalPredicateCall {
+                interface,
+                c_addr,
+                predicate: called_predicate,
+                p_addr,
+                args,
+                span,
+            } => self.infer_external_predicate_call(
+                handler,
+                interface,
+                *c_addr,
+                called_predicate,
+                *p_addr,
+                args,
+                span,
+            ),
 
             Expr::Select {
                 condition,
@@ -292,7 +310,12 @@ impl Contract {
         }
     }
 
-    fn infer_storage_access(&self, handler: &Handler, name: &String, span: &Span) -> Inference {
+    fn infer_local_storage_access(
+        &self,
+        handler: &Handler,
+        name: &String,
+        span: &Span,
+    ) -> Inference {
         match self.storage.as_ref() {
             Some(storage) => match storage.0.iter().find(|s_var| s_var.name.name == *name) {
                 Some(s_var) => Inference::Type(s_var.ty.clone()),
@@ -321,38 +344,27 @@ impl Contract {
     fn infer_external_storage_access(
         &self,
         handler: &Handler,
-        pred: Option<&Predicate>,
-        interface_instance: &String,
+        interface: &String,
+        address: ExprKey,
         name: &String,
         span: &Span,
     ) -> Inference {
-        if let Some(pred) = pred {
-            // Find the interface instance or emit an error
-            let Some(interface_instance) = pred
-                .interface_instances
-                .iter()
-                .find(|e| e.name.to_string() == *interface_instance)
-            else {
-                handler.emit_err(Error::Compile {
-                    error: CompileError::MissingInterfaceInstance {
-                        name: interface_instance.clone(),
-                        span: span.clone(),
-                    },
-                });
-                return Inference::Type(Type::Error(empty_span()));
-            };
-
+        if address.get_ty(self).is_unknown() {
+            Inference::Dependant(address)
+        } else {
             // Find the interface declaration corresponding to the interface instance
             let Some(interface) = self
                 .interfaces
                 .iter()
-                .find(|e| e.name.to_string() == *interface_instance.interface)
+                .find(|e| e.name.to_string() == *interface)
             else {
-                // No need to emit an error here because a `MissingInterface` error should have
-                // already been emitted earlier when all interface instances were type checked.
-                // Instead, we just return an `Unknown` type knowing that the compilation will fail
-                // anyways.
-                return Inference::Type(Type::Unknown(empty_span()));
+                handler.emit_err(Error::Compile {
+                    error: CompileError::MissingInterface {
+                        name: interface.clone(),
+                        span: span.clone(),
+                    },
+                });
+                return Inference::Type(Type::Error(empty_span()));
             };
 
             // Then, look for the storage variable that this access refers to
@@ -379,73 +391,7 @@ impl Contract {
                     Inference::Type(Type::Error(empty_span()))
                 }
             }
-        } else {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "attempting to infer item without required predicate ref",
-                    span: span.clone(),
-                },
-            });
-            Inference::Type(Type::Error(empty_span()))
         }
-    }
-
-    pub(super) fn infer_extern_var(&self, pred: &Predicate, path: &String) -> Option<Inference> {
-        // Look through all available predicate instances and their corresponding interfaces for a
-        // var with the same path as `path`
-        for PredicateInstance {
-            name,
-            interface_instance,
-            predicate,
-            ..
-        } in &pred.predicate_instances
-        {
-            if let Some(interface_instance) = interface_instance {
-                if let Some(interface_instance) = pred
-                    .interface_instances
-                    .iter()
-                    .find(|e| e.name.to_string() == *interface_instance)
-                {
-                    if let Some(interface) = self
-                        .interfaces
-                        .iter()
-                        .find(|e| e.name.to_string() == *interface_instance.interface)
-                    {
-                        if let Some(predicate) = interface
-                            .predicate_interfaces
-                            .iter()
-                            .find(|e| e.name.to_string() == *predicate.to_string())
-                        {
-                            for var in &predicate.vars {
-                                if name.to_string() + "::" + &var.name.name == *path {
-                                    return Some(Inference::Type(var.ty.clone()));
-                                }
-                            }
-                        }
-                    }
-                }
-            } else {
-                // Search for a local predicate that matches the full name of `predicate`. Also,
-                // `predicate` must not reference `pred`.
-                let full_predicate_name = "::".to_owned() + &predicate.name;
-                if full_predicate_name != pred.name {
-                    if let Some((_, predicate)) = self
-                        .preds
-                        .iter()
-                        .find(|(_, e)| e.name == full_predicate_name)
-                    {
-                        for (var_key, var) in predicate.vars() {
-                            if var.is_pub && name.to_string() + &var.name == *path {
-                                return Some(Inference::Type(var_key.get_ty(predicate).clone()));
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // No extern var that matches `path`.
-        None
     }
 
     fn infer_unary_op(
@@ -465,7 +411,7 @@ impl Contract {
             match expr_key.try_get(contract) {
                 Some(Expr::Path(name, span)) => {
                     if pred
-                        .map(|pred| pred.states().any(|(_, state)| state.name == *name))
+                        .map(|pred| pred.variables().any(|(_, variable)| variable.name == *name))
                         .unwrap_or(false)
                     {
                         Ok(())
@@ -508,7 +454,7 @@ impl Contract {
             }
 
             UnaryOp::NextState => {
-                // Next state access must be a path that resolves to a state variable.  It _may_ be
+                // Next state access must be a path that resolves to a variable.  It _may_ be
                 // via array indices or tuple fields or even other prime ops.
                 match drill_down_to_path(self, pred, &rhs_expr_key, span) {
                     Ok(()) => {
@@ -581,7 +527,6 @@ impl Contract {
     fn infer_binary_op(
         &self,
         handler: &Handler,
-        pred: Option<&Predicate>,
         op: BinaryOp,
         lhs_expr_key: ExprKey,
         rhs_expr_key: ExprKey,
@@ -643,24 +588,6 @@ impl Contract {
                         Inference::Type(lhs_ty)
                     }
                     BinaryOp::Equal | BinaryOp::NotEqual => {
-                        // We can special case implicit constraints which are injected by variable
-                        // initialiser handling.  Each `var a = b` gets a magic `constraint a == b`
-                        // which we check for type mismatches elsewhere, and emit a much better
-                        // error then.
-                        let mut is_init_constraint = false;
-                        if !lhs_ty.eq(self, rhs_ty)
-                            && op == BinaryOp::Equal
-                            && pred
-                                .map(|pred| {
-                                    pred.var_inits
-                                        .values()
-                                        .any(|init_key| *init_key == rhs_expr_key)
-                                })
-                                .unwrap_or(false)
-                        {
-                            is_init_constraint = true;
-                        }
-
                         // Both args must be equatable, which at this stage is any type *except*
                         // unions; binary op type is bool.
                         if !lhs_ty.eq(self, rhs_ty) {
@@ -670,7 +597,6 @@ impl Contract {
                                 && !rhs_ty.is_nil()
                                 && !lhs_ty.is_error()
                                 && !rhs_ty.is_error()
-                                && !is_init_constraint
                             {
                                 handler.emit_err(Error::Compile {
                                     error: CompileError::OperatorTypeError {
@@ -831,6 +757,199 @@ impl Contract {
             }
 
             Ok(Inference::Type(kind.ty()))
+        } else {
+            Ok(Inference::Dependencies(deps))
+        }
+    }
+
+    pub(super) fn infer_local_predicate_call(
+        &self,
+        handler: &Handler,
+        pred: Option<&Predicate>,
+        called_predicate: &String,
+        args: &[ExprKey],
+        span: &Span,
+    ) -> Result<Inference, ErrorEmitted> {
+        let deps = args
+            .iter()
+            .filter(|arg_key| arg_key.get_ty(self).is_unknown())
+            .cloned()
+            .collect::<Vec<_>>();
+
+        if deps.is_empty() {
+            if let Some(pred) = pred {
+                if *called_predicate == pred.name {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::SelfReferencialPredicate {
+                            pred_name: called_predicate.to_string(),
+                            span: span.clone(),
+                        },
+                    });
+
+                    return Ok(Inference::Type(r#bool()));
+                }
+            }
+
+            // Find the called predicate the `self.preds`
+            let Some((_, called_predicate)) = self
+                .preds
+                .iter()
+                .find(|(_, pred)| pred.name == *called_predicate)
+            else {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::MissingPredicate {
+                        pred_name: called_predicate.to_string(),
+                        interface_name: None,
+                        span: span.clone(),
+                    },
+                });
+
+                return Ok(Inference::Type(r#bool()));
+            };
+
+            // Check all the arg types against the predicate found above
+            for (expected, found) in called_predicate.params.iter().zip(args.iter()) {
+                let found_ty = found.get_ty(self);
+                let expected_ty = &expected.ty;
+                if !expected_ty.eq(self, found_ty) {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::MismatchedPredicateArgType {
+                            expected: format!("{}", self.with_ctrct(expected_ty)),
+                            found: format!("{}", self.with_ctrct(found_ty)),
+                            span: span.clone(),
+                            arg_span: found.get(self).span().clone(),
+                        },
+                    });
+                }
+            }
+
+            // Also, ensure that the number of arguments is correct
+            if called_predicate.params.len() != args.len() {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::UnexpectedPredicateArgCount {
+                        expected: called_predicate.params.len(),
+                        found: args.len(),
+                        span: span.clone(),
+                    },
+                });
+            }
+
+            Ok(Inference::Type(r#bool()))
+        } else {
+            Ok(Inference::Dependencies(deps))
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn infer_external_predicate_call(
+        &self,
+        handler: &Handler,
+        interface: &String,
+        c_addr: ExprKey,
+        called_predicate: &String,
+        p_addr: ExprKey,
+        args: &[ExprKey],
+        span: &Span,
+    ) -> Result<Inference, ErrorEmitted> {
+        let mut deps = Vec::new();
+
+        // Check the contract address
+        let c_addr_ty = c_addr.get_ty(self);
+        if c_addr_ty.is_unknown() {
+            deps.push(c_addr);
+        } else if !c_addr_ty.is_b256() {
+            handler.emit_err(Error::Compile {
+                error: CompileError::AddressExpressionTypeError {
+                    large_err: Box::new(LargeTypeError::AddressExpressionTypeError {
+                        expected_ty: self.with_ctrct(b256()).to_string(),
+                        found_ty: self.with_ctrct(c_addr_ty).to_string(),
+                        span: self.expr_key_to_span(c_addr),
+                        expected_span: Some(self.expr_key_to_span(c_addr)),
+                    }),
+                },
+            });
+        }
+
+        // Check the predicate address
+        let p_addr_ty = p_addr.get_ty(self);
+        if p_addr_ty.is_unknown() {
+            deps.push(p_addr);
+        } else if !p_addr_ty.is_b256() {
+            handler.emit_err(Error::Compile {
+                error: CompileError::AddressExpressionTypeError {
+                    large_err: Box::new(LargeTypeError::AddressExpressionTypeError {
+                        expected_ty: self.with_ctrct(b256()).to_string(),
+                        found_ty: self.with_ctrct(p_addr_ty).to_string(),
+                        span: self.expr_key_to_span(p_addr),
+                        expected_span: Some(self.expr_key_to_span(p_addr)),
+                    }),
+                },
+            });
+        }
+
+        args.iter()
+            .filter(|arg_key| arg_key.get_ty(self).is_unknown())
+            .for_each(|arg_key| deps.push(*arg_key));
+
+        if deps.is_empty() {
+            // Search for the contract interface
+            let Some(interface) = self
+                .interfaces
+                .iter()
+                .find(|e| e.name.to_string() == *interface)
+            else {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::MissingInterface {
+                        name: interface.clone(),
+                        span: span.clone(),
+                    },
+                });
+                return Ok(Inference::Type(r#bool()));
+            };
+
+            // Search for the predicate interface
+            let Some(predicate_interface) = interface
+                .predicate_interfaces
+                .iter()
+                .find(|e| e.name.to_string() == *called_predicate.to_string())
+            else {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::MissingPredicate {
+                        pred_name: called_predicate.to_string(),
+                        interface_name: Some(interface.name.to_string()),
+                        span: span.clone(),
+                    },
+                });
+                return Ok(Inference::Type(r#bool()));
+            };
+
+            // Check all the arg types against the predicate found above
+            for (expected, arg) in predicate_interface.params.iter().zip(args.iter()) {
+                let found = arg.get_ty(self);
+                if !expected.ty.eq(self, found) {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::MismatchedPredicateArgType {
+                            expected: format!("{}", self.with_ctrct(expected.ty.clone())),
+                            found: format!("{}", self.with_ctrct(found)),
+                            span: span.clone(),
+                            arg_span: arg.get(self).span().clone(),
+                        },
+                    });
+                }
+            }
+
+            // Also, ensure that the number of arguments is correct
+            if predicate_interface.params.len() != args.len() {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::UnexpectedPredicateArgCount {
+                        expected: predicate_interface.params.len(),
+                        found: args.len(),
+                        span: span.clone(),
+                    },
+                });
+            }
+
+            Ok(Inference::Type(r#bool()))
         } else {
             Ok(Inference::Dependencies(deps))
         }

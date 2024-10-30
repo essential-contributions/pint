@@ -24,12 +24,6 @@ pub enum ParseError {
         expected: Vec<Option<String>>,
         found: Option<String>,
     },
-    #[error("expected identifier, found keyword `{keyword}`")]
-    KeywordAsIdent { span: Span, keyword: String },
-    #[error("type annotation or initializer needed for variable `{name}`")]
-    UntypedVariable { span: Span, name: String },
-    #[error("empty array expressions are not allowed")]
-    EmptyArrayExpr { span: Span },
     #[error("missing array or map index")]
     EmptyIndexAccess { span: Span },
     #[error("invalid integer `{}` as tuple index", index)]
@@ -67,12 +61,8 @@ pub enum ParseError {
     StorageDirectiveMustBeTopLevel { span: Span },
     #[error("`storage` access expressions can only appear in the top level module")]
     StorageAccessMustBeTopLevel { span: Span },
-    #[error("path `{path}` to a predicate interface is too short")]
-    PathTooShort { path: String, span: Span },
     #[error("bad argument splice")]
     BadSplice(Span),
-    #[error("intrinsic can only be used in a state initializer")]
-    BadStorageIntrinsic(Span),
     #[error("no intrinsic named `{name}` is found")]
     MissingIntrinsic { name: String, span: Span },
     #[error("Unsupported type")]
@@ -96,27 +86,6 @@ impl ReportableError for ParseError {
             ExpectedFound { span, expected, .. } => {
                 vec![ErrorLabel {
                     message: format_expected_tokens_message(&mut expected.clone()),
-                    span: span.clone(),
-                    color: Color::Red,
-                }]
-            }
-            KeywordAsIdent { span, .. } => {
-                vec![ErrorLabel {
-                    message: "expected identifier, found keyword".to_string(),
-                    span: span.clone(),
-                    color: Color::Red,
-                }]
-            }
-            UntypedVariable { span, .. } => {
-                vec![ErrorLabel {
-                    message: "type annotation or initializer needed".to_string(),
-                    span: span.clone(),
-                    color: Color::Red,
-                }]
-            }
-            EmptyArrayExpr { span } => {
-                vec![ErrorLabel {
-                    message: "empty array expression found".to_string(),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -251,23 +220,9 @@ impl ReportableError for ParseError {
                     color: Color::Red,
                 }]
             }
-            PathTooShort { path, span } => {
-                vec![ErrorLabel {
-                    message: format!(
-                        "path `{path}` is too short and cannot refer to a predicate interface"
-                    ),
-                    span: span.clone(),
-                    color: Color::Red,
-                }]
-            }
             BadSplice(span) => vec![ErrorLabel {
                 message: "the macro argument splice operator `~` must be applied to an identifier"
                     .to_string(),
-                span: span.clone(),
-                color: Color::Red,
-            }],
-            BadStorageIntrinsic(span) => vec![ErrorLabel {
-                message: "intrinsic can only be used in a state initializer".to_string(),
                 span: span.clone(),
                 color: Color::Red,
             }],
@@ -304,11 +259,6 @@ impl ReportableError for ParseError {
             IntLiteralTooLarge { .. } => {
                 Some("value exceeds limit of `9,223,372,036,854,775,807`".to_string())
             }
-            PathTooShort { .. } => Some(
-                "a path to a predicate interface must contain a path to an interface \
-                    instance followed by the name of the predicate, separated by a `::`"
-                    .to_string(),
-            ),
             _ => None,
         }
     }
@@ -320,9 +270,6 @@ impl ReportableError for ParseError {
     fn help(&self) -> Option<String> {
         use ParseError::*;
         match self {
-            UntypedVariable { name, .. } => Some(format!(
-                "consider giving `{name}` an explicit type or an initializer"
-            )),
             UnsupportedLeadingPlus { .. } => Some("try removing the `+`".to_string()),
             _ => None,
         }
@@ -379,9 +326,6 @@ impl Spanned for ParseError {
         use ParseError::*;
         match self {
             ExpectedFound { span, .. }
-            | KeywordAsIdent { span, .. }
-            | UntypedVariable { span, .. }
-            | EmptyArrayExpr { span }
             | EmptyIndexAccess { span }
             | InvalidIntegerTupleIndex { span, .. }
             | InvalidTupleIndex { span, .. }
@@ -397,9 +341,7 @@ impl Spanned for ParseError {
             | TooManyStorageBlocks { span, .. }
             | StorageDirectiveMustBeTopLevel { span, .. }
             | StorageAccessMustBeTopLevel { span, .. }
-            | PathTooShort { span, .. }
             | BadSplice(span)
-            | BadStorageIntrinsic(span)
             | MissingIntrinsic { span, .. }
             | TypeNotSupported { span, .. }
             | LiteralNotSupported { span, .. }

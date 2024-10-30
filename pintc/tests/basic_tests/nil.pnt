@@ -4,8 +4,8 @@ storage {
 }
 
 predicate test() {
-    state x = storage::x;
-    state z = storage::z;
+    let x = storage::x;
+    let z = storage::z;
 
     constraint nil == nil;
     constraint nil != nil;
@@ -34,8 +34,8 @@ predicate test() {
 // 
 // predicate ::test(
 // ) {
-//     state ::x = storage::x;
-//     state ::z = storage::z;
+//     let ::x = storage::x;
+//     let ::z = storage::z;
 //     constraint (nil == nil);
 //     constraint (nil != nil);
 //     constraint (::x == nil);
@@ -59,8 +59,8 @@ predicate test() {
 // 
 // predicate ::test(
 // ) {
-//     state ::x: int = __storage_get({0});
-//     state ::z: {int, int, int} = __storage_get({1, 0});
+//     let ::x: int = __storage_get({0});
+//     let ::z: {int, int, int} = __storage_get({1, 0});
 //     constraint false;
 //     constraint false;
 //     constraint (__size_of(::x) == 0);

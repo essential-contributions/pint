@@ -17,39 +17,39 @@ storage {
 
 // Constraint set with address `0x0000000000000000000000000000000000000000000000000000000000000000`
 predicate Foo() {
-    state x = mut storage::x;
-    state y = mut storage::y;
-    state z = mut storage::z;
-    state w = mut storage::w;
-    state t = mut storage::t;
-    state a = mut storage::a;
-    state t2 = mut storage::t2;
+    let x = mut storage::x;
+    let y = mut storage::y;
+    let z = mut storage::z;
+    let w = mut storage::w;
+    let t = mut storage::t;
+    let a = mut storage::a;
+    let t2 = mut storage::t2;
 
-    // `x` is set in the pre state db and in the solution
+    // `x` is set in the pre let db and in the solution
     constraint x != nil;
     constraint nil != x';
 
-    // `y` is set in the pre state db and in the solution
+    // `y` is set in the pre let db and in the solution
     constraint nil != y;
     constraint y' != nil;
 
-    // `z` is not set in the pre state db but is set in the solution
+    // `z` is not set in the pre let db but is set in the solution
     constraint z == nil;
     constraint z' != 1;
 
-    // `w` is set in the pre state db but unset in the solution
+    // `w` is set in the pre let db but unset in the solution
     constraint w != nil;
     constraint nil == w';
 
-    // `t` is not set in the pre state db but is set in the solution
+    // `t` is not set in the pre let db but is set in the solution
     constraint t == nil;
     constraint t' != nil;
 
-    // `a` is not set in the pre state db and is partially set in the solution.
+    // `a` is not set in the pre let db and is partially set in the solution.
     constraint a == nil;
     constraint a' != nil;
 
-    // `t2` is partially set in the pre state db and is set to nil in the solution.
+    // `t2` is partially set in the pre let db and is set to nil in the solution.
     constraint t2 != nil;
     constraint t2' == nil;
 }

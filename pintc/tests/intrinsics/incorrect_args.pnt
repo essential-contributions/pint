@@ -6,8 +6,6 @@ predicate test(
     hash0: b256,
     this_address: b256,
     this_contract_address: b256,
-    this_pathway: int,
-    predicate_at: { b256, b256 },
     sha256_0: b256,
     sha256_1: b256,
     verify_ed25519_0: bool,
@@ -29,12 +27,6 @@ predicate test(
 
     constraint this_contract_address == __this_contract_address(42);
 
-    constraint this_pathway == __this_pathway(42);
-
-    // This should emit a type checking error for the first argument as well as an "incorrect number
-    // of arguments" error.
-    constraint predicate_at == __predicate_at(false, 42);
-
     constraint sha256_0 == __sha256();
     constraint sha256_1 == __sha256(1, 1);
 
@@ -48,7 +40,7 @@ predicate test(
     constraint recover_secp256k1_2 == __recover_secp256k1(hash0);
     constraint recover_secp256k1_3 == __recover_secp256k1(hash0, {hash0, hash0, 69}, hash0);
 
-    state x = storage::x;
+    let x = storage::x;
 
     constraint bad_size_of_1 == __size_of(x, 0);
     constraint bad_size_of_2 == __size_of();
@@ -63,8 +55,6 @@ predicate test(
 //     ::hash0: b256,
 //     ::this_address: b256,
 //     ::this_contract_address: b256,
-//     ::this_pathway: int,
-//     ::predicate_at: {b256, b256},
 //     ::sha256_0: b256,
 //     ::sha256_1: b256,
 //     ::verify_ed25519_0: bool,
@@ -78,11 +68,9 @@ predicate test(
 //     ::bad_size_of_1: int,
 //     ::bad_size_of_2: int,
 // ) {
-//     state ::x = storage::x;
+//     let ::x = storage::x;
 //     constraint (::this_address == __this_address(42));
 //     constraint (::this_contract_address == __this_contract_address(42));
-//     constraint (::this_pathway == __this_pathway(42));
-//     constraint (::predicate_at == __predicate_at(false, 42));
 //     constraint (::sha256_0 == __sha256());
 //     constraint (::sha256_1 == __sha256(1, 1));
 //     constraint (::verify_ed25519_0 == __verify_ed25519(69, {::hash0, ::hash0}, 5));
@@ -100,42 +88,35 @@ predicate test(
 
 // typecheck_failure <<<
 // this intrinsic takes 0 arguments but 1 argument was supplied
-// @736..754: unexpected number of arguments here
+// @679..697: unexpected number of arguments here
 // this intrinsic takes 0 arguments but 1 argument was supplied
-// @797..824: unexpected number of arguments here
-// this intrinsic takes 0 arguments but 1 argument was supplied
-// @858..876: unexpected number of arguments here
-// incorrect intrinsic argument
-// @1054..1059: expected `int`, found `bool`
-// @1039..1053: arguments to this intrinsic are incorrect`
-// this intrinsic takes 1 argument but 2 arguments were supplied
-// @1039..1064: unexpected number of arguments here
+// @740..767: unexpected number of arguments here
 // this intrinsic takes 1 argument but 0 arguments were supplied
-// @1094..1104: unexpected number of arguments here
+// @797..807: unexpected number of arguments here
 // this intrinsic takes 1 argument but 2 arguments were supplied
-// @1133..1147: unexpected number of arguments here
+// @836..850: unexpected number of arguments here
 // incorrect intrinsic argument
-// @1224..1225: expected `b256`, found `int`
-// @1185..1201: arguments to this intrinsic are incorrect`
+// @927..928: expected `b256`, found `int`
+// @888..904: arguments to this intrinsic are incorrect`
 // incorrect intrinsic argument
-// @1284..1289: expected `{b256, b256}`, found `b256`
-// @1263..1279: arguments to this intrinsic are incorrect`
+// @987..992: expected `{b256, b256}`, found `b256`
+// @966..982: arguments to this intrinsic are incorrect`
 // this intrinsic takes 3 arguments but 0 arguments were supplied
-// @1334..1352: unexpected number of arguments here
+// @1037..1055: unexpected number of arguments here
 // this intrinsic takes 3 arguments but 4 arguments were supplied
-// @1389..1438: unexpected number of arguments here
+// @1092..1141: unexpected number of arguments here
 // incorrect intrinsic argument
-// @1499..1501: expected `b256`, found `int`
-// @1479..1498: arguments to this intrinsic are incorrect`
+// @1202..1204: expected `b256`, found `int`
+// @1182..1201: arguments to this intrinsic are incorrect`
 // incorrect intrinsic argument
-// @1591..1607: expected `{b256, b256, int}`, found `{b256, b256}`
-// @1564..1583: arguments to this intrinsic are incorrect`
+// @1294..1310: expected `{b256, b256, int}`, found `{b256, b256}`
+// @1267..1286: arguments to this intrinsic are incorrect`
 // this intrinsic takes 2 arguments but 1 argument was supplied
-// @1648..1674: unexpected number of arguments here
+// @1351..1377: unexpected number of arguments here
 // this intrinsic takes 2 arguments but 3 arguments were supplied
-// @1714..1767: unexpected number of arguments here
+// @1417..1470: unexpected number of arguments here
 // this intrinsic takes 1 argument but 2 arguments were supplied
-// @1829..1844: unexpected number of arguments here
+// @1530..1545: unexpected number of arguments here
 // this intrinsic takes 1 argument but 0 arguments were supplied
-// @1878..1889: unexpected number of arguments here
+// @1579..1590: unexpected number of arguments here
 // >>>

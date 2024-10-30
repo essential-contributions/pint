@@ -23,7 +23,7 @@ enum Inference {
 
 impl Contract {
     pub fn type_check(mut self, handler: &Handler) -> Result<Self, ErrorEmitted> {
-        // Ensure that all storage accesses are used legally, i.e., in state initializers only.
+        // Ensure that all storage accesses are used legally, i.e., in variable initializers only.
         let _ = handler.scope(|handler| self.check_storage_accesses(handler));
 
         // Evaluate all the constant decls to ensure they're all immediates. Each Const expr is
@@ -55,6 +55,13 @@ impl Contract {
         let _ = handler.scope(|handler| self.check_types_of_variables(handler));
         let _ = handler.scope(|handler| self.check_inits(handler));
         let _ = handler.scope(|handler| self.check_constraint_types(handler));
+
+        if !handler.has_errors() {
+            // If we haven't caught any issues so far, it's safe to start looking for cyclical
+            // dependencies between predicates. It makes no sense to check this if some predicates
+            // have errors. Ideally, this check would live outside the `type_check(..)` function.
+            let _ = handler.scope(|handler| self.check_cyclical_predicate_dependencies(handler));
+        }
 
         handler.result(self)
     }

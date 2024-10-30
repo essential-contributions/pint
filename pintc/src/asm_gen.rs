@@ -24,6 +24,7 @@ pub struct CompiledContract {
 /// Convert a `Contract` into `CompiledContract`
 pub fn compile_contract(
     handler: &Handler,
+    salt: [u8; 32],
     contract: &Contract,
 ) -> Result<CompiledContract, ErrorEmitted> {
     // This is a dependency graph between predicates. Predicates may depend on other predicates via
@@ -45,10 +46,15 @@ pub fn compile_contract(
     }
 
     for (pred_key, pred) in contract.preds.iter() {
-        // If this predicate references another predicate (via a `AddressOf` intrinsic), then
-        // create a dependency edge from the other pedicate to this one.
+        // If this predicate refers to another predicate using a `LocalPredicateCall` or an
+        // `AddressOf` intrinsic, then create a dependency edge from the other pedicate to this
+        // one.
         for expr in contract.exprs(pred_key) {
-            if let Some(Expr::IntrinsicCall {
+            if let Some(Expr::LocalPredicateCall { predicate, .. }) = expr.try_get(contract) {
+                let from = names_to_indices[predicate];
+                let to = names_to_indices[&pred.name];
+                dep_graph.add_edge(from, to, ());
+            } else if let Some(Expr::IntrinsicCall {
                 kind: (IntrinsicKind::External(ExternalIntrinsic::AddressOf), _),
                 args,
                 ..
@@ -125,14 +131,14 @@ pub fn compile_contract(
     } else {
         Ok(CompiledContract {
             names,
-            salt: Default::default(), // Salt is not used by pint yet.
+            salt,
             predicates,
         })
     }
 }
 
 /// Converts a `crate::Predicate` into a `CompiledPredicate` which
-/// includes generating assembly for the constraints and for state reads.
+/// includes generating assembly for the constraints and for variable reads.
 pub fn compile_predicate(
     handler: &Handler,
     contract: &Contract,
@@ -141,9 +147,9 @@ pub fn compile_predicate(
 ) -> Result<CompiledPredicate, ErrorEmitted> {
     let mut builder = AsmBuilder::new(compiled_predicates);
 
-    // Compile all state declarations into state programs
-    for (_, state) in pred.states() {
-        builder.compile_state(handler, state, contract, pred)?;
+    // Compile all variable declarations into variable programs
+    for (_, variable) in pred.variables() {
+        builder.compile_variable(handler, variable, contract, pred)?;
     }
 
     // Compile all constraint declarations into constraint programs
