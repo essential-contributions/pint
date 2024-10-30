@@ -1,0 +1,8 @@
+[[data]]
+predicate_to_solve = { predicate = "::Test" }
+state_mutations = [
+  { key = [0, 0, 0], value = [1] },        # storage::t.0[0]
+  { key = [1, 1, 0], value = [3] },        # storage::u.1.0[false]
+  { key = [2, 6, 1, 2, 0], value = [12] }, # storage::v.0[5]
+  { key = [2, 6, 1, 2, 1], value = [13] }, # storage::v.0[5]
+]
