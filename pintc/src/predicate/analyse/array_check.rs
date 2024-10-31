@@ -46,6 +46,10 @@ impl Contract {
         for expr_key in self.exprs(pred_key) {
             check_array_type(self, handler, expr_key.get_ty(self));
         }
+
+        for (_name, cnst) in self.consts.iter() {
+            check_array_type(self, handler, &cnst.decl_ty);
+        }
     }
 
     pub(crate) fn check_array_indexing(&self, handler: &Handler, pred_key: PredKey) {
