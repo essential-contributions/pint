@@ -1,16 +1,30 @@
+const a: int[2] = [11, 22];
+
 predicate test(b: int[4]) {
     constraint b[4] == 2;
+    constraint a[3] == 33;
+    constraint a[0xffffffffffffffff] == 44;
 }
 
 // parsed <<<
+// const ::a: int[2] = [11, 22];
+// 
 // predicate ::test(
 //     ::b: int[4],
 // ) {
 //     constraint (::b[4] == 2);
+//     constraint (::a[3] == 33);
+//     constraint (::a[-1] == 44);
 // }
 // >>>
 
 // flattening_failure <<<
 // attempt to access array with out of bounds index
-// @45..46: array index is out of bounds
+// @127..145: array index is out of bounds
+// attempt to access array with out of bounds index
+// @100..101: array index is out of bounds
+// attempt to access array with out of bounds index
+// @74..75: array index is out of bounds
+// attempt to use an invalid constant as an array length
+// @127..145: this must be a strictly positive integer value
 // >>>

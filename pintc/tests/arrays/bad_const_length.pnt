@@ -1,9 +1,13 @@
+const g: int[0] = [11];
+
 predicate test(
     n: int,
     a: int[0]
 ) { }
 
 // parsed <<<
+// const ::g: int[0] = [11];
+//
 // predicate ::test(
 //     ::n: int,
 //     ::a: int[0],
@@ -13,5 +17,7 @@ predicate test(
 
 // flattening_failure <<<
 // attempt to use an invalid constant as an array length
-// @39..40: this must be a strictly positive integer value
+// @64..65: this must be a strictly positive integer value
+// attempt to use an invalid constant as an array length
+// @13..14: this must be a strictly positive integer value
 // >>>

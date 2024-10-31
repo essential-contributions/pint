@@ -1,0 +1,17 @@
+const g: int[2] = [11, 22, 33];
+
+predicate test() { }
+
+// parsed <<<
+// const ::g: int[2] = [11, 22, 33];
+// 
+// predicate ::test(
+// ) {
+// }
+// >>>
+
+// flattening_failure <<<
+// const initialization type error
+// @18..30: const initializer has unexpected type `int[_]`
+// @9..15: expecting type `int[2]`
+// >>>

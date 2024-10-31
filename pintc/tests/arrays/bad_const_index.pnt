@@ -1,18 +1,27 @@
+const b: int[2] = [11, 22];
+
 predicate test(n: int, a: int[10]) {
     constraint a[true] == 3;
+    constraint b[true] == 22;
 }
 
 // parsed <<<
+// const ::b: int[2] = [11, 22];
+//
 // predicate ::test(
 //     ::n: int,
 //     ::a: int[10],
 // ) {
 //     constraint (::a[true] == 3);
+//     constraint (::b[true] == 22);
 // }
 // >>>
 
 // typecheck_failure <<<
 // attempt to index an array with a mismatched value
-// @54..58: array access must be with an int value
+// @83..87: array access must be with an int value
+// found access using type `bool`
+// attempt to index an array with a mismatched value
+// @112..116: array access must be with an int value
 // found access using type `bool`
 // >>>

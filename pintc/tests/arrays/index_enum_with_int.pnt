@@ -1,21 +1,29 @@
 union Num = Zero | One | Two | Three;
 
+const g: int[Num] = [11, 22, 33, 44];
+
 predicate test(ary: int[Num]) {
     constraint ary[1] == 1;
+    constraint g[2] == 33;
 }
 
 // parsed <<<
+// const ::g: int[::Num] = [11, 22, 33, 44];
 // union ::Num = Zero | One | Two | Three;
 // 
 // predicate ::test(
 //     ::ary: int[::Num],
 // ) {
 //     constraint (::ary[1] == 1);
+//     constraint (::g[2] == 33);
 // }
 // >>>
 
 // typecheck_failure <<<
 // attempt to index an array with a mismatched value
-// @90..91: array access must be with a `::Num` variant
+// @129..130: array access must be with a `::Num` variant
+// found access using type `int`
+// attempt to index an array with a mismatched value
+// @155..156: array access must be with a `::Num` variant
 // found access using type `int`
 // >>>
