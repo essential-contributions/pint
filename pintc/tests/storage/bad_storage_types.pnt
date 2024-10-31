@@ -56,4 +56,6 @@ storage {
 // @359..378: found type ( ::MyMapAlias (( int => bool )) => int ) in storage
 // type not allowed in storage
 // @387..406: found type ( ::MyVecAlias (int[]) => int ) in storage
+// type not allowed in storage
+// @415..440: found type ( ::MyBadMapKeyUnion => int ) in storage
 // >>>

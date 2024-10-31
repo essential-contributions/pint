@@ -458,20 +458,34 @@ impl Type {
     }
 
     // If `self` contains a storage only type `ty`, return `Some(ty)`. Otherwise, return `None`
-    pub fn get_storage_only_ty(&self) -> Option<&Self> {
+    pub fn get_storage_only_ty(&self, contract: &Contract) -> Option<Self> {
         match self {
-            Type::Map { .. } | Type::Vector { .. } => Some(self),
-            Type::Array { ty, .. } => ty.get_storage_only_ty(),
+            Type::Map { .. } | Type::Vector { .. } => Some(self.clone()),
+            Type::Array { ty, .. } => ty.get_storage_only_ty(contract),
             Type::Tuple { fields, .. } => {
                 for (_, field) in fields {
-                    let ty = field.get_storage_only_ty();
+                    let ty = field.get_storage_only_ty(contract);
                     if let Some(ty) = ty {
                         return Some(ty);
                     }
                 }
                 None
             }
-            Type::Alias { ty, .. } => ty.get_storage_only_ty(),
+            Type::Alias { ty, .. } => ty.get_storage_only_ty(contract),
+            Type::Union { decl, .. } => {
+                let union_decl = contract
+                    .unions
+                    .get(*decl)
+                    .expect("union decl guaranteed to exist");
+                for variant in &union_decl.variants {
+                    if let Some(variant_ty) = &variant.ty {
+                        if let Some(ty) = variant_ty.get_storage_only_ty(contract) {
+                            return Some(ty);
+                        }
+                    }
+                }
+                None
+            }
             _ => None,
         }
     }
@@ -479,20 +493,21 @@ impl Type {
     // Checks if type `self` is allowed in storage. For now, all types are allowed except for:
     // - Storage maps where the "from" type is not bool, int, nor b256
     // - Storage vectors where the element type is not bool, int, nor b256
-    pub fn is_allowed_in_storage(&self) -> bool {
+    pub fn is_allowed_in_storage(&self, contract: &Contract) -> bool {
         match self {
             Type::Map { ty_from, ty_to, .. } => {
-                ty_from.get_storage_only_ty().is_none() && ty_to.is_allowed_in_storage()
+                ty_from.get_storage_only_ty(contract).is_none()
+                    && ty_to.is_allowed_in_storage(contract)
             }
             Type::Vector { ty, .. } => {
                 // We only support vectors of these types for now
                 ty.is_bool() || ty.is_int() || ty.is_b256()
             }
-            Type::Array { ty, .. } => ty.is_allowed_in_storage(),
-            Type::Tuple { fields, .. } => fields
-                .iter()
-                .fold(true, |acc, (_, field)| acc && field.is_allowed_in_storage()),
-            Type::Alias { ty, .. } => ty.is_allowed_in_storage(),
+            Type::Array { ty, .. } => ty.is_allowed_in_storage(contract),
+            Type::Tuple { fields, .. } => fields.iter().fold(true, |acc, (_, field)| {
+                acc && field.is_allowed_in_storage(contract)
+            }),
+            Type::Alias { ty, .. } => ty.is_allowed_in_storage(contract),
             Type::Custom { .. } => {
                 // Disallow custom types since they're ambiguous. Hopefully, by the time we need
                 // this method, all custom types are gone.
