@@ -356,6 +356,7 @@ impl Expr {
                 }
             }
             Expr::UnaryOp { expr, .. } => replace(expr),
+            Expr::ExternalStorageAccess { address, .. } => replace(address),
             Expr::BinaryOp { lhs, rhs, .. } => {
                 replace(lhs);
                 replace(rhs);
@@ -436,7 +437,6 @@ impl Expr {
             Expr::MacroCall { .. }
             | Expr::Path(_, _)
             | Expr::LocalStorageAccess { .. }
-            | Expr::ExternalStorageAccess { .. }
             | Expr::Error(_) => {}
         }
     }
