@@ -482,12 +482,7 @@ impl Type {
     pub fn is_allowed_in_storage(&self) -> bool {
         match self {
             Type::Map { ty_from, ty_to, .. } => {
-                // We only support maps from these types for now
-                (ty_from.is_bool()
-                    || ty_from.is_int()
-                    || ty_from.is_b256()
-                    || ty_from.is_allowed_in_storage())
-                    && ty_to.is_allowed_in_storage()
+                ty_from.get_storage_only_ty().is_none() && ty_to.is_allowed_in_storage()
             }
             Type::Vector { ty, .. } => {
                 // We only support vectors of these types for now
