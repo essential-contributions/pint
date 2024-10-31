@@ -1,6 +1,6 @@
 use super::{Contract, Evaluator, ExprKey};
 use crate::{
-    error::{CompileError, Error, ErrorEmitted, Handler},
+    error::{CompileError, Error, ErrorEmitted, Handler, LargeTypeError},
     expr::{BinaryOp, Expr, Immediate},
     predicate::PredKey,
     span::Spanned,
@@ -23,7 +23,12 @@ fn get_array_size_from_type(
 
 impl Contract {
     pub(crate) fn check_array_lengths(&self, handler: &Handler, pred_key: PredKey) {
-        fn check_array_type(contract: &Contract, handler: &Handler, ty: &Type) {
+        fn check_array_type(
+            contract: &Contract,
+            handler: &Handler,
+            ty: &Type,
+            init: Option<ExprKey>,
+        ) {
             if ty.is_array() {
                 if let Ok(n) = get_array_size_from_type(contract, handler, ty) {
                     if n < 1 {
@@ -33,6 +38,29 @@ impl Contract {
                             },
                         });
                     }
+
+                    // We know we have an array expression.  If we have an initialiser then the
+                    // type checker must agree that it's an array, but currently it doesn't check
+                    // the lengths are correct.
+                    if let Some(init) = init {
+                        let init_ty = init.get_ty(contract);
+                        if let Some(init_len) = init_ty.get_array_size() {
+                            if init_len != n {
+                                handler.emit_err(Error::Compile {
+                                    error: CompileError::InitTypeError {
+                                        init_kind: "const",
+                                        large_err: Box::new(LargeTypeError::InitTypeError {
+                                            init_kind: "const",
+                                            expected_ty: contract.with_ctrct(ty).to_string(),
+                                            found_ty: contract.with_ctrct(init_ty).to_string(),
+                                            expected_ty_span: ty.span().clone(),
+                                            init_span: contract.expr_key_to_span(init),
+                                        }),
+                                    },
+                                });
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -40,11 +68,15 @@ impl Contract {
         let pred = &self.preds[pred_key];
 
         for param in &pred.params {
-            check_array_type(self, handler, &param.ty);
+            check_array_type(self, handler, &param.ty, None);
         }
 
         for expr_key in self.exprs(pred_key) {
-            check_array_type(self, handler, expr_key.get_ty(self));
+            check_array_type(self, handler, expr_key.get_ty(self), None);
+        }
+
+        for (_name, cnst) in self.consts.iter() {
+            check_array_type(self, handler, &cnst.decl_ty, Some(cnst.expr));
         }
     }
 

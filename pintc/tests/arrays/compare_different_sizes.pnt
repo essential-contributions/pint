@@ -1,3 +1,6 @@
+const g: int[2] = [222, 333];
+const h: int[3] = [444, 555, 666];
+
 predicate test(a: int[4], b: int[5], c: int[2]) {
     constraint b == [11, 22, 33, 44, 55];
     constraint c == [66, 77];
@@ -5,9 +8,15 @@ predicate test(a: int[4], b: int[5], c: int[2]) {
     constraint a == b;
     constraint a != c;
     constraint c != [88, 99, 111];
+
+    constraint g == h;
+    constraint h == c;
 }
 
 // parsed <<<
+// const ::h: int[3] = [444, 555, 666];
+// const ::g: int[2] = [222, 333];
+//
 // predicate ::test(
 //     ::a: int[4],
 //     ::b: int[5],
@@ -18,17 +27,25 @@ predicate test(a: int[4], b: int[5], c: int[2]) {
 //     constraint (::a == ::b);
 //     constraint (::a != ::c);
 //     constraint (::c != [88, 99, 111]);
+//     constraint (::g == ::h);
+//     constraint (::h == ::c);
 // }
 // >>>
 
 // flattening_failure <<<
 // comparison between differently sized arrays
-// @184..202: cannot compare arrays of different sizes
+// @309..315: cannot compare arrays of different sizes
+// the left-hand side argument of the `==` operator has 3 elements while the right-hand side argument has 2 elements
+// comparison between differently sized arrays
+// @286..292: cannot compare arrays of different sizes
+// the left-hand side argument of the `==` operator has 2 elements while the right-hand side argument has 3 elements
+// comparison between differently sized arrays
+// @250..268: cannot compare arrays of different sizes
 // the left-hand side argument of the `!=` operator has 2 elements while the right-hand side argument has 3 elements
 // comparison between differently sized arrays
-// @161..167: cannot compare arrays of different sizes
+// @227..233: cannot compare arrays of different sizes
 // the left-hand side argument of the `!=` operator has 4 elements while the right-hand side argument has 2 elements
 // comparison between differently sized arrays
-// @138..144: cannot compare arrays of different sizes
+// @204..210: cannot compare arrays of different sizes
 // the left-hand side argument of the `==` operator has 4 elements while the right-hand side argument has 5 elements
 // >>>
