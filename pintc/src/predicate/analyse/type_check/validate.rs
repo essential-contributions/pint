@@ -149,7 +149,7 @@ impl Contract {
     ) -> Result<(), ErrorEmitted> {
         if let Some((storage_vars, _)) = self.storage.as_ref() {
             storage_vars.iter().for_each(|StorageVar { ty, .. }| {
-                if !ty.is_allowed_in_storage(&self) {
+                if !ty.is_allowed_in_storage(self) {
                     handler.emit_err(Error::Compile {
                         error: CompileError::TypeNotAllowedInStorage {
                             ty: self.with_ctrct(ty).to_string(),
@@ -220,7 +220,7 @@ impl Contract {
             // Disallow predicate parameters from having storage only types
             pred.params.iter().for_each(|param| {
                 let ty = &param.ty;
-                if let Some(nested_ty) = ty.get_storage_only_ty(&self) {
+                if let Some(nested_ty) = ty.get_storage_only_ty(self) {
                     handler.emit_err(Error::Compile {
                         error: CompileError::ParamHasStorageType {
                             ty: self.with_ctrct(ty).to_string(),
@@ -234,7 +234,7 @@ impl Contract {
             // Disallow variable variables from having storage only types
             pred.variables().for_each(|(variable_key, variable)| {
                 let ty = variable_key.get_ty(pred);
-                if let Some(nested_ty) = ty.get_storage_only_ty(&self) {
+                if let Some(nested_ty) = ty.get_storage_only_ty(self) {
                     handler.emit_err(Error::Compile {
                         error: CompileError::ParamHasStorageType {
                             ty: self.with_ctrct(ty).to_string(),
