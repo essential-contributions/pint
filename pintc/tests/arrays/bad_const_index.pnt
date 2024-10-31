@@ -7,7 +7,7 @@ predicate test(n: int, a: int[10]) {
 
 // parsed <<<
 // const ::b: int[2] = [11, 22];
-//
+// 
 // predicate ::test(
 //     ::n: int,
 //     ::a: int[10],

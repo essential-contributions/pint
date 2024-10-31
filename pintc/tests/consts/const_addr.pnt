@@ -1,0 +1,65 @@
+interface Counter {
+    storage {
+        counter: int,
+    }
+
+    predicate foo(x: int, y: bool);
+}
+
+const ContractID: b256 = 0x6D05CB94739FFB92CA96750EBF262A82C3ED8F05262DD26B503D732F0B74777E;
+const PredicateId: b256 = 0x1111111111111111111111111111111111111111111111111111111111111111;
+const X = 42;
+const Y = true;
+
+predicate foo() {
+    let counter = Counter[[ContractID]]::storage::counter;
+    constraint counter' >= 100;
+    constraint Counter[[ContractID]]::foo[[PredicateId]](X, Y);
+}
+
+// parsed <<<
+// const ::PredicateId: b256 = 0x1111111111111111111111111111111111111111111111111111111111111111;
+// const ::ContractID: b256 = 0x6D05CB94739FFB92CA96750EBF262A82C3ED8F05262DD26B503D732F0B74777E;
+// const ::Y = true;
+// const ::X = 42;
+// interface ::Counter {
+//     storage {
+//         counter: int,
+//     }
+//     predicate foo (
+//         x: int,
+//         y: bool,
+//     );
+// }
+// 
+// predicate ::foo(
+// ) {
+//     let ::counter = ::Counter[[::ContractID]]::storage::counter;
+//     constraint (::counter' >= 100);
+//     constraint ::Counter[[::ContractID]]::foo[[::PredicateId]](::X, ::Y);
+// }
+// >>>
+
+// flattened <<<
+// const ::PredicateId: b256 = 0x1111111111111111111111111111111111111111111111111111111111111111;
+// const ::ContractID: b256 = 0x6D05CB94739FFB92CA96750EBF262A82C3ED8F05262DD26B503D732F0B74777E;
+// const ::Y: bool = true;
+// const ::X: int = 42;
+// interface ::Counter {
+//     storage {
+//         counter: int,
+//     }
+//     predicate foo (
+//         x: int,
+//         y: bool,
+//     );
+// }
+// 
+// predicate ::foo(
+// ) {
+//     let ::counter: int = __storage_get_extern(0x6D05CB94739FFB92CA96750EBF262A82C3ED8F05262DD26B503D732F0B74777E, {0});
+//     constraint (::counter' >= 100);
+//     constraint ::Counter[[0x6D05CB94739FFB92CA96750EBF262A82C3ED8F05262DD26B503D732F0B74777E]]::foo[[0x1111111111111111111111111111111111111111111111111111111111111111]](42, true);
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>

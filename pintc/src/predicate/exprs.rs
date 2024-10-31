@@ -529,6 +529,8 @@ impl<'a> Iterator for ExprsIter<'a> {
                 }
             }
 
+            Expr::ExternalStorageAccess { address, .. } => queue_if_new!(self, address),
+
             Expr::UnaryOp { expr, .. } => queue_if_new!(self, expr),
 
             Expr::BinaryOp { lhs, rhs, .. } => {
@@ -645,7 +647,6 @@ impl<'a> Iterator for ExprsIter<'a> {
 
             Expr::Error(_)
             | Expr::LocalStorageAccess { .. }
-            | Expr::ExternalStorageAccess { .. }
             | Expr::Path(_, _)
             | Expr::MacroCall { .. } => {}
         };
