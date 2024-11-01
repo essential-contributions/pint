@@ -4,6 +4,7 @@ use crate::{
     manifest,
     plan::{Graph, NodeIx, Pinned, PinnedManifests, Plan},
 };
+use clap::builder::styling::Style;
 use essential_types::{
     contract::Contract, predicate::Predicate as CompiledPredicate, ContentAddress,
 };
@@ -29,6 +30,28 @@ pub struct PrebuiltPkg<'p, 'b> {
     built_pkgs: &'b mut BuiltPkgs,
     /// The node of the package to be built.
     n: NodeIx,
+}
+
+#[derive(Default)]
+pub struct BuildOptions {
+    /// A 256-bit unsigned integer in hexadeciaml format that represents the contract "salt". The
+    /// value is left padded with zeros if it has less than 64 hexadecimal digits.
+    ///
+    /// The "salt" is hashed along with the contract's bytecode in order to make the address of the
+    /// contract unique.
+    ///
+    /// If "salt" is provided for a library package, an error is emitted.
+    pub salt: [u8; 32],
+    /// Print the parsed pint program.
+    pub print_parsed: bool,
+    /// Print the flattened pint program.
+    pub print_flat: bool,
+    /// Print the optimized pint program.
+    pub print_optimized: bool,
+    /// Print the assembly.
+    pub print_asm: bool,
+    /// Skip optimizing the pint program.
+    pub skip_optimize: bool,
 }
 
 /// A mapping from the node index to the associated built package.
@@ -158,13 +181,9 @@ impl<'p> PlanBuilder<'p> {
     }
 
     /// Build all remaining packages.
-    pub fn build_all(
-        mut self,
-        salt: [u8; 32],
-        skip_optimize: bool,
-    ) -> Result<BuiltPkgs, BuildError> {
+    pub fn build_all(mut self, options: &BuildOptions) -> Result<BuiltPkgs, BuildError> {
         while let Some(prebuilt) = self.next_pkg() {
-            if let Err(pkg_err) = prebuilt.build(salt, skip_optimize) {
+            if let Err(pkg_err) = prebuilt.build(options) {
                 let built_pkgs = self.built_pkgs;
                 return Err(BuildError {
                     built_pkgs,
@@ -188,13 +207,13 @@ impl<'p, 'b> PrebuiltPkg<'p, 'b> {
     }
 
     /// Build this package.
-    pub fn build(self, salt: [u8; 32], skip_optimize: bool) -> Result<&'b BuiltPkg, BuildPkgError> {
+    pub fn build(self, options: &BuildOptions) -> Result<&'b BuiltPkg, BuildPkgError> {
         let Self {
             plan,
             built_pkgs,
             n,
         } = self;
-        let built = build_pkg(plan, built_pkgs, n, salt, skip_optimize)?;
+        let built = build_pkg(plan, built_pkgs, n, options)?;
         built_pkgs.insert(n, built);
         Ok(&built_pkgs[&n])
     }
@@ -305,8 +324,7 @@ fn build_pkg(
     plan: &Plan,
     built_pkgs: &BuiltPkgs,
     n: NodeIx,
-    salt: [u8; 32],
-    skip_optimize: bool,
+    options: &BuildOptions,
 ) -> Result<BuiltPkg, BuildPkgError> {
     let graph = plan.graph();
     let pinned = &graph[n];
@@ -314,6 +332,12 @@ fn build_pkg(
     let entry_point = manifest.entry_point();
     let handler = pintc::error::Handler::default();
     let deps = dependencies(n, graph, plan.manifests(), built_pkgs);
+    let source_str = match pinned.source {
+        crate::source::Pinned::Member(_) => {
+            format!("{}", manifest.dir().display())
+        }
+        _ => format!("{}", pinned.source),
+    };
 
     // Parse the package from the entry point.
     let deps = deps
@@ -324,6 +348,19 @@ fn build_pkg(
         let kind = BuildPkgErrorKind::from(PintcError::Parse);
         return Err(BuildPkgError { handler, kind });
     };
+
+    let bold = Style::new().bold();
+    if options.print_parsed {
+        println!(
+            "   {}Printing parsed{} {} [{}] ({})",
+            bold.render(),
+            bold.render_reset(),
+            pinned.name,
+            manifest.pkg.kind,
+            source_str,
+        );
+        println!("\n{parsed}");
+    }
 
     // Type check the package.
     let Ok(contract) = handler.scope(|handler| parsed.type_check(handler)) else {
@@ -348,12 +385,36 @@ fn build_pkg(
                 return Err(BuildPkgError { handler, kind });
             };
 
+            if options.print_flat {
+                println!(
+                    "   {}Printing flattened{} {} [{}] ({})",
+                    bold.render(),
+                    bold.render_reset(),
+                    pinned.name,
+                    manifest.pkg.kind,
+                    source_str,
+                );
+                println!("\n{flattened}");
+            }
+
             // Perform optimizations on the flattened contract.
-            let optimized = if skip_optimize {
+            let optimized = if options.skip_optimize {
                 flattened
             } else {
                 flattened.optimize(&handler)
             };
+
+            if options.print_optimized {
+                println!(
+                    "   {}Printing optimized{} {} [{}] ({})",
+                    bold.render(),
+                    bold.render_reset(),
+                    pinned.name,
+                    manifest.pkg.kind,
+                    source_str,
+                );
+                println!("\n{optimized}");
+            }
 
             // Produce the ABI for the flattened contract.
             let Ok(abi) = optimized.abi(&handler) else {
@@ -362,10 +423,23 @@ fn build_pkg(
             };
 
             // Generate the assembly and the predicates.
-            let Ok(contract) = handler.scope(|h| compile_contract(h, salt, &optimized)) else {
+            let Ok(contract) = handler.scope(|h| compile_contract(h, options.salt, &optimized))
+            else {
                 let kind = BuildPkgErrorKind::from(PintcError::AsmGen);
                 return Err(BuildPkgError { handler, kind });
             };
+
+            if options.print_asm {
+                println!(
+                    "   {}Printing assembly for{} {} [{}] ({})",
+                    bold.render(),
+                    bold.render_reset(),
+                    pinned.name,
+                    manifest.pkg.kind,
+                    source_str,
+                );
+                println!("\n{contract}");
+            }
 
             // Collect the predicates alongside their content addresses.
             let predicates: Vec<_> = contract

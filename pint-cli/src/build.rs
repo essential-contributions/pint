@@ -26,10 +26,19 @@ pub(crate) struct Args {
     /// If "salt" is provided for a library package, an error is emitted.
     #[arg(long, value_parser = parse_hex)]
     salt: Option<[u8; 32]>,
-    /// Print the flattened pint program.
+    /// Print the parsed package.
+    #[arg(long = "print-parsed")]
+    print_parsed: bool,
+    /// Print the flattened package.
+    #[arg(long = "print-flat")]
+    print_flat: bool,
+    /// Print the optimized package.
     #[arg(long = "print-optimized")]
     print_optimized: bool,
-    /// Skip optimizing the pint program.
+    /// Print the assembly generated for the package.
+    #[arg(long = "print-asm")]
+    print_asm: bool,
+    /// Skip optimizing the package.
     #[arg(long = "skip-optimize", hide = true)]
     skip_optimize: bool,
     /// Don't print anything that wasn't explicitly requested.
@@ -102,6 +111,15 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
 
     // Build the given compilation plan.
     let mut builder = pint_pkg::build::build_plan(&plan);
+    let options = pint_pkg::build::BuildOptions {
+        salt: args.salt.unwrap_or_default(),
+        print_parsed: args.print_parsed,
+        print_flat: args.print_flat,
+        print_optimized: args.print_optimized,
+        print_asm: args.print_asm,
+        skip_optimize: args.skip_optimize,
+    };
+
     while let Some(prebuilt) = builder.next_pkg() {
         let pinned = prebuilt.pinned();
         let manifest = &plan.manifests()[&pinned.id()];
@@ -119,7 +137,7 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
         }
 
         // Build the package.
-        let _built = match prebuilt.build(args.salt.unwrap_or_default(), args.skip_optimize) {
+        let _built = match prebuilt.build(&options) {
             Ok(built) => {
                 built.print_warnings();
                 built
@@ -191,26 +209,6 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
                 if !args.silent {
                     println!("         {pipe} {:<name_col_w$} {}", name, predicate.ca);
                 }
-            }
-        }
-    }
-
-    // Print all optimized contract packages if the flag is set.
-    if args.print_optimized {
-        for &n in plan.compilation_order() {
-            let built = &builder.built_pkgs()[&n];
-            let pinned = &plan.graph()[n];
-            let manifest = &plan.manifests()[&pinned.id()];
-            let source_str = source_string(pinned, manifest.dir());
-            if let BuiltPkg::Contract(built) = built {
-                println!(
-                    "{}{}{} ({})",
-                    bold.render(),
-                    pinned.name,
-                    bold.render_reset(),
-                    source_str,
-                );
-                println!("{}", built.optimized);
             }
         }
     }
