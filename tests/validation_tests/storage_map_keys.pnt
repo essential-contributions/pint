@@ -32,10 +32,10 @@ predicate Test() {
     let f = mut storage::f[MyUnion::d({ 576, 0x0000000000000003000000000000000400000000000000030000000000000004 })];
     constraint f' == 652;
 
-    let g = mut storage::g[([0, 1, 2, 3, 4])];
+    let g = mut storage::g[[0, 1, 2, 3, 4]];
     constraint g' == 10;
 
-    let h = mut storage::h[([[{ false, 2 }, { true, 40 }, { false, 24 }], [{ true, 42 }, { false, 21 }, { false, 25 }]])];
+    let h = mut storage::h[[[{ false, 2 }, { true, 40 }, { false, 24 }], [{ true, 42 }, { false, 21 }, { false, 25 }]]];
     constraint h' == 49;
 
     let i = mut storage::i[MyUnion::a(false)]; // TODO: Change to MyAlias when alias access for unions is supported
