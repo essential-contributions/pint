@@ -647,16 +647,28 @@ impl ExprKey {
                 }
             }
 
-            Expr::LocalStorageAccess { .. }
-            | Expr::ExternalStorageAccess { .. }
-            | Expr::MacroCall { .. }
-            | Expr::Error(_) => expr,
+            Expr::LocalStorageAccess { .. } | Expr::MacroCall { .. } | Expr::Error(_) => expr,
             Expr::Path(ref path, ref span) => {
                 let span = span.clone();
                 values_map.get(path).map_or(expr, |value| Expr::Immediate {
                     value: value.clone(),
                     span,
                 })
+            }
+            Expr::ExternalStorageAccess {
+                interface,
+                address,
+                name,
+                span,
+            } => {
+                let address = address.plug_in(contract, values_map);
+
+                Expr::ExternalStorageAccess {
+                    interface,
+                    address,
+                    name,
+                    span,
+                }
             }
             Expr::UnaryOp { op, expr, span } => {
                 let expr = expr.plug_in(contract, values_map);

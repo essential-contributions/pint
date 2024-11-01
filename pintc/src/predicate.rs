@@ -87,7 +87,6 @@ impl Contract {
             Expr::Error(_)
             | Expr::Path(_, _)
             | Expr::LocalStorageAccess { .. }
-            | Expr::ExternalStorageAccess { .. }
             | Expr::MacroCall { .. }
             | Expr::Immediate { .. } => {}
 
@@ -113,6 +112,8 @@ impl Contract {
                     self.visitor_from_key(kind, *value, f);
                 }
             }
+
+            Expr::ExternalStorageAccess { address, .. } => self.visitor_from_key(kind, *address, f),
 
             Expr::UnaryOp { expr, .. } => self.visitor_from_key(kind, *expr, f),
 
@@ -645,7 +646,7 @@ impl Predicate {
     }
 
     /// Return an iterator to the 'root set' of expressions, based on the constraints, variables,
-    /// interface instances, and predicate instances.
+    /// if decls, and match decls.
     fn root_set(&self) -> impl Iterator<Item = ExprKey> + '_ {
         self.constraints
             .iter()
