@@ -58,7 +58,7 @@ predicate Foo(
     let my_map4_key1_30: b256 = mut storage::my_map4[{ true, 30 }];
     let my_map5_key490_1: bool = mut storage::my_map5[{ 490, 0x1111111111111111111111111111111111111111111111111111111111111111}];
     let my_map6_key01234: int = mut storage::my_map6[([0, 1, 2, 3, 4])];
-    let my_map7: int = mut storage::my_map7[([[{ false, 2 }, { true, 40 }, {false, 24}], [{ true, 42 }, { false, 21 }, {false, 25}]])];
+    let my_map7: int = mut storage::my_map7[([[{ false, 2 }, { true, 40 }, { false, 24 }], [{ true, 42 }, { false, 21 }, { false, 25 }]])];
     let my_nested_map0_key1_2: int = mut storage::my_nested_map0[1][2];
     let my_nested_map1_key2_3: { int, { b256, int } } = mut storage::my_nested_map1[2][0x3333333333333333333333333333333333333333333333333333333333333333];
     let my_array: int[5] = mut storage::my_array;
