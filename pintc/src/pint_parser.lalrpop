@@ -721,6 +721,7 @@ UnaryOp: ExprKey = {
         )
     },
     <PostfixOp>,
+    <StoragePostfixOp>,
 }
 
 PostfixOp: ExprKey = {
@@ -770,6 +771,67 @@ PostfixOp: ExprKey = {
     <Term>,
 }
 
+// Handle storage post fix ops separately since they're quite restricted
+StoragePostfixOp: ExprKey = {
+    <l:@L> <expr:StoragePostfixOp> "[" <index:Expr> "]" <r:@R> => {
+        let span = (context.span_from)(l, r);
+        context.contract.exprs.insert(
+            Expr::Index {
+                expr,
+                index,
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        )
+    },
+    <l:@L> <expr:StoragePostfixOp> "[[" <elements:SepList<Expr, ",">> "]""]" <r:@R> => {
+        // This special case is useful for when we have a map that is indexed with an array
+        // expression
+        let inner_span = (context.span_from)(l + 1, r - 1);
+        let inner_expr = context.build_array_expr(elements, inner_span.clone());
+
+        let inner_expr_key = context
+            .contract
+            .exprs
+            .insert(inner_expr, Type::Unknown(inner_span));
+
+        let span = (context.span_from)(l, r);
+        context.contract.exprs.insert(
+            Expr::Index {
+                expr,
+                index: inner_expr_key,
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        )
+    },
+    <l:@L> <expr:StoragePostfixOp> "[" "]" <r:@R> => {
+        let span = (context.span_from)(l, r);
+        handler.emit_err(Error::Parse {
+            error: ParseError::EmptyIndexAccess { span: span.clone() },
+        });
+
+        // Recover with a malformed expression
+        context
+            .contract
+            .exprs
+            .insert(Expr::Error(span.clone()), Type::Unknown(span))
+    },
+    <l:@L> <tuple:StoragePostfixOp> "." <name:Ident> <r:@R> => {
+        context.parse_tuple_field_op_with_ident(tuple, name, (l, r))
+    },
+    <l:@L> <tuple:StoragePostfixOp> "." <m:@L> <num_str:"int_lit"> <r:@R> => {
+        context.parse_tuple_field_op_with_int(handler, tuple, num_str, (l, m, r))
+    },
+    <l:@L> <tuple:StoragePostfixOp> "." <m:@L> <num_str:"real_lit"> <r:@R> => {
+        context.parse_tuple_field_op_with_real(handler, tuple, num_str, (l, m, r))
+    },
+    <p:StoragePath> => {
+        let span = p.span().clone();
+        context.contract.exprs.insert(p, Type::Unknown(span))
+    },
+}
+
 Term: ExprKey = {
     <e:TermInner> => {
         let span = e.span().clone();
@@ -803,7 +865,6 @@ TermInner: Expr = {
     TupleExpr,
     UnionExpr,
     <l:@L> <path:Path> <r:@R> => Expr::Path(path, (context.span_from)(l, r)),
-    StoragePath,
 }
 
 GeneratorRange: (Ident, ExprKey) = {
@@ -1178,6 +1239,8 @@ StoragePath: Expr = {
         }
     },
 }
+
+
 
 Immediate: Immediate = {
     <l:@L> <s:"int_lit"> <r:@R> => context.parse_int_immediate(handler, s, (l, r)),

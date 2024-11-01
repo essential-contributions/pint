@@ -1,3 +1,8 @@
+storage {
+    b0: (int[2] => {int, (int[3] => int)}),
+    b1: (int[2][2] => int),
+    b2: {int, ( int[2][2] => int[2] )},
+}
 
 predicate test() {
   let a0 = [[1]];
@@ -22,9 +27,29 @@ predicate test() {
   let a16 = [[[1, 1], [1, 1]], [[1, 1], [1, 1]]];
   let a17 = [[[1], [1], ]];
   let a18 = [[[[1, 1], [1, 1], ]], [[[1, 1], [1, 1], ]]];
+
+  let b0_access_1 = storage::b0[[1, 2]].1[[5, 6, 7]];
+  let b0_access_2 = storage::b0[ [1, 2]].1;
+  let b0_access_3 = storage::b0[[1, 2] ] .1 [ [5, 6, 7]];
+  let b0_access_4 = storage::b0[[1, 2]];
+
+  let b1_access_1 = storage::b1[[[2, 2], [3, 4]]];
+  let b1_access_2 = storage::b1[[ [2, 2], [3, 4]]];
+  let b1_access_3 = storage::b1[ [[2, 2], [3, 4]]];
+  let b1_access_4 = storage::b1[[[2, 2], [3, 4] ] ];
+  let b1_access_5 = storage::b1[[[2, 2], [3, 4] ]];
+
+  let b2_access_0 = storage::b2.1[[[2, 2], [3, 4] ]];
+  let b2_access_1 = storage::b2.1[[[2, 2], [3, 4] ]][1];
 }
 
 // parsed <<<
+// storage {
+//     b0: ( int[2] => {int, ( int[3] => int )} ),
+//     b1: ( int[2][2] => int ),
+//     b2: {int, ( int[2][2] => int[2] )},
+// }
+// 
 // predicate ::test(
 // ) {
 //     let ::a0 = [[1]];
@@ -46,31 +71,31 @@ predicate test() {
 //     let ::a16 = [[[1, 1], [1, 1]], [[1, 1], [1, 1]]];
 //     let ::a17 = [[[1], [1]]];
 //     let ::a18 = [[[[1, 1], [1, 1]]], [[[1, 1], [1, 1]]]];
+//     let ::b0_access_1 = storage::b0[[1, 2]].1[[5, 6, 7]];
+//     let ::b0_access_2 = storage::b0[[1, 2]].1;
+//     let ::b0_access_3 = storage::b0[[1, 2]].1[[5, 6, 7]];
+//     let ::b0_access_4 = storage::b0[[1, 2]];
+//     let ::b1_access_1 = storage::b1[[[2, 2], [3, 4]]];
+//     let ::b1_access_2 = storage::b1[[[2, 2], [3, 4]]];
+//     let ::b1_access_3 = storage::b1[[[2, 2], [3, 4]]];
+//     let ::b1_access_4 = storage::b1[[[2, 2], [3, 4]]];
+//     let ::b1_access_5 = storage::b1[[[2, 2], [3, 4]]];
+//     let ::b2_access_0 = storage::b2.1[[[2, 2], [3, 4]]];
+//     let ::b2_access_1 = storage::b2.1[[[2, 2], [3, 4]]][1];
 // }
 // >>>
 
-// flattened <<<
-// predicate ::test(
-// ) {
-//     let ::a0: int[1][1] = [[1]];
-//     let ::a1: int[2][1] = [[1, 1]];
-//     let ::a2: int[1][2] = [[1], [1]];
-//     let ::a3: int[2][2] = [[1, 1], [1]];
-//     let ::a4: int[2][3] = [[1, 1], [1], [1]];
-//     let ::a5: int[1][1] = [[1]];
-//     let ::a6: int[2][1] = [[1, 1]];
-//     let ::a7: int[1][2] = [[1], [1]];
-//     let ::a8: int[2][2] = [[1, 1], [1, 1]];
-//     let ::a9: int[2][3] = [[1, 1], [1, 1], [1, 1]];
-//     let ::a10: int[1][1] = [[1]];
-//     let ::a11: int[2][1] = [[1, 1]];
-//     let ::a12: int[1][2] = [[1], [1]];
-//     let ::a13: int[2][2] = [[1, 1], [1, 1]];
-//     let ::a14: int[2][3] = [[1, 1], [1, 1], [1, 1]];
-//     let ::a15: int[1][1][1] = [[[1]]];
-//     let ::a16: int[2][2][2] = [[[1, 1], [1, 1]], [[1, 1], [1, 1]]];
-//     let ::a17: int[1][2][1] = [[[1], [1]]];
-//     let ::a18: int[2][2][1][2] = [[[[1, 1], [1, 1]]], [[[1, 1], [1, 1]]]];
-//     constraint __eq_set(__mut_keys(), {0});
-// }
+// These failures are expected until all non-storage types are supported as storage map keys
+// typecheck_failure <<<
+// type not allowed in storage
+// @18..52: found type ( int[2] => {int, ( int[3] => int )} ) in storage
+// type not allowed in storage
+// @62..80: found type ( int[2][2] => int ) in storage
+// type not allowed in storage
+// @90..120: found type {int, ( int[2][2] => int[2] )} in storage
+// predicate parameters cannot have storage types
+// @760..800: found parameter of storage type ( int[3] => int ) here
+// predicate parameters cannot have storage types
+// @862..899: found parameter of storage type {int, ( int[3] => int )} here
+// type of parameter depends on the storage type `( int[3] => int )`
 // >>>
