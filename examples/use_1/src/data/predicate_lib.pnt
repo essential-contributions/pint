@@ -1,6 +1,6 @@
 // Module data::predicate_lib
 
-type Data = { 
+type Data = {
     address: b256,
-    paramters: int,
+    parameters: int,
 };

@@ -4,8 +4,8 @@ Local variables in Pint are similar to local variables in other languages with a
 In Pint, variables **must** be initialized and are **immutable**. They basically hold values and
 help you write readable code, but are not meant to be modified. This is an important property that
 allows Pint to be fully declarative with _no control flow_. In Pint, the order in which you write
-your statements (variable declarations, constraints, etc.) is completely irrelevant and has no
-impact on the behavior of the code.
+your statements (variable declarations, constraints, etc.) is unimportant and has no impact on the
+behavior of the code.
 
 In order to declare a new variable, we use the `let` keyword:
 
@@ -17,7 +17,7 @@ The first `let` declares a variable named `x` and assigns its value to `5`. The 
 declares a variable named `y` and assigns its value to `6`. The constraint `y - x == 1` references
 `x` and `y` using their names and is obviously always `true` in this case since `6 - 5 == 1`.
 
-Note that, while `y` is annotated with type `int`, we opted not annotate `x` with a type; we're
+Note that, while `y` is annotated with type `int`, we opted to omit a type annotation for `x`; we're
 relying on the compiler to _infer_ its type to be `int` since the initializing expression is `5`
 which is an `int`.
 

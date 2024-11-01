@@ -40,7 +40,7 @@ __size_of(data: _) -> int
 **Description:** Returns the size, in words, of an expression. This is often the same as the size of
 the type of the expression (e.g. 1 word for `int`, 4 words for `b256`, 3 words for `{int, int,
 bool}`, and so on). However, it can also be different, namely for expressions that can be `nil` such
-as storage accesses and paths local variables.
+as storage accesses and paths to local variables.
 
 ---
 
