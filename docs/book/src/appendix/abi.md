@@ -2,9 +2,9 @@
 
 The Application Binary Interface (ABI) is a condensed representation of a smart contract that
 exposes enough information about the contract to allow external contexts to interact with it. The
-ABI does not contain any contract _logic_ but only its data such as its storage variables, its
-predicates, its decision variables, and so on. The ABI is serialized in JSON format, making it both
-human readable and easily parsable by relevant tools.
+ABI does not contain any contract _logic_ but only its public data such as its storage variables and
+its predicates. The ABI is serialized in JSON format, making it both human readable and easily
+parsable by relevant tools.
 
 > **Note** This particular ABI specification is mostly relevant for the EssentialVM. Other virtual
 > machines may have different architectures, requiring a completely different ABI format.
@@ -29,18 +29,13 @@ This is an array that describes every predicate in the contract. Each entry in t
 object that contains the following properties:
 
 - `"name"`: a string representing the name of the predicate.
-- `"vars"`: an array that contains every private (i.e. non-`pub`) decision variable in the contract.
-  Each entry in this array is a JSON object that contains the following properties:
-  - `"name"`: a string representing the name of the decision variable.
-  - `"ty"`: a JSON object representing the type of the decision variable. This is further explained
+- `"params"`: an array that contains the parameters of the predicate. Each entry in this array is a
+  JSON object that contains the following properties:
+  - `"name"`: a string representing the name of the parameter.
+  - `"ty"`: a JSON object representing the type of the parameter. This is further explained
     in [JSON Representation of Types](#json-representation-of-types).
-- `"pub_vars"`: an array that contains every public decision variable in the contract. Each entry in
-  this array is a JSON object that contains the following properties:
-  - `"name"`: a string representing the name of the public decision variable.
-  - `"ty"`: a JSON object representing the type of the public decision variable. This is further
-    explained in [JSON Representation of Types](#json-representation-of-types).
 
-> **Note**: The order in which private decision variables show up in the JSON is important and must
+> **Note**: The order in which the predicate parameters show up in the JSON is important and must
 > match the order in which they are declared in the Pint code. When constructing a solution, that
 > same order should also be respected.
 
@@ -159,16 +154,16 @@ Here's an example contract and its corresponding JSON ABI:
 
 Here's how we would interpret this JSON ABI:
 
-- This contract has a single predicate called `::Foo`, which is the _full path_ of the `Foo`
+- This contract has a single predicate called `::foo`, which is the _full path_ of the `foo`
   predicate in the contract above.
-- Predicate `::Foo` has two private decision variables:
+- Predicate `::foo` has three parameters:
   - At index 0, we have `::v0` of type `int`.
   - At index 1, we have `::v1` of type `bool[5]`.
-- Predicate `::Foo` has two public decision variables:
-  - The first is called `::t0`. Its an array of 5 tuples, where each tuple contains two `int`s
+  - At index 2, we have `::v2` of type `U` which is a union with three variants `U::A`, `U::B`, and
+    `U::C`.
+  - At index 3, we have `::v3`. It's an array of 5 tuples, where each tuple contains two `int`s
     with no field names.
-  - The second is called `::t1` and is an array of 3 `b256`s.
-- The contract also has three storage variables:
+- The contract also has four storage variables:
   - The first is called `s0` and is of type `b256`.
   - The second is called `s1` and is a tuple of two `int`s.
   - The third is called `my_map` and is a storage map from `int` to a tuple of two `int`s.

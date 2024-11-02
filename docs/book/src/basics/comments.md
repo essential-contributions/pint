@@ -7,7 +7,7 @@ ignore but people reading the source code may find useful.
 Here’s a simple comment:
 
 ```pint
-{{#include ../../../../examples/ch_3_3.pnt:one_line_comment}}
+{{#include ../../../../examples/comments.pnt:one_line_comment}}
 ```
 
 In Pint, the only comment style supported starts a comment with two slashes, and the comment
@@ -15,18 +15,18 @@ continues until the end of the line. For comments that extend beyond a single li
 include `//` on each line, like this:
 
 ```pint
-{{#include ../../../../examples/ch_3_3.pnt:multi_line_comment}}
+{{#include ../../../../examples/comments.pnt:multi_line_comment}}
 ```
 
 Comments can also be placed at the end of lines containing code:
 
 ```pint
-{{#include ../../../../examples/ch_3_3.pnt:eol_comment}}
+{{#include ../../../../examples/comments.pnt:eol_comment}}
 ```
 
 But you’ll more often see them used in this format, with the comment on a separate line above the
 code it’s annotating:
 
 ```pint
-{{#include ../../../../examples/ch_3_3.pnt:pre_comment}}
+{{#include ../../../../examples/comments.pnt:pre_comment}}
 ```

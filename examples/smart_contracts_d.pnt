@@ -1,0 +1,11 @@
+// ANCHOR: interface 
+interface Counter {
+    storage {
+        counter: int,
+    }
+
+    predicate Initialize(value: int);
+
+    predicate Increment(amount: int);
+}
+// ANCHOR_END: interface 

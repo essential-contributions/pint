@@ -16,11 +16,11 @@ alternatives must have the same type and that type determines the type of the wh
 expression. For example:
 
 ```pint
-{{#include ../../../../examples/ch_3_4_a.pnt:basic_select}}
+{{#include ../../../../examples/conditionals_a.pnt:basic_select}}
 ```
 
 All select expressions start with a condition followed by the `?` symbol. In this case, the
-condition checks whether or not the decision variable `number` has a value less than 5. We place the
+condition checks whether or not the local variable `number` has a value less than 5. We place the
 expression that should be chosen if the condition is `true` immediately after the `?` symbol. The
 symbol `:` is then added followed by the expression that should be chosen if the condition is
 `false`. Both options, `1` and `2`, have the same type which is `int` and so, the type of `y` must
@@ -30,42 +30,43 @@ If, for example, the types of the two expressions we're selecting from do not ma
 will emit a compile error. For example, if we try to compile the following code:
 
 ```pint
-var number: int;
-
-var y = number < 5 ? 1 : true;
+predicate test(number: int) {
+    let y = number < 5 ? 1 : true;
+}
 ```
 
 we will get the following error:
 
 ```console
 Error: branches of a select expression must have the same type
-   ╭─[test.pnt:3:9]
+   ╭─[test.pnt:2:13]
    │
- 3 │ var y = number < 5 ? 1 : true;
-   │                      ┬   ──┬─
-   │                      ╰───────── 'then' branch has the type `int`
-   │                            │
-   │                            ╰─── 'else' branch has the type `bool`
+ 2 │     let y = number < 5 ? 1 : true;
+   │                          ┬   ──┬─
+   │                          ╰───────── 'then' branch has the type `int`
+   │                                │
+   │                                ╰─── 'else' branch has the type `bool`
+───╯
 ```
 
 The condition of a select expression must be a `bool`. Otherwise, we will get a compile error. For
 example, if we try to compile the following code:
 
 ```pint
-var number: int;
-
-var y = number ? 1 : 2;
+predicate test(number: int) {
+    let y = number ? 1 : 2;
+}
 ```
 
 we will get the following error:
 
 ```console
 Error: condition for select expression must be a `bool`
-   ╭─[test.pnt:3:9]
+   ╭─[test.pnt:2:13]
    │
- 3 │ var y = number ? 1 : 2;
-   │         ───┬──
-   │            ╰──── invalid type `int`, expecting `bool`
+ 2 │     let y = number ? 1 : 2;
+   │             ───┬──
+   │                ╰──── invalid type `int`, expecting `bool`
 ───╯
 ```
 
@@ -79,7 +80,7 @@ limited to only two branches. They provide selection from multiple alternatives,
 condition. For example:
 
 ```pint
-{{#include ../../../../examples/ch_3_4_a.pnt:basic_cond}}
+{{#include ../../../../examples/conditionals_a.pnt:basic_cond}}
 ```
 
 All `cond` expressions start with the keyword `cond`, followed by a comma-separated list of
@@ -97,7 +98,7 @@ to be more compact and more readable than nested select expressions. for example
 expression in the example above is equivalent to:
 
 ```pint
-{{#include ../../../../examples/ch_3_4_b.pnt:cond_unrolled}}
+{{#include ../../../../examples/conditionals_b.pnt:cond_unrolled}}
 ```
 
 similarly to select expressions, all candidate expressions must have the same type which determines
@@ -112,16 +113,16 @@ they allow predicating _blocks of code_ based on some condition. A block of code
 an `if` statement is a collection of constraints and other `if` statements. For example:
 
 ```pint
-{{#include ../../../../examples/ch_3_4_a.pnt:basic_if}}
+{{#include ../../../../examples/conditionals_a.pnt:basic_if}}
 ```
 
 All `if` statements start with the keyword `if`, followed by a condition. In this case, the
-condition checks whether or not the decision variable `number` has a value less than 5. The code
-block that should be "active" if the condition is `true` is placed immediate after the condition
-inside curly brackets. Optionally, the keyword `else` is then added followed by the code block that
-should be active if the condition is `false` (also between curly brackets). In the example above,
-the `if` statement can be read as follows: "if `number` is less than 5, then `x` must be equal to
-`y`. Otherwise, `x` must not be equal to `y`".
+condition checks whether or not the local variable `number` has a value less than 5. The code block
+that should be "active" if the condition is `true` is placed immediate after the condition inside
+curly brackets. Optionally, the keyword `else` is then added followed by the code block that should
+be active if the condition is `false` (also between curly brackets). In the example above, the `if`
+statement can be read as follows: "if `number` is less than 5, then `x` must be equal to `y`.
+Otherwise, `x` must not be equal to `y`".
 
 Similarly to select expressions, the condition of an `if` statement must be a `bool`. Otherwise we
 will get a compile error.
@@ -129,5 +130,5 @@ will get a compile error.
 `if` statements can be nested and can contain an arbitrary number of constraints:
 
 ```pint
-{{#include ../../../../examples/ch_3_4_a.pnt:complex_if}}
+{{#include ../../../../examples/conditionals_a.pnt:complex_if}}
 ```

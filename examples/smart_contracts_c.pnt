@@ -1,0 +1,17 @@
+// ANCHOR: interface 
+interface ExternalContract {
+    storage {
+        // storage variables
+    }
+
+    predicate Foo(
+        //  parameters
+    );
+
+    predicate Bar(
+        // parameters     
+    );
+
+    // other predicate interfaces 
+}
+// ANCHOR_END: interface

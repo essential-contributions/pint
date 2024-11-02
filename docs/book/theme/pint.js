@@ -2,7 +2,7 @@ hljs.registerLanguage("pint", (hljs) => ({
   name: "Pint",
   keywords: {
     keyword:
-      "as bool b256 cond const constraint else exists false forall if in int interface macro match mut nil predicate pub real satisfy self state storage string true type use union var where",
+      "as bool b256 cond const constraint else exists false forall if in int interface let macro match mut nil predicate real self storage string true type union use where",
     literal: "false true",
   },
   contains: [

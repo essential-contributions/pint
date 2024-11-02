@@ -7,10 +7,10 @@ storage {
     my_union: U
 }
 
-predicate Foo(
+predicate foo(
     v0: int,
     v1: bool[5],
     v2: U,
+    v3: { int, int }[5], 
 ) {
 }
-

@@ -4,8 +4,6 @@
 
 - [#913](https://github.com/essential-contributions/pint/issues/913): type checker sometimes misses
   type errors in `const` initializers.
-- [#908](https://github.com/essential-contributions/pint/issues/908): some array sanity checks are
-  not performed for `const` initializers.
 
 ### Missing Features
 

@@ -1,0 +1,40 @@
+// ANCHOR: interface
+interface MyInterface {
+    predicate foo(
+        x: int,
+        y: bool,
+        t: { int, bool },
+    );
+
+    // other predicates
+}
+// ANCHOR_END: interface
+
+// ANCHOR: invoking
+const CONTRACT_ADDR = 0xEB87FCE275A9AB10996D212F39221A56B90E01C37FA9D16EE04A3FE8E17DEED9;
+const FOO_ADDR = 0xBA6595C5C75346E6C82BED0CE770D0758ADD1712163FCE45E38E5E8EAC6AA153;
+
+predicate bar(
+    a: int,
+    b: bool,
+) {
+    let tuple = { 42, b };
+// ANCHOR: constraint 
+    constraint MyInterface[[CONTRACT_ADDR]]::foo[[FOO_ADDR]](a, true, tuple);
+// ANCHOR_END: constraint 
+}
+// ANCHOR_END: invoking
+
+// ANCHOR: sibling
+predicate A(
+    a: { bool, int },
+    b: bool,
+    c: int[3], 
+) {
+    // predicate logic
+}
+
+predicate B() {
+    constraint A[[]]( { true, 42 }, false, [1, 2, 3]);
+}
+// ANCHOR: sibling
