@@ -1,0 +1,350 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Invoking Predicates - The Book of Pint</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var html = document.querySelector('html');
+            var sidebar = null;
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../the-book-of-pint.html">The Book of Pint</a></li><li class="chapter-item expanded "><a href="../getting_started/index.html"><strong aria-hidden="true">1.</strong> Getting Started</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../getting_started/installation.html"><strong aria-hidden="true">1.1.</strong> Installation</a></li><li class="chapter-item expanded "><a href="../getting_started/quickstart.html"><strong aria-hidden="true">1.2.</strong> Quickstart Guide</a></li></ol></li><li class="chapter-item expanded "><a href="../examples/index.html"><strong aria-hidden="true">2.</strong> Examples</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../examples/counter.html"><strong aria-hidden="true">2.1.</strong> Counter</a></li><li class="chapter-item expanded "><a href="../examples/subcurrency.html"><strong aria-hidden="true">2.2.</strong> Subcurrency</a></li></ol></li><li class="chapter-item expanded "><a href="../smart_contracts/index.html"><strong aria-hidden="true">3.</strong> Pint Smart Contracts</a></li><li class="chapter-item expanded "><a href="../basics/index.html"><strong aria-hidden="true">4.</strong> Common Programming Concepts</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../basics/variables.html"><strong aria-hidden="true">4.1.</strong> Variables</a></li><li class="chapter-item expanded "><a href="../basics/data_types.html"><strong aria-hidden="true">4.2.</strong> Data Types</a></li><li class="chapter-item expanded "><a href="../basics/comments.html"><strong aria-hidden="true">4.3.</strong> Comments</a></li><li class="chapter-item expanded "><a href="../basics/conditionals.html"><strong aria-hidden="true">4.4.</strong> Conditionals</a></li><li class="chapter-item expanded "><a href="../basics/custom_types.html"><strong aria-hidden="true">4.5.</strong> Custom Types</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../basics/custom_types/type_aliases.html"><strong aria-hidden="true">4.5.1.</strong> Type Aliases</a></li><li class="chapter-item expanded "><a href="../basics/custom_types/unions.html"><strong aria-hidden="true">4.5.2.</strong> Unions</a></li><li class="chapter-item expanded "><a href="../basics/custom_types/match.html"><strong aria-hidden="true">4.5.3.</strong> The match Construct</a></li></ol></li><li class="chapter-item expanded "><a href="../basics/constraints.html"><strong aria-hidden="true">4.6.</strong> Constraints</a></li><li class="chapter-item expanded "><a href="../basics/constants.html"><strong aria-hidden="true">4.7.</strong> Constants</a></li></ol></li><li class="chapter-item expanded "><a href="../storage/index.html"><strong aria-hidden="true">5.</strong> Storage</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../storage/static.html"><strong aria-hidden="true">5.1.</strong> Statically-Sized Storage Types</a></li><li class="chapter-item expanded "><a href="../storage/dynamic.html"><strong aria-hidden="true">5.2.</strong> Dynamically-Sized Storage Types</a></li><li class="chapter-item expanded "><a href="../storage/external.html"><strong aria-hidden="true">5.3.</strong> External Storage Access</a></li></ol></li><li class="chapter-item expanded "><a href="../projects/index.html"><strong aria-hidden="true">6.</strong> Managing Growing Projects</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../projects/packages.html"><strong aria-hidden="true">6.1.</strong> Pint Projects</a></li><li class="chapter-item expanded "><a href="../projects/modules.html"><strong aria-hidden="true">6.2.</strong> Defining Modules</a></li><li class="chapter-item expanded "><a href="../projects/paths.html"><strong aria-hidden="true">6.3.</strong> Paths for Referring to an item in a Module Tree</a></li><li class="chapter-item expanded "><a href="../projects/use.html"><strong aria-hidden="true">6.4.</strong> Bringing Paths into Scope with the use Keyword</a></li></ol></li><li class="chapter-item expanded "><a href="../advanced/index.html"><strong aria-hidden="true">7.</strong> Advanced Features</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../advanced/invoking_predicates.html" class="active"><strong aria-hidden="true">7.1.</strong> Invoking Predicates</a></li><li class="chapter-item expanded "><a href="../advanced/macros.html"><strong aria-hidden="true">7.2.</strong> Macros</a></li></ol></li><li class="chapter-item expanded "><a href="../pint-reference/index.html"><strong aria-hidden="true">8.</strong> Pint Reference</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../pint-reference/cli.html"><strong aria-hidden="true">8.1.</strong> Commands</a></li><li class="chapter-item expanded "><a href="../pint-reference/manifest.html"><strong aria-hidden="true">8.2.</strong> Manifest</a></li></ol></li><li class="chapter-item expanded "><a href="../appendix/index.html"><strong aria-hidden="true">9.</strong> Appendix</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../appendix/keywords.html"><strong aria-hidden="true">9.1.</strong> A - Keywords</a></li><li class="chapter-item expanded "><a href="../appendix/intrinsics.html"><strong aria-hidden="true">9.2.</strong> B - Compiler Intrinsics</a></li><li class="chapter-item expanded "><a href="../appendix/abi.html"><strong aria-hidden="true">9.3.</strong> C - Application Binary Interface (ABI) Spec</a></li><li class="chapter-item expanded "><a href="../appendix/known_issues.html"><strong aria-hidden="true">9.4.</strong> A - Known Issues and Missing Features</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The Book of Pint</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/essential-contributions/pint" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h2 id="invoking-predicates"><a class="header" href="#invoking-predicates">Invoking Predicates</a></h2>
+<p>If you've worked with imperative smart contract languages like <a href="https://soliditylang.org/">Solidity</a>
+in the past, you know that interactions between smart contracts are essential for many applications.
+One way to do this is by <em>calling</em> one contract from another contract. Pint has a similar concept
+where one predicate can <em>invoke</em> another predicate with some arguments. We use the word &quot;invoke&quot;
+here instead of &quot;call&quot; because, unlike imperative languages, predicates in Pint are not called in
+the traditional sense since that would imply the existence of a control flow (a &quot;call&quot; followed by a
+&quot;return&quot;). Instead, in Pint, predicate <code>A</code> can invoke predicate <code>B</code> with some arguments to indicate
+that <strong><code>B</code> has to be present in the solution with this particular set of arguments, if <code>A</code> is also
+present in the solution</strong>. If this sounds confusing, don't worry. It will all be clear by the end of
+this chapter.</p>
+<p>We cover two types of predicate invocations:</p>
+<ol>
+<li>External predicate invocation.</li>
+<li>Sibling predicate invocation.</li>
+</ol>
+<h3 id="invoking-external-predicates"><a class="header" href="#invoking-external-predicates">Invoking External Predicates</a></h3>
+<p>Similar to accessing external storage, a predicate in an external contract can be invoked through an
+<code>interface</code> declaration corresponding to the external contract. When invoking the external
+predicate, the following are needed:</p>
+<ol>
+<li>The address of the external contract.</li>
+<li>The address of the predicate we want to access in that contract.</li>
+<li>A list of arguments.</li>
+</ol>
+<p>Consider the following external smart contract that we would like interact with:</p>
+<pre><code class="language-pint">predicate foo(
+    x: int,
+    y: bool,
+    t: { int, bool },
+) {
+    // predicate logic
+}
+
+// other predicates
+</code></pre>
+<p>To interact with this contract, we first need to generate its interface:</p>
+<pre><code class="language-pint">interface MyInterface {
+    predicate foo(
+        x: int,
+        y: bool,
+        t: { int, bool },
+    );
+
+    // other predicates
+}
+</code></pre>
+<p>Now, we can invoke predicate <code>foo</code> as follows:</p>
+<pre><code class="language-pint">const CONTRACT_ADDR = 0xEB87FCE275A9AB10996D212F39221A56B90E01C37FA9D16EE04A3FE8E17DEED9;
+const FOO_ADDR = 0xBA6595C5C75346E6C82BED0CE770D0758ADD1712163FCE45E38E5E8EAC6AA153;
+
+predicate bar(
+    a: int,
+    b: bool,
+) {
+    let tuple = { 42, b };
+    constraint MyInterface[[CONTRACT_ADDR]]::foo[[FOO_ADDR]](a, true, tuple);
+}
+</code></pre>
+<p>The predicate invocation expression has three parts separated by <code>::</code>:</p>
+<ol>
+<li>The name of the interface <code>MyInterface</code> followed by the address of the corresponding deployed
+contract in between <code>[[..]]</code>. This is quite similar to what we had to do to access external
+storage variables.</li>
+<li>The name of the predicate <code>foo</code> followed by the address of the corresponding predicate in the
+deployed contract.</li>
+<li>A list of arguments that must match the list parameters of <code>foo</code> in the <code>interface</code>.</li>
+</ol>
+<p>In the above, the constraint:</p>
+<pre><code class="language-pint">    constraint MyInterface[[CONTRACT_ADDR]]::foo[[FOO_ADDR]](a, true, tuple);
+</code></pre>
+<p>can be interpreted as follows: any solution that solves predicate <code>bar</code> must also contain a solution
+for predicate <code>foo</code> such that:</p>
+<ol>
+<li>The address of <code>foo</code> is <code>FOO_ADDR</code>.</li>
+<li>The address of the contract that contains <code>foo</code> is <code>CONTRACT_ADDR</code>.</li>
+<li>The arguments provided for <code>foo</code> in the solution are equal to <code>a</code>, <code>true</code>, and <code>tuple</code>
+respectively.</li>
+</ol>
+<p>Of course, for <code>foo</code> to be actually satisfied, the containing contract must exist and be deployed,
+the addresses must be correct, and the arguments must match (in number and types) what the deployed
+bytecode of <code>foo</code> actually expects.</p>
+<h3 id="invoking-sibling-predicates"><a class="header" href="#invoking-sibling-predicates">Invoking Sibling Predicates</a></h3>
+<p>A special case for invoking predicates is when the invoked predicate is in the same contract as the
+predicate that is invoking it. There is no conceptual difference between this special case and the
+generalized case above expect that, because we are working in the same contract, there is no need to
+declare an interface for the contract. There is also no need to specify the address of the invoked
+predicate because the compiler can figure that out on its own! Here's an example:</p>
+<pre><code class="language-pint">predicate A(
+    a: { bool, int },
+    b: bool,
+    c: int[3], 
+) {
+    // predicate logic
+}
+
+predicate B() {
+    constraint A[[]]( { true, 42 }, false, [1, 2, 3]);
+}
+</code></pre>
+<p>Here, predicate <code>B</code> invokes <em>sibling</em> predicate <code>A</code> by using its path (just <code>A</code>) and empty square
+brackets <code>[[]]</code> to indicate that the address is to be computed by the compiler. The constraint
+<code>constraint A[[]](..)</code> should be interpreted exactly as in the case of external predicate
+invocation: any solution that solves <code>B</code> should also contain a solution for <code>A</code> with the provided
+listed arguments.</p>
+<p>One important caveat of the above is that you are not allowed to have <em>cyclical dependencies</em>
+between predicates. For example:</p>
+<pre><code class="language-pint">predicate A(x: int) {
+    constraint B[[]](0);
+}
+
+predicate B(y: int) {
+    constraint A[[]](0);
+}
+</code></pre>
+<p>Here, predicate <code>A</code> invokes predicate <code>B</code> and predicate <code>B</code> invokes predicate <code>A</code>. This causes a
+cycle where the address of a predicate cannot be determined and used by the other. The compiler will
+emit the following error to prevent you from proceeding:</p>
+<pre><code class="language-console">Error: dependency cycle detected between predicates
+   ╭─[invoking_predicates_3.pnt:1:1]
+   │
+ 1 │ predicate A(x: int) {
+   │ ─────┬─────
+   │      ╰─────── this predicate is on the dependency cycle
+   │
+ 7 │ predicate B(y: int) {
+   │ ─────┬─────
+   │      ╰─────── this predicate is on the dependency cycle
+   │
+   │ Note: dependency between predicates is typically created via predicate instances
+───╯
+</code></pre>
+<p>Another caveat is that a predicate cannot reference itself:</p>
+<pre><code class="language-pint">predicate C(x: int) {
+    constraint C[[]](x);
+}
+</code></pre>
+<p>The compiler will complain as follows:</p>
+<pre><code class="language-console">Error: self referential predicate `::C`
+   ╭─[invoking_predicates_4.pnt:2:16]
+   │
+ 2 │     constraint C[[]](x);
+   │                ────┬───
+   │                    ╰───── this predicate call references the predicate it's declared in
+───╯
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../advanced/index.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="../advanced/macros.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../advanced/index.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="../advanced/macros.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/pint.js"></script>
+        <script src="../theme/bnf.js"></script>
+
+
+    </div>
+    </body>
+</html>
