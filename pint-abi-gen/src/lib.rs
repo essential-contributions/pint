@@ -10,7 +10,6 @@
 //! - A `mod` representing `storage`.
 //! - For each `predicate`, a module with the following:
 //!     - A `Vars` struct for the predicate's decision variables.
-//!     - A `PubVars` struct for the predicate's public decision variables.
 //!
 //! The aim for the generated items is to ease the construction of solutions
 //! including the encoding of keys, values and mutations from higher-level types.
