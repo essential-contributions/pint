@@ -6,7 +6,10 @@ use pint_pkg::{
     build::BuiltPkg,
     manifest::{ManifestFile, PackageKind},
 };
-use std::path::{Path, PathBuf};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 
 /// Build a package, writing the generated artifacts to `out/`.
 #[derive(Parser, Debug)]
@@ -105,14 +108,14 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
     }
 
     let name = manifest.pkg.name.to_string();
-    let members = [(name, manifest)].into_iter().collect();
+    let members = [(name, manifest.clone())].into_iter().collect();
     // TODO: Print fetching process here when remote deps included.
     let plan = pint_pkg::plan::from_members(&members).context("failed to plan compilation")?;
 
     // Build the given compilation plan.
     let mut builder = pint_pkg::build::build_plan(&plan);
     let options = pint_pkg::build::BuildOptions {
-        salt: args.salt.unwrap_or_default(),
+        salts: HashMap::from_iter([(manifest, args.salt.unwrap_or_default())]),
         print_parsed: args.print_parsed,
         print_flat: args.print_flat,
         print_optimized: args.print_optimized,

@@ -41,7 +41,7 @@ pub struct BuildOptions {
     /// contract unique.
     ///
     /// If "salt" is provided for a library package, an error is emitted.
-    pub salt: [u8; 32],
+    pub salts: HashMap<manifest::ManifestFile, [u8; 32]>,
     /// Print the parsed pint program.
     pub print_parsed: bool,
     /// Print the flattened pint program.
@@ -423,8 +423,13 @@ fn build_pkg(
             };
 
             // Generate the assembly and the predicates.
-            let Ok(contract) = handler.scope(|h| compile_contract(h, options.salt, &optimized))
-            else {
+            let Ok(contract) = handler.scope(|h| {
+                compile_contract(
+                    h,
+                    *options.salts.get(manifest).unwrap_or(&[0; 32]),
+                    &optimized,
+                )
+            }) else {
                 let kind = BuildPkgErrorKind::from(PintcError::AsmGen);
                 return Err(BuildPkgError { handler, kind });
             };

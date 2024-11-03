@@ -7,6 +7,7 @@ use pint_pkg::{
     build::{build_plan, BuiltPkg},
     manifest::PackageKind,
 };
+use std::collections::HashMap;
 use util::{edit_manifest, insert_dep, new_pkg, with_temp_dir};
 
 mod util;
@@ -35,11 +36,13 @@ fn build_default_library() {
 fn build_default_contract_with_salt() {
     with_temp_dir(|dir| {
         let foo = new_pkg(&dir.join("foo"), PackageKind::Contract);
-        let members = [(foo.pkg.name.to_string(), foo)].into_iter().collect();
+        let members = [(foo.pkg.name.to_string(), foo.clone())]
+            .into_iter()
+            .collect();
         let plan = pint_pkg::plan::from_members(&members).unwrap();
         let built = build_plan(&plan)
             .build_all(&pint_pkg::build::BuildOptions {
-                salt: [42; 32],
+                salts: HashMap::from_iter([(foo, [42; 32])]),
                 ..Default::default()
             })
             .unwrap();
