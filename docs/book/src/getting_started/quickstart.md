@@ -32,14 +32,14 @@ projects
         └── contract.pnt
 ```
 
-The auto-generated `pint.toml` file describes how to build the project. The `src/contract.pnt` file is
-the root file of a contract project, i.e., this is where the compilation starts when we build the
+The auto-generated `pint.toml` file describes how to build the project. The `src/contract.pnt` file
+is the root file of a contract project, i.e., this is where the compilation starts when we build the
 project.
 
 Open the `pint.toml` and inspect its content:
 
 ```toml
-{{#include ../../../../examples/ch_1_2/pint.toml}}
+{{#include ../../../../examples/quickstart/pint.toml}}
 ```
 
 The one thing to note is that the `kind` field in this `pint.toml` is set to `contract`. This is the
@@ -50,14 +50,14 @@ default project kind. Alternatively, `kind` can be a _library_.
 Next, open the `src/contract.pnt` file and erase its content. Then, paste the following:
 
 ```pint
-{{#include ../../../../examples/ch_1_2/src/contract.pnt}}
+{{#include ../../../../examples/quickstart/src/contract.pnt}}
 ```
 
 This is a contract with a single predicate and a single storage variable. The storage variable
 `counter`, of type `int` (i.e. integer), is declared in a `storage` block. The only predicate in
 this contract is called `Increment` and contains two statements:
 
-1. A `state` declaration which reads the variable `counter`.
+1. A `let` declaration which reads the variable `counter`.
 1. A `constraint` statement which enforces some logic on the state of the contract.
 
 The above constraint is essentially saying: "if `counter` hasn't been set yet (i.e. is `nil`), set

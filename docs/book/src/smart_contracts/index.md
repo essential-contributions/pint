@@ -6,10 +6,12 @@ familiar. Of course, at its core, Pint is fundamentally different from imperativ
 languages. Writing smart contracts in Pint requires a different way of thinking about how to express
 the rules that the smart contract must enforce.
 
-A Pint contract is a **collection of predicates**. Each predicate has a name and contains a list of
-constraints. A contract may also contain a `storage` declaration which contain all the storage
-variable that the contract owns. Contract storage is effectively the database of the contract where
-persistent state lives. We will discuss storage in details in [Chapter 5](../storage/index.md).
+A Pint contract is a **collection of predicates**. Each predicate has a name, a list of typed
+parameters, and a list of constraints. Predicates of a smart contract describe the various ways
+**state can be mutated** in order to accomplish certain tasks (e.g. token transfer). A contract may
+also contain a `storage` declaration which contain all the storage variable that the contract owns.
+Contract storage is effectively the database of the contract where persistent state lives. We will
+discuss storage in details in [Chapter 5](../storage/index.md).
 
 ### Contract Structure
 
@@ -17,19 +19,50 @@ The structure of a Pint smart contract is fairly simple. We simply lay out all t
 follows:
 
 ```pint
-{{#include ../../../../examples/ch_4_2_a.pnt}}
+{{#include ../../../../examples/smart_contracts_a.pnt}}
 ```
 
-The order of the different blocks is not important, and the `storage` block is optional but most
-useful smart contracts will need it.
+The order of the code blocks is not important, and the `storage` block is optional but most useful
+smart contracts will need it.
 
 Unlike imperative smart contracts where the logic lives in contract _methods_ that can be _called_
-to make state updates, Pint contracts have predicates (not methods/functions!) and nothing is ever
-"called". Instead, _solutions_ have to submitted that satisfy one of the predicates in the contract.
-A solution must specify concrete values for all the decision variables in the predicate, as well as
-propose changes to the state. If the proposed state changes and the decision variables satisfy
-**all** the constraints in that particular predicate, then the solution is deemed valid and the
-proposed state changes are committed.
+to make state updates, Pint contracts have predicates (not methods/functions even though they look
+like ones!) and nothing is ever "called". Instead, _solutions_ have to submitted that satisfy one or
+more predicates in the contract. A solution must specify concrete values for the parameters of the
+solved predicates, as well as propose changes to the state if necessary.
+
+If the proposed values for the parameters and the proposed state changes satisfy **all** the
+constraints for each solved predicate (potentially including predicates from other contracts), then
+the solution is deemed valid and the proposed state changes should be accepted.
+
+### Predicate Parameters
+
+A predicate parameter is a named parameter that every solution is required to assign a value for.
+Predicate parameters are quite different from "regular" function parameters that you might be used
+to in imperative programming languages since predicates of a smart contract are _not called_!.
+Instead, they are _solved_ by proposing values for these parameters such that all the constraints
+are satisfied.
+
+All predicate parameters have to be annotated with a type. We will go over the available data types
+in Pint, in detail, in a later chapter.
+
+Here's an example that shows how to declare a predicate named `test` with three parameters `foo`,
+`bar`, and `baz` with three different types:
+
+```pint
+{{#include ../../../../examples/smart_contracts_b.pnt:parameters}}
+```
+
+The predicate `test` also declares a constraint that enforces that the square of `foo` is at most
+`1024`, meaning that any proposed solution must assign a value for `foo` that satisfies this
+condition. For example, if `foo` is set to `7`, this is constraint would be satisfied. If `foo` is
+set to `11`, this constraint would not be satisfied. We will go over constraints in more detail in
+[Chapter 4.6](../basics/constraints.md).
+
+You can think of the type annotation on each predicate parameter as an implicit "constraint". For
+example, parameter `foo` can only take values in the set of signed integers (64-bit signed integers
+when targeting the EssentialVM) while `bar` can only take two values: `false` or `true` (i.e. `0` or
+`1` in the EssentialVM).
 
 ### Contract Interfaces
 
@@ -37,41 +70,31 @@ Each smart contract has an interface which can be easily generated from the cont
 is not required to write the smart contract but is required to interact with the contract from
 _external contexts_. For example, one smart contract can propose an update to a storage variables
 that is owned by another contract. Will will go over how to do that in [Chapter
-5](../storage/index.md).
+5](../storage/index.md). Another example is invoking external predicates which is a more advanced
+topic that we will cover in [Chapter 7.1](../advanced/invoking_predicates.md).
 
 A contract interface has the following structure:
 
 ```pint
-{{#include ../../../../examples/ch_4_2_b.pnt:interface}}
+{{#include ../../../../examples/smart_contracts_c.pnt:interface}}
 ```
 
 You can see the similarities between the structure of the interface and the structure of the smart
 contract. An interface starts with `interface` keyword followed by the name of the interface which
 can be used when referring the interface from external contexts. Inside the interface declaration,
-an optional `storage` block can be declared as well as a list of **predicate interfaces**. These
-predicate interfaces contain all the **public** decision variables that the predicates expose. We
-will discuss public decision variables in detail in [Chapter 7.1](../advanced/pub_vars.md), but for
-now, you can think of these variables as regular decision variable except that they can be read from
-an external context.
+an optional `storage` block can be declared as well as a list of **predicate interfaces**, each with
+its own list of typed parameters. The storage block and the predicate signatures of an interface
+should always match the corresponding storage block and predicate signatures of the deployed
+contract. Otherwise, correct behavior cannot be guaranteed.
 
-Let's revisit the [counter example](../examples/counter.md) but with a small modification where we
-have made all decision variables `pub`, which marks them as public:
+For example, an interface for the [counter example](../examples/counter.md) looks like this:
 
 ```pint
-{{#include ../../../../examples/ch_4_2_c.pnt:contract}}
-```
-
-An interface for the contract above looks like this:
-
-```pint
-{{#include ../../../../examples/ch_4_2_c.pnt:interface}}
+{{#include ../../../../examples/smart_contracts_d.pnt:interface}}
 ```
 
 Hopefully nothing here is surprising! The key point is that an `interface` must expose _everything_
-that is public in a contract, and that includes the storage block and all public decision variables
-in each predicate.
+that is public in a contract, and that includes the storage block and the predicate signatures.
 
-Note that, if a predicate `Foo` has no public decision variables, both `predicate Foo { }` and `
-predicate Foo;` can be used when adding it to the interface.
-
-> **Note** in the future, Pint will have a tool that will auto-generate interfaces.
+> **Note** in the future, Pint will have a tool that will auto-generate interfaces from a smat
+> contract.

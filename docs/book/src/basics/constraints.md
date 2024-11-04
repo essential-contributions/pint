@@ -4,7 +4,7 @@ Constraints are the building blocks of a Pint contract. Simply put, a constraint
 starts with the keyword `constraint` followed by a **Boolean** expression:
 
 ```pint
-{{#include ../../../../examples/ch_3_6.pnt:simple}}
+{{#include ../../../../examples/constraints.pnt:simple}}
 ```
 
 The above is a simple constraint which ensures that the value of `x` is exactly 0. Every proposed
@@ -13,7 +13,7 @@ multiple constraint statements, then all of them must be satisfied for a solutio
 example:
 
 ```pint
-{{#include ../../../../examples/ch_3_6.pnt:two_constraints}}
+{{#include ../../../../examples/constraints.pnt:two_constraints}}
 ```
 
 In the above, every valid solution must set `y` to a value between 0 and 10.
@@ -21,7 +21,7 @@ In the above, every valid solution must set `y` to a value between 0 and 10.
 Note that the above is actually equivalent to:
 
 ```pint
-{{#include ../../../../examples/ch_3_6.pnt:anded}}
+{{#include ../../../../examples/constraints.pnt:anded}}
 ```
 
 However, you may find it easier to structure your code into multiple separate constraints.

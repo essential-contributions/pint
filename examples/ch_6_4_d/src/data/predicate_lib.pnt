@@ -1,7 +1,0 @@
-// Module data::predicate_lib
-
-type Data = { 
-    address: b256,
-    decision_vars: int,
-    pub_vars: int,
-};

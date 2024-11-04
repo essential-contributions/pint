@@ -8,7 +8,8 @@ cover their use case.
 
 Macro _expansion_ is the very first operation performed by the compiler. This property implies that
 macros can contain _anything_ as long as the code they produce is parsable, i.e. does not violate
-the _grammar_ of Pint. Later stages of the compiler will then validate the semantics of the code.
+the _grammar_ of Pint. Later stages of the compiler will then validate the semantics of the expanded
+code.
 
 Macros in Pint have two main forms:
 
@@ -23,7 +24,7 @@ Simple macros take a fixed number of parameters, each starting with `$`. Conside
 simple macro:
 
 ```pint
-{{#include ../../../../examples/ch_7_2_a.pnt:in_range}}
+{{#include ../../../../examples/macros_1.pnt:in_range}}
 ```
 
 Macro definitions always start with the keyword `macro` followed by the name of the macro, which
@@ -36,7 +37,7 @@ this macro, these parameters are used as expressions but this is not always nece
 When this macro is used, two constraints are always produced. Let's use this macro as follows:
 
 ```pint
-{{#include ../../../../examples/ch_7_2_a.pnt:macro_use}}
+{{#include ../../../../examples/macros_1.pnt:macro_use}}
 ```
 
 To call the macro, we write its name followed by a list of arguments, separated by a semicolon
@@ -48,7 +49,7 @@ macro expects.
 After the macro gets expanded, the compiler will produce code that is equivalent to the following:
 
 ```pint
-{{#include ../../../../examples/ch_7_2_b.pnt:expanded}}
+{{#include ../../../../examples/macros_2.pnt:expanded}}
 ```
 
 It should hopefully be quite clear to you how this substitution happened. The compiler simply
@@ -63,14 +64,15 @@ as `int` are valid!. If the token is an identifier, then it may be used as a nam
 of a decision variable or a new type. Here's an example:
 
 ```pint
-{{#include ../../../../examples/ch_7_2_a.pnt:ops}}
+{{#include ../../../../examples/macros_1.pnt:ops}}
 ```
 
 The author of this macro likely expects:
 
 - `$a` and `$b` to be identifiers.
+- `$a_expr` and `$b_expr` to be expressions.
 - `$ty` to be a type.
-- `op` to be a binary operator such as `+`, `-`, etc.
+- `$op` to be a binary operator such as `+`, `-`, etc.
 
 In fact, if the rules above are not respected when calling the macro, the program will likely fail
 to parse correctly resulting in a failed compilation.
@@ -78,20 +80,20 @@ to parse correctly resulting in a failed compilation.
 If we call the macro above with:
 
 ```pint
-{{#include ../../../../examples/ch_7_2_a.pnt:ops_call}}
+{{#include ../../../../examples/macros_1.pnt:ops_call}}
 ```
 
 the compiler will expand the macro call to:
 
 ```pint
-{{#include ../../../../examples/ch_7_2_b.pnt:ops_call_expanded}}
+{{#include ../../../../examples/macros_2.pnt:ops_call_expanded}}
 ```
 
 Hopefully this gives you an idea of how powerful macros can be.
 
 #### Macro Expressions
 
-So far, we've only looked at example macros where the body is a list of declarations (such as `var`
+So far, we've only looked at example macros where the body is a list of declarations (such as `let`
 declarations or constraints). Macros are even more versatile than that! Macros can, in fact, produce
 an expression. This would be akin to functions that return values in other programming languages.
 
@@ -99,34 +101,36 @@ The expression that you want produced by the macro must always be the last state
 body. For example:
 
 ```pint
-{{#include ../../../../examples/ch_7_2_a.pnt:expr}}
+{{#include ../../../../examples/macros_1.pnt:expr}}
 ```
 
 Because this macro produces an expression, a call to it can be used as an expression as well. For
 example:
 
 ```pint
-{{#include ../../../../examples/ch_7_2_a.pnt:expr_call}}
+{{#include ../../../../examples/macros_1.pnt:expr_call}}
 ```
 
 As a result, the compiler will expand the macro call to:
 
 ```pint
-{{#include ../../../../examples/ch_7_2_b.pnt:expr_call_expanded}}
+{{#include ../../../../examples/macros_2.pnt:expr_call_expanded}}
 ```
 
 Note that the expression is always inserted at the exact location where the macro was called, but
-any declaration items in the macro body are inserted _before_ the call.
+any declaration items in the macro body are inserted _right before_ the call.
 
+<!--
+TODO: re-enable after making `let` variables hygienic
 #### Declaring Variables in Macro Bodies
 
 Earlier, we looked at an example macro that uses some of its parameters as identifiers to declare
-some decision variables. When that macro is called multiple times with different arguments, the
-resulting `var` declarations will not cause any name conflicts. Now, what happens if, instead, we
+some local variables. When that macro is called multiple times with different arguments, the
+resulting variable declarations will not cause any name conflicts. Now, what happens if, instead, we
 were to directly use an identifier in a macro body when declaring new variables? Here's an example:
 
 ```pint
-{{#include ../../../../examples/ch_7_2_a.pnt:is_even}}
+{{#include ../../../../examples/macros_1.pnt:is_even}}
 ```
 
 In a naive macro system, if `@is_even` was called more than once within the same module, then after
@@ -137,34 +141,36 @@ symbols into a unique anonymous namespace. Note that this is only done for symbo
 macro parameters. To illustrate this, consider the following:
 
 ```pint
-{{#include ../../../../examples/ch_7_2_a.pnt:var_decls}}
+{{#include ../../../../examples/macros_1.pnt:var_decls}}
 ```
 
 If we call the macro above using `@let_decls(foo)` there would not be an error as the expansion
 would be equivalent to:
 
 ```pint
-var anon_0::foo: int;
-var foo: int;
+let anon_0::foo: int = 42;
+let foo: bool = true;
 ```
 
 And even when called multiple times with different arguments there would be no error:
 
 ```pint
-{{#include ../../../../examples/ch_7_2_a.pnt:var_decls_call}}
+{{#include ../../../../examples/macros_1.pnt:var_decls_call}}
 ```
 
 Becomes equivalent to:
 
 ```pint
-var anon_0::foo: int;
-var foo: int;
-var anon_1::foo: int;
-var bar: int;
+let anon_0::foo: int = 42;
+let foo: bool = true;
+let anon_1::foo: int = 42;
+let bar: bool = true;
 ```
 
 Of course, if `@let_decls` was called with the argument `foo` multiple times there would be an
 error!
+
+-->
 
 ### Recursion and Variadic Macros
 
@@ -181,7 +187,7 @@ is best explained with an example, so let's consider the following macro which i
 operation over an arbitrary number of named variables:
 
 ```pint
-{{#include ../../../../examples/ch_7_2_a.pnt:sum}}
+{{#include ../../../../examples/macros_1.pnt:sum}}
 ```
 
 We have two versions of the `@sum` macro. Despite the apparent name clash, this is actually okay
@@ -213,26 +219,30 @@ Note that, since the `&rest` parameter pack is passed in its expanded form, the 
 could instead be rewritten as follows, to the same effect:
 
 ```pint
-{{#include ../../../../examples/ch_7_2_a.pnt:sum_simple}}
+{{#include ../../../../examples/macros_1.pnt:sum_simple}}
 ```
+
+<!---
+TODO: come up with a better example that does not require declaring decision variables in the macro
 
 Parameter packs can also be used by non-recursive macros which wish to call other recursive macros.
 A more interesting use of variadic macros might be to chain variables together in relative
 constraints:
 
 ```pint
-{{#include ../../../../examples/ch_7_2_a.pnt:chain}}
+{{#include ../../../../examples/macros_1.pnt:chain}}
 ```
 
 When called as `var r = @chain(m; n; p)`, the following code would be produced:
 
 ```pint
-{{#include ../../../../examples/ch_7_2_b.pnt:chain_expanded}}
+{{#include ../../../../examples/macros_2.pnt:chain_expanded}}
 ```
+-->
 
 #### Array Argument Splicing
 
-An extension to macro argument packing the the concept of _array splicing_. Array splicing allows
+An extension to macro argument packing is the concept of _array splicing_. Array splicing allows
 passing the elements of an array variable, in place, as the arguments to a macro call. This is done
 by prefixing the array name with a tilde `~`.
 
@@ -240,21 +250,21 @@ Say we want to find the sum of the elements of some array of integers. If we wer
 variadic macro `@sum` from earlier, we would have to write something like:
 
 ```pint
-{{#include ../../../../examples/ch_7_2_a.pnt:sum_array}}
+{{#include ../../../../examples/macros_1.pnt:sum_array}}
 ```
 
 The issue with the above is that it's quite verbose, especially when the array size is large.
 Instead, array splicing allows us to write this instead:
 
 ```pint
-{{#include ../../../../examples/ch_7_2_a.pnt:sum_splicing}}
+{{#include ../../../../examples/macros_1.pnt:sum_splicing}}
 ```
 
 The compiler will then split `array` into its individual elements and pass them as separate
 arguments to `@sum`, so that the resulting expansion is
 
 ```pint
-{{#include ../../../../examples/ch_7_2_b.pnt:sum_splicing_expanded}}
+{{#include ../../../../examples/macros_2.pnt:sum_splicing_expanded}}
 ```
 
 Array splicing is usually only useful with variadic macros which can handle arrays of different
@@ -265,13 +275,13 @@ An important property of array splicing is that the array element accesses are e
 the argument separators are only placed between them and not at their ends! The following:
 
 ```pint
-{{#include ../../../../examples/ch_7_2_a.pnt:splicing_2}}
+{{#include ../../../../examples/macros_1.pnt:splicing_2}}
 ```
 
 expands to:
 
 ```pint
-{{#include ../../../../examples/ch_7_2_a.pnt:splicing_2_expanded}}
+{{#include ../../../../examples/macros_1.pnt:splicing_2_expanded}}
 ```
 
 This may be a bit surprising at first, but what is really happening here is that each `~two` gets
@@ -281,13 +291,13 @@ three spliced arrays make up a total of 4 separate arguments in this specific ca
 Similarly,
 
 ```pint
-{{#include ../../../../examples/ch_7_2_a.pnt:splicing_3}}
+{{#include ../../../../examples/macros_1.pnt:splicing_3}}
 ```
 
 expands to:
 
 ```pint
-{{#include ../../../../examples/ch_7_2_a.pnt:splicing_3_expanded}}
+{{#include ../../../../examples/macros_1.pnt:splicing_3_expanded}}
 ```
 
 The arithmetic add and multiply are applied to the first and last elements of the array in this

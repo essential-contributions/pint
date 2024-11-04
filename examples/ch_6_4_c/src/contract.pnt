@@ -1,8 +1,0 @@
-// ANCHOR: imports_short
-use ::data::{contract_lib::Data as ContractData, predicate_lib::Data as PredicateData};
-// ANCHOR_END: imports_short
-
-predicate test(
-    contract_data: ContractData,
-    predicate_data: PredicateData,
-) { }

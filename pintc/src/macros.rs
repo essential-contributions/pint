@@ -140,32 +140,36 @@ pub(crate) fn splice_args(
         // `mod_path_str` above, taken from the call).
         let array_path = mod_path_str.clone() + "::" + array_name;
 
-        if let Some(param_ty) = pred
+        // Find it and its type in either the predicate params or variables.
+        if let Some(sym_ty) = pred
             .params
             .iter()
-            .find_map(|Param { name, ty, .. }| (name.name == array_path).then_some(ty))
+            .find_map(|Param { name, ty, .. }| (name.name == array_path).then_some(ty.clone()))
+            .or_else(|| {
+                pred.variables().find_map(|(var_key, var)| {
+                    (var.name == array_path).then(|| var_key.get_ty(pred).clone())
+                })
+            })
         {
-            if !param_ty.is_unknown() {
-                if let Some(range_expr_key) = param_ty.get_array_range_expr() {
-                    if let Some((size, opt_enumeration_union)) =
-                        splice_get_array_range_size(contract, range_expr_key)
-                    {
-                        // Store where and what to replace in the new spliced args.
-                        replacements.insert(
-                            (arg_idx, tok_idx),
-                            (array_name.to_string(), size, opt_enumeration_union, range),
-                        );
-                    } else {
-                        handler.emit_err(Error::Compile {
-                            error: CompileError::MacroSpliceArrayUnknownSize {
-                                var_name: array_path,
-                                span: Span::new(call.span.context(), range),
-                            },
-                        });
-                    }
+            if sym_ty.is_unknown() || !sym_ty.is_array() {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::MacroSpliceVarNotArray {
+                        var_name: array_path,
+                        span: Span::new(call.span.context(), range),
+                    },
+                });
+            } else if let Some(range_expr_key) = sym_ty.get_array_range_expr() {
+                if let Some((size, opt_enumeration_union)) =
+                    splice_get_array_range_size(contract, range_expr_key)
+                {
+                    // Store where and what to replace in the new spliced args.
+                    replacements.insert(
+                        (arg_idx, tok_idx),
+                        (array_name.to_string(), size, opt_enumeration_union, range),
+                    );
                 } else {
                     handler.emit_err(Error::Compile {
-                        error: CompileError::MacroSpliceVarNotArray {
+                        error: CompileError::MacroSpliceArrayUnknownSize {
                             var_name: array_path,
                             span: Span::new(call.span.context(), range),
                         },
@@ -174,7 +178,7 @@ pub(crate) fn splice_args(
             } else {
                 handler.emit_err(Error::Compile {
                     error: CompileError::Internal {
-                        msg: "missing var type AND init in splice_args()",
+                        msg: "type is array but failed to get range expr.",
                         span: Span::new(call.span.context(), range),
                     },
                 });

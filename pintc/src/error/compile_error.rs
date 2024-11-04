@@ -182,6 +182,12 @@ pub enum CompileError {
         nested_ty: String,
         span: Span,
     },
+    #[error("local variables cannot have storage types")]
+    VarHasStorageType {
+        ty: String,
+        nested_ty: String,
+        span: Span,
+    },
     #[error("type not allowed in storage")]
     TypeNotAllowedInStorage { ty: String, span: Span },
     #[error("attempt to index a storage map with a mismatched value")]
@@ -815,6 +821,14 @@ impl ReportableError for CompileError {
                 }]
             }
 
+            VarHasStorageType { ty, span, .. } => {
+                vec![ErrorLabel {
+                    message: format!("found local variable of storage type {ty} here"),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
             TypeNotAllowedInStorage { ty, span, .. } => {
                 vec![ErrorLabel {
                     message: format!("found type {ty} in storage"),
@@ -1334,6 +1348,16 @@ impl ReportableError for CompileError {
                 }
             }
 
+            VarHasStorageType { ty, nested_ty, .. } => {
+                if ty != nested_ty {
+                    Some(format!(
+                        "type of local variable depends on the storage type `{nested_ty}`"
+                    ))
+                } else {
+                    None
+                }
+            }
+
             DependencyCycle { .. } => Some(
                 "dependency between predicates is typically created via \
                      predicate instances"
@@ -1596,6 +1620,7 @@ impl Spanned for CompileError {
             | ArrayAccessWithWrongType { span, .. }
             | InvalidArrayRangeType { span, .. }
             | ParamHasStorageType { span, .. }
+            | VarHasStorageType { span, .. }
             | TypeNotAllowedInStorage { span, .. }
             | StorageMapAccessWithWrongType { span, .. }
             | MismatchedArrayComparisonSizes { span, .. }

@@ -1,0 +1,8 @@
+// ANCHOR: basic_let
+predicate foo() {
+    let x = 5;
+    let y: int = 6;
+
+    constraint y - x == 1;
+}
+// ANCHOR_END: basic_let

@@ -1,0 +1,12 @@
+// ANCHOR: parameters
+predicate test(
+    foo: int, 
+    bar: bool, 
+    baz: b256, 
+) {
+    constraint foo * foo <= 1024;
+
+    // other constraints
+}
+// ANCHOR_END: parameters
+

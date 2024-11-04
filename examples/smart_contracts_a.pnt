@@ -1,0 +1,17 @@
+storage {
+    // storage variables
+}
+
+predicate Foo(
+    // parameters 
+) {
+    // local variables, constraints, etc.     
+}
+
+predicate Bar(
+    // parameters 
+) {
+    // local variables, constraints, etc.     
+}
+
+// other predicates

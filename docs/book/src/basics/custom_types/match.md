@@ -14,7 +14,7 @@ Consider the following example which takes an unknown US coin and determines whi
 returns its value in cents:
 
 ```pint
-{{#include ../../../../../examples/ch_3_5_3.pnt:coins_1}}
+{{#include ../../../../../examples/match.pnt:coins_1}}
 ```
 
 Let’s break down the `match` expression above. First we list the `match` keyword followed by an
@@ -37,7 +37,7 @@ For example, the following code requires the Boolean variable `is_lucky_penny` t
 value `coin` is a `Coin::Penny`.
 
 ```pint
-{{#include ../../../../../examples/ch_3_5_3.pnt:coins_2}}
+{{#include ../../../../../examples/match.pnt:coins_2}}
 ```
 
 #### Patterns that Bind to Values
@@ -49,14 +49,14 @@ As an example, let's change our union variants to hold data inside them. Namely,
 variant to hold an `int` that represents the number of coins available:
 
 ```pint
-{{#include ../../../../../examples/ch_3_5_3.pnt:coins_union}}
+{{#include ../../../../../examples/match.pnt:coins_union}}
 ```
 
 Now, given a value `coins` of type `Coins`, we can compute the total number of cents that `coins` is
 equivalent to as follows:
 
 ```pint
-{{#include ../../../../../examples/ch_3_5_3.pnt:coins_3}}
+{{#include ../../../../../examples/match.pnt:coins_3}}
 ```
 
 In the `match` expression above, we add a variable called `n` for each of the patterns. In each
@@ -68,18 +68,18 @@ Note that `match` expressions can be nested. Here's an example that has nested u
 game.
 
 ```pint
-{{#include ../../../../../examples/ch_3_5_3.pnt:nested}}
+{{#include ../../../../../examples/match.pnt:nested}}
 ```
 
 ### `match` as a Statement
 
-In some cases, you may not need a `match` to return a value. Instead, you may simply want
-to enforce conditional constraints based on which pattern matches the given value. Below is a
-rewrite of the previous example that uses `match` statements. The code exhibits the exact same
-behavior as before but written different to showcase `match` statements.
+In some cases, you may not need a `match` to return a value. Instead, you may simply want to enforce
+conditional constraints based on which pattern matches the given value. Below is a rewrite of the
+previous example that uses `match` statements. The code exhibits the exact same behavior as before
+but written different to showcase `match` statements.
 
 ```pint
-{{#include ../../../../../examples/ch_3_5_3.pnt:statement}}
+{{#include ../../../../../examples/match.pnt:statement}}
 ```
 
 Here, the top level `match` is a statement, not an expression; it does not return any value.
@@ -104,8 +104,7 @@ possibilities. Consider the following version of variables `coins` and `coins_in
 declared:
 
 ```pint
-var coins: Coins;
-var coins_in_cents = match coins {
+let coins_in_cents = match coins {
     Coins::Penny(n) => n,
     Coins::Nickel(n) => n * 5,
     Coins::Quarter(n) => n * 25,
@@ -117,9 +116,9 @@ Pint compiler knows how to catch. If we try to compile this code, we'll get this
 
 ```console
 Error: not all match variants are covered
-    ╭─[ch_3_5_3.pnt:42:26]
+    ╭─[match.pnt:42:26]
     │
- 42 │ ╭─▶     var coins_in_cents = match coins {
+ 42 │ ╭─▶     let coins_in_cents = match coins {
     ┆ ┆
  46 │ ├─▶     };
     │ │
@@ -127,7 +126,7 @@ Error: not all match variants are covered
     │
     │     Help: branches and/or bindings are required for variant `Coins::Dime`
 ────╯
-Error: could not compile `ch_3_5_3.pnt` due to previous error
+Error: could not compile `match.pnt` due to previous error
 ```
 
 The Pint compiler knows that we didn't cover every possible case, and even knows which pattern we
@@ -145,7 +144,7 @@ To get the above example to compile with a default value of zero, implying any o
 have no value, an `else` may be used as follows:
 
 ```pint
-{{#include ../../../../../examples/ch_3_5_3.pnt:else_arm}}
+{{#include ../../../../../examples/match.pnt:else_arm}}
 ```
 
 The code compiles, even though we haven't listed all the possible values a `Coins` can have, because

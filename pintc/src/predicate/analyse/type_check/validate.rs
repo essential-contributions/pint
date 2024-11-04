@@ -231,12 +231,12 @@ impl Contract {
                 }
             });
 
-            // Disallow variable variables from having storage only types
+            // Disallow local variables from having storage only types
             pred.variables().for_each(|(variable_key, variable)| {
                 let ty = variable_key.get_ty(pred);
                 if let Some(nested_ty) = ty.get_storage_only_ty(self) {
                     handler.emit_err(Error::Compile {
-                        error: CompileError::ParamHasStorageType {
+                        error: CompileError::VarHasStorageType {
                             ty: self.with_ctrct(ty).to_string(),
                             nested_ty: self.with_ctrct(nested_ty).to_string(),
                             span: variable.span.clone(),

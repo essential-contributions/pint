@@ -43,6 +43,9 @@ predicate test() {
   let b2_access_1 = storage::b2.1[[[2, 2], [3, 4] ]][1];
 }
 
+
+// These failures are expected until all non-storage types are supported as storage map keys
+
 // parsed <<<
 // storage {
 //     b0: ( int[2] => {int, ( int[3] => int )} ),
@@ -85,11 +88,10 @@ predicate test() {
 // }
 // >>>
 
-// These failures are expected until all non-storage types are supported as storage map keys
 // typecheck_failure <<<
-// predicate parameters cannot have storage types
-// @760..800: found parameter of storage type ( int[3] => int ) here
-// predicate parameters cannot have storage types
-// @862..899: found parameter of storage type {int, ( int[3] => int )} here
-// type of parameter depends on the storage type `( int[3] => int )`
+// local variables cannot have storage types
+// @760..800: found local variable of storage type ( int[3] => int ) here
+// local variables cannot have storage types
+// @862..899: found local variable of storage type {int, ( int[3] => int )} here
+// type of local variable depends on the storage type `( int[3] => int )`
 // >>>

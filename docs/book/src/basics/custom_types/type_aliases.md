@@ -4,14 +4,14 @@ Pint provides the ability to declare a type alias to give an existing type anoth
 use the `type` keyword. For example, we can create the alias `Balance` to `int` like so:
 
 ```pint
-{{#include ../../../../../examples/ch_3_5_1.pnt:alias}}
+{{#include ../../../../../examples/type_aliases.pnt:alias}}
 ```
 
 Now, the alias `Balance` is a synonym for `int`. Values that have the type `Balance` will be treated
 the same as values of type `int`:
 
 ```pint
-{{#include ../../../../../examples/ch_3_5_1.pnt:alias_same}}
+{{#include ../../../../../examples/type_aliases.pnt:alias_same}}
 ```
 
 Because `Balance` and `int` are the same type, we can compare values of both types.
@@ -30,7 +30,7 @@ name to a tuple type with all of its fields named.
 For example:
 
 ```pint
-{{#include ../../../../../examples/ch_3_5_1.pnt:simple_struct}}
+{{#include ../../../../../examples/type_aliases.pnt:simple_struct}}
 ```
 
 To use a struct after we’ve defined it, we create an instance of that struct by specifying concrete
@@ -42,7 +42,7 @@ template for the type, and instances fill in that template with particular data 
 the type. For example, we can declare a particular `User` as shown below:
 
 ```pint
-{{#include ../../../../../examples/ch_3_5_1.pnt:simple_struct_instance}}
+{{#include ../../../../../examples/type_aliases.pnt:simple_struct_instance}}
 ```
 
 To get a specific value from a struct, we use the dot notation similarly to tuples. For example, to
