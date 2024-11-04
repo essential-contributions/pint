@@ -1,0 +1,39 @@
+macro @in_range($v, $num) {
+    constraint $v >= $num;
+    constraint $v < ($num * $num);
+}
+
+macro @sum($x, $y, &rest) {
+    // Called only when `&rest` is not empty.  
+    // We recurse by adding `$x` and `$y` and using `&rest` as the second argument.
+    @sum($x + $y; &rest)
+}
+
+macro @sum($x, $y) {
+    // Called only when the number of arguments is exactly 2.
+    $x + $y
+}
+
+macro @chain($a, $index, &rest) {
+    // Add the first link in the chain, then move to the rest.
+    @chain_next($a; $index; &rest)
+}
+
+macro @chain_next($a, $prev, $next, &rest) {
+    // Add the next link:
+    // constrain based on the previous link and continue.
+    constraint $a[$next] > $a[$prev] + 10;
+    @chain_next($a; $next; &rest)
+}
+
+macro @chain_next($a, $prev, $last) {
+    // Just expand to the final link.
+    constraint $a[$last] > $a[$prev] + 10;
+    $a[$last]
+}
+
+predicate test4(x: int, array: int[4]) {
+    @in_range(x; 10);
+    let sum_of_array = @sum(array[0]; array[1]; array[2]; array[3]);
+    let r = @chain(array; 0; 1; 2; 3);
+}
