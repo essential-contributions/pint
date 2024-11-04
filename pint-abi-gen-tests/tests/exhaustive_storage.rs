@@ -2,13 +2,13 @@ use pint_abi::types::essential::{
     solution::{Mutation, Solution, SolutionData},
     Key, PredicateAddress, Value,
 };
-use pint_abi_gen_tests::simple;
+use pint_abi_gen_tests::exhaustive_storage;
 use std::sync::Arc;
 use util::State;
 
 mod util;
 
-// Test that we can trivially create a full `SolutionData` for the simple
+// Test that we can trivially create a full `SolutionData` for the exhaustive_storage
 // contract's `Foo` predicate. Set the values to adhere to the arbitrary
 // constraints of the predicate.
 #[tokio::test]
@@ -18,14 +18,14 @@ async fn test_solution_foo() {
     // Construct the package path.
     let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
     let manifest_dir_path = std::path::Path::new(&manifest_dir);
-    let pkg_dir = manifest_dir_path.join("test-pkgs/simple");
+    let pkg_dir = manifest_dir_path.join("test-pkgs/exhaustive_storage");
 
     // Determine the content address of the contract.
-    let contract_path = pkg_dir.join("out/debug/simple.json");
+    let contract_path = pkg_dir.join("out/debug/exhaustive_storage.json");
     let contract = pint_abi::contract_from_path(&contract_path).unwrap();
 
     // Determine the predicate address by loading the ABI and finding the matching predicate.
-    let abi_path = pkg_dir.join("out/debug/simple-abi.json");
+    let abi_path = pkg_dir.join("out/debug/exhaustive_storage-abi.json");
     let abi = pint_abi::from_path(&abi_path).unwrap();
     let (pred, _pred_abi) = pint_abi::find_predicate(&contract, &abi, "Foo").unwrap();
 
@@ -35,11 +35,11 @@ async fn test_solution_foo() {
         contract: contract_ca.clone(),
         predicate: essential_hash::content_addr(pred),
     };
-    assert_eq!(contract_ca, simple::ADDRESS);
-    assert_eq!(pred_addr, simple::Foo::ADDRESS);
+    assert_eq!(contract_ca, exhaustive_storage::ADDRESS);
+    assert_eq!(pred_addr, exhaustive_storage::Foo::ADDRESS);
 
     // Decision variables.
-    let vars = simple::Foo::Vars {
+    let vars = exhaustive_storage::Foo::Vars {
         v0: true,
         v1: 42,
         v2: [0x1111111100000000; 4],
@@ -53,53 +53,42 @@ async fn test_solution_foo() {
     };
 
     // State mutations.
-    let state_mutations: Vec<Mutation> = simple::storage::mutations()
-        .s0(true)
-        .s1(42)
-        .s2([0x4242424242424242; 4])
-        .s3(|tup| tup._0(30)._1(31))
-        .s4(|tup| tup._0(40)._1(41)._2(|tup| tup._0(420)._1(421)))
-        .my_map0(|map| map.entry(42, 24))
-        .my_map1(|map| {
-            map.entry(1, |tup| {
-                tup._0(1111)
-                    ._1(|tup| tup._0([0x2222222222222222; 4])._1(3333))
-            })
+    let state_mutations: Vec<Mutation> = exhaustive_storage::storage::mutations()
+        .my_map0(|map| map.entry(true, 111))
+        .my_map1(|map| map.entry([0x4444444444444444; 4], false))
+        .my_map2(|map| map.entry((true, 30), [0x0000000000000001; 4]))
+        .my_map3(|map| map.entry((490, [0x1111111111111111; 4]), true))
+        .my_map4(|map| map.entry([0, 1, 2, 3, 4], 720))
+        .my_map5(|map| {
+            map.entry(
+                [
+                    [(false, 2), (true, 40), (false, 24)],
+                    [(true, 42), (false, 21), (false, 25)],
+                ],
+                49,
+            )
         })
-        .my_nested_map0(|map| map.entry(1, |map| map.entry(2, 1234)))
-        .my_nested_map1(|map| {
-            map.entry(2, |map| {
-                map.entry([0x3333333333333333; 4], |tup| {
-                    tup._0(69)._1(|tup| tup._0([0x1111111100000000; 4])._1(96))
-                })
-            })
-        })
-        .my_array(|arr| {
-            [11, 12, 13, 14, 15]
-                .into_iter()
-                .enumerate()
-                .fold(arr, |arr, (ix, val)| arr.entry(ix, val))
-        })
+        .my_map6(|map| map.entry(exhaustive_storage::UU::A(81), 82))
+        .my_tuple_map0(|tup| tup._0(|map| map.entry(25, 26)))
+        .my_tuple_map1(|map| map.entry(6, |tup| tup._1(|map| map.entry(2, |tup| tup._1(13)))))
         .into();
 
     // Build the same set of keys, so we can ensure they match the mutations.
-    let keys: Vec<Key> = simple::storage::keys()
-        .s0()
-        .s1()
-        .s2()
-        .s3(|tup| tup._0()._1())
-        .s4(|tup| tup._0()._1()._2(|tup| tup._0()._1()))
-        .my_map0(|map| map.entry(42))
-        .my_map1(|map| map.entry(1, |tup| tup._0()._1(|tup| tup._0()._1())))
-        .my_nested_map0(|map| map.entry(1, |map| map.entry(2)))
-        .my_nested_map1(|map| {
-            map.entry(2, |map| {
-                map.entry([0x3333333333333333; 4], |tup| {
-                    tup._0()._1(|tup| tup._0()._1())
-                })
-            })
+    let keys: Vec<Key> = exhaustive_storage::storage::keys()
+        .my_map0(|map| map.entry(true))
+        .my_map1(|map| map.entry([0x4444444444444444; 4]))
+        .my_map2(|map| map.entry((true, 30)))
+        .my_map3(|map| map.entry((490, [0x1111111111111111; 4])))
+        .my_map4(|map| map.entry([0, 1, 2, 3, 4]))
+        .my_map5(|map| {
+            map.entry([
+                [(false, 2), (true, 40), (false, 24)],
+                [(true, 42), (false, 21), (false, 25)],
+            ])
         })
-        .my_array(|arr| (0..[11, 12, 13, 14, 15].len()).fold(arr, |arr, ix| arr.entry(ix)))
+        .my_map6(|map| map.entry(exhaustive_storage::UU::A(81)))
+        .my_tuple_map0(|tup| tup._0(|map| map.entry(25)))
+        .my_tuple_map1(|map| map.entry(6, |tup| tup._1(|map| map.entry(2, |tup| tup._1()))))
         .into();
 
     // Check keys match the mutation keys.
@@ -109,17 +98,17 @@ async fn test_solution_foo() {
 
     // Check Encoding/Decoding roundtrip for decision vars.
     let words = pint_abi::encode(&vars);
-    let vars2: simple::Foo::Vars = pint_abi::decode(&words[..]).unwrap();
+    let vars2: exhaustive_storage::Foo::Vars = pint_abi::decode(&words[..]).unwrap();
     assert_eq!(&vars, &vars2);
 
     // Check To/From Vec<Value> roundtrip.
     let values: Vec<Value> = vars.clone().into();
-    let vars3 = simple::Foo::Vars::try_from(&values[..]).unwrap();
+    let vars3 = exhaustive_storage::Foo::Vars::try_from(&values[..]).unwrap();
     assert_eq!(&vars, &vars3);
 
     // Create the solution data.
     let solution_data = SolutionData {
-        predicate_to_solve: simple::Foo::ADDRESS,
+        predicate_to_solve: exhaustive_storage::Foo::ADDRESS,
         decision_variables: vars.into(),
         state_mutations,
     };
@@ -133,7 +122,7 @@ async fn test_solution_foo() {
     essential_check::solution::check(&solution).unwrap();
 
     // Start with an empty pre-state.
-    let pre_state = State::new(vec![(simple::ADDRESS, vec![])]);
+    let pre_state = State::new(vec![(exhaustive_storage::ADDRESS, vec![])]);
 
     // Create the post-state by applying the mutations.
     let mut post_state = pre_state.clone();

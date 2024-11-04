@@ -1,8 +1,3 @@
-// TODO - ian: add unions
-// TODO - ian: move to own contract / test called exhaustive_storage
-// need to add as mod and have gen macro
-union UU = A(int) | B | C(b256);
-
 storage {
     s0: bool,
     s1: int,
@@ -11,18 +6,9 @@ storage {
     s4: { int, int, { int, int } },
     my_map0: (int => int),
     my_map1: (int => { int, { b256, int } }),
-    my_map2: (bool => int),
-    my_map3: (b256 => bool),
-    my_map4: ({ bool, int } => b256),
-    my_map5: ({ int, b256 } => bool),
-    my_map6: (int[5] => int),
-    my_map7: ({ bool, int}[2][3] => int),
-    my_map8: (UU => int),
     my_nested_map0: (int => (int => int)),
     my_nested_map1: (int => (b256 => { int, { b256, int } })),
     my_array: int[5],
-    my_tuple_map0: { (int => int), int },
-    my_tuple_map1: (int => { int, (int => { int, int }) }),
 }
 
 predicate Foo(
@@ -59,18 +45,9 @@ predicate Foo(
     let s4: { int, int, { int, int } } = mut storage::s4;
     let my_map0_key42: int = mut storage::my_map0[42];
     let my_map1_key1: { int, { b256, int } } = mut storage::my_map1[1];
-    let my_map2_key0: int = mut storage::my_map2[true];
-    let my_map3_key4: bool = mut storage::my_map3[0x4444444444444444444444444444444444444444444444444444444444444444];
-    let my_map4_key1_30: b256 = mut storage::my_map4[{ true, 30 }];
-    let my_map5_key490_1: bool = mut storage::my_map5[{ 490, 0x1111111111111111111111111111111111111111111111111111111111111111}];
-    let my_map6_key01234: int = mut storage::my_map6[[0, 1, 2, 3, 4]];
-    let my_map7: int = mut storage::my_map7[[[{ false, 2 }, { true, 40 }, { false, 24 }], [{ true, 42 }, { false, 21 }, { false, 25 }]]];
-    let my_map8: int = mut storage::my_map8[UU::A(81)];
     let my_nested_map0_key1_2: int = mut storage::my_nested_map0[1][2];
     let my_nested_map1_key2_3: { int, { b256, int } } = mut storage::my_nested_map1[2][0x3333333333333333333333333333333333333333333333333333333333333333];
     let my_array: int[5] = mut storage::my_array;
-    let my_tuple_map0: int = mut storage::my_tuple_map0.0[25];
-    let my_tuple_map1_key6_2: int = mut storage::my_tuple_map1[6].1[2].1;
 
     // Check the let.
     constraint s0' == true;
@@ -81,16 +58,7 @@ predicate Foo(
     constraint my_map0_key42' == 24;
     constraint my_map0_key42' != 25;
     constraint my_map1_key1' == { 1111, { 0x2222222222222222222222222222222222222222222222222222222222222222, 3333 } };
-    constraint my_map2_key0' == 111;
-    constraint my_map3_key4' == false;
-    constraint my_map4_key1_30' == 0x0000000000000001000000000000000100000000000000010000000000000001;
-    constraint my_map5_key490_1' == true;
-    constraint my_map6_key01234' == 720;
-    constraint my_map7' == 49;
-    constraint my_map8' == 82;
     constraint my_nested_map0_key1_2' == 1234;
     constraint my_nested_map1_key2_3' == { 69, { 0x1111111100000000111111110000000011111111000000001111111100000000, 96 } };
     constraint my_array' == [11, 12, 13, 14, 15];
-    constraint my_tuple_map0' == 26;
-    constraint my_tuple_map1_key6_2' == 13;
 }
