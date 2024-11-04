@@ -188,7 +188,7 @@ impl<'a> ParserContext<'a> {
     /// Given an identifier (a string + a bool indicating whethere it's in a macro argument),
     /// produce an `Ident` and an optional string that contains the current local scope, if needed
     /// (useful for macros). `l` and `r` are the code locations before and after the identifier
-    pub fn parse_param_name(
+    pub fn parse_let_name(
         &mut self,
         id: (String, bool),
         (l, r): (usize, usize),

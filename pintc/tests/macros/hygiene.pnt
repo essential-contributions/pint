@@ -1,36 +1,29 @@
-macro @foo($a, $x) {
-    constraint $a == $x;
+macro @foo($x) {
+    let a: int = $x;
 }
 
-predicate test(a0: int, a1: int, a2: int, a: int) {
-    @foo(a0; 11);
-    @foo(a1; 22);
-    @foo(a2; a);
+predicate test() {
+    @foo(11);
+    @foo(22);
+
+    let a: bool = false;
 }
 
 // parsed <<<
 // predicate ::test(
-//     ::a0: int,
-//     ::a1: int,
-//     ::a2: int,
-//     ::a: int,
 // ) {
-//     constraint (::a0 == 11);
-//     constraint (::a1 == 22);
-//     constraint (::a2 == ::a);
+//     let ::a: bool = false;
+//     let ::anon@0::a: int = 11;
+//     let ::anon@1::a: int = 22;
 // }
 // >>>
 
 // flattened <<<
 // predicate ::test(
-//     ::a0: int,
-//     ::a1: int,
-//     ::a2: int,
-//     ::a: int,
 // ) {
-//     constraint (::a0 == 11);
-//     constraint (::a1 == 22);
-//     constraint (::a2 == ::a);
+//     let ::a: bool = false;
+//     let ::anon@0::a: int = 11;
+//     let ::anon@1::a: int = 22;
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
