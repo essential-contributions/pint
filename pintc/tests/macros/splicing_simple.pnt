@@ -15,22 +15,15 @@ macro @less_than($min, $other) {
     constraint $min < $other;
 }
 
-predicate test(
-    a_ary: int[5],
-    b_ary: int[4],
-    s_a: int,
-    s_b: int,
-    s_ab: int,
-    lt_a: int,
-) {
-    constraint b_ary == [11, 22, 33, 44];
+predicate test(a_ary: int[5], lt_a: int) {
+    let b_ary: int[4] = [11, 22, 33, 44];
 
     // Sum both arrays.
-    constraint s_a == @sum(~a_ary);
-    constraint s_b == @sum(~b_ary);
+    let s_a = @sum(~a_ary);
+    let s_b = @sum(~b_ary);
 
     // Sum both arrays together with some immediates.
-    constraint s_ab == @sum(~a_ary + 55; 66 + ~b_ary);
+    let s_ab = @sum(~a_ary + 55; 66 + ~b_ary);
 
     // Call less_than() with an explicit min or by using the first element as the min.
     @less_than(lt_a; ~a_ary);
@@ -40,16 +33,12 @@ predicate test(
 // parsed <<<
 // predicate ::test(
 //     ::a_ary: int[5],
-//     ::b_ary: int[4],
-//     ::s_a: int,
-//     ::s_b: int,
-//     ::s_ab: int,
 //     ::lt_a: int,
 // ) {
-//     constraint (::b_ary == [11, 22, 33, 44]);
-//     constraint (::s_a == ((((::a_ary[0] + ::a_ary[1]) + ::a_ary[2]) + ::a_ary[3]) + ::a_ary[4]));
-//     constraint (::s_b == (((::b_ary[0] + ::b_ary[1]) + ::b_ary[2]) + ::b_ary[3]));
-//     constraint (::s_ab == ((((((((((::a_ary[0] + ::a_ary[1]) + ::a_ary[2]) + ::a_ary[3]) + ::a_ary[4]) + 55) + 66) + ::b_ary[0]) + ::b_ary[1]) + ::b_ary[2]) + ::b_ary[3]));
+//     let ::b_ary: int[4] = [11, 22, 33, 44];
+//     let ::s_a = ((((::a_ary[0] + ::a_ary[1]) + ::a_ary[2]) + ::a_ary[3]) + ::a_ary[4]);
+//     let ::s_b = (((::b_ary[0] + ::b_ary[1]) + ::b_ary[2]) + ::b_ary[3]);
+//     let ::s_ab = ((((((((((::a_ary[0] + ::a_ary[1]) + ::a_ary[2]) + ::a_ary[3]) + ::a_ary[4]) + 55) + 66) + ::b_ary[0]) + ::b_ary[1]) + ::b_ary[2]) + ::b_ary[3]);
 //     constraint (::lt_a < ::a_ary[0]);
 //     constraint (::b_ary[0] < ::b_ary[1]);
 //     constraint (::lt_a < ::a_ary[1]);
@@ -64,16 +53,12 @@ predicate test(
 // flattened <<<
 // predicate ::test(
 //     ::a_ary: int[5],
-//     ::b_ary: int[4],
-//     ::s_a: int,
-//     ::s_b: int,
-//     ::s_ab: int,
 //     ::lt_a: int,
 // ) {
-//     constraint (::b_ary == [11, 22, 33, 44]);
-//     constraint (::s_a == ((((::a_ary[0] + ::a_ary[1]) + ::a_ary[2]) + ::a_ary[3]) + ::a_ary[4]));
-//     constraint (::s_b == (((::b_ary[0] + ::b_ary[1]) + ::b_ary[2]) + ::b_ary[3]));
-//     constraint (::s_ab == ((((((((((::a_ary[0] + ::a_ary[1]) + ::a_ary[2]) + ::a_ary[3]) + ::a_ary[4]) + 55) + 66) + ::b_ary[0]) + ::b_ary[1]) + ::b_ary[2]) + ::b_ary[3]));
+//     let ::b_ary: int[4] = [11, 22, 33, 44];
+//     let ::s_a: int = ((((::a_ary[0] + ::a_ary[1]) + ::a_ary[2]) + ::a_ary[3]) + ::a_ary[4]);
+//     let ::s_b: int = (((::b_ary[0] + ::b_ary[1]) + ::b_ary[2]) + ::b_ary[3]);
+//     let ::s_ab: int = ((((((((((::a_ary[0] + ::a_ary[1]) + ::a_ary[2]) + ::a_ary[3]) + ::a_ary[4]) + 55) + 66) + ::b_ary[0]) + ::b_ary[1]) + ::b_ary[2]) + ::b_ary[3]);
 //     constraint (::lt_a < ::a_ary[0]);
 //     constraint (::b_ary[0] < ::b_ary[1]);
 //     constraint (::lt_a < ::a_ary[1]);

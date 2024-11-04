@@ -112,18 +112,20 @@ impl DisplayWithPred for VariableKey {
 }
 
 impl Predicate {
+    #[allow(clippy::too_many_arguments)]
     pub fn insert_variable(
         &mut self,
         handler: &Handler,
         mod_prefix: &str,
+        local_prefix: Option<&str>,
         name: &Ident,
         ty: Option<Type>,
         expr: ExprKey,
         span: Span,
     ) -> std::result::Result<VariableKey, ErrorEmitted> {
-        let name = self
-            .symbols
-            .add_symbol(handler, mod_prefix, None, name, span.clone())?;
+        let name =
+            self.symbols
+                .add_symbol(handler, mod_prefix, local_prefix, name, span.clone())?;
         let variable_key = self.variables.insert(
             Variable {
                 name,

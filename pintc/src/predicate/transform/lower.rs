@@ -172,7 +172,7 @@ pub(crate) fn lower_array_ranges(
                 .filter_map(|param| ty_non_int_range_expr(contract, Some(pred_key), &param.ty)),
         );
 
-        array_range_expr_keys.extend(pred.variables.variables().filter_map(|(variable_key, _)| {
+        array_range_expr_keys.extend(pred.variables().filter_map(|(variable_key, _)| {
             ty_non_int_range_expr(contract, Some(pred_key), variable_key.get_ty(pred))
         }));
     }
