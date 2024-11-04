@@ -80,6 +80,7 @@ async fn test_solution_foo() {
                 49,
             )
         })
+        .my_map8(|map| map.entry(simple::UU::A(81), 82))
         .my_nested_map0(|map| map.entry(1, |map| map.entry(2, 1234)))
         .my_nested_map1(|map| {
             map.entry(2, |map| {
@@ -95,11 +96,7 @@ async fn test_solution_foo() {
                 .fold(arr, |arr, (ix, val)| arr.entry(ix, val))
         })
         .my_tuple_map0(|tup| tup._0(|map| map.entry(25, 26)))
-        // .my_tuple_map1(|map| {
-        //     map.entry(6, |tup| {
-        //         tup._0(0)._1(|map| map.entry(2, |tup| tup._0(0)._1(13)))
-        //     })
-        // })
+        .my_tuple_map1(|map| map.entry(6, |tup| tup._1(|map| map.entry(2, |tup| tup._1(13)))))
         .into();
 
     // Build the same set of keys, so we can ensure they match the mutations.
@@ -122,6 +119,7 @@ async fn test_solution_foo() {
                 [(true, 42), (false, 21), (false, 25)],
             ])
         })
+        .my_map8(|map| map.entry(simple::UU::A(81)))
         .my_nested_map0(|map| map.entry(1, |map| map.entry(2)))
         .my_nested_map1(|map| {
             map.entry(2, |map| {
@@ -131,12 +129,8 @@ async fn test_solution_foo() {
             })
         })
         .my_array(|arr| (0..[11, 12, 13, 14, 15].len()).fold(arr, |arr, ix| arr.entry(ix)))
-        .my_tuple_map0(|tup| tup._0(|map| map.entry(25))._1())
-        // .my_tuple_map1(|map| {
-        //     map.entry(6, |tup| {
-        //         tup._0()._1(|map| map.entry(2, |tup| tup._0()._1()))
-        //     })
-        // })
+        .my_tuple_map0(|tup| tup._0(|map| map.entry(25)))
+        .my_tuple_map1(|map| map.entry(6, |tup| tup._1(|map| map.entry(2, |tup| tup._1()))))
         .into();
 
     // Check keys match the mutation keys.
