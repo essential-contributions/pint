@@ -2219,64 +2219,43 @@ let q: int = e / f;
 </code></pre>
 <p>Note that the expression is always inserted at the exact location where the macro was called, but
 any declaration items in the macro body are inserted <em>right before</em> the call.</p>
-<!--
-TODO: re-enable after making `let` variables hygienic
-#### Declaring Variables in Macro Bodies
-
-Earlier, we looked at an example macro that uses some of its parameters as identifiers to declare
+<h4 id="declaring-variables-in-macro-bodies"><a class="header" href="#declaring-variables-in-macro-bodies">Declaring Variables in Macro Bodies</a></h4>
+<p>Earlier, we looked at an example macro that uses some of its parameters as identifiers to declare
 some local variables. When that macro is called multiple times with different arguments, the
 resulting variable declarations will not cause any name conflicts. Now, what happens if, instead, we
-were to directly use an identifier in a macro body when declaring new variables? Here's an example:
-
-```pint
-macro @is_even($a) {
+were to directly use an identifier in a macro body when declaring new variables? Here's an example:</p>
+<pre><code class="language-pint">macro @is_even($a) {
     let half: int = $a / 2;
     constraint $a == half * 2 || $a == half * 2 + 1;
 }
-```
-
-In a naive macro system, if `@is_even` was called more than once within the same module, then after
-expansion there would be multiple `half` variable declarations, resulting a name clash error.
-
-To avoid this problem Pint's macro expansion aims to be **hygienic** and places newly declared
-symbols into a unique anonymous namespace. Note that this is only done for symbols which are **not**
-macro parameters. To illustrate this, consider the following:
-
-```pint
-// macro @var_decls($a) {
-//     let foo: int = 42;     // Hygienic anonymous binding for `foo`.
-//     let $a: bool = true;   // Lexical binding for `$a`.
-// }
-```
-
-If we call the macro above using `@let_decls(foo)` there would not be an error as the expansion
-would be equivalent to:
-
-```pint
-let anon_0::foo: int = 42;
+</code></pre>
+<p>In a naive macro system, if <code>@is_even</code> was called more than once within the same module, then after
+expansion there would be multiple <code>half</code> variable declarations, resulting a name clash error.</p>
+<p>To avoid this problem Pint's macro expansion aims to be <strong>hygienic</strong> and places newly declared
+symbols into a unique anonymous namespace. Note that this is only done for symbols which are <strong>not</strong>
+macro parameters. To illustrate this, consider the following:</p>
+<pre><code class="language-pint">macro @let_decls($a) {
+    let foo: int = 42;     // Hygienic anonymous binding for `foo`.
+    let $a: bool = true;   // Lexical binding for `$a`.
+}
+</code></pre>
+<p>If we call the macro above using <code>@let_decls(foo)</code> there would not be an error as the expansion
+would be equivalent to:</p>
+<pre><code class="language-pint">let anon@0::foo: int = 42;
 let foo: bool = true;
-```
-
-And even when called multiple times with different arguments there would be no error:
-
-```pint
-// @var_decls(foo);
-// @var_decls(bar);
-```
-
-Becomes equivalent to:
-
-```pint
-let anon_0::foo: int = 42;
+</code></pre>
+<p>And even when called multiple times with different arguments there would be no error:</p>
+<pre><code class="language-pint">@let_decls(foo);
+@let_decls(bar);
+</code></pre>
+<p>Becomes equivalent to:</p>
+<pre><code class="language-pint">let anon@0::foo: int = 42;
 let foo: bool = true;
-let anon_1::foo: int = 42;
+let anon@1::foo: int = 42;
 let bar: bool = true;
-```
-
-Of course, if `@let_decls` was called with the argument `foo` multiple times there would be an
-error!
-
--->
+</code></pre>
+<p>Of course, if <code>@let_decls</code> was called with the argument <code>foo</code> multiple times there would be an
+error!</p>
 <h3 id="recursion-and-variadic-macros"><a class="header" href="#recursion-and-variadic-macros">Recursion and Variadic Macros</a></h3>
 <p>The second type of macros we will look at is &quot;Variadic Macros&quot;. Variadic macros allow a special type
 of recursion via <em>variadic parameters</em>. Such special parameters allow macros to call themselves,
@@ -2336,47 +2315,42 @@ macro @sum_v2($x) {
     $x
 }
 </code></pre>
-<!---
-TODO: come up with a better example that does not require declaring decision variables in the macro
+<p>Parameter packs can also be used by non-recursive macros which wish to call other recursive macros.
+A more interesting use of variadic macros might be to chain array accesses together in relative
+constraints:</p>
+<pre><code class="language-pint">macro @chain($a, $index, &amp;rest) {
+    // Add the first link in the chain, then move to the rest.
+    @chain_next($a; $index; &amp;rest)
+}
 
-Parameter packs can also be used by non-recursive macros which wish to call other recursive macros.
-A more interesting use of variadic macros might be to chain variables together in relative
-constraints:
+macro @chain_next($a, $prev, $next, &amp;rest) {
+    // Add the next link:
+    // constrain based on the previous link and continue.
+    constraint $a[$next] &gt; $a[$prev] + 10;
+    @chain_next($a; $next; &amp;rest)
+}
 
-```pint
-// macro @chain($a, &rest) {
-//     // Add the first link in the chain, then move to the rest.
-//     var $a: int;
-//     @chain_next($a; &rest)
-// }
-// 
-// macro @chain_next($prev, $next, &rest) {
-//     // Add the next link:
-//     // constrain based on the previous link and continue.
-//     var $next: int;
-//     constraint $next > $prev + 10;
-//     @chain_next($next; &rest)
-// }
-// 
-// macro @chain_next($prev, $last) {
-//     // Just expand to the final link.
-//     var $last: int;
-//     constraint $last > $prev + 10;
-//     $last
-// }
-```
-
-When called as `var r = @chain(m; n; p)`, the following code would be produced:
-
-```pint
-// var m: int;
-// var n: int;
-// constraint n > m + 10;
-// var p: int;
-// constraint p > n + 10;
-// var r = p;
-```
--->
+macro @chain_next($a, $prev, $last) {
+    // Just expand to the final link.
+    constraint $a[$last] &gt; $a[$prev] + 10;
+    $a[$last]
+}
+</code></pre>
+<p>When called as:</p>
+<pre><code class="language-pint">predicate chain(array: int[4]) {
+    let r = @chain(array; 0; 1; 2; 3);
+}
+</code></pre>
+<p>The following code would be produced:</p>
+<pre><code class="language-pint">predicate chain(
+    array: int[4],
+) {
+    let r = array[3];
+    constraint (array[1] &gt; (array[0] + 10));
+    constraint (array[2] &gt; (array[1] + 10));
+    constraint (array[3] &gt; (array[2] + 10));
+}
+</code></pre>
 <h4 id="array-argument-splicing"><a class="header" href="#array-argument-splicing">Array Argument Splicing</a></h4>
 <p>An extension to macro argument packing is the concept of <em>array splicing</em>. Array splicing allows
 passing the elements of an array variable, in place, as the arguments to a macro call. This is done
@@ -2414,6 +2388,77 @@ three spliced arrays make up a total of 4 separate arguments in this specific ca
 </code></pre>
 <p>The arithmetic add and multiply are applied to the first and last elements of the array in this
 example.</p>
+<h4 id="debugging-macros"><a class="header" href="#debugging-macros">Debugging Macros</a></h4>
+<p>The easiest way to debug macros is to inspect the code they expand to and compare the result to your
+expectations. The way to do this is using flag <code>--print-parsed</code> as follows:</p>
+<pre><code class="language-console">pint build --print-parsed
+</code></pre>
+<p>For example, consider the following contract:</p>
+<pre><code class="language-pint">macro @in_range($v, $num) {
+    constraint $v &gt;= $num;
+    constraint $v &lt; ($num * $num);
+}
+
+macro @sum($x, $y, &amp;rest) {
+    // Called only when `&amp;rest` is not empty.  
+    // We recurse by adding `$x` and `$y` and using `&amp;rest` as the second argument.
+    @sum($x + $y; &amp;rest)
+}
+
+macro @sum($x, $y) {
+    // Called only when the number of arguments is exactly 2.
+    $x + $y
+}
+
+macro @chain($a, $index, &amp;rest) {
+    // Add the first link in the chain, then move to the rest.
+    @chain_next($a; $index; &amp;rest)
+}
+
+macro @chain_next($a, $prev, $next, &amp;rest) {
+    // Add the next link:
+    // constrain based on the previous link and continue.
+    constraint $a[$next] &gt; $a[$prev] + 10;
+    @chain_next($a; $next; &amp;rest)
+}
+
+macro @chain_next($a, $prev, $last) {
+    // Just expand to the final link.
+    constraint $a[$last] &gt; $a[$prev] + 10;
+    $a[$last]
+}
+
+predicate test4(x: int, array: int[4]) {
+    @in_range(x; 10);
+    let sum_of_array = @sum(array[0]; array[1]; array[2]; array[3]);
+    let r = @chain(array; 0; 1; 2; 3);
+}
+</code></pre>
+<p>Building this contract with the flag <code>--print-parsed</code> results in the following:</p>
+<pre><code class="language-console">$ pint build --print-parsed
+   Compiling to_debug [contract] (/path/to/to_debug)
+   Printing parsed to_debug [contract] (/path/to/to_debug)
+
+
+predicate ::test4(
+    ::x: int,
+    ::array: int[4],
+) {
+    let ::sum_of_array = (((::array[0] + ::array[1]) + ::array[2]) + ::array[3]);
+    let ::r = ::array[3];
+    constraint (::x &gt;= 10);
+    constraint (::x &lt; (10 * 10));
+    constraint (::array[1] &gt; (::array[0] + 10));
+    constraint (::array[2] &gt; (::array[1] + 10));
+    constraint (::array[3] &gt; (::array[2] + 10));
+}
+
+    Finished build [debug] in 8.914417ms
+    contract to_debug        2C7EF76D670086B5A3FA185490A8C596043319A1AA8AC496B9DCF0043B8101F5
+         └── to_debug::test4 2E4456C7268C180898A0CE5C4C3F0445D613AD79A0E6E73CF8319F8B2C3EFB3B
+</code></pre>
+<p>which has no macro calls left! The compiler has already expanded all the macro calls and inlined the
+resulting code in the appropriate locations.</p>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="pint-reference"><a class="header" href="#pint-reference">Pint Reference</a></h1>
 <p>Reference docs for the <code>pint</code> command line tool.</p>
