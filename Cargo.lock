@@ -575,9 +575,9 @@ dependencies = [
 
 [[package]]
 name = "essential-asm-gen"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f01eba001d9fd9b630205a809762b5769e6198611f4946a62a1bf20765131ba0"
+checksum = "580712f5c024a841844f36dcd5c494d0c31717d8529e28591e4526e9403cf5e0"
 dependencies = [
  "essential-asm-spec",
  "essential-types",
@@ -588,9 +588,9 @@ dependencies = [
 
 [[package]]
 name = "essential-asm-spec"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eee98a01b1944343a55f8420319f828f3e6c26f6ce8aa991b3705e5d495527f7"
+checksum = "f02f5ba8c3ac04069e382c94884c212b9eb623188a88e013deb544673c3fe325"
 dependencies = [
  "serde",
  "serde_yaml",
@@ -598,9 +598,9 @@ dependencies = [
 
 [[package]]
 name = "essential-check"
-version = "0.7.0"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8cc266b50fd8f349e914a8029d57c858c47599a5ff9220f2f9388a03b1409ba4"
+checksum = "d7bd54ccabf1e8c65d95ad9e5e575ba9e79657fdb6290670475f87c40b3d7633"
 dependencies = [
  "essential-constraint-vm",
  "essential-hash",
@@ -615,9 +615,9 @@ dependencies = [
 
 [[package]]
 name = "essential-constraint-asm"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ea76ca802322ef48dfcd135ebf6bb958e1f311780d8ca365382ce3a1340fb92"
+checksum = "50b61c54272201d0acc74d15970aed616ddd1181d652543e0b0800b6172c55f5"
 dependencies = [
  "essential-asm-gen",
  "essential-types",
@@ -626,9 +626,9 @@ dependencies = [
 
 [[package]]
 name = "essential-constraint-vm"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "27a6ae100b3b93987cfa3ab1158899683c6a3f419aa5006e298839145edfe4ac"
+checksum = "5d729c151ca0805be22936ec63670a7911ac3cc61edc3c107eb370d22f83a323"
 dependencies = [
  "ed25519-dalek",
  "essential-constraint-asm",
@@ -642,9 +642,9 @@ dependencies = [
 
 [[package]]
 name = "essential-hash"
-version = "0.5.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "68c319129cd1e7d20a00ac1a333abcbd70b5b00ea70a417dd404a2c9a2dbcd79"
+checksum = "5583f27d3fe49100720d65207bbfc555111316a48246f50f9305c9db9b0ea08c"
 dependencies = [
  "essential-types",
  "postcard",
@@ -654,9 +654,9 @@ dependencies = [
 
 [[package]]
 name = "essential-sign"
-version = "0.5.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4344805bec17775cded55104ebf9220322f236b668e7171dfe6ab0dfa51bda47"
+checksum = "4a0479a5b95a348740ea5d211a019cc8e7950588dea999da9afbaff9e7bd54dc"
 dependencies = [
  "essential-hash",
  "essential-types",
@@ -665,9 +665,9 @@ dependencies = [
 
 [[package]]
 name = "essential-state-asm"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1a3da842d6a84e3be0fc73743d90dbfe3c14de16e01b306529b6552b0bc8869"
+checksum = "e6b68f52c829df73d4c0588ba2579ed3e89421f9c581dc1d92d3135fb67cef56"
 dependencies = [
  "essential-asm-gen",
  "essential-constraint-asm",
@@ -676,9 +676,9 @@ dependencies = [
 
 [[package]]
 name = "essential-state-read-vm"
-version = "0.6.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff31f2a4a7d6ebaeefff716665811668616ab3c0fd123e4f6a2607005dc576d1"
+checksum = "3ac2ef76b5b5b7073b4cba162f1754d974305b929abf0875f5f8ff671719273f"
 dependencies = [
  "essential-constraint-vm",
  "essential-state-asm",
@@ -689,9 +689,9 @@ dependencies = [
 
 [[package]]
 name = "essential-types"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1846fef62d73b124675dcc63a70670ee16c983ddda241a8647f2cdc75e7a8357"
+checksum = "c7d7418cbf7dd2365e3ec9409a2c02375335530b5eb90bb39167e607f67ca869"
 dependencies = [
  "hex",
  "serde",
@@ -1181,7 +1181,7 @@ checksum = "915a1e146535de9163f3987b8944ed8cf49a18bb0056bcebcdcece385cece4ff"
 
 [[package]]
 name = "pint-abi"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "essential-types",
  "pint-abi-gen",
@@ -1192,7 +1192,7 @@ dependencies = [
 
 [[package]]
 name = "pint-abi-gen"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "essential-hash",
  "essential-types",
@@ -1229,7 +1229,7 @@ dependencies = [
 
 [[package]]
 name = "pint-abi-visit"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "essential-types",
  "petgraph",
@@ -1238,7 +1238,7 @@ dependencies = [
 
 [[package]]
 name = "pint-cli"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -1259,7 +1259,7 @@ dependencies = [
 
 [[package]]
 name = "pint-pkg"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "clap",
  "essential-hash",
@@ -1291,7 +1291,7 @@ dependencies = [
 
 [[package]]
 name = "pintc"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "ariadne",

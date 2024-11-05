@@ -1,6 +1,6 @@
 [package]
 name = "pint-abi-visit"
-version = "0.4.0"
+version = "0.5.0"
 description = "Items to assist in traversing the Pint ABI types."
 edition.workspace = true
 authors.workspace = true
