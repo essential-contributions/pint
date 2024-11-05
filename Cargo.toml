@@ -23,30 +23,30 @@ anyhow = "1.0"
 ariadne = "0.4"
 chumsky = "0.9"
 clap = { version = "4.5", features = ["derive"] }
-constraint-asm = { version = "0.5", package = "essential-constraint-asm" }
-essential-check = { version = "0.7", features = ["tracing"] }
-essential-constraint-vm = "0.5"
-essential-state-read-vm = "0.6"
-essential-hash = "0.5"
-essential-types = "0.4"
+constraint-asm = { version = "0.6", package = "essential-constraint-asm" }
+essential-check = { version = "0.9", features = ["tracing"] }
+essential-constraint-vm = "0.6"
+essential-state-read-vm = "0.7"
+essential-hash = "0.7"
+essential-types = "0.5"
 expect-test = "1.4"
 fxhash = "0.2"
 itertools = "0.13"
 logos = "0.14"
 petgraph = "0.6"
-pint-abi = { path = "pint-abi", version = "0.4.0" }
-pint-abi-gen = { path = "pint-abi-gen", version = "0.4.0" }
+pint-abi = { path = "pint-abi", version = "0.5.0" }
+pint-abi-gen = { path = "pint-abi-gen", version = "0.5.0" }
 pint-abi-types = { path = "pint-abi-types", version = "0.4.0" }
-pint-abi-visit = { path = "pint-abi-visit", version = "0.4.0" }
+pint-abi-visit = { path = "pint-abi-visit", version = "0.5.0" }
 pint-manifest = { path = "pint-manifest", version = "0.2.0" }
-pint-pkg = { path = "pint-pkg", version = "0.6.0" }
-pintc = { path = "pintc", version = "0.6.0" }
+pint-pkg = { path = "pint-pkg", version = "0.7.0" }
+pintc = { path = "pintc", version = "0.7.0" }
 proc-macro2 = "1.0"
 quote = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_ignored = "0.1"
 serde_json = "1.0"
-state-asm = { version = "0.5", package = "essential-state-asm" }
+state-asm = { version = "0.6", package = "essential-state-asm" }
 syn = { version = "2.0", features = ["extra-traits", "full", "printing"] }
 thiserror = "1.0"
 tokio = { version = "1.36", default-features = false, features = ["macros", "test-util"] }
