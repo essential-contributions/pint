@@ -186,6 +186,28 @@ Options:
 
           If not provided, the current directory is checked and then each parent recursively until a manifest is found.
 
+      --salt &lt;SALT&gt;
+          A 256-bit unsigned integer in hexadeciaml format that represents the contract &quot;salt&quot;. The value is left padded with zeros if it has less than 64 hexadecimal digits.
+
+          The &quot;salt&quot; is hashed along with the contract's bytecode in order to make the address of the contract unique.
+
+          If &quot;salt&quot; is provided for a library package, an error is emitted.
+
+      --print-parsed
+          Print the parsed package
+
+      --print-flat
+          Print the flattened package
+
+      --print-optimized
+          Print the optimized package
+
+      --print-asm
+          Print the assembly generated for the package
+
+      --silent
+          Don't print anything that wasn't explicitly requested
+
   -h, --help
           Print help (see a summary with '-h')
 </code></pre>
