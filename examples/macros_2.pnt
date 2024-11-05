@@ -1,5 +1,3 @@
-// TODO: transform vars to arguments
-
 predicate test1() {
 // ANCHOR: expanded 
 let x = 42;
@@ -19,16 +17,18 @@ let f: int = 2;
 constraint f > 0;
 let q: int = e / f;
 // ANCHOR_END: expr_call_expanded 
-
-// ANCHOR: chain_expanded 
-// var m: int;
-// var n: int;
-// constraint n > m + 10;
-// var p: int;
-// constraint p > n + 10;
-// var r = p;
-// ANCHOR_END: chain_expanded 
 }
+
+// ANCHOR: chain_expanded
+predicate chain(
+    array: int[4],
+) {
+    let r = array[3];
+    constraint (array[1] > (array[0] + 10));
+    constraint (array[2] > (array[1] + 10));
+    constraint (array[3] > (array[2] + 10));
+}
+// ANCHOR_END: chain_expanded
 
 macro @sum($x, $y, &rest) {
     @sum($x + $y; &rest)

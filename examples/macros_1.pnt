@@ -1,5 +1,3 @@
-// TODO: transform vars to arguments
-
 // ANCHOR: in_range
 macro @in_range($v, $num) {
     constraint $v >= $num;
@@ -29,12 +27,12 @@ macro @is_even($a) {
 }
 // ANCHOR_END: is_even 
 
-// ANCHOR: var_decls
-// macro @var_decls($a) {
-//     let foo: int = 42;     // Hygienic anonymous binding for `foo`.
-//     let $a: bool = true;   // Lexical binding for `$a`.
-// }
-// ANCHOR_END: var_decls
+// ANCHOR: let_decls
+macro @let_decls($a) {
+    let foo: int = 42;     // Hygienic anonymous binding for `foo`.
+    let $a: bool = true;   // Lexical binding for `$a`.
+}
+// ANCHOR_END: let_decls
 
 // ANCHOR: sum
 // Recursive Macro
@@ -64,26 +62,23 @@ macro @sum_v2($x) {
 // ANCHOR_END: sum_simple
 
 // ANCHOR: chain 
-// macro @chain($a, &rest) {
-//     // Add the first link in the chain, then move to the rest.
-//     var $a: int;
-//     @chain_next($a; &rest)
-// }
-// 
-// macro @chain_next($prev, $next, &rest) {
-//     // Add the next link:
-//     // constrain based on the previous link and continue.
-//     var $next: int;
-//     constraint $next > $prev + 10;
-//     @chain_next($next; &rest)
-// }
-// 
-// macro @chain_next($prev, $last) {
-//     // Just expand to the final link.
-//     var $last: int;
-//     constraint $last > $prev + 10;
-//     $last
-// }
+macro @chain($a, $index, &rest) {
+    // Add the first link in the chain, then move to the rest.
+    @chain_next($a; $index; &rest)
+}
+
+macro @chain_next($a, $prev, $next, &rest) {
+    // Add the next link:
+    // constrain based on the previous link and continue.
+    constraint $a[$next] > $a[$prev] + 10;
+    @chain_next($a; $next; &rest)
+}
+
+macro @chain_next($a, $prev, $last) {
+    // Just expand to the final link.
+    constraint $a[$last] > $a[$prev] + 10;
+    $a[$last]
+}
 // ANCHOR_END: chain 
 
 macro @foo($a, $b, $c, $d) {}
@@ -104,10 +99,10 @@ let f: int = 2;
 let q: int = @quotion(e; f);
 // ANCHOR_END: expr_call
 
-// ANCHOR: var_decls_call
-// @var_decls(foo);
-// @var_decls(bar);
-// ANCHOR_END: var_decls_call
+// ANCHOR: let_decls_call
+@let_decls(foo);
+@let_decls(bar);
+// ANCHOR_END: let_decls_call
 
 let a: int = 0;
 let b: int = 1;
@@ -117,9 +112,13 @@ let s1 = @sum(a; b);
 let s2 = @sum(a; b; c; d);
 
 let s3 = @sum_v2(a; b; c; d);
-
-// let r = @chain(m; n; p);
 }
+
+// ANCHOR: chain_call
+predicate chain(array: int[4]) {
+    let r = @chain(array; 0; 1; 2; 3);
+}
+// ANCHOR_END: chain_call
 
 predicate test2(array: int[4], two: int[2], nums: int[3]) {
 // ANCHOR: sum_array

@@ -120,8 +120,6 @@ As a result, the compiler will expand the macro call to:
 Note that the expression is always inserted at the exact location where the macro was called, but
 any declaration items in the macro body are inserted _right before_ the call.
 
-<!--
-TODO: re-enable after making `let` variables hygienic
 #### Declaring Variables in Macro Bodies
 
 Earlier, we looked at an example macro that uses some of its parameters as identifiers to declare
@@ -141,36 +139,34 @@ symbols into a unique anonymous namespace. Note that this is only done for symbo
 macro parameters. To illustrate this, consider the following:
 
 ```pint
-{{#include ../../../../examples/macros_1.pnt:var_decls}}
+{{#include ../../../../examples/macros_1.pnt:let_decls}}
 ```
 
 If we call the macro above using `@let_decls(foo)` there would not be an error as the expansion
 would be equivalent to:
 
 ```pint
-let anon_0::foo: int = 42;
+let anon@0::foo: int = 42;
 let foo: bool = true;
 ```
 
 And even when called multiple times with different arguments there would be no error:
 
 ```pint
-{{#include ../../../../examples/macros_1.pnt:var_decls_call}}
+{{#include ../../../../examples/macros_1.pnt:let_decls_call}}
 ```
 
 Becomes equivalent to:
 
 ```pint
-let anon_0::foo: int = 42;
+let anon@0::foo: int = 42;
 let foo: bool = true;
-let anon_1::foo: int = 42;
+let anon@1::foo: int = 42;
 let bar: bool = true;
 ```
 
 Of course, if `@let_decls` was called with the argument `foo` multiple times there would be an
 error!
-
--->
 
 ### Recursion and Variadic Macros
 
@@ -222,23 +218,25 @@ could instead be rewritten as follows, to the same effect:
 {{#include ../../../../examples/macros_1.pnt:sum_simple}}
 ```
 
-<!---
-TODO: come up with a better example that does not require declaring decision variables in the macro
-
 Parameter packs can also be used by non-recursive macros which wish to call other recursive macros.
-A more interesting use of variadic macros might be to chain variables together in relative
+A more interesting use of variadic macros might be to chain array accesses together in relative
 constraints:
 
 ```pint
 {{#include ../../../../examples/macros_1.pnt:chain}}
 ```
 
-When called as `var r = @chain(m; n; p)`, the following code would be produced:
+When called as:
+
+```pint
+{{#include ../../../../examples/macros_1.pnt:chain_call}}
+```
+
+The following code would be produced:
 
 ```pint
 {{#include ../../../../examples/macros_2.pnt:chain_expanded}}
 ```
--->
 
 #### Array Argument Splicing
 
@@ -302,3 +300,47 @@ expands to:
 
 The arithmetic add and multiply are applied to the first and last elements of the array in this
 example.
+
+#### Debugging Macros
+
+The easiest way to debug macros is to inspect the code they expand to and compare the result to your
+expectations. The way to do this is using flag `--print-parsed` as follows:
+
+```console
+pint build --print-parsed
+```
+
+For example, consider the following contract:
+
+```pint
+{{#include ../../../../examples/macros_3.pnt}}
+```
+
+Building this contract with the flag `--print-parsed` results in the following:
+
+```console
+$ pint build --print-parsed
+   Compiling to_debug [contract] (/path/to/to_debug)
+   Printing parsed to_debug [contract] (/path/to/to_debug)
+
+
+predicate ::test4(
+    ::x: int,
+    ::array: int[4],
+) {
+    let ::sum_of_array = (((::array[0] + ::array[1]) + ::array[2]) + ::array[3]);
+    let ::r = ::array[3];
+    constraint (::x >= 10);
+    constraint (::x < (10 * 10));
+    constraint (::array[1] > (::array[0] + 10));
+    constraint (::array[2] > (::array[1] + 10));
+    constraint (::array[3] > (::array[2] + 10));
+}
+
+    Finished build [debug] in 8.914417ms
+    contract to_debug        2C7EF76D670086B5A3FA185490A8C596043319A1AA8AC496B9DCF0043B8101F5
+         └── to_debug::test4 2E4456C7268C180898A0CE5C4C3F0445D613AD79A0E6E73CF8319F8B2C3EFB3B
+```
+
+which has no macro calls left! The compiler has already expanded all the macro calls and inlined the
+resulting code in the appropriate locations.
