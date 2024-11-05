@@ -7,6 +7,7 @@ use pint_pkg::{
     build::{build_plan, BuiltPkg},
     manifest::PackageKind,
 };
+use std::collections::HashMap;
 use util::{edit_manifest, insert_dep, new_pkg, with_temp_dir};
 
 mod util;
@@ -17,9 +18,7 @@ fn build_default_contract() {
         let foo = new_pkg(&dir.join("foo"), PackageKind::Contract);
         let members = [(foo.pkg.name.to_string(), foo)].into_iter().collect();
         let plan = pint_pkg::plan::from_members(&members).unwrap();
-        let _built = build_plan(&plan)
-            .build_all(Default::default(), false /* skip_optimize */)
-            .unwrap();
+        let _built = build_plan(&plan).build_all(&Default::default()).unwrap();
     });
 }
 
@@ -29,9 +28,7 @@ fn build_default_library() {
         let foo = new_pkg(&dir.join("foo"), PackageKind::Library);
         let members = [(foo.pkg.name.to_string(), foo)].into_iter().collect();
         let plan = pint_pkg::plan::from_members(&members).unwrap();
-        let _built = build_plan(&plan)
-            .build_all(Default::default(), false /* skip_optimize */)
-            .unwrap();
+        let _built = build_plan(&plan).build_all(&Default::default()).unwrap();
     });
 }
 
@@ -39,10 +36,15 @@ fn build_default_library() {
 fn build_default_contract_with_salt() {
     with_temp_dir(|dir| {
         let foo = new_pkg(&dir.join("foo"), PackageKind::Contract);
-        let members = [(foo.pkg.name.to_string(), foo)].into_iter().collect();
+        let members = [(foo.pkg.name.to_string(), foo.clone())]
+            .into_iter()
+            .collect();
         let plan = pint_pkg::plan::from_members(&members).unwrap();
         let built = build_plan(&plan)
-            .build_all([42; 32], false /* skip_optimize */)
+            .build_all(&pint_pkg::build::BuildOptions {
+                salts: HashMap::from_iter([(foo, [42; 32])]),
+                ..Default::default()
+            })
             .unwrap();
 
         let order = plan.compilation_order();
@@ -80,14 +82,13 @@ predicate test(bob_age: Age) {
 
         let members = [(foo.pkg.name.to_string(), foo)].into_iter().collect();
         let plan = pint_pkg::plan::from_members(&members).unwrap();
-        let built_pkgs =
-            match build_plan(&plan).build_all(Default::default(), false /* skip_optimize */) {
-                Ok(built) => built,
-                Err(err) => {
-                    err.pkg_err.print_diagnostics();
-                    panic!()
-                }
-            };
+        let built_pkgs = match build_plan(&plan).build_all(&Default::default()) {
+            Ok(built) => built,
+            Err(err) => {
+                err.pkg_err.print_diagnostics();
+                panic!()
+            }
+        };
 
         let order = plan.compilation_order();
         assert_eq!(order.len(), 2, "expected two nodes in the plan");
@@ -156,14 +157,13 @@ predicate test(bob: { age: int }) {
 
         let members = [(foo.pkg.name.to_string(), foo)].into_iter().collect();
         let plan = pint_pkg::plan::from_members(&members).unwrap();
-        let built_pkgs =
-            match build_plan(&plan).build_all(Default::default(), false /* skip_optimize */) {
-                Ok(built) => built,
-                Err(err) => {
-                    err.pkg_err.print_diagnostics();
-                    panic!()
-                }
-            };
+        let built_pkgs = match build_plan(&plan).build_all(&Default::default()) {
+            Ok(built) => built,
+            Err(err) => {
+                err.pkg_err.print_diagnostics();
+                panic!()
+            }
+        };
 
         let order = plan.compilation_order();
         assert_eq!(order.len(), 3, "expected three nodes in the plan");
@@ -248,14 +248,17 @@ predicate test() {
 
         // disable optimizing to ensure that the constraints containing the contract addresses are
         // retained in the bytecode
-        let built_pkgs =
-            match build_plan(&plan).build_all(Default::default(), true /* skip_optimize */) {
-                Ok(built) => built,
-                Err(err) => {
-                    err.pkg_err.print_diagnostics();
-                    panic!()
-                }
-            };
+        let built_pkgs = match build_plan(&plan).build_all(&pint_pkg::build::BuildOptions {
+            // skip optimizing away dead constraints in order to check the bytecode
+            skip_optimize: true,
+            ..Default::default()
+        }) {
+            Ok(built) => built,
+            Err(err) => {
+                err.pkg_err.print_diagnostics();
+                panic!()
+            }
+        };
 
         let order = plan.compilation_order();
         assert_eq!(order.len(), 2, "expected two nodes in the plan");
