@@ -9,6 +9,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+clap = { workspace = true }
 essential-hash = { workspace = true }
 essential-types = { workspace = true }
 petgraph = { workspace = true }

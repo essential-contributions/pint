@@ -10,7 +10,7 @@ use std::{
 use thiserror::Error;
 
 /// A manifest loaded from a file.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct ManifestFile {
     /// The deserialized manifest.
     manifest: Manifest,
