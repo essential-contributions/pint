@@ -1,0 +1,13 @@
+[[data]]
+predicate_to_solve = { predicate = "::Test" }
+state_mutations = [
+  { key = [0, 25], value = [1, 1, 1, 1] },                              # storage::a[25]
+  { key = [1, 1], value = [111] },                                      # storage::b[true]
+  { key = [2, 2, 3, 4, 5], value = [0] },                               # storage::c[0x0000000000000002000000000000000300000000000000040000000000000005]
+  { key = [3, 1, 30], value = [1, 2, 3, 4] },                           # storage::d[{ true, 30 }]
+  { key = [4, 490, 9, 8, 7, 6], value = [1] },                          # storage::e[{ 490, 0x0000000000000009000000000000000800000000000000070000000000000006}]
+  { key = [5, 4, 576, 3, 4, 3, 4], value = [652] },                     # storage::f[MyUnion::d({ 576, 0x0000000000000003000000000000000400000000000000030000000000000004 })]
+  { key = [6, 0, 1, 2, 3, 4], value = [10] },                           # storage::g[[0]]
+  { key = [7, 0, 2, 1, 40, 0, 24, 1, 42, 0, 21, 0, 25], value = [49] }, # storage::h[[[{ false, 2 }, { true, 40 }, { false, 24 }], [{ true, 42 }, { false, 21 }, { false, 25 }]]]
+  { key = [8, 1, 0, 0, 0, 0, 0], value = [0] },                         # storage::i[MyUnion::a(false)]
+]

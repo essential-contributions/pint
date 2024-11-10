@@ -1,0 +1,46 @@
+union MyUnion = x | a(bool) | b(b256) | c(int) | d({ int, b256 }) | e({ b256, bool });
+type MyAlias = MyUnion;
+
+storage {
+    a: (int => b256),
+    b: (bool => int),
+    c: (b256 => bool),
+    d: ({ bool, int } => b256),
+    e: ({ int, b256 } => bool),
+    f: (MyUnion => int),
+    g: (int[5] => int),
+    h: ({ bool, b256 }[24][5] => int),
+    i: (MyAlias => bool),
+}
+
+// parsed <<<
+// union ::MyUnion = x | a(bool) | b(b256) | c(int) | d({int, b256}) | e({b256, bool});
+// type ::MyAlias = ::MyUnion;
+// storage {
+//     a: ( int => b256 ),
+//     b: ( bool => int ),
+//     c: ( b256 => bool ),
+//     d: ( {bool, int} => b256 ),
+//     e: ( {int, b256} => bool ),
+//     f: ( ::MyUnion => int ),
+//     g: ( int[5] => int ),
+//     h: ( {bool, b256}[5][24] => int ),
+//     i: ( ::MyAlias => bool ),
+// }
+// >>>
+
+// flattened <<<
+// union ::MyUnion = x | a(bool) | b(b256) | c(int) | d({int, b256}) | e({b256, bool});
+// type ::MyAlias = ::MyUnion;
+// storage {
+//     a: ( int => b256 ),
+//     b: ( bool => int ),
+//     c: ( b256 => bool ),
+//     d: ( {bool, int} => b256 ),
+//     e: ( {int, b256} => bool ),
+//     f: ( ::MyUnion => int ),
+//     g: ( int[5] => int ),
+//     h: ( {bool, b256}[5][24] => int ),
+//     i: ( ::MyUnion => bool ),
+// }
+// >>>

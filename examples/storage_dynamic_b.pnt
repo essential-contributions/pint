@@ -1,4 +1,3 @@
-// <disabled> disabled because tuple keys are not yet supported
 // ANCHOR: storage_block
 storage {
     // ...
