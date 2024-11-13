@@ -702,12 +702,22 @@ name = "examples-runner"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "essential-check",
+ "essential-hash",
+ "essential-types",
  "num-bigint",
  "num-traits",
+ "pint-abi",
+ "pint-pkg",
  "pintc",
  "regex",
  "serde",
+ "serde_json",
  "test-util",
+ "thiserror",
+ "tokio",
+ "tracing-subscriber",
+ "walkdir",
  "yansi",
 ]
 

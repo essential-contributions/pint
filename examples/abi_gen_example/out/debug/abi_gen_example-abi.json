@@ -1,0 +1,167 @@
+{
+  "predicates": [
+    {
+      "name": "::MyPredicate",
+      "params": [
+        {
+          "name": "::x",
+          "ty": "Int"
+        },
+        {
+          "name": "::y",
+          "ty": "Bool"
+        },
+        {
+          "name": "::z",
+          "ty": {
+            "Tuple": [
+              {
+                "name": null,
+                "ty": "Int"
+              },
+              {
+                "name": null,
+                "ty": "B256"
+              }
+            ]
+          }
+        },
+        {
+          "name": "::a",
+          "ty": {
+            "Array": {
+              "ty": {
+                "Tuple": [
+                  {
+                    "name": null,
+                    "ty": "Bool"
+                  },
+                  {
+                    "name": null,
+                    "ty": "Int"
+                  }
+                ]
+              },
+              "size": 2
+            }
+          }
+        },
+        {
+          "name": "::u",
+          "ty": {
+            "Union": {
+              "name": "::MyUnion",
+              "variants": [
+                {
+                  "name": "MyUnion::A",
+                  "ty": "Int"
+                },
+                {
+                  "name": "MyUnion::B",
+                  "ty": null
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "storage": [
+    {
+      "name": "s_x",
+      "ty": "Int"
+    },
+    {
+      "name": "s_y",
+      "ty": "Bool"
+    },
+    {
+      "name": "s_z",
+      "ty": {
+        "Tuple": [
+          {
+            "name": null,
+            "ty": "Int"
+          },
+          {
+            "name": null,
+            "ty": "B256"
+          }
+        ]
+      }
+    },
+    {
+      "name": "s_a",
+      "ty": {
+        "Array": {
+          "ty": {
+            "Tuple": [
+              {
+                "name": null,
+                "ty": "Bool"
+              },
+              {
+                "name": null,
+                "ty": "Int"
+              }
+            ]
+          },
+          "size": 2
+        }
+      }
+    },
+    {
+      "name": "s_u",
+      "ty": {
+        "Union": {
+          "name": "::MyUnion",
+          "variants": [
+            {
+              "name": "MyUnion::A",
+              "ty": "Int"
+            },
+            {
+              "name": "MyUnion::B",
+              "ty": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "m1",
+      "ty": {
+        "Map": {
+          "ty_from": "Int",
+          "ty_to": "B256"
+        }
+      }
+    },
+    {
+      "name": "m2",
+      "ty": {
+        "Map": {
+          "ty_from": "Int",
+          "ty_to": {
+            "Map": {
+              "ty_from": "Int",
+              "ty_to": {
+                "Tuple": [
+                  {
+                    "name": null,
+                    "ty": "Bool"
+                  },
+                  {
+                    "name": null,
+                    "ty": "Int"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

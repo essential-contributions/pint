@@ -181,6 +181,7 @@ impl<'p> PlanBuilder<'p> {
     }
 
     /// Build all remaining packages.
+    #[allow(clippy::result_large_err)]
     pub fn build_all(mut self, options: &BuildOptions) -> Result<BuiltPkgs, BuildError> {
         while let Some(prebuilt) = self.next_pkg() {
             if let Err(pkg_err) = prebuilt.build(options) {

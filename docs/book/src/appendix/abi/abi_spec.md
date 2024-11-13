@@ -1,13 +1,7 @@
-## Appendix C: Application Binary Interface (ABI) Spec
+## Appendix C.1: Application Binary Interface (ABI) Specification
 
-The Application Binary Interface (ABI) is a condensed representation of a smart contract that
-exposes enough information about the contract to allow external contexts to interact with it. The
-ABI does not contain any contract _logic_ but only its public data such as its storage variables and
-its predicates. The ABI is serialized in JSON format, making it both human readable and easily
-parsable by relevant tools.
-
-> **Note** This particular ABI specification is mostly relevant for the EssentialVM. Other virtual
-> machines may have different architectures, requiring a completely different ABI format.
+In this chapter, we will cover the specification of the Application Binary Interface (ABI) and
+provide an example that showcase how the final ABI looks like in JSON format.
 
 ### JSON ABI Specification
 
@@ -145,11 +139,11 @@ type in the map, formatted according to the rules of this section.
 Here's an example contract and its corresponding JSON ABI:
 
 ```pint
-{{#include ../../../../examples/appendix_c/src/contract.pnt}}
+{{#include ../../../../../examples/appendix_c/src/contract.pnt}}
 ```
 
 ```json
-{{#include ../../../../examples/appendix_c/out/debug/appendix_c-abi.json}}
+{{#include ../../../../../examples/appendix_c/out/debug/appendix_c-abi.json}}
 ```
 
 Here's how we would interpret this JSON ABI:

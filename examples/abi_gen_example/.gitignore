@@ -1,0 +1,2 @@
+# Don't ignore *.json in this particular project
+!*.json
