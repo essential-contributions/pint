@@ -178,12 +178,12 @@ multiple contracts with different implementations may share the same interface.<
 </code></pre>
 <p>In order to access storage variable <code>counter</code> from interface <code>Counter</code>, we can create a path to
 <code>conter</code> as follows:</p>
-<pre><code class="language-pint">let counter = Counter[[ContractID]]::storage::counter;
+<pre><code class="language-pint">let counter = Counter@[ContractID]::storage::counter;
 </code></pre>
-<p>The path <code>Counter[[ContractID]]::storage::counter</code> has three parts separated by <code>::</code>:</p>
+<p>The path <code>Counter@[ContractID]::storage::counter</code> has three parts separated by <code>::</code>:</p>
 <ol>
 <li>The name of the interface <code>Counter</code> followed by the address of the corresponding deployed
-contract in between <code>[[..]]</code>.</li>
+contract in between <code>@[..]</code>.</li>
 <li>The keyword <code>storage</code> to indicate that we're accessing the <code>storage</code> block of <code>Counter</code>.</li>
 <li><code>counter</code>, the name of the storage variable we want to access.</li>
 </ol>
@@ -203,7 +203,7 @@ even need to propose a solution for any predicates in the external contract.</li
 </li>
 </ol>
 <p>Similarly to local storage access expressions, the expression
-<code>Counter[[ContractID]]::storage::counter</code> can only be used in the right-hand side of a <code>let</code>
+<code>Counter@[ContractID]::storage::counter</code> can only be used in the right-hand side of a <code>let</code>
 declaration.</p>
 <blockquote>
 <p><strong>Note</strong>: The <code>mut</code> keyword cannot be added to external storage accesses. External storage

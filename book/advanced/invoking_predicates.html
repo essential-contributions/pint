@@ -204,20 +204,20 @@ predicate bar(
     b: bool,
 ) {
     let tuple = { 42, b };
-    constraint MyInterface[[CONTRACT_ADDR]]::foo[[FOO_ADDR]](a, true, tuple);
+    constraint MyInterface@[CONTRACT_ADDR]::foo@[FOO_ADDR](a, true, tuple);
 }
 </code></pre>
 <p>The predicate invocation expression has three parts separated by <code>::</code>:</p>
 <ol>
 <li>The name of the interface <code>MyInterface</code> followed by the address of the corresponding deployed
-contract in between <code>[[..]]</code>. This is quite similar to what we had to do to access external
+contract in between <code>@[..]</code>. This is quite similar to what we had to do to access external
 storage variables.</li>
 <li>The name of the predicate <code>foo</code> followed by the address of the corresponding predicate in the
 deployed contract.</li>
 <li>A list of arguments that must match the list parameters of <code>foo</code> in the <code>interface</code>.</li>
 </ol>
 <p>In the above, the constraint:</p>
-<pre><code class="language-pint">    constraint MyInterface[[CONTRACT_ADDR]]::foo[[FOO_ADDR]](a, true, tuple);
+<pre><code class="language-pint">    constraint MyInterface@[CONTRACT_ADDR]::foo@[FOO_ADDR](a, true, tuple);
 </code></pre>
 <p>can be interpreted as follows: any solution that solves predicate <code>bar</code> must also contain a solution
 for predicate <code>foo</code> such that:</p>
@@ -245,22 +245,22 @@ predicate because the compiler can figure that out on its own! Here's an example
 }
 
 predicate B() {
-    constraint A[[]]( { true, 42 }, false, [1, 2, 3]);
+    constraint A@[]( { true, 42 }, false, [1, 2, 3]);
 }
 </code></pre>
 <p>Here, predicate <code>B</code> invokes <em>sibling</em> predicate <code>A</code> by using its path (just <code>A</code>) and empty square
-brackets <code>[[]]</code> to indicate that the address is to be computed by the compiler. The constraint
-<code>constraint A[[]](..)</code> should be interpreted exactly as in the case of external predicate
+brackets <code>@[]</code> to indicate that the address is to be computed by the compiler. The constraint
+<code>constraint A@[](..)</code> should be interpreted exactly as in the case of external predicate
 invocation: any solution that solves <code>B</code> should also contain a solution for <code>A</code> with the provided
 listed arguments.</p>
 <p>One important caveat of the above is that you are not allowed to have <em>cyclical dependencies</em>
 between predicates. For example:</p>
 <pre><code class="language-pint">predicate A(x: int) {
-    constraint B[[]](0);
+    constraint B@[](0);
 }
 
 predicate B(y: int) {
-    constraint A[[]](0);
+    constraint A@[](0);
 }
 </code></pre>
 <p>Here, predicate <code>A</code> invokes predicate <code>B</code> and predicate <code>B</code> invokes predicate <code>A</code>. This causes a
@@ -282,16 +282,16 @@ emit the following error to prevent you from proceeding:</p>
 </code></pre>
 <p>Another caveat is that a predicate cannot reference itself:</p>
 <pre><code class="language-pint">predicate C(x: int) {
-    constraint C[[]](x);
+    constraint C@[](x);
 }
 </code></pre>
 <p>The compiler will complain as follows:</p>
 <pre><code class="language-console">Error: self referential predicate `::C`
    ╭─[invoking_predicates_4.pnt:2:16]
    │
- 2 │     constraint C[[]](x);
-   │                ────┬───
-   │                    ╰───── this predicate call references the predicate it's declared in
+ 2 │     constraint C@[](x);
+   │                ───┬───
+   │                   ╰───── this predicate call references the predicate it's declared in
 ───╯
 </code></pre>
 
