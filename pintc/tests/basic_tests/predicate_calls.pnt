@@ -50,7 +50,7 @@ predicate Foo(
         y6: int[5],
     },
 ) {
-    constraint Contract[[addr1]]::Foo[[addr2]](
+    constraint Contract@[addr1]::Foo@[addr2](
         foo_1.x1,
         foo_1.x2,
         foo_1.x3,
@@ -69,7 +69,7 @@ predicate Foo(
     constraint foo_1.x5 == { true, 2 };
     constraint foo_1.x6 == [ 1, 2, 3, 4, 5];
 
-    constraint Contract[[addr1]]::Foo[[addr3]](
+    constraint Contract@[addr1]::Foo@[addr3](
         foo_2.x1,
         foo_2.x2,
         foo_2.x3,
@@ -114,13 +114,13 @@ predicate Foo(
 //     ::foo_1: {x1: bool, x2: int, x3: b256, x5: {bool, int}, x6: int[5], y1: bool, y2: int, y3: b256, y5: {bool, int}, y6: int[5]},
 //     ::foo_2: {x1: bool, x2: int, x3: b256, x5: {bool, int}, x6: int[5], y1: bool, y2: int, y3: b256, y5: {bool, int}, y6: int[5]},
 // ) {
-//     constraint ::Contract[[::addr1]]::Foo[[::addr2]](::foo_1.x1, ::foo_1.x2, ::foo_1.x3, ::foo_1.x5, ::foo_1.x6, ::foo_1.y1, ::foo_1.y2, ::foo_1.y3, ::foo_1.y5, ::foo_1.y6);
+//     constraint ::Contract@[::addr1]::Foo@[::addr2](::foo_1.x1, ::foo_1.x2, ::foo_1.x3, ::foo_1.x5, ::foo_1.x6, ::foo_1.y1, ::foo_1.y2, ::foo_1.y3, ::foo_1.y5, ::foo_1.y6);
 //     constraint (::foo_1.x1 == true);
 //     constraint (::foo_1.x2 == 5);
 //     constraint (::foo_1.x3 == 0x0000111100001111000011110000111100001111000011110000111100001111);
 //     constraint (::foo_1.x5 == {true, 2});
 //     constraint (::foo_1.x6 == [1, 2, 3, 4, 5]);
-//     constraint ::Contract[[::addr1]]::Foo[[::addr3]](::foo_2.x1, ::foo_2.x2, ::foo_2.x3, ::foo_2.x5, ::foo_2.x6, ::foo_2.y1, ::foo_2.y2, ::foo_2.y3, ::foo_2.y5, ::foo_2.y6);
+//     constraint ::Contract@[::addr1]::Foo@[::addr3](::foo_2.x1, ::foo_2.x2, ::foo_2.x3, ::foo_2.x5, ::foo_2.x6, ::foo_2.y1, ::foo_2.y2, ::foo_2.y3, ::foo_2.y5, ::foo_2.y6);
 //     constraint (::foo_2.y1 == true);
 //     constraint (::foo_2.y2 == 5);
 //     constraint (::foo_2.y3 == 0x0000111100001111000011110000111100001111000011110000111100001111);
@@ -154,13 +154,13 @@ predicate Foo(
 //     ::foo_1: {x1: bool, x2: int, x3: b256, x5: {bool, int}, x6: int[5], y1: bool, y2: int, y3: b256, y5: {bool, int}, y6: int[5]},
 //     ::foo_2: {x1: bool, x2: int, x3: b256, x5: {bool, int}, x6: int[5], y1: bool, y2: int, y3: b256, y5: {bool, int}, y6: int[5]},
 // ) {
-//     constraint ::Contract[[::addr1]]::Foo[[::addr2]](::foo_1.x1, ::foo_1.x2, ::foo_1.x3, ::foo_1.x5, ::foo_1.x6, ::foo_1.y1, ::foo_1.y2, ::foo_1.y3, ::foo_1.y5, ::foo_1.y6);
+//     constraint ::Contract@[::addr1]::Foo@[::addr2](::foo_1.x1, ::foo_1.x2, ::foo_1.x3, ::foo_1.x5, ::foo_1.x6, ::foo_1.y1, ::foo_1.y2, ::foo_1.y3, ::foo_1.y5, ::foo_1.y6);
 //     constraint (::foo_1.x1 == true);
 //     constraint (::foo_1.x2 == 5);
 //     constraint (::foo_1.x3 == 0x0000111100001111000011110000111100001111000011110000111100001111);
 //     constraint (::foo_1.x5 == {true, 2});
 //     constraint (::foo_1.x6 == [1, 2, 3, 4, 5]);
-//     constraint ::Contract[[::addr1]]::Foo[[::addr3]](::foo_2.x1, ::foo_2.x2, ::foo_2.x3, ::foo_2.x5, ::foo_2.x6, ::foo_2.y1, ::foo_2.y2, ::foo_2.y3, ::foo_2.y5, ::foo_2.y6);
+//     constraint ::Contract@[::addr1]::Foo@[::addr3](::foo_2.x1, ::foo_2.x2, ::foo_2.x3, ::foo_2.x5, ::foo_2.x6, ::foo_2.y1, ::foo_2.y2, ::foo_2.y3, ::foo_2.y5, ::foo_2.y6);
 //     constraint (::foo_2.y1 == true);
 //     constraint (::foo_2.y2 == 5);
 //     constraint (::foo_2.y3 == 0x0000111100001111000011110000111100001111000011110000111100001111);

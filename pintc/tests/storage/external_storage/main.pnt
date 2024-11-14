@@ -24,17 +24,17 @@ predicate Foo() {
     let internal_y = storage::y;
     let internal_map = storage::map[3][4];
 
-    let external_x_0 = ::ERC20_0[[addr0]]::storage::x;
-    let external_y_0 = ERC20_0[[addr0]]::storage::y;
-    let external_map_0 = ERC20_0[[addr0]]::storage::map[3][4];
+    let external_x_0 = ::ERC20_0@[addr0]::storage::x;
+    let external_y_0 = ERC20_0@[addr0]::storage::y;
+    let external_map_0 = ERC20_0@[addr0]::storage::map[3][4];
 
-    let external_x_1 = ERC20_1[[addr1]]::storage::x;
-    let external_y_1 = ERC20_1[[addr1]]::storage::y;
-    let external_map_1 = ERC20_1[[addr1]]::storage::map[3][4];
+    let external_x_1 = ERC20_1@[addr1]::storage::x;
+    let external_y_1 = ERC20_1@[addr1]::storage::y;
+    let external_map_1 = ERC20_1@[addr1]::storage::map[3][4];
 
-    let external_x_2 = lib::ERC20_2[[addr2]]::storage::x;
-    let external_y_2 = lib::ERC20_2[[addr2]]::storage::y;
-    let external_map_2 = lib::ERC20_2[[addr2]]::storage::map[3][4];
+    let external_x_2 = lib::ERC20_2@[addr2]::storage::x;
+    let external_y_2 = lib::ERC20_2@[addr2]::storage::y;
+    let external_map_2 = lib::ERC20_2@[addr2]::storage::map[3][4];
 }
 
 predicate Bar() {
@@ -46,17 +46,17 @@ predicate Bar() {
     let internal_y = storage::y;
     let internal_map = storage::map[3][4];
 
-    let external_x_0 = ::ERC20_0[[addr0]]::storage::x;
-    let external_y_0 = ERC20_0[[addr0]]::storage::y;
-    let external_map_0 = ERC20_0[[addr0]]::storage::map[3][4];
+    let external_x_0 = ::ERC20_0@[addr0]::storage::x;
+    let external_y_0 = ERC20_0@[addr0]::storage::y;
+    let external_map_0 = ERC20_0@[addr0]::storage::map[3][4];
 
-    let external_x_1 = ::lib::ERC20_1[[addr1]]::storage::x;
-    let external_y_1 = ::lib::ERC20_1[[addr1]]::storage::y;
-    let external_map_1 = ::lib::ERC20_1[[addr1]]::storage::map[3][4];
+    let external_x_1 = ::lib::ERC20_1@[addr1]::storage::x;
+    let external_y_1 = ::lib::ERC20_1@[addr1]::storage::y;
+    let external_map_1 = ::lib::ERC20_1@[addr1]::storage::map[3][4];
 
-    let external_x_2 = ERC20_2[[addr2]]::storage::x;
-    let external_y_2 = ERC20_2[[addr2]]::storage::y;
-    let external_map_2 = ERC20_2[[addr2]]::storage::map[3][4];
+    let external_x_2 = ERC20_2@[addr2]::storage::x;
+    let external_y_2 = ERC20_2@[addr2]::storage::y;
+    let external_map_2 = ERC20_2@[addr2]::storage::map[3][4];
 }
 
 // parsed <<<
@@ -95,15 +95,15 @@ predicate Bar() {
 //     let ::internal_x = storage::x;
 //     let ::internal_y = storage::y;
 //     let ::internal_map = storage::map[3][4];
-//     let ::external_x_0 = ::ERC20_0[[::addr0]]::storage::x;
-//     let ::external_y_0 = ::ERC20_0[[::addr0]]::storage::y;
-//     let ::external_map_0 = ::ERC20_0[[::addr0]]::storage::map[3][4];
-//     let ::external_x_1 = ::lib::ERC20_1[[::addr1]]::storage::x;
-//     let ::external_y_1 = ::lib::ERC20_1[[::addr1]]::storage::y;
-//     let ::external_map_1 = ::lib::ERC20_1[[::addr1]]::storage::map[3][4];
-//     let ::external_x_2 = ::lib::ERC20_2[[::addr2]]::storage::x;
-//     let ::external_y_2 = ::lib::ERC20_2[[::addr2]]::storage::y;
-//     let ::external_map_2 = ::lib::ERC20_2[[::addr2]]::storage::map[3][4];
+//     let ::external_x_0 = ::ERC20_0@[::addr0]::storage::x;
+//     let ::external_y_0 = ::ERC20_0@[::addr0]::storage::y;
+//     let ::external_map_0 = ::ERC20_0@[::addr0]::storage::map[3][4];
+//     let ::external_x_1 = ::lib::ERC20_1@[::addr1]::storage::x;
+//     let ::external_y_1 = ::lib::ERC20_1@[::addr1]::storage::y;
+//     let ::external_map_1 = ::lib::ERC20_1@[::addr1]::storage::map[3][4];
+//     let ::external_x_2 = ::lib::ERC20_2@[::addr2]::storage::x;
+//     let ::external_y_2 = ::lib::ERC20_2@[::addr2]::storage::y;
+//     let ::external_map_2 = ::lib::ERC20_2@[::addr2]::storage::map[3][4];
 // }
 // 
 // predicate ::Bar(
@@ -114,15 +114,15 @@ predicate Bar() {
 //     let ::internal_x = storage::x;
 //     let ::internal_y = storage::y;
 //     let ::internal_map = storage::map[3][4];
-//     let ::external_x_0 = ::ERC20_0[[::addr0]]::storage::x;
-//     let ::external_y_0 = ::ERC20_0[[::addr0]]::storage::y;
-//     let ::external_map_0 = ::ERC20_0[[::addr0]]::storage::map[3][4];
-//     let ::external_x_1 = ::lib::ERC20_1[[::addr1]]::storage::x;
-//     let ::external_y_1 = ::lib::ERC20_1[[::addr1]]::storage::y;
-//     let ::external_map_1 = ::lib::ERC20_1[[::addr1]]::storage::map[3][4];
-//     let ::external_x_2 = ::lib::ERC20_2[[::addr2]]::storage::x;
-//     let ::external_y_2 = ::lib::ERC20_2[[::addr2]]::storage::y;
-//     let ::external_map_2 = ::lib::ERC20_2[[::addr2]]::storage::map[3][4];
+//     let ::external_x_0 = ::ERC20_0@[::addr0]::storage::x;
+//     let ::external_y_0 = ::ERC20_0@[::addr0]::storage::y;
+//     let ::external_map_0 = ::ERC20_0@[::addr0]::storage::map[3][4];
+//     let ::external_x_1 = ::lib::ERC20_1@[::addr1]::storage::x;
+//     let ::external_y_1 = ::lib::ERC20_1@[::addr1]::storage::y;
+//     let ::external_map_1 = ::lib::ERC20_1@[::addr1]::storage::map[3][4];
+//     let ::external_x_2 = ::lib::ERC20_2@[::addr2]::storage::x;
+//     let ::external_y_2 = ::lib::ERC20_2@[::addr2]::storage::y;
+//     let ::external_map_2 = ::lib::ERC20_2@[::addr2]::storage::map[3][4];
 // }
 // >>>
 

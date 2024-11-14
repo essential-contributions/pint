@@ -17,7 +17,7 @@ const ContractID: b256 = 0x6D05CB94739FFB92CA96750EBF262A82C3ED8F05262DD26B503D7
 
 predicate foo() {
 // ANCHOR: access 
-let counter = Counter[[ContractID]]::storage::counter;
+let counter = Counter@[ContractID]::storage::counter;
 // ANCHOR_END: access
 
 // ANCHOR: constraint

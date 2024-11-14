@@ -20,7 +20,7 @@ predicate Simple(
     bar_d: int[3],
     bar_e: { int, int }[2][3],
 ) {
-    constraint Foo[[]](
+    constraint Foo@[](
         foo_nonce,
         foo_x,
         foo_y,
@@ -65,7 +65,7 @@ predicate Simple(
     constraint foo_e[0][0] == { 0, 1 };
     constraint foo_e[1] == [{ 6, 7 }, { 8, 9 }, { 10, 11 }];
 
-    constraint Bar[[]](
+    constraint Bar@[](
         bar_nonce,
         bar_x,
         bar_y,
@@ -158,7 +158,7 @@ predicate Bar(
 //     ::bar_d: int[3],
 //     ::bar_e: {int, int}[3][2],
 // ) {
-//     constraint ::Foo[[]](::foo_nonce, ::foo_x, ::foo_y, ::foo_w, ::foo_b, ::foo_c, ::foo_d, ::foo_e);
+//     constraint ::Foo@[](::foo_nonce, ::foo_x, ::foo_y, ::foo_w, ::foo_b, ::foo_c, ::foo_d, ::foo_e);
 //     constraint ((::foo_x + ::z) == (::foo_y + ::q));
 //     constraint (::foo_w == 0x0000000000000009000000000000000900000000000000090000000000000009);
 //     constraint (::foo_b == true);
@@ -176,7 +176,7 @@ predicate Bar(
 //     constraint (::foo_e == [[{0, 1}, {2, 3}, {4, 5}], [{6, 7}, {8, 9}, {10, 11}]]);
 //     constraint (::foo_e[0][0] == {0, 1});
 //     constraint (::foo_e[1] == [{6, 7}, {8, 9}, {10, 11}]);
-//     constraint ::Bar[[]](::bar_nonce, ::bar_x, ::bar_y, ::bar_w, ::bar_b, ::bar_c, ::bar_d, ::bar_e);
+//     constraint ::Bar@[](::bar_nonce, ::bar_x, ::bar_y, ::bar_w, ::bar_b, ::bar_c, ::bar_d, ::bar_e);
 //     constraint ((::bar_x + ::z) == (::bar_y + ::q));
 //     constraint (::bar_w == 0x000000000000000A000000000000000A000000000000000A000000000000000A);
 //     constraint (::bar_b == false);
@@ -244,7 +244,7 @@ predicate Bar(
 //     ::bar_d: int[3],
 //     ::bar_e: {int, int}[3][2],
 // ) {
-//     constraint ::Foo[[]](::foo_nonce, ::foo_x, ::foo_y, ::foo_w, ::foo_b, ::foo_c, ::foo_d, ::foo_e);
+//     constraint ::Foo@[](::foo_nonce, ::foo_x, ::foo_y, ::foo_w, ::foo_b, ::foo_c, ::foo_d, ::foo_e);
 //     constraint ((::foo_x + ::z) == (::foo_y + ::q));
 //     constraint (::foo_w == 0x0000000000000009000000000000000900000000000000090000000000000009);
 //     constraint (::foo_b == true);
@@ -262,7 +262,7 @@ predicate Bar(
 //     constraint (::foo_e == [[{0, 1}, {2, 3}, {4, 5}], [{6, 7}, {8, 9}, {10, 11}]]);
 //     constraint (::foo_e[0][0] == {0, 1});
 //     constraint (::foo_e[1] == [{6, 7}, {8, 9}, {10, 11}]);
-//     constraint ::Bar[[]](::bar_nonce, ::bar_x, ::bar_y, ::bar_w, ::bar_b, ::bar_c, ::bar_d, ::bar_e);
+//     constraint ::Bar@[](::bar_nonce, ::bar_x, ::bar_y, ::bar_w, ::bar_b, ::bar_c, ::bar_d, ::bar_e);
 //     constraint ((::bar_x + ::z) == (::bar_y + ::q));
 //     constraint (::bar_w == 0x000000000000000A000000000000000A000000000000000A000000000000000A);
 //     constraint (::bar_b == false);

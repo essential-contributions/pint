@@ -47,7 +47,7 @@ Now, we can invoke predicate `foo` as follows:
 The predicate invocation expression has three parts separated by `::`:
 
 1. The name of the interface `MyInterface` followed by the address of the corresponding deployed
-   contract in between `[[..]]`. This is quite similar to what we had to do to access external
+   contract in between `@[..]`. This is quite similar to what we had to do to access external
    storage variables.
 1. The name of the predicate `foo` followed by the address of the corresponding predicate in the
    deployed contract.
@@ -84,8 +84,8 @@ predicate because the compiler can figure that out on its own! Here's an example
 ```
 
 Here, predicate `B` invokes _sibling_ predicate `A` by using its path (just `A`) and empty square
-brackets `[[]]` to indicate that the address is to be computed by the compiler. The constraint
-`constraint A[[]](..)` should be interpreted exactly as in the case of external predicate
+brackets `@[]` to indicate that the address is to be computed by the compiler. The constraint
+`constraint A@[](..)` should be interpreted exactly as in the case of external predicate
 invocation: any solution that solves `B` should also contain a solution for `A` with the provided
 listed arguments.
 
@@ -128,8 +128,8 @@ The compiler will complain as follows:
 Error: self referential predicate `::C`
    ╭─[invoking_predicates_4.pnt:2:16]
    │
- 2 │     constraint C[[]](x);
-   │                ────┬───
-   │                    ╰───── this predicate call references the predicate it's declared in
+ 2 │     constraint C@[](x);
+   │                ───┬───
+   │                   ╰───── this predicate call references the predicate it's declared in
 ───╯
 ```

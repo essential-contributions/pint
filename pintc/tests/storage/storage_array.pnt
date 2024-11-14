@@ -36,12 +36,12 @@ predicate Bar() {
     constraint map_to_arrays_69[2]' == 101;
     constraint map_to_arrays_69_1' == 100;
 
-    let foo_v = Foo[[addr]]::storage::v;
-    let foo_v1 = Foo[[addr]]::storage::v[1];
-    let foo_v10 = Foo[[addr]]::storage::v[1][0];
+    let foo_v = Foo@[addr]::storage::v;
+    let foo_v1 = Foo@[addr]::storage::v[1];
+    let foo_v10 = Foo@[addr]::storage::v[1][0];
 
-    let foo_map_to_arrays_69 = Foo[[addr]]::storage::map_to_arrays[69];
-    let foo_map_to_arrays_69_1 = Foo[[addr]]::storage::map_to_arrays[69][1];
+    let foo_map_to_arrays_69 = Foo@[addr]::storage::map_to_arrays[69];
+    let foo_map_to_arrays_69_1 = Foo@[addr]::storage::map_to_arrays[69][1];
 
     constraint foo_v' == [
         [142, 143, 144],
@@ -80,11 +80,11 @@ predicate Bar() {
 //     let ::v10 = storage::v[1][0];
 //     let ::map_to_arrays_69 = storage::map_to_arrays[69];
 //     let ::map_to_arrays_69_1 = storage::map_to_arrays[69][1];
-//     let ::foo_v = ::Foo[[::addr]]::storage::v;
-//     let ::foo_v1 = ::Foo[[::addr]]::storage::v[1];
-//     let ::foo_v10 = ::Foo[[::addr]]::storage::v[1][0];
-//     let ::foo_map_to_arrays_69 = ::Foo[[::addr]]::storage::map_to_arrays[69];
-//     let ::foo_map_to_arrays_69_1 = ::Foo[[::addr]]::storage::map_to_arrays[69][1];
+//     let ::foo_v = ::Foo@[::addr]::storage::v;
+//     let ::foo_v1 = ::Foo@[::addr]::storage::v[1];
+//     let ::foo_v10 = ::Foo@[::addr]::storage::v[1][0];
+//     let ::foo_map_to_arrays_69 = ::Foo@[::addr]::storage::map_to_arrays[69];
+//     let ::foo_map_to_arrays_69_1 = ::Foo@[::addr]::storage::map_to_arrays[69][1];
 //     constraint (::v' == [[42, 43, 44], [52, 53, 54]]);
 //     constraint (::v[1]' == [52, 53, 54]);
 //     constraint (::v[0][2]' == 44);

@@ -11,11 +11,11 @@ interface Foo {
 }
 
 predicate Simple(addr: b256) {
-    constraint Foo[[0 + true]]::I1[[addr]](0, 0x0000000000000000000000000000000000000000000000000000000000000000);
-    constraint Foo[[{1, 2}]]::I1[[addr]](0, 0x0000000000000000000000000000000000000000000000000000000000000000);
+    constraint Foo@[0 + true]::I1@[addr](0, 0x0000000000000000000000000000000000000000000000000000000000000000);
+    constraint Foo@[{1, 2}]::I1@[addr](0, 0x0000000000000000000000000000000000000000000000000000000000000000);
 
-    constraint Foo[[addr]]::I1[[0 + true]](0, 0x0000000000000000000000000000000000000000000000000000000000000000);
-    constraint Foo[[addr]]::I1[[false]](0, 0x0000000000000000000000000000000000000000000000000000000000000000);
+    constraint Foo@[addr]::I1@[0 + true](0, 0x0000000000000000000000000000000000000000000000000000000000000000);
+    constraint Foo@[addr]::I1@[false](0, 0x0000000000000000000000000000000000000000000000000000000000000000);
 }
 
 // parsed <<<
@@ -33,10 +33,10 @@ predicate Simple(addr: b256) {
 // predicate ::Simple(
 //     ::addr: b256,
 // ) {
-//     constraint ::Foo[[(0 + true)]]::I1[[::addr]](0, 0x0000000000000000000000000000000000000000000000000000000000000000);
-//     constraint ::Foo[[{1, 2}]]::I1[[::addr]](0, 0x0000000000000000000000000000000000000000000000000000000000000000);
-//     constraint ::Foo[[::addr]]::I1[[(0 + true)]](0, 0x0000000000000000000000000000000000000000000000000000000000000000);
-//     constraint ::Foo[[::addr]]::I1[[false]](0, 0x0000000000000000000000000000000000000000000000000000000000000000);
+//     constraint ::Foo@[(0 + true)]::I1@[::addr](0, 0x0000000000000000000000000000000000000000000000000000000000000000);
+//     constraint ::Foo@[{1, 2}]::I1@[::addr](0, 0x0000000000000000000000000000000000000000000000000000000000000000);
+//     constraint ::Foo@[::addr]::I1@[(0 + true)](0, 0x0000000000000000000000000000000000000000000000000000000000000000);
+//     constraint ::Foo@[::addr]::I1@[false](0, 0x0000000000000000000000000000000000000000000000000000000000000000);
 // }
 // >>>
 
@@ -47,14 +47,14 @@ predicate Simple(addr: b256) {
 // @181..189: address expression has unexpected type `int`
 // @181..189: expecting type `b256`
 // address expression type error
-// @296..302: address expression has unexpected type `{int, int}`
-// @296..302: expecting type `b256`
+// @294..300: address expression has unexpected type `{int, int}`
+// @294..300: expecting type `b256`
 // operator invalid type error
-// @422..430: invalid non-numeric type `bool` for operator `+`
+// @417..425: invalid non-numeric type `bool` for operator `+`
 // address expression type error
-// @422..430: address expression has unexpected type `int`
-// @422..430: expecting type `b256`
+// @417..425: address expression has unexpected type `int`
+// @417..425: expecting type `b256`
 // address expression type error
-// @537..542: address expression has unexpected type `bool`
-// @537..542: expecting type `b256`
+// @530..535: address expression has unexpected type `bool`
+// @530..535: expecting type `b256`
 // >>>

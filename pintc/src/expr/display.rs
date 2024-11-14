@@ -66,7 +66,7 @@ impl DisplayWithContract for &super::Expr {
                 ..
             } => write!(
                 f,
-                "{interface}[[{}]]::storage::{name}",
+                "{interface}@[{}]::storage::{name}",
                 contract.with_ctrct(address)
             ),
 
@@ -138,7 +138,7 @@ impl DisplayWithContract for &super::Expr {
             super::Expr::LocalPredicateCall {
                 predicate, args, ..
             } => {
-                write!(f, "{predicate}[[]](",)?;
+                write!(f, "{predicate}@[](",)?;
                 write_many_with_ctrct!(f, args, ", ", contract);
                 write!(f, ")")
             }
@@ -153,7 +153,7 @@ impl DisplayWithContract for &super::Expr {
             } => {
                 write!(
                     f,
-                    "{interface}[[{}]]::{predicate}[[{}]](",
+                    "{interface}@[{}]::{predicate}@[{}](",
                     contract.with_ctrct(c_addr),
                     contract.with_ctrct(p_addr)
                 )?;

@@ -1,6 +1,6 @@
 // <disabled> expected failure
 // ANCHOR: self
 predicate C(x: int) {
-    constraint C[[]](x);
+    constraint C@[](x);
 }
 // ANCHOR_END: self

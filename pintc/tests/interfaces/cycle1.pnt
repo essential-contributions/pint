@@ -1,72 +1,72 @@
 // A, B, C create a cycle
 predicate A() {
-    constraint B[[]]();
+    constraint B@[]();
 }
 
 predicate B() {
-    constraint C[[]]();
+    constraint C@[]();
 }
 
 predicate C() {
-    constraint A[[]]();
+    constraint A@[]();
 }
 
 // D, E, F create a cycle
 predicate D() {
-    constraint E[[]]();
-    constraint A[[]]();
+    constraint E@[]();
+    constraint A@[]();
 }
 
 predicate E() {
-    constraint F[[]]();
+    constraint F@[]();
 }
 
 predicate F() {
-    constraint D[[]]();
+    constraint D@[]();
 }
 
 // parsed <<<
 // predicate ::A(
 // ) {
-//     constraint ::B[[]]();
+//     constraint ::B@[]();
 // }
 // 
 // predicate ::B(
 // ) {
-//     constraint ::C[[]]();
+//     constraint ::C@[]();
 // }
 // 
 // predicate ::C(
 // ) {
-//     constraint ::A[[]]();
+//     constraint ::A@[]();
 // }
 // 
 // predicate ::D(
 // ) {
-//     constraint ::E[[]]();
-//     constraint ::A[[]]();
+//     constraint ::E@[]();
+//     constraint ::A@[]();
 // }
 // 
 // predicate ::E(
 // ) {
-//     constraint ::F[[]]();
+//     constraint ::F@[]();
 // }
 // 
 // predicate ::F(
 // ) {
-//     constraint ::D[[]]();
+//     constraint ::D@[]();
 // }
 // >>>
 
 // typecheck_failure <<<
 // dependency cycle detected between predicates
-// @181..192: this predicate is on the dependency cycle
-// @291..302: this predicate is on the dependency cycle
-// @248..259: this predicate is on the dependency cycle
+// @178..189: this predicate is on the dependency cycle
+// @285..296: this predicate is on the dependency cycle
+// @243..254: this predicate is on the dependency cycle
 // dependency between predicates is typically created via predicate instances
 // dependency cycle detected between predicates
 // @26..37: this predicate is on the dependency cycle
-// @112..123: this predicate is on the dependency cycle
-// @69..80: this predicate is on the dependency cycle
+// @110..121: this predicate is on the dependency cycle
+// @68..79: this predicate is on the dependency cycle
 // dependency between predicates is typically created via predicate instances
 // >>>

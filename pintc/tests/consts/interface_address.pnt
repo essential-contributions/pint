@@ -7,7 +7,7 @@ interface Counter {
 const ContractID: b256 = 0x0003000300030003000300030003000300030003000300030003000300030003;
 
 predicate Foo() {
-    let counter = Counter[[ContractID]]::storage::counter;
+    let counter = Counter@[ContractID]::storage::counter;
 }
 
 // parsed <<<
@@ -20,7 +20,7 @@ predicate Foo() {
 // 
 // predicate ::Foo(
 // ) {
-//     let ::counter = ::Counter[[::ContractID]]::storage::counter;
+//     let ::counter = ::Counter@[::ContractID]::storage::counter;
 // }
 // >>>
 

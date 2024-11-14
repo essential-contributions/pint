@@ -1,10 +1,10 @@
 // <disabled> expected failure
 // ANCHOR: cycle
 predicate A(x: int) {
-    constraint B[[]](0);
+    constraint B@[](0);
 }
 
 predicate B(y: int) {
-    constraint A[[]](0);
+    constraint A@[](0);
 }
 // ANCHOR_END: cycle

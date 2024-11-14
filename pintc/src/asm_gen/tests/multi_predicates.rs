@@ -12,8 +12,8 @@ fn check_order() {
             compile(
                 r#"
             predicate A() {
-                constraint B[[]]();
-                constraint C[[]]();
+                constraint B@[]();
+                constraint C@[]();
             }
             predicate B() {
             }

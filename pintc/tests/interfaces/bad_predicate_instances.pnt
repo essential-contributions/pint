@@ -1,43 +1,43 @@
 predicate Foo() {
-    constraint Bar[[]]();
+    constraint Bar@[]();
 }
 predicate Baz() {
-    constraint Bar[[]]();
+    constraint Bar@[]();
 }
 
 predicate P() {
-    constraint P[[]]();
+    constraint P@[]();
 }
 
 predicate A(x: int) {
 }
 
 predicate B() {
-    constraint A[[]](1, 2);
+    constraint A@[](1, 2);
 }
 
 predicate W(x: int, y: b256) {}
 
 predicate U() {
-    constraint W[[]](1, 2, 3);
-    constraint W[[]](0);
-    constraint W[[]](false, {2, 1});
+    constraint W@[](1, 2, 3);
+    constraint W@[](0);
+    constraint W@[](false, {2, 1});
 }
 
 // parsed <<<
 // predicate ::Foo(
 // ) {
-//     constraint ::Bar[[]]();
+//     constraint ::Bar@[]();
 // }
 // 
 // predicate ::Baz(
 // ) {
-//     constraint ::Bar[[]]();
+//     constraint ::Bar@[]();
 // }
 // 
 // predicate ::P(
 // ) {
-//     constraint ::P[[]]();
+//     constraint ::P@[]();
 // }
 // 
 // predicate ::A(
@@ -47,7 +47,7 @@ predicate U() {
 // 
 // predicate ::B(
 // ) {
-//     constraint ::A[[]](1, 2);
+//     constraint ::A@[](1, 2);
 // }
 // 
 // predicate ::W(
@@ -58,32 +58,32 @@ predicate U() {
 // 
 // predicate ::U(
 // ) {
-//     constraint ::W[[]](1, 2, 3);
-//     constraint ::W[[]](0);
-//     constraint ::W[[]](false, {2, 1});
+//     constraint ::W@[](1, 2, 3);
+//     constraint ::W@[](0);
+//     constraint ::W@[](false, {2, 1});
 // }
 // >>>
 
 // typecheck_failure <<<
 // cannot find predicate `::Bar` in this contract
-// @33..42: this predicate call references predicate `::Bar` which does not exist in this contract
+// @33..41: this predicate call references predicate `::Bar` which does not exist in this contract
 // cannot find predicate `::Bar` in this contract
-// @79..88: this predicate call references predicate `::Bar` which does not exist in this contract
+// @78..86: this predicate call references predicate `::Bar` which does not exist in this contract
 // self referential predicate `::P`
-// @124..131: this predicate call references the predicate it's declared in
+// @122..128: this predicate call references the predicate it's declared in
 // this predicate takes 1 argument but 2 arguments were supplied
-// @192..203: unexpected number of arguments here
+// @189..199: unexpected number of arguments here
 // incorrect predicate argument
-// @281..282: expected `b256`, found `int`
-// @272..286: arguments to this predicate call are incorrect`
+// @276..277: expected `b256`, found `int`
+// @268..281: arguments to this predicate call are incorrect`
 // this predicate takes 2 arguments but 3 arguments were supplied
-// @272..286: unexpected number of arguments here
+// @268..281: unexpected number of arguments here
 // this predicate takes 2 arguments but 1 argument was supplied
-// @303..311: unexpected number of arguments here
+// @298..305: unexpected number of arguments here
 // incorrect predicate argument
-// @334..339: expected `int`, found `bool`
-// @328..348: arguments to this predicate call are incorrect`
+// @327..332: expected `int`, found `bool`
+// @322..341: arguments to this predicate call are incorrect`
 // incorrect predicate argument
-// @341..347: expected `b256`, found `{int, int}`
-// @328..348: arguments to this predicate call are incorrect`
+// @334..340: expected `b256`, found `{int, int}`
+// @322..341: arguments to this predicate call are incorrect`
 // >>>
