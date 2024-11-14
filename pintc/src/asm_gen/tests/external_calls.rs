@@ -10,7 +10,7 @@ fn local_predicate_calls() {
             predicate Foo(x: int) {
             }
             predicate Bar(foo_x: int) {
-                constraint Foo[[]](foo_x);
+                constraint Foo@[](foo_x);
                 constraint foo_x == 0;
             }
             "#,
@@ -72,8 +72,8 @@ predicate Bar(x: int, y: b256, bar_1: { x: int, y: b256 }, bar_2: { x: int, y: b
     let c_addr = 0x0000000000000000000000000000000000000000000000000000000000000000;
     let p_addr = 0x1111111111111111111111111111111111111111111111111111111111111111;
 
-    constraint Foo[[c_addr]]::Bar[[p_addr]](bar_1.x, bar_1.y);
-    constraint Foo[[c_addr]]::Bar[[p_addr]](bar_2.x, bar_2.y);
+    constraint Foo@[c_addr]::Bar@[p_addr](bar_1.x, bar_1.y);
+    constraint Foo@[c_addr]::Bar@[p_addr](bar_2.x, bar_2.y);
 
     constraint x == bar_1.x;
     constraint y == bar_2.y;

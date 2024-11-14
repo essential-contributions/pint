@@ -20,7 +20,7 @@ predicate bar(
 ) {
     let tuple = { 42, b };
 // ANCHOR: constraint 
-    constraint MyInterface[[CONTRACT_ADDR]]::foo[[FOO_ADDR]](a, true, tuple);
+    constraint MyInterface@[CONTRACT_ADDR]::foo@[FOO_ADDR](a, true, tuple);
 // ANCHOR_END: constraint 
 }
 // ANCHOR_END: invoking
@@ -35,6 +35,6 @@ predicate A(
 }
 
 predicate B() {
-    constraint A[[]]( { true, 42 }, false, [1, 2, 3]);
+    constraint A@[]( { true, 42 }, false, [1, 2, 3]);
 }
 // ANCHOR: sibling

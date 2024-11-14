@@ -1857,19 +1857,19 @@ interface Foo {
 predicate Bar() {
     let addr = 0x1111111111111111111111111111111111111111111111111111111111111111;
 
-    let foo_u = Foo[[addr]]::storage::u;
-    let foo_u0 = Foo[[addr]]::storage::u.0;
-    let foo_u1 = Foo[[addr]]::storage::u.1;
+    let foo_u = Foo@[addr]::storage::u;
+    let foo_u0 = Foo@[addr]::storage::u.0;
+    let foo_u1 = Foo@[addr]::storage::u.1;
 
-    let foo_t = Foo[[addr]]::storage::t;
-    let foo_t0 = Foo[[addr]]::storage::t.0;
-    let foo_t10 = Foo[[addr]]::storage::t.1.0;
-    let foo_t11 = Foo[[addr]]::storage::t.1.1;
+    let foo_t = Foo@[addr]::storage::t;
+    let foo_t0 = Foo@[addr]::storage::t.0;
+    let foo_t10 = Foo@[addr]::storage::t.1.0;
+    let foo_t11 = Foo@[addr]::storage::t.1.1;
 
-    let foo_w = Foo[[addr]]::storage::w;
-    let foo_w0 = Foo[[addr]]::storage::w.addr;
-    let foo_w10 = Foo[[addr]]::storage::w.inner.x;
-    let foo_w11 = Foo[[addr]]::storage::w.inner.1;
+    let foo_w = Foo@[addr]::storage::w;
+    let foo_w0 = Foo@[addr]::storage::w.addr;
+    let foo_w10 = Foo@[addr]::storage::w.inner.x;
+    let foo_w11 = Foo@[addr]::storage::w.inner.1;
 
     constraint foo_u == { 0x0000000000000000000000000000000000000000000000000000000000000000, 0 };
     constraint foo_u0 == 0x0000000000000000000000000000000000000000000000000000000000000000;
@@ -2721,12 +2721,12 @@ interface Foo {
 predicate Bar() {
     let addr = 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE;
 
-    let foo_v = Foo[[addr]]::storage::v;
-    let foo_v1 = Foo[[addr]]::storage::v[1];
-    let foo_v12 = Foo[[addr]]::storage::v[1][2];
+    let foo_v = Foo@[addr]::storage::v;
+    let foo_v1 = Foo@[addr]::storage::v[1];
+    let foo_v12 = Foo@[addr]::storage::v[1][2];
 
-    let foo_map_to_arrays_69 = Foo[[addr]]::storage::map_to_arrays[69];
-    let foo_map_to_arrays_69_1 = Foo[[addr]]::storage::map_to_arrays[69][1];
+    let foo_map_to_arrays_69 = Foo@[addr]::storage::map_to_arrays[69];
+    let foo_map_to_arrays_69_1 = Foo@[addr]::storage::map_to_arrays[69][1];
 
     constraint foo_v == [[0, 0, 0], [0, 0, 0]];
     constraint foo_v1 == [0, 0, 0];
@@ -3167,10 +3167,10 @@ interface Extern2 {
 }
 
 predicate Foo() {
-    let x = Extern1[[0x1233683A8F6B8AF1707FF76F40FC5EE714872F88FAEBB8F22851E93F56770128]]::storage::x;
-    let y = Extern1[[0x1233683A8F6B8AF1707FF76F40FC5EE714872F88FAEBB8F22851E93F56770128]]::storage::map[3][true];
-    let w = Extern2[[0x0C15A3534349FC710174299BA8F0347284955B35A28C01CF45A910495FA1EF2D]]::storage::w;
-    let z = Extern2[[0x0C15A3534349FC710174299BA8F0347284955B35A28C01CF45A910495FA1EF2D]]::storage::map[0x1111111111111111111111111111111111111111111111111111111111111111][69];
+    let x = Extern1@[0x1233683A8F6B8AF1707FF76F40FC5EE714872F88FAEBB8F22851E93F56770128]::storage::x;
+    let y = Extern1@[0x1233683A8F6B8AF1707FF76F40FC5EE714872F88FAEBB8F22851E93F56770128]::storage::map[3][true];
+    let w = Extern2@[0x0C15A3534349FC710174299BA8F0347284955B35A28C01CF45A910495FA1EF2D]::storage::w;
+    let z = Extern2@[0x0C15A3534349FC710174299BA8F0347284955B35A28C01CF45A910495FA1EF2D]::storage::map[0x1111111111111111111111111111111111111111111111111111111111111111][69];
 
     constraint x' - x == 1;
     constraint y == 0x2222222222222222222222222222222222222222222222222222222222222222;

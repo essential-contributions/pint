@@ -10,7 +10,7 @@ interface i {
 }
 
 predicate test(addr1: b256) {
-    let x = i[[addr1]]::storage::x;
+    let x = i@[addr1]::storage::x;
     constraint x == [1, 2, 3];
 }
 
@@ -29,7 +29,7 @@ predicate test(addr1: b256) {
 // predicate ::test(
 //     ::addr1: b256,
 // ) {
-//     let ::x = ::i[[::addr1]]::storage::x;
+//     let ::x = ::i@[::addr1]::storage::x;
 //     constraint (::x == [1, 2, 3]);
 // }
 // >>>

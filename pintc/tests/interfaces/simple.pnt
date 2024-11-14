@@ -56,16 +56,16 @@ predicate Simple(
     bar_i2_2: { x1: int, x2: b256, x3: bool },
     bar_i2_3: { x1: int, x2: b256, x3: bool },
 ) {
-    let x = Foo[[addr1]]::storage::x;
-    let y = Foo[[addr1]]::storage::y;
-    let z = Bar[[addr2]]::storage::z;
+    let x = Foo@[addr1]::storage::x;
+    let y = Foo@[addr1]::storage::y;
+    let z = Bar@[addr2]::storage::z;
 
-    constraint Foo[[addr1]]::I1[[addr3]](foo_i1_1.x1, foo_i1_1.x2, foo_i1_1.x3);
-    constraint Foo[[addr1]]::I1[[addr3]](foo_i1_2.x1, foo_i1_2.x2, foo_i1_2.x3);
+    constraint Foo@[addr1]::I1@[addr3](foo_i1_1.x1, foo_i1_1.x2, foo_i1_1.x3);
+    constraint Foo@[addr1]::I1@[addr3](foo_i1_2.x1, foo_i1_2.x2, foo_i1_2.x3);
 
-    constraint Bar[[addr2]]::I1[[addr4]](bar_i2_1.x1, bar_i2_1.x2, bar_i2_1.x3);
-    constraint Bar[[addr2]]::I1[[addr4]](bar_i2_2.x1, bar_i2_2.x2, bar_i2_2.x3);
-    constraint Bar[[addr2]]::I1[[addr4]](bar_i2_3.x1, bar_i2_3.x2, bar_i2_3.x3);
+    constraint Bar@[addr2]::I1@[addr4](bar_i2_1.x1, bar_i2_1.x2, bar_i2_1.x3);
+    constraint Bar@[addr2]::I1@[addr4](bar_i2_2.x1, bar_i2_2.x2, bar_i2_2.x3);
+    constraint Bar@[addr2]::I1@[addr4](bar_i2_3.x1, bar_i2_3.x2, bar_i2_3.x3);
 
     constraint x1 == foo_i1_1.x1;
     constraint x2 == bar_i2_2.x2;
@@ -122,14 +122,14 @@ predicate Simple(
 //     ::bar_i2_2: {x1: int, x2: b256, x3: bool},
 //     ::bar_i2_3: {x1: int, x2: b256, x3: bool},
 // ) {
-//     let ::x = ::Foo[[::addr1]]::storage::x;
-//     let ::y = ::Foo[[::addr1]]::storage::y;
-//     let ::z = ::Bar[[::addr2]]::storage::z;
-//     constraint ::Foo[[::addr1]]::I1[[::addr3]](::foo_i1_1.x1, ::foo_i1_1.x2, ::foo_i1_1.x3);
-//     constraint ::Foo[[::addr1]]::I1[[::addr3]](::foo_i1_2.x1, ::foo_i1_2.x2, ::foo_i1_2.x3);
-//     constraint ::Bar[[::addr2]]::I1[[::addr4]](::bar_i2_1.x1, ::bar_i2_1.x2, ::bar_i2_1.x3);
-//     constraint ::Bar[[::addr2]]::I1[[::addr4]](::bar_i2_2.x1, ::bar_i2_2.x2, ::bar_i2_2.x3);
-//     constraint ::Bar[[::addr2]]::I1[[::addr4]](::bar_i2_3.x1, ::bar_i2_3.x2, ::bar_i2_3.x3);
+//     let ::x = ::Foo@[::addr1]::storage::x;
+//     let ::y = ::Foo@[::addr1]::storage::y;
+//     let ::z = ::Bar@[::addr2]::storage::z;
+//     constraint ::Foo@[::addr1]::I1@[::addr3](::foo_i1_1.x1, ::foo_i1_1.x2, ::foo_i1_1.x3);
+//     constraint ::Foo@[::addr1]::I1@[::addr3](::foo_i1_2.x1, ::foo_i1_2.x2, ::foo_i1_2.x3);
+//     constraint ::Bar@[::addr2]::I1@[::addr4](::bar_i2_1.x1, ::bar_i2_1.x2, ::bar_i2_1.x3);
+//     constraint ::Bar@[::addr2]::I1@[::addr4](::bar_i2_2.x1, ::bar_i2_2.x2, ::bar_i2_2.x3);
+//     constraint ::Bar@[::addr2]::I1@[::addr4](::bar_i2_3.x1, ::bar_i2_3.x2, ::bar_i2_3.x3);
 //     constraint (::x1 == ::foo_i1_1.x1);
 //     constraint (::x2 == ::bar_i2_2.x2);
 //     constraint (::x3 == ::bar_i2_3.x3);
@@ -189,11 +189,11 @@ predicate Simple(
 //     let ::x: int = __storage_get_extern(::addr1, {0});
 //     let ::y: int = __storage_get_extern(::addr1, {1});
 //     let ::z: b256 = __storage_get_extern(::addr2, {1});
-//     constraint ::Foo[[::addr1]]::I1[[::addr3]](::foo_i1_1.x1, ::foo_i1_1.x2, ::foo_i1_1.x3);
-//     constraint ::Foo[[::addr1]]::I1[[::addr3]](::foo_i1_2.x1, ::foo_i1_2.x2, ::foo_i1_2.x3);
-//     constraint ::Bar[[::addr2]]::I1[[::addr4]](::bar_i2_1.x1, ::bar_i2_1.x2, ::bar_i2_1.x3);
-//     constraint ::Bar[[::addr2]]::I1[[::addr4]](::bar_i2_2.x1, ::bar_i2_2.x2, ::bar_i2_2.x3);
-//     constraint ::Bar[[::addr2]]::I1[[::addr4]](::bar_i2_3.x1, ::bar_i2_3.x2, ::bar_i2_3.x3);
+//     constraint ::Foo@[::addr1]::I1@[::addr3](::foo_i1_1.x1, ::foo_i1_1.x2, ::foo_i1_1.x3);
+//     constraint ::Foo@[::addr1]::I1@[::addr3](::foo_i1_2.x1, ::foo_i1_2.x2, ::foo_i1_2.x3);
+//     constraint ::Bar@[::addr2]::I1@[::addr4](::bar_i2_1.x1, ::bar_i2_1.x2, ::bar_i2_1.x3);
+//     constraint ::Bar@[::addr2]::I1@[::addr4](::bar_i2_2.x1, ::bar_i2_2.x2, ::bar_i2_2.x3);
+//     constraint ::Bar@[::addr2]::I1@[::addr4](::bar_i2_3.x1, ::bar_i2_3.x2, ::bar_i2_3.x3);
 //     constraint (::x1 == ::foo_i1_1.x1);
 //     constraint (::x2 == ::bar_i2_2.x2);
 //     constraint (::x3 == ::bar_i2_3.x3);

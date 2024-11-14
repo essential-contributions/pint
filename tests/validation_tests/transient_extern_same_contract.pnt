@@ -20,7 +20,7 @@ predicate Simple(
     bar_d: int[3],
     bar_e: { int, int }[2][3],
 ) {
-    constraint Foo[[]](
+    constraint Foo@[](
         foo_nonce,
         foo_x,
         foo_y,
@@ -65,7 +65,7 @@ predicate Simple(
     constraint foo_e[0][0] == { 0, 1 };
     constraint foo_e[1] == [{ 6, 7 }, { 8, 9 }, { 10, 11 }];
 
-    constraint Bar[[]](
+    constraint Bar@[](
         bar_nonce,
         bar_x,
         bar_y,

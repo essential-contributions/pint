@@ -36,24 +36,24 @@ predicate Bar() {
     let map_to_tuples_69_1_0 = storage::map_to_tuples[69].1.0;
     let map_to_tuples_69_1_1 = storage::map_to_tuples[69].1.1;
 
-    let foo_u = Foo[[addr]]::storage::u;
-    let foo_u0 = Foo[[addr]]::storage::u.0;
-    let foo_u1 = Foo[[addr]]::storage::u.1;
+    let foo_u = Foo@[addr]::storage::u;
+    let foo_u0 = Foo@[addr]::storage::u.0;
+    let foo_u1 = Foo@[addr]::storage::u.1;
 
-    let foo_t = Foo[[addr]]::storage::t;
-    let foo_t0 = Foo[[addr]]::storage::t .0;
-    let foo_t10 = Foo[[addr]]::storage::t.1.0;
-    let foo_t11 = Foo[[addr]]::storage::t.1.1;
+    let foo_t = Foo@[addr]::storage::t;
+    let foo_t0 = Foo@[addr]::storage::t .0;
+    let foo_t10 = Foo@[addr]::storage::t.1.0;
+    let foo_t11 = Foo@[addr]::storage::t.1.1;
 
-    let foo_w = Foo[[addr]]::storage::w;
-    let foo_w0 = Foo[[addr]]::storage::w .addr;
-    let foo_w10 = Foo[[addr]]::storage::w.inner.x;
-    let foo_w11 = Foo[[addr]]::storage::w.inner.1;
+    let foo_w = Foo@[addr]::storage::w;
+    let foo_w0 = Foo@[addr]::storage::w .addr;
+    let foo_w10 = Foo@[addr]::storage::w.inner.x;
+    let foo_w11 = Foo@[addr]::storage::w.inner.1;
 
-    let foo_map_to_tuples_69 = Foo[[addr]]::storage::map_to_tuples[69];
-    let foo_map_to_tuples_69_0 = Foo[[addr]]::storage::map_to_tuples[69].0;
-    let foo_map_to_tuples_69_1_0 = Foo[[addr]]::storage::map_to_tuples[69].1.0;
-    let foo_map_to_tuples_69_1_1 = Foo[[addr]]::storage::map_to_tuples[69].1.1;
+    let foo_map_to_tuples_69 = Foo@[addr]::storage::map_to_tuples[69];
+    let foo_map_to_tuples_69_0 = Foo@[addr]::storage::map_to_tuples[69].0;
+    let foo_map_to_tuples_69_1_0 = Foo@[addr]::storage::map_to_tuples[69].1.0;
+    let foo_map_to_tuples_69_1_1 = Foo@[addr]::storage::map_to_tuples[69].1.1;
 }
 
 // parsed <<<
@@ -90,21 +90,21 @@ predicate Bar() {
 //     let ::map_to_tuples_69_0 = storage::map_to_tuples[69].0;
 //     let ::map_to_tuples_69_1_0 = storage::map_to_tuples[69].1.0;
 //     let ::map_to_tuples_69_1_1 = storage::map_to_tuples[69].1.1;
-//     let ::foo_u = ::Foo[[::addr]]::storage::u;
-//     let ::foo_u0 = ::Foo[[::addr]]::storage::u.0;
-//     let ::foo_u1 = ::Foo[[::addr]]::storage::u.1;
-//     let ::foo_t = ::Foo[[::addr]]::storage::t;
-//     let ::foo_t0 = ::Foo[[::addr]]::storage::t.0;
-//     let ::foo_t10 = ::Foo[[::addr]]::storage::t.1.0;
-//     let ::foo_t11 = ::Foo[[::addr]]::storage::t.1.1;
-//     let ::foo_w = ::Foo[[::addr]]::storage::w;
-//     let ::foo_w0 = ::Foo[[::addr]]::storage::w.addr;
-//     let ::foo_w10 = ::Foo[[::addr]]::storage::w.inner.x;
-//     let ::foo_w11 = ::Foo[[::addr]]::storage::w.inner.1;
-//     let ::foo_map_to_tuples_69 = ::Foo[[::addr]]::storage::map_to_tuples[69];
-//     let ::foo_map_to_tuples_69_0 = ::Foo[[::addr]]::storage::map_to_tuples[69].0;
-//     let ::foo_map_to_tuples_69_1_0 = ::Foo[[::addr]]::storage::map_to_tuples[69].1.0;
-//     let ::foo_map_to_tuples_69_1_1 = ::Foo[[::addr]]::storage::map_to_tuples[69].1.1;
+//     let ::foo_u = ::Foo@[::addr]::storage::u;
+//     let ::foo_u0 = ::Foo@[::addr]::storage::u.0;
+//     let ::foo_u1 = ::Foo@[::addr]::storage::u.1;
+//     let ::foo_t = ::Foo@[::addr]::storage::t;
+//     let ::foo_t0 = ::Foo@[::addr]::storage::t.0;
+//     let ::foo_t10 = ::Foo@[::addr]::storage::t.1.0;
+//     let ::foo_t11 = ::Foo@[::addr]::storage::t.1.1;
+//     let ::foo_w = ::Foo@[::addr]::storage::w;
+//     let ::foo_w0 = ::Foo@[::addr]::storage::w.addr;
+//     let ::foo_w10 = ::Foo@[::addr]::storage::w.inner.x;
+//     let ::foo_w11 = ::Foo@[::addr]::storage::w.inner.1;
+//     let ::foo_map_to_tuples_69 = ::Foo@[::addr]::storage::map_to_tuples[69];
+//     let ::foo_map_to_tuples_69_0 = ::Foo@[::addr]::storage::map_to_tuples[69].0;
+//     let ::foo_map_to_tuples_69_1_0 = ::Foo@[::addr]::storage::map_to_tuples[69].1.0;
+//     let ::foo_map_to_tuples_69_1_1 = ::Foo@[::addr]::storage::map_to_tuples[69].1.1;
 // }
 // >>>
 

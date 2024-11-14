@@ -784,27 +784,6 @@ StoragePostfixOp: ExprKey = {
             Type::Unknown(span),
         )
     },
-    <l:@L> <expr:StoragePostfixOp> "[[" <elements:SepList<Expr, ",">> "]""]" <r:@R> => {
-        // This special case is useful for when we have a map that is indexed with an array
-        // expression
-        let inner_span = (context.span_from)(l + 1, r - 1);
-        let inner_expr = context.build_array_expr(elements, inner_span.clone());
-
-        let inner_expr_key = context
-            .contract
-            .exprs
-            .insert(inner_expr, Type::Unknown(inner_span));
-
-        let span = (context.span_from)(l, r);
-        context.contract.exprs.insert(
-            Expr::Index {
-                expr,
-                index: inner_expr_key,
-                span: span.clone(),
-            },
-            Type::Unknown(span),
-        )
-    },
     <l:@L> <expr:StoragePostfixOp> "[" "]" <r:@R> => {
         let span = (context.span_from)(l, r);
         handler.emit_err(Error::Parse {
@@ -1077,7 +1056,7 @@ IntrinsicCallExpr: Expr = {
 }
 
 PredicateCallExpr: Expr = {
-    <l:@L> <predicate: Path> "[[" "]" "]"
+    <l:@L> <predicate: Path> "@" "[" "]"
            "(" <args:SepList<Expr, ",">> ")" <r:@R> => {
         Expr::LocalPredicateCall {
             predicate,
@@ -1086,8 +1065,8 @@ PredicateCallExpr: Expr = {
         }
     },
 
-    <l:@L> <interface: Path> "[[" <c_addr: Expr> "]" "]"
-           "::" <predicate: Ident> "[[" <p_addr: Expr> "]" "]"
+    <l:@L> <interface: Path> "@" "[" <c_addr: Expr> "]"
+           "::" <predicate: Ident> "@" "[" <p_addr: Expr> "]"
            "(" <args:SepList<Expr, ",">> ")" <r:@R> => {
         Expr::ExternalPredicateCall {
             interface,
@@ -1103,36 +1082,6 @@ PredicateCallExpr: Expr = {
 ArrayExpr: Expr = {
     <l:@L> "[" <elements:SepList<Expr, ",">> "]" <r:@R> => {
         context.build_array_expr(elements, (context.span_from)(l, r))
-    },
-
-    <l:@L> "[[" <elements:SepList<Expr, ",">> "]" "]" <r:@R> => {
-        let inner_span = (context.span_from)(l + 1, r - 1);
-        let inner_expr = context.build_array_expr(elements, inner_span.clone());
-
-        let inner_expr_key = context
-            .contract
-            .exprs
-            .insert(inner_expr, Type::Unknown(inner_span));
-        context.build_array_expr(vec![inner_expr_key], (context.span_from)(l, r))
-    },
-
-    <l:@L> "[["
-        <first_els:SepList<Expr, ",">> "]" <ir:@R> ","
-        <mut ary_els:SepList<ArrayExpr, ",">>
-    "]" <r:@R> => {
-        let first_els_span = (context.span_from)(l + 1, ir);
-        let first_ary_expr = context.build_array_expr(first_els, first_els_span.clone());
-
-        ary_els.insert(0, first_ary_expr);
-
-        let ary_el_keys = ary_els
-            .into_iter()
-            .map(|expr| {
-                let el_span = expr.span().clone();
-                context.contract.exprs.insert(expr, Type::Unknown(el_span))
-            })
-            .collect();
-        context.build_array_expr(ary_el_keys, (context.span_from)(l, r))
     },
 }
 
@@ -1229,7 +1178,7 @@ StoragePath: Expr = {
         }
     },
 
-    <l:@L> <interface: Path> "[[" <address: Expr> "]" "]"
+    <l:@L> <interface: Path> "@" "[" <address: Expr> "]"
         "::" "storage" "::" <name:Ident> <r:@R> => {
         Expr::ExternalStorageAccess {
             interface,
@@ -1362,12 +1311,12 @@ extern {
         "}" => lexer::Token::BraceClose,
         "[" => lexer::Token::BracketOpen,
         "]" => lexer::Token::BracketClose,
-        "[[" => lexer::Token::DoubleBracketOpen,
         "->" => lexer::Token::Arrow,
         "=>" => lexer::Token::HeavyArrow,
         "." => lexer::Token::Dot,
         ".." => lexer::Token::TwoDots,
         "|" => lexer::Token::Pipe,
+        "@" => lexer::Token::At,
 
         "int_ty" => lexer::Token::Int,
         "real_ty" => lexer::Token::Real,

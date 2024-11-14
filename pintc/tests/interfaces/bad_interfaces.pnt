@@ -17,17 +17,17 @@ predicate Simple(
 ) {
 
     // Missing interface
-    constraint MissingInterface[[addr1]]::Bar[[addr2]]();
+    constraint MissingInterface@[addr1]::Bar@[addr2]();
 
     // Missing predicate
-    constraint Foo[[addr1]]::MissingPredicate[[addr3]]();
+    constraint Foo@[addr1]::MissingPredicate@[addr3]();
 
     // wrong number of arguments 
-    constraint Foo[[addr1]]::I1[[addr3]](1, 2, 3);
-    constraint Foo[[addr1]]::I1[[addr3]](1);
+    constraint Foo@[addr1]::I1@[addr3](1, 2, 3);
+    constraint Foo@[addr1]::I1@[addr3](1);
 
-    constraint Foo[[addr1]]::I1[[addr3]](1, true);
-    constraint Foo[[addr1]]::I1[[addr3]]({1, 2}, 3);
+    constraint Foo@[addr1]::I1@[addr3](1, true);
+    constraint Foo@[addr1]::I1@[addr3]({1, 2}, 3);
 }
 
 // parsed <<<
@@ -47,34 +47,34 @@ predicate Simple(
 //     ::addr2: b256,
 //     ::addr3: b256,
 // ) {
-//     constraint ::MissingInterface[[::addr1]]::Bar[[::addr2]]();
-//     constraint ::Foo[[::addr1]]::MissingPredicate[[::addr3]]();
-//     constraint ::Foo[[::addr1]]::I1[[::addr3]](1, 2, 3);
-//     constraint ::Foo[[::addr1]]::I1[[::addr3]](1);
-//     constraint ::Foo[[::addr1]]::I1[[::addr3]](1, true);
-//     constraint ::Foo[[::addr1]]::I1[[::addr3]]({1, 2}, 3);
+//     constraint ::MissingInterface@[::addr1]::Bar@[::addr2]();
+//     constraint ::Foo@[::addr1]::MissingPredicate@[::addr3]();
+//     constraint ::Foo@[::addr1]::I1@[::addr3](1, 2, 3);
+//     constraint ::Foo@[::addr1]::I1@[::addr3](1);
+//     constraint ::Foo@[::addr1]::I1@[::addr3](1, true);
+//     constraint ::Foo@[::addr1]::I1@[::addr3]({1, 2}, 3);
 // }
 // >>>
 
 // typecheck_failure <<<
 // cannot find interface declaration `::MissingInterface`
-// @244..285: cannot find interface declaration `::MissingInterface`
+// @244..283: cannot find interface declaration `::MissingInterface`
 // cannot find predicate `MissingPredicate` in interface `::Foo`
-// @328..369: this predicate call references predicate `MissingPredicate` which does not exist in interface `::Foo`
+// @326..365: this predicate call references predicate `MissingPredicate` which does not exist in interface `::Foo`
 // incorrect predicate argument
-// @450..451: expected `b256`, found `int`
-// @421..455: arguments to this predicate call are incorrect`
+// @444..445: expected `b256`, found `int`
+// @417..449: arguments to this predicate call are incorrect`
 // this predicate takes 2 arguments but 3 arguments were supplied
-// @421..455: unexpected number of arguments here
+// @417..449: unexpected number of arguments here
 // this predicate takes 2 arguments but 1 argument was supplied
-// @472..500: unexpected number of arguments here
+// @466..492: unexpected number of arguments here
 // incorrect predicate argument
-// @547..551: expected `b256`, found `bool`
-// @518..552: arguments to this predicate call are incorrect`
+// @537..541: expected `b256`, found `bool`
+// @510..542: arguments to this predicate call are incorrect`
 // incorrect predicate argument
-// @595..601: expected `int`, found `{int, int}`
-// @569..605: arguments to this predicate call are incorrect`
+// @583..589: expected `int`, found `{int, int}`
+// @559..593: arguments to this predicate call are incorrect`
 // incorrect predicate argument
-// @603..604: expected `b256`, found `int`
-// @569..605: arguments to this predicate call are incorrect`
+// @591..592: expected `b256`, found `int`
+// @559..593: arguments to this predicate call are incorrect`
 // >>>

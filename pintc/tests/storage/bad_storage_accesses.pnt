@@ -47,7 +47,7 @@ predicate Test(
         G::B(b) => {}
     }
 
-    constraint Foo[[storage::bb]]::Bar[[storage::bb]]();
+    constraint Foo@[storage::bb]::Bar@[storage::bb]();
 }
 
 // parsed <<<
@@ -77,7 +77,7 @@ predicate Test(
 //     constraint (::x == storage::map[3].2);
 //     constraint (storage::a[::addr][storage::t.0] == 0);
 //     constraint (::y == storage::t);
-//     constraint ::Foo[[storage::bb]]::Bar[[storage::bb]]();
+//     constraint ::Foo@[storage::bb]::Bar@[storage::bb]();
 //     if ::b {
 //         constraint (storage::t.0 == 0)
 //         constraint (storage::t.1 == 0)
@@ -109,7 +109,7 @@ predicate Test(
 // @488..518: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of a `let` declaration
 // invalid position for accessing storage
-// @898..909: storage cannot be accessed in this position
+// @897..908: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of a `let` declaration
 // invalid position for accessing storage
 // @716..728: storage cannot be accessed in this position

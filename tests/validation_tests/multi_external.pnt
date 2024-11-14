@@ -25,10 +25,10 @@ predicate Foo() {
     let bar_addr = 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE;
     let baz_addr = 0xDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD;
 
-    let x = Bar[[bar_addr]]::storage::x;
-    let y = Bar[[bar_addr]]::storage::y;
-    let w = Baz[[baz_addr]]::storage::w;
-    let z = Baz[[baz_addr]]::storage::z;
+    let x = Bar@[bar_addr]::storage::x;
+    let y = Bar@[bar_addr]::storage::y;
+    let w = Baz@[baz_addr]::storage::w;
+    let z = Baz@[baz_addr]::storage::z;
 
     constraint x' - x == 1;
     constraint y' - y == 2;

@@ -6,7 +6,7 @@ predicate test(
     b: int[false],
     d: int[0x0000000000000000000000000000000000000000000000000000000000000000],
     e: int[{1, 2}],
-    f: int[ [1, 2]],    // Without the space we parse `[[` as a single token.
+    f: int[[1, 2]],
 
     // Ok
     i: int[10],
@@ -42,6 +42,6 @@ predicate test(
 // @179..185: array access must be of type `int` or enumeration `union`
 // found range type `{int, int}`
 // invalid array range type int[2]
-// @200..206: array access must be of type `int` or enumeration `union`
+// @199..205: array access must be of type `int` or enumeration `union`
 // found range type `int[2]`
 // >>>

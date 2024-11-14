@@ -298,7 +298,7 @@ fn with_error() {
     let src = r#"
 let low_val: int = 5.0;
 constraint mid > low_val # 2;
-constraint mid < low_val @ 2;
+constraint mid < low_val ^ 2;
 "#;
 
     let (tokens, errors) = lex(src, Rc::from(Path::new("test")));

@@ -31,7 +31,7 @@ predicate Simple(
     let z: int = mut storage::z;
 
     let external_1 
-        = Foo[[0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE]]::storage::y; // 69
+        = Foo@[0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE]::storage::y; // 69
 
     constraint w == x + 99; // 141
     constraint u == y * 3;  // 129

@@ -35,10 +35,10 @@ In order to access storage variable `counter` from interface `Counter`, we can c
 {{#include ../../../../examples/storage_external.pnt:access}}
 ```
 
-The path `Counter[[ContractID]]::storage::counter` has three parts separated by `::`:
+The path `Counter@[ContractID]::storage::counter` has three parts separated by `::`:
 
 1. The name of the interface `Counter` followed by the address of the corresponding deployed
-   contract in between `[[..]]`.
+   contract in between `@[..]`.
 1. The keyword `storage` to indicate that we're accessing the `storage` block of `Counter`.
 1. `counter`, the name of the storage variable we want to access.
 
@@ -58,7 +58,7 @@ be at least `100`. This could be accomplished in different ways:
    1. Or solve predicate `Increment` with parameter `amount` set to `100 - counter` or more.
 
 Similarly to local storage access expressions, the expression
-`Counter[[ContractID]]::storage::counter` can only be used in the right-hand side of a `let`
+`Counter@[ContractID]::storage::counter` can only be used in the right-hand side of a `let`
 declaration.
 
 > **Note**: The `mut` keyword cannot be added to external storage accesses. External storage
