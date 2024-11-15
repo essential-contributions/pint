@@ -1,6 +1,6 @@
 [package]
 name = "pint-abi"
-version = "0.6.0"
+version = "0.7.0"
 description = "Encoding, decoding and other helpers for working with the Pint Essential ABI."
 edition.workspace = true
 authors.workspace = true
