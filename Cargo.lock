@@ -1191,7 +1191,7 @@ checksum = "915a1e146535de9163f3987b8944ed8cf49a18bb0056bcebcdcece385cece4ff"
 
 [[package]]
 name = "pint-abi"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "essential-types",
  "pint-abi-gen",
@@ -1202,7 +1202,7 @@ dependencies = [
 
 [[package]]
 name = "pint-abi-gen"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "essential-hash",
  "essential-types",
@@ -1248,7 +1248,7 @@ dependencies = [
 
 [[package]]
 name = "pint-cli"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -1269,7 +1269,7 @@ dependencies = [
 
 [[package]]
 name = "pint-pkg"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "clap",
  "essential-hash",
@@ -1301,7 +1301,7 @@ dependencies = [
 
 [[package]]
 name = "pintc"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "anyhow",
  "ariadne",
