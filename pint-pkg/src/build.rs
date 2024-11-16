@@ -194,6 +194,11 @@ impl<'p> PlanBuilder<'p> {
         }
         Ok(self.built_pkgs)
     }
+
+    /// Consume the builder and return the set of `BuiltPkgs` that have already been built.
+    pub fn into_built_pkgs(self) -> BuiltPkgs {
+        self.built_pkgs
+    }
 }
 
 impl<'p, 'b> PrebuiltPkg<'p, 'b> {

@@ -1,10 +1,11 @@
 //! `pint build` implementation.
 
 use anyhow::Context;
-use clap::{builder::styling::Style, Parser};
+use clap::builder::styling::Style;
 use pint_pkg::{
-    build::BuiltPkg,
+    build::{BuiltPkg, BuiltPkgs},
     manifest::{ManifestFile, PackageKind},
+    plan::Plan,
 };
 use std::{
     collections::HashMap,
@@ -12,7 +13,7 @@ use std::{
 };
 
 /// Build a package, writing the generated artifacts to `out/`.
-#[derive(Parser, Debug)]
+#[derive(clap::Args, Debug)]
 pub struct Args {
     /// The path to the package manifest.
     ///
@@ -81,7 +82,10 @@ fn find_file(mut dir: PathBuf, file_name: &str) -> Option<PathBuf> {
     }
 }
 
-pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
+/// Build a pint package or workspace given a set of `build` args.
+///
+/// Returns the build [`Plan`] that was used, along with the set of packages that were built.
+pub fn cmd(args: Args) -> anyhow::Result<(Plan, BuiltPkgs)> {
     let build_start = std::time::Instant::now();
 
     // Determine the manifest location.
@@ -115,7 +119,7 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
     // Build the given compilation plan.
     let mut builder = pint_pkg::build::build_plan(&plan);
     let options = pint_pkg::build::BuildOptions {
-        salts: HashMap::from_iter([(manifest, args.salt.unwrap_or_default())]),
+        salts: HashMap::from_iter([(manifest.clone(), args.salt.unwrap_or_default())]),
         print_parsed: args.print_parsed,
         print_flat: args.print_flat,
         print_optimized: args.print_optimized,
@@ -153,9 +157,12 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
         };
     }
 
+    // Consume the builder and produce the built pkgs.
+    let built_pkgs = builder.into_built_pkgs();
+
     // Write our built member package to the `out/` directory.
     if let Some(&n) = plan.compilation_order().last() {
-        let built = &builder.built_pkgs()[&n];
+        let built = &built_pkgs[&n];
         let pinned = &plan.graph()[n];
         let manifest = &plan.manifests()[&pinned.id()];
 
@@ -216,7 +223,7 @@ pub(crate) fn cmd(args: Args) -> anyhow::Result<()> {
         }
     }
 
-    Ok(())
+    Ok((plan, built_pkgs))
 }
 
 // Package name formatted (including source if not a member).

@@ -42,7 +42,10 @@ fn print_help_output() -> anyhow::Result<()> {
 pub fn run(pint: Pint) -> anyhow::Result<()> {
     match pint.cmd {
         Cmd::New(arg) => new::cmd(arg),
-        Cmd::Build(arg) => build::cmd(arg),
+        Cmd::Build(arg) => {
+            let (_plan, _built_pkgs) = build::cmd(arg)?;
+            Ok(())
+        }
         Cmd::Plugins => {
             plugin::print_all();
             Ok(())
