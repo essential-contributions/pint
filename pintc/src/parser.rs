@@ -198,12 +198,8 @@ impl<'a> ProjectParser<'a> {
 
             // If the loop has gone for too long then there's an internal error. Arbitrary limit...
             if loop_count > 10_000 {
-                self.handler.emit_err(Error::Compile {
-                    error: CompileError::Internal {
-                        msg: "Infinite loop in project parser",
-                        span: empty_span(),
-                    },
-                });
+                self.handler
+                    .emit_internal_err("Infinite loop in project parser".to_string(), empty_span());
                 return self;
             }
         }

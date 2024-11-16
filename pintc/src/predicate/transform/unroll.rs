@@ -174,12 +174,10 @@ fn unroll_generator(
                     }
                     Immediate::Bool(true) => {}
                     _ => {
-                        return Err(handler.emit_err(Error::Compile {
-                            error: CompileError::Internal {
-                                msg: "type error: boolean expression expected",
-                                span: empty_span(),
-                            },
-                        }))
+                        return Err(handler.emit_internal_err(
+                            "type error: boolean expression expected".to_string(),
+                            empty_span(),
+                        ))
                     }
                 }
             }

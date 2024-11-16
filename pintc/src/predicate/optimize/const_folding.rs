@@ -1,7 +1,7 @@
 use fxhash::FxHashMap;
 
 use crate::{
-    error::{CompileError, Error, Handler},
+    error::Handler,
     expr::{evaluate::Evaluator, BinaryOp, Expr, Immediate, UnaryOp},
     predicate::{Contract, ExprKey},
     span::{empty_span, Spanned},
@@ -21,12 +21,7 @@ pub(crate) fn const_folding(handler: &Handler, contract: &mut Contract) {
 
         // If the loop has gone for too long then there's an internal error. Arbitrary limit...
         if loop_count > 10_000 {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "Infinite loop in const_folding",
-                    span: empty_span(),
-                },
-            });
+            handler.emit_internal_err("Infinite loop in const_folding".to_string(), empty_span());
             break;
         }
     }

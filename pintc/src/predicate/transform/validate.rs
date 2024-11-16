@@ -1,5 +1,5 @@
 use crate::{
-    error::{CompileError, Error, ErrorEmitted},
+    error::ErrorEmitted,
     expr::{Expr, GeneratorKind},
     predicate::{Contract, ExprKey, Handler, PredKey, Predicate, UnionDecl},
     span::empty_span,
@@ -18,13 +18,12 @@ pub(crate) fn validate(handler: &Handler, contract: &mut Contract) {
 fn check_params(pred: &Predicate, handler: &Handler) {
     for param in &pred.params {
         if param.ty.is_unknown() {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "final predicate var_types slotmap is missing corresponding key from \
-                    vars slotmap",
-                    span: param.span.clone(),
-                },
-            });
+            handler.emit_internal_err(
+                "final predicate var_types slotmap is missing corresponding key from \
+                    vars slotmap"
+                    .to_string(),
+                param.span.clone(),
+            );
         }
     }
 }
@@ -32,38 +31,31 @@ fn check_params(pred: &Predicate, handler: &Handler) {
 fn check_variables(pred: &Predicate, handler: &Handler) {
     for (variable_key, variable) in pred.variables() {
         if variable_key.get_ty(pred).is_unknown() {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg:
-                        "final predicate variable_types slotmap is missing corresponding key from \
-                    variables slotmap",
-                    span: variable.span.clone(),
-                },
-            });
+            handler.emit_internal_err(
+                "final predicate variable_types slotmap is missing corresponding key from \
+                    variables slotmap"
+                    .to_string(),
+                variable.span.clone(),
+            );
         }
     }
 }
 
 fn check_ifs_and_matches(pred: &Predicate, handler: &Handler) {
     let emit_internal_err = |msg, span: &crate::span::Span| {
-        handler.emit_err(Error::Compile {
-            error: CompileError::Internal {
-                msg,
-                span: span.clone(),
-            },
-        });
+        handler.emit_internal_err(msg, span.clone());
     };
 
     if !pred.if_decls.is_empty() {
         emit_internal_err(
-            "final predicate contains if declarations",
+            "final predicate contains if declarations".to_string(),
             &pred.if_decls[0].span,
         );
     }
 
     if !pred.match_decls.is_empty() {
         emit_internal_err(
-            "final predicate contains match declarations",
+            "final predicate contains match declarations".to_string(),
             &pred.match_decls[0].span,
         );
     }
@@ -82,37 +74,32 @@ fn check_expr(
 ) -> Result<(), ErrorEmitted> {
     macro_rules! emit_illegal_type_error {
         ($handler: expr, $span: expr, $type_str: literal, $slotmap_str: literal) => {
-            $handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: concat!(
-                        $type_str,
-                        " present in final predicate ",
-                        $slotmap_str,
-                        " slotmap"
-                    ),
-                    span: $span.clone(),
-                },
-            })
+            $handler.emit_internal_err(
+                concat!(
+                    $type_str,
+                    " present in final predicate ",
+                    $slotmap_str,
+                    " slotmap"
+                )
+                .to_string(),
+                $span.clone(),
+            )
         };
     }
 
     let expr_type = expr_key.get_ty(contract);
     if expr_type.is_unknown() {
-        handler.emit_err(Error::Compile {
-            error: CompileError::Internal {
-                msg: "Unknown expr type found invalid predicate expr_types slotmap key",
-                span: empty_span(),
-            },
-        });
+        handler.emit_internal_err(
+            "Unknown expr type found invalid predicate expr_types slotmap key".to_string(),
+            empty_span(),
+        );
     }
 
     let expr = expr_key.try_get(contract).ok_or_else(|| {
-        handler.emit_err(Error::Compile {
-            error: CompileError::Internal {
-                msg: "invalid predicate exprs slotmap key",
-                span: empty_span(),
-            },
-        })
+        handler.emit_internal_err(
+            "invalid predicate exprs slotmap key".to_string(),
+            empty_span(),
+        )
     })?;
 
     // validate the expr_type is legal

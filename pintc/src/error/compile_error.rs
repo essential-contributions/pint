@@ -1,6 +1,6 @@
 use crate::{
     error::{ErrorLabel, ReportableError},
-    span::{empty_span, Span, Spanned},
+    span::{Span, Spanned},
 };
 use std::path::PathBuf;
 use thiserror::Error;
@@ -8,8 +8,6 @@ use yansi::Color;
 
 #[derive(Error, Debug)]
 pub enum CompileError {
-    #[error("compiler internal error: {msg}")]
-    Internal { msg: &'static str, span: Span },
     #[error("couldn't read {file}: {error}")]
     FileIO {
         error: std::io::Error,
@@ -1231,18 +1229,6 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
-            Internal { msg, span } => {
-                if span == &empty_span() {
-                    Vec::new()
-                } else {
-                    vec![ErrorLabel {
-                        message: msg.to_string(),
-                        span: span.clone(),
-                        color: Color::Red,
-                    }]
-                }
-            }
-
             FileIO { .. } => Vec::new(),
         }
     }
@@ -1369,8 +1355,7 @@ impl ReportableError for CompileError {
                     .to_string(),
             ),
 
-            Internal { .. }
-            | FileIO { .. }
+            FileIO { .. }
             | MacroNotFound { .. }
             | MacroUndefinedParam { .. }
             | SymbolNotFound { .. }
@@ -1575,7 +1560,6 @@ impl Spanned for CompileError {
         use CompileError::*;
         match self {
             FileIO { span, .. }
-            | Internal { span, .. }
             | DualModulity { span, .. }
             | NoFileFoundForPath { span, .. }
             | MacroDeclClash { span, .. }

@@ -129,15 +129,6 @@ impl Contract {
             return Err(handler.cancel());
         }
 
-        let emit_internal = |msg| {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg,
-                    span: empty_span(),
-                },
-            })
-        };
-
         // For each of the newly evaluated intialisers we need to update the expressions in the
         // consts map.
         let all_const_immediates = evaluator.into_values();
@@ -159,10 +150,16 @@ impl Contract {
                 if let Some(cnst) = self.consts.get_mut(&new_path) {
                     cnst.expr = new_expr_key;
                 } else {
-                    emit_internal("missing const decl for immediate update");
+                    handler.emit_internal_err(
+                        "missing const decl for immediate update".to_string(),
+                        empty_span(),
+                    );
                 }
             } else {
-                emit_internal("missing immediate value for const expr update");
+                handler.emit_internal_err(
+                    "missing immediate value for const expr update".to_string(),
+                    empty_span(),
+                );
             }
         }
 
@@ -180,11 +177,17 @@ impl Contract {
                         | Inference::Dependant(_)
                         | Inference::Dependencies(_)
                         | Inference::BoundDependencies { .. } => {
-                            emit_internal("const inferred a dependant type");
+                            handler.emit_internal_err(
+                                "const inferred a dependant type".to_string(),
+                                empty_span(),
+                            );
                         }
                     }
                 } else {
-                    emit_internal("missing immediate value for const decl_ty update");
+                    handler.emit_internal_err(
+                        "missing immediate value for const decl_ty update".to_string(),
+                        empty_span(),
+                    );
                 }
             }
         }

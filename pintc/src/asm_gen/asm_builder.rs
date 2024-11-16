@@ -1,5 +1,5 @@
 use crate::{
-    error::{CompileError, Error, ErrorEmitted, Handler},
+    error::{ErrorEmitted, Handler},
     expr::{
         BinaryOp, Expr, ExternalIntrinsic, Immediate, InternalIntrinsic, IntrinsicKind,
         TupleAccess, UnaryOp,
@@ -69,12 +69,10 @@ impl Asm {
     /// fail if `self` is a "constraint program"
     fn try_push(&mut self, handler: &Handler, op: StateOp) -> Result<(), ErrorEmitted> {
         match self {
-            Self::Constraint(_) => Err(handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "These expressions should have been lowered by now",
-                    span: empty_span(),
-                },
-            })),
+            Self::Constraint(_) => Err(handler.emit_internal_err(
+                "These expressions should have been lowered by now".to_string(),
+                empty_span(),
+            )),
             Self::State(ref mut ops) => {
                 ops.push(op);
                 Ok(())
@@ -343,36 +341,40 @@ impl<'a> AsmBuilder<'a> {
         contract: &Contract,
         pred: &Predicate,
     ) -> Result<Location, ErrorEmitted> {
-        fn compile_immediate(asm: &mut Asm, imm: &Immediate) -> usize {
+        fn compile_immediate(
+            handler: &Handler,
+            asm: &mut Asm,
+            imm: &Immediate,
+        ) -> Result<usize, ErrorEmitted> {
             match imm {
                 Immediate::Int(val) => {
                     asm.push(Stack::Push(*val).into());
-                    1
+                    Ok(1)
                 }
                 Immediate::Bool(val) => {
                     asm.push(Stack::Push(*val as i64).into());
-                    1
+                    Ok(1)
                 }
                 Immediate::B256(val) => {
                     asm.push(Stack::Push(val[0] as i64).into());
                     asm.push(Stack::Push(val[1] as i64).into());
                     asm.push(Stack::Push(val[2] as i64).into());
                     asm.push(Stack::Push(val[3] as i64).into());
-                    4
+                    Ok(4)
                 }
                 Immediate::Array(elements) => {
                     let mut value_size = 0;
                     for element in elements {
-                        value_size += compile_immediate(asm, element);
+                        value_size += compile_immediate(handler, asm, element)?;
                     }
-                    value_size
+                    Ok(value_size)
                 }
                 Immediate::Tuple(fields) => {
                     let mut value_size = 0;
                     for (_, field) in fields {
-                        value_size += compile_immediate(asm, field);
+                        value_size += compile_immediate(handler, asm, field)?;
                     }
-                    value_size
+                    Ok(value_size)
                 }
                 Immediate::UnionVariant {
                     tag_num,
@@ -384,23 +386,23 @@ impl<'a> AsmBuilder<'a> {
 
                     let mut value_size = 0;
                     if let Some(value) = value {
-                        value_size = compile_immediate(asm, value);
+                        value_size = compile_immediate(handler, asm, value)?;
                     }
                     while value_size < *max_size {
                         asm.push(Stack::Push(0).into());
                         value_size += 1;
                     }
-                    1 + value_size
+                    Ok(1 + value_size)
                 }
                 Immediate::Error | Immediate::Nil | Immediate::Real(_) | Immediate::String(_) => {
-                    unreachable!("Unexpected literal")
+                    Err(handler.emit_internal_err("unexpected literal".to_string(), empty_span()))
                 }
             }
         }
 
         match expr.get(contract) {
             Expr::Immediate { value, .. } => {
-                compile_immediate(asm, value);
+                compile_immediate(handler, asm, value)?;
                 Ok(Location::Value)
             }
             Expr::Array { elements, .. } => {
@@ -467,12 +469,10 @@ impl<'a> AsmBuilder<'a> {
             | Expr::In { .. }
             | Expr::Range { .. }
             | Expr::Generator { .. }
-            | Expr::Match { .. } => Err(handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "These expressions should have been lowered by now",
-                    span: empty_span(),
-                },
-            })),
+            | Expr::Match { .. } => Err(handler.emit_internal_err(
+                "These expressions should have been lowered by now".to_string(),
+                empty_span(),
+            )),
         }
     }
 
@@ -504,12 +504,10 @@ impl<'a> AsmBuilder<'a> {
         } else {
             // Must not have anything else at this point. All other path expressions should have
             // been lowered to something else by now
-            return Err(handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "this path expression should have been lowered by now",
-                    span: empty_span(),
-                },
-            }));
+            return Err(handler.emit_internal_err(
+                "this path expression should have been lowered by now".to_string(),
+                empty_span(),
+            ));
         }
     }
 
@@ -541,7 +539,9 @@ impl<'a> AsmBuilder<'a> {
                 asm.push(Alu::Sub.into());
                 Ok(Location::Value)
             }
-            UnaryOp::Error => unreachable!("unexpected Unary::Error"),
+            UnaryOp::Error => {
+                Err(handler.emit_internal_err("unexpected Unary::Error".to_string(), empty_span()))
+            }
         }
     }
 
@@ -664,23 +664,17 @@ impl<'a> AsmBuilder<'a> {
         for (expected, arg) in expected_args.iter().zip(args.iter()) {
             let found = arg.get_ty(contract);
             if !expected.eq(contract, found) {
-                handler.emit_err(Error::Compile {
-                    error: CompileError::Internal {
-                        msg: "unexpected intrinsic arg type",
-                        span: empty_span(),
-                    },
-                });
+                handler
+                    .emit_internal_err("unexpected intrinsic arg type".to_string(), empty_span());
             }
         }
 
         // Also, ensure that the number of arguments is correct
         if args.len() != expected_args.len() {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "unexpected number of args for intrinsic",
-                    span: empty_span(),
-                },
-            });
+            handler.emit_internal_err(
+                "unexpected number of args for intrinsic".to_string(),
+                empty_span(),
+            );
         }
 
         match kind {
@@ -692,12 +686,10 @@ impl<'a> AsmBuilder<'a> {
                 self.compile_internal_intrinsic_call(handler, asm, kind, args, contract, pred)
             }
 
-            IntrinsicKind::Error => Err(handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "intrinsic of kind `Error` encounter",
-                    span: empty_span(),
-                },
-            })),
+            IntrinsicKind::Error => Err(handler.emit_internal_err(
+                "intrinsic of kind `Error` encounter".to_string(),
+                empty_span(),
+            )),
         }
     }
 
@@ -718,13 +710,15 @@ impl<'a> AsmBuilder<'a> {
                 }) = args[0].try_get(contract)
                 {
                     // Push the predicate address on the stack, one word at a time.
-                    let predicate_address = &self
-                        .compiled_predicates
-                        .get(s)
-                        .expect("predicate address should exist!")
-                        .1;
+                    let Some(predicate_address) = &self.compiled_predicates.get(s) else {
+                        return Err(handler.emit_internal_err(
+                            "predicate address should exist!".to_string(),
+                            empty_span(),
+                        ));
+                    };
 
-                    for word in essential_types::convert::word_4_from_u8_32(predicate_address.0) {
+                    for word in essential_types::convert::word_4_from_u8_32(predicate_address.1 .0)
+                    {
                         asm.push(ConstraintOp::Stack(Stack::Push(word)));
                     }
                 }
@@ -824,16 +818,18 @@ impl<'a> AsmBuilder<'a> {
                     ExternalIntrinsic::AddressOf
                     | ExternalIntrinsic::SizeOf
                     | ExternalIntrinsic::VerifyEd25519 => {
-                        unreachable!("SizeOf and AddressOf are handled above")
+                        return Err(handler.emit_internal_err(
+                            "SizeOf and AddressOf have already been handled!".to_string(),
+                            empty_span(),
+                        ))
                     }
 
                     ExternalIntrinsic::VecLen => {
-                        return Err(handler.emit_err(Error::Compile {
-                            error: CompileError::Internal {
-                                msg: "__vec_len should have been lowered to something else by now",
-                                span: empty_span(),
-                            },
-                        }))
+                        return Err(handler.emit_internal_err(
+                            "__vec_len should have been lowered to something else by now"
+                                .to_string(),
+                            empty_span(),
+                        ))
                     }
                 }
             }
@@ -908,12 +904,12 @@ impl<'a> AsmBuilder<'a> {
 
         // This is a local predicate call: use the pre-computed predicate address of the called
         // predicate
-        let predicate_address = &self
-            .compiled_predicates
-            .get(predicate)
-            .expect("predicate address should exist!")
-            .1;
-        for word in essential_types::convert::word_4_from_u8_32(predicate_address.0) {
+        let Some(predicate_address) = &self.compiled_predicates.get(predicate) else {
+            return Err(handler
+                .emit_internal_err("predicate address should exist!".to_string(), empty_span()));
+        };
+
+        for word in essential_types::convert::word_4_from_u8_32(predicate_address.1 .0) {
             asm.push(ConstraintOp::Stack(Stack::Push(word)));
         }
 
@@ -1035,22 +1031,19 @@ impl<'a> AsmBuilder<'a> {
         let location = self.compile_expr_pointer(handler, asm, expr, contract, pred)?;
 
         if let Location::Value | Location::Storage(_) = location {
-            return Err(handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "unexpected index operator for `Location::Value` and `Location::Storage`",
-                    span: empty_span(),
-                },
-            }));
+            return Err(handler.emit_internal_err(
+                "unexpected index operator for `Location::Value` and `Location::Storage`"
+                    .to_string(),
+                empty_span(),
+            ));
         }
 
         // Grab the element ty of the array
         let Type::Array { ty, .. } = expr.get_ty(contract) else {
-            return Err(handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "type must exist and be an array type",
-                    span: empty_span(),
-                },
-            }));
+            return Err(handler.emit_internal_err(
+                "type must exist and be an array type".to_string(),
+                empty_span(),
+            ));
         };
 
         // Compile the index
@@ -1077,27 +1070,24 @@ impl<'a> AsmBuilder<'a> {
         let location = self.compile_expr_pointer(handler, asm, tuple, contract, pred)?;
 
         if let Location::Value | Location::Storage(_) = location {
-            return Err(handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "unexpected tuple access for `Location::Value` and `Location::Storage`",
-                    span: empty_span(),
-                },
-            }));
+            return Err(handler.emit_internal_err(
+                "unexpected tuple access for `Location::Value` and `Location::Storage`".to_string(),
+                empty_span(),
+            ));
         }
 
         // Grab the fields of the tuple
         let Type::Tuple { ref fields, .. } = tuple.get_ty(contract) else {
-            return Err(handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "type must exist and be a tuple type",
-                    span: empty_span(),
-                },
-            }));
+            return Err(handler.emit_internal_err(
+                "type must exist and be a tuple type".to_string(),
+                empty_span(),
+            ));
         };
 
         // The field index is based on the type definition
         let field_idx = match field {
             TupleAccess::Index(idx) => *idx,
+
             TupleAccess::Name(ident) => fields
                 .iter()
                 .position(|(field_name, _)| {
@@ -1105,14 +1095,16 @@ impl<'a> AsmBuilder<'a> {
                         .as_ref()
                         .map_or(false, |name| name.name == ident.name)
                 })
-                .expect("field name must exist, this was checked in type checking"),
+                .ok_or_else(|| {
+                    handler.emit_internal_err(
+                        "field name must exist, this was checked in type checking".to_string(),
+                        empty_span(),
+                    )
+                })?,
+
             TupleAccess::Error => {
-                return Err(handler.emit_err(Error::Compile {
-                    error: CompileError::Internal {
-                        msg: "unexpected TupleAccess::Error",
-                        span: empty_span(),
-                    },
-                }));
+                return Err(handler
+                    .emit_internal_err("unexpected TupleAccess::Error".to_string(), empty_span()));
             }
         };
 
@@ -1147,12 +1139,10 @@ impl<'a> AsmBuilder<'a> {
             .enumerate()
             .find_map(|(idx, variant_name)| (variant_name == tag[2..]).then_some(idx))
             .ok_or_else(|| {
-                handler.emit_err(Error::Compile {
-                    error: CompileError::Internal {
-                        msg: "Union tag not found in union decl",
-                        span: contract.expr_key_to_span(*union_expr_key),
-                    },
-                })
+                handler.emit_internal_err(
+                    "Union tag not found in union decl".to_string(),
+                    contract.expr_key_to_span(*union_expr_key),
+                )
             })?;
 
         // Track the actual value size in words.
@@ -1195,7 +1185,7 @@ impl<'a> AsmBuilder<'a> {
 
             // Are these supported?
             Location::State(_) | Location::Storage { .. } | Location::Value => {
-                todo!("support union matches in non- decision variables?")
+                unimplemented!("support union matches in non- decision variables?")
             }
         }
 

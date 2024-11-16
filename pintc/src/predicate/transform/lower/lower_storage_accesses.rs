@@ -1,5 +1,5 @@
 use crate::{
-    error::{CompileError, Error, ErrorEmitted, Handler},
+    error::{ErrorEmitted, Handler},
     expr::{BinaryOp, Expr, ExternalIntrinsic, InternalIntrinsic, IntrinsicKind, TupleAccess},
     predicate::{ConstraintDecl, Contract, ExprKey, PredKey},
     span::empty_span,
@@ -254,12 +254,10 @@ fn get_base_storage_key(
                 match args[0].try_get(contract) {
                     Some(Expr::LocalStorageAccess { name, .. }) => {
                         if !contract.storage_var(name).1.ty.is_vector() {
-                            return Err(handler.emit_err(Error::Compile {
-                                error: CompileError::Internal {
-                                    msg: "argument to __vec_len must be of type storage vector",
-                                    span: empty_span(),
-                                },
-                            }));
+                            return Err(handler.emit_internal_err(
+                                "argument to __vec_len must be of type storage vector".to_string(),
+                                empty_span(),
+                            ));
                         }
                     }
                     Some(Expr::ExternalStorageAccess {
@@ -271,32 +269,24 @@ fn get_base_storage_key(
                             .ty
                             .is_vector()
                         {
-                            return Err(handler.emit_err(Error::Compile {
-                                error: CompileError::Internal {
-                                    msg: "argument to __vec_len must be of type storage vector",
-                                    span: empty_span(),
-                                },
-                            }));
+                            return Err(handler.emit_internal_err(
+                                "argument to __vec_len must be of type storage vector".to_string(),
+                                empty_span(),
+                            ));
                         }
                     }
                     _ => {
-                        return Err(handler.emit_err(Error::Compile {
-                            error: CompileError::Internal {
-                                msg: "argument to __vec_len must be storage access",
-                                span: empty_span(),
-                            },
-                        }));
+                        return Err(handler.emit_internal_err(
+                            "argument to __vec_len must be storage access".to_string(),
+                            empty_span(),
+                        ));
                     }
                 };
 
                 get_base_storage_key(handler, &args[0], contract)
             } else {
-                Err(handler.emit_err(Error::Compile {
-                    error: CompileError::Internal {
-                        msg: "Invalid storage intrinsic",
-                        span: empty_span(),
-                    },
-                }))
+                Err(handler
+                    .emit_internal_err("Invalid storage intrinsic".to_string(), empty_span()))
             }
         }
         Expr::LocalStorageAccess { name, mutable, .. } => {
@@ -366,12 +356,10 @@ fn get_base_storage_key(
                 }
             } else {
                 let Type::Array { ty, .. } = expr.get_ty(contract) else {
-                    return Err(handler.emit_err(Error::Compile {
-                        error: CompileError::Internal {
-                            msg: "type must exist and be an array type",
-                            span: empty_span(),
-                        },
-                    }));
+                    return Err(handler.emit_internal_err(
+                        "type must exist and be an array type".to_string(),
+                        empty_span(),
+                    ));
                 };
 
                 // Increment the last element of the key by `index * array element size`
@@ -407,12 +395,10 @@ fn get_base_storage_key(
 
             // Grab the fields of the tuple
             let Type::Tuple { ref fields, .. } = tuple.get_ty(contract) else {
-                return Err(handler.emit_err(Error::Compile {
-                    error: CompileError::Internal {
-                        msg: "type must exist and be a tuple type",
-                        span: empty_span(),
-                    },
-                }));
+                return Err(handler.emit_internal_err(
+                    "type must exist and be a tuple type".to_string(),
+                    empty_span(),
+                ));
             };
 
             // The field index is based on the type definition
@@ -427,12 +413,10 @@ fn get_base_storage_key(
                     })
                     .expect("field name must exist, this was checked in type checking"),
                 TupleAccess::Error => {
-                    return Err(handler.emit_err(Error::Compile {
-                        error: CompileError::Internal {
-                            msg: "unexpected TupleAccess::Error",
-                            span: empty_span(),
-                        },
-                    }))
+                    return Err(handler.emit_internal_err(
+                        "unexpected TupleAccess::Error".to_string(),
+                        empty_span(),
+                    ))
                 }
             };
 
@@ -458,11 +442,9 @@ fn get_base_storage_key(
             Ok((addr, mutable, key))
         }
 
-        _ => Err(handler.emit_err(Error::Compile {
-            error: CompileError::Internal {
-                msg: "unexpected expression in a storage access expression",
-                span: empty_span(),
-            },
-        })),
+        _ => Err(handler.emit_internal_err(
+            "unexpected expression in a storage access expression".to_string(),
+            empty_span(),
+        )),
     }
 }
