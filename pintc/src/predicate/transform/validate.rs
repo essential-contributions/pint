@@ -248,7 +248,7 @@ fn run_parser(src: &str, handler: &Handler) -> Contract {
     use std::collections::BTreeMap;
 
     let parser = pint_parser::PintParser::new();
-    let filepath = std::rc::Rc::from(std::path::Path::new("test"));
+    let filepath = std::sync::Arc::from(std::path::Path::new("test"));
     let mut contract = Contract::default();
 
     parser

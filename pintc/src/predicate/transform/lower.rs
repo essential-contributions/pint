@@ -15,7 +15,7 @@ use crate::{
 
 use fxhash::FxHashMap;
 
-use std::{collections::VecDeque, rc::Rc};
+use std::{collections::VecDeque, sync::Arc};
 
 mod lower_storage_accesses;
 pub(crate) use lower_storage_accesses::lower_storage_accesses;
@@ -1135,7 +1135,7 @@ pub(super) fn lower_matches(
                 contract,
                 pred_key,
                 match_decl,
-                Rc::new(BindingStack::default()),
+                Arc::new(BindingStack::default()),
             )?;
             contract.preds[pred_key].if_decls.push(if_decl);
         }
@@ -1182,7 +1182,7 @@ fn convert_match_to_if_decl(
     contract: &mut Contract,
     pred_key: PredKey,
     match_decl: MatchDecl,
-    binding_stack: Rc<BindingStack>,
+    binding_stack: Arc<BindingStack>,
 ) -> Result<IfDecl, ErrorEmitted> {
     let MatchDecl {
         match_expr,
@@ -1220,7 +1220,7 @@ fn convert_match_to_if_decl(
                     })
                     .and_then(|binding_ty| match (binding, binding_ty) {
                         // Both are bound.
-                        (Some(id), Some(ty)) => Ok(Some(Rc::new((match_expr, id, ty.clone())))),
+                        (Some(id), Some(ty)) => Ok(Some(Arc::new((match_expr, id, ty.clone())))),
 
                         // Both are unbound.
                         (None, None) => Ok(None),
@@ -1250,7 +1250,7 @@ fn convert_match_to_if_decl(
                                     contract,
                                     pred_key,
                                     BindingStack::wrap(
-                                        full_binding.as_ref().map(Rc::clone),
+                                        full_binding.as_ref().map(Arc::clone),
                                         &binding_stack,
                                     ),
                                     block,
@@ -1272,7 +1272,7 @@ fn convert_match_to_if_decl(
                         handler,
                         contract,
                         pred_key,
-                        Rc::clone(&binding_stack),
+                        Arc::clone(&binding_stack),
                         block,
                     )
                 })
@@ -1327,7 +1327,7 @@ fn convert_match_block_statement(
     handler: &Handler,
     contract: &mut Contract,
     pred_key: PredKey,
-    binding_stack: Rc<BindingStack>,
+    binding_stack: Arc<BindingStack>,
     block_stmt: BlockStatement,
 ) -> Result<BlockStatement, ErrorEmitted> {
     match block_stmt {
@@ -1363,7 +1363,7 @@ fn convert_match_block_statement(
                         handler,
                         contract,
                         pred_key,
-                        Rc::clone(&binding_stack),
+                        Arc::clone(&binding_stack),
                         stmt,
                     )
                 })
@@ -1378,7 +1378,7 @@ fn convert_match_block_statement(
                                 handler,
                                 contract,
                                 pred_key,
-                                Rc::clone(&binding_stack),
+                                Arc::clone(&binding_stack),
                                 stmt,
                             )
                         })
@@ -1557,8 +1557,8 @@ fn convert_match_expr(
 
         if let Some((binding, bound_ty)) = then_branch.binding {
             let binding_stack = BindingStack::wrap(
-                Some(Rc::new((then_branch.union_expr, binding, bound_ty))),
-                &Rc::new(BindingStack::default()),
+                Some(Arc::new((then_branch.union_expr, binding, bound_ty))),
+                &Arc::new(BindingStack::default()),
             );
 
             for constraint_expr in &mut then_branch.constraints {
@@ -1814,20 +1814,20 @@ pub(super) fn lower_union_variant_paths(contract: &mut Contract) {
 
 #[derive(Default)]
 struct BindingStack {
-    binding: Option<Rc<(ExprKey, Ident, Type)>>,
-    next: Option<Rc<Self>>,
+    binding: Option<Arc<(ExprKey, Ident, Type)>>,
+    next: Option<Arc<Self>>,
 }
 
 impl BindingStack {
-    fn wrap(new_binding: Option<Rc<(ExprKey, Ident, Type)>>, other: &Rc<Self>) -> Rc<Self> {
+    fn wrap(new_binding: Option<Arc<(ExprKey, Ident, Type)>>, other: &Arc<Self>) -> Arc<Self> {
         if let Some(binding) = new_binding {
-            Rc::new(BindingStack {
-                binding: Some(Rc::clone(&binding)),
-                next: Some(Rc::clone(other)),
+            Arc::new(BindingStack {
+                binding: Some(Arc::clone(&binding)),
+                next: Some(Arc::clone(other)),
             })
         } else {
             // No new binding to wrap; just return other.
-            Rc::clone(other)
+            Arc::clone(other)
         }
     }
 

@@ -104,7 +104,7 @@ fn gather_use_paths() {
     use std::collections::BTreeMap;
 
     let parser = pint_parser::TestDelegateParser::new();
-    let filepath = std::rc::Rc::from(std::path::Path::new("test"));
+    let filepath = std::sync::Arc::from(std::path::Path::new("test"));
     let mut contract = Contract::default();
 
     let mut to_use_paths = |src: &str| -> Vec<UsePath> {
