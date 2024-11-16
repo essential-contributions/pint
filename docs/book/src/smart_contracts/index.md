@@ -56,7 +56,7 @@ Here's an example that shows how to declare a predicate named `test` with three 
 The predicate `test` also declares a constraint that enforces that the square of `foo` is at most
 `1024`, meaning that any proposed solution must assign a value for `foo` that satisfies this
 condition. For example, if `foo` is set to `7`, this is constraint would be satisfied. If `foo` is
-set to `11`, this constraint would not be satisfied. We will go over constraints in more detail in
+set to `42`, this constraint would not be satisfied. We will go over constraints in more detail in
 [Chapter 4.6](../basics/constraints.md).
 
 You can think of the type annotation on each predicate parameter as an implicit "constraint". For
