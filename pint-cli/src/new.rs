@@ -9,7 +9,7 @@ use std::path::PathBuf;
 
 /// Create a new package.
 #[derive(Parser, Debug)]
-pub(crate) struct Args {
+pub struct Args {
     /// Specify the "contract" package kind.
     ///
     /// This is the default behaviour.

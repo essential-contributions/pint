@@ -12,6 +12,9 @@ repository.workspace = true
 name = "pint"
 path = "src/main.rs"
 
+[lib]
+path = "src/lib.rs"
+
 [dependencies]
 anyhow = { workspace = true }
 clap = { workspace = true }
