@@ -1,4 +1,4 @@
-## Appendix D: Known Issues and Missing Features
+## Appendix E: Known Issues and Missing Features
 
 ### Known Issues
 
