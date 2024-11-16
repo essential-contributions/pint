@@ -1,4 +1,4 @@
-## Constructing Solutions using the ABI
+## Appendix C.2: Constructing Solutions using the ABI
 
 The Application Binary Interface (ABI) of a contract provides all the essential information needed
 to construct a solution for one or more predicates within the contract. Although you could perform
