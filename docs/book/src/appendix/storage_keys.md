@@ -19,7 +19,7 @@ the tuple field or array element in the flattened list.
 
 ### Storage Maps
 
-Entries of a storage maps are stored in one or more storage slots depending on their types:
+Entries of storage maps are stored in one or more storage slots depending on their types:
 
 #### Primitive Types and Unions in Storage Maps
 
