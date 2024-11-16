@@ -1,6 +1,6 @@
 [package]
 name = "pint-cli"
-version = "0.10.0"
+version = "0.11.0"
 description = "Pint's package manager and CLI plugin host."
 edition.workspace = true
 authors.workspace = true
