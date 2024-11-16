@@ -13,7 +13,7 @@ use std::{
 
 /// Build a package, writing the generated artifacts to `out/`.
 #[derive(Parser, Debug)]
-pub(crate) struct Args {
+pub struct Args {
     /// The path to the package manifest.
     ///
     /// If not provided, the current directory is checked and then each parent
