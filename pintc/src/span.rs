@@ -1,12 +1,12 @@
-use std::{fmt, ops::Range, path::Path, rc::Rc};
+use std::{fmt, ops::Range, path::Path, sync::Arc};
 
 #[derive(Clone, PartialEq)]
 pub struct Span {
-    pub(super) context: Rc<Path>,
+    pub(super) context: Arc<Path>,
     pub(super) range: Range<usize>,
 }
 
-type Context = Rc<Path>;
+type Context = Arc<Path>;
 type Offset = usize;
 
 impl Span {
@@ -16,7 +16,7 @@ impl Span {
     }
 
     pub fn context(&self) -> Context {
-        Rc::clone(&self.context)
+        Arc::clone(&self.context)
     }
 
     pub fn start(&self) -> Offset {
@@ -37,7 +37,7 @@ impl fmt::Debug for Span {
 pub(super) fn empty_span() -> Span {
     Span {
         range: 0..0,
-        context: Rc::from(Path::new("")),
+        context: Arc::from(Path::new("")),
     }
 }
 
@@ -47,7 +47,7 @@ pub(super) fn empty_span() -> Span {
 pub(super) fn join(lhs: &Span, rhs: &Span) -> Span {
     Span {
         range: lhs.range.start..rhs.range.end,
-        context: Rc::clone(&lhs.context),
+        context: Arc::clone(&lhs.context),
     }
 }
 

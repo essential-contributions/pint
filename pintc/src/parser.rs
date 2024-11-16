@@ -12,7 +12,7 @@ use std::{
     collections::BTreeMap,
     fs,
     path::{Path, PathBuf},
-    rc::Rc,
+    sync::Arc,
 };
 
 use lalrpop_util::lalrpop_mod;
@@ -123,7 +123,7 @@ impl<'a> ProjectParser<'a> {
                 self.visited_paths.push(src_path.clone());
 
                 // Parse this file module, returning any paths to other potential modules.
-                let ((), next_paths) = self.parse_module(&Rc::from(src_path), &mod_path);
+                let ((), next_paths) = self.parse_module(&Arc::from(src_path), &mod_path);
                 self.analyse_and_add_paths(&mod_path, &next_paths, &mut pending_paths);
             }
 
@@ -264,7 +264,7 @@ macro_rules! parse_with {
      $handler: expr,
      ) => {{
         let span_from = |start, end| Span {
-            context: Rc::clone($src_path),
+            context: Arc::clone($src_path),
             range: start..end,
         };
 
@@ -319,7 +319,11 @@ macro_rules! parse_with {
 }
 
 impl<'a> ProjectParser<'a> {
-    fn parse_module(&mut self, src_path: &Rc<Path>, mod_path: &[String]) -> ((), Vec<NextModPath>) {
+    fn parse_module(
+        &mut self,
+        src_path: &Arc<Path>,
+        mod_path: &[String],
+    ) -> ((), Vec<NextModPath>) {
         let src_str = fs::read_to_string(src_path).unwrap_or_else(|io_err| {
             self.handler.emit_err(Error::Compile {
                 error: CompileError::FileIO {
@@ -354,7 +358,7 @@ impl<'a> ProjectParser<'a> {
     fn parse_macro_body(
         &mut self,
         tokens: Vec<(usize, lexer::Token, usize)>,
-        src_path: &Rc<Path>,
+        src_path: &Arc<Path>,
         mod_path: &[String],
         macro_call: &MacroCall,
         current_pred: PredKey,

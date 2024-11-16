@@ -1,6 +1,6 @@
 use crate::{error::ParseError, span::Span};
 use logos::Logos;
-use std::{fmt, ops::Range, rc::Rc};
+use std::{fmt, ops::Range, sync::Arc};
 
 #[cfg(test)]
 mod tests;
@@ -350,7 +350,7 @@ impl fmt::Display for Token {
 
 pub(super) struct Lexer<'a> {
     token_stream: TokenSource<'a>,
-    filepath: Rc<std::path::Path>,
+    filepath: Arc<std::path::Path>,
     mod_path: &'a [String],
     state: LexerState,
 }
@@ -358,7 +358,7 @@ pub(super) struct Lexer<'a> {
 impl<'sc> Lexer<'sc> {
     pub(super) fn new(
         src: &'sc str,
-        filepath: &Rc<std::path::Path>,
+        filepath: &Arc<std::path::Path>,
         mod_path: &'sc [String],
     ) -> Self {
         Self {
@@ -371,7 +371,7 @@ impl<'sc> Lexer<'sc> {
 
     pub(super) fn from_tokens(
         tokens: Vec<(usize, Token, usize)>,
-        filepath: &Rc<std::path::Path>,
+        filepath: &Arc<std::path::Path>,
         mod_path: &'sc [String],
     ) -> Self {
         Self {

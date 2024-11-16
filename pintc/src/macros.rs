@@ -8,7 +8,7 @@ use crate::{
 };
 
 use fxhash::FxHashMap;
-use std::{collections::hash_map::Entry, fmt, rc::Rc};
+use std::{collections::hash_map::Entry, fmt, sync::Arc};
 
 pub(crate) struct MacroDecl {
     pub(crate) name: Ident,
@@ -376,7 +376,7 @@ impl MacroExpander {
                             error: CompileError::MacroUndefinedParam {
                                 name: param.clone(),
                                 span: Span {
-                                    context: Rc::clone(&macro_decl.sig_span.context),
+                                    context: Arc::clone(&macro_decl.sig_span.context),
                                     range: tok.0..tok.2,
                                 },
                             },
@@ -401,7 +401,7 @@ impl MacroExpander {
                                 bad_pack: (
                                     pack_name.clone(),
                                     Span {
-                                        context: Rc::clone(&macro_decl.sig_span.context),
+                                        context: Arc::clone(&macro_decl.sig_span.context),
                                         range: tok.0..tok.2,
                                     },
                                 ),

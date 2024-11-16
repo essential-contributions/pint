@@ -5,7 +5,7 @@ use crate::{
     predicate::{Contract, DisplayWithContract},
     span::Span,
 };
-use std::{collections::BTreeMap, path::Path, rc::Rc};
+use std::{collections::BTreeMap, path::Path, sync::Arc};
 
 #[cfg(test)]
 use pint_parser as yp;
@@ -21,7 +21,7 @@ lalrpop_mod!(#[allow(unused)] pub pint_parser);
 #[cfg(test)]
 macro_rules! parse_and_collect_errors {
     ($parser: expr, $source: expr, $context: expr) => {{
-        let filepath = Rc::from(Path::new("test"));
+        let filepath = Arc::from(Path::new("test"));
 
         let handler = Handler::default();
         match $parser.parse(
@@ -61,7 +61,7 @@ macro_rules! context {
             current_pred_key: None,
             macros: &mut vec![],
             macro_calls: &mut BTreeMap::default(),
-            span_from: &|l, r| Span::new(Rc::from(Path::new("")), l..r),
+            span_from: &|l, r| Span::new(Arc::from(Path::new("")), l..r),
             use_paths: &mut $use_paths,
             next_paths: &mut vec![],
             experimental_types: cfg!(feature = "experimental-types"),
