@@ -1,0 +1,12 @@
+{
+  "data": [
+    {
+      "predicate_to_solve": {
+        "contract": "F5A5FD42D16A20302798EF6ED309979B43003D2320D9F0E8EA9831A92759FB4B",
+        "predicate": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "decision_variables": [[4, 6, 1, 5, 2, 0, 3, 7]],
+      "state_mutations": []
+    }
+  ]
+}

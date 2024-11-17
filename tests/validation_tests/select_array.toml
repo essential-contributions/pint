@@ -1,8 +1,0 @@
-[[data]]
-predicate_to_solve = { predicate = "::Test" }
-decision_variables = [
-  [5, 6], # ::d
-  [8, 9], # ::e
-  [5, 6], # ::f1
-  [8, 9], # ::f2
-]

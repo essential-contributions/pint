@@ -1,0 +1,25 @@
+{
+  "data": [
+    {
+      "predicate_to_solve": {
+        "contract": "BD758DB6C1E93CC538A2640DF59D70D95E866B63D5337A14B2FB927B7C0779A8",
+        "predicate": "AC708B6C86DA85DED5D066508FA2393711C764A322F3AC2D36B292443BD86EA6"
+      },
+      "decision_variables": [],
+      "state_mutations": [
+        {
+          "key": [0],
+          "value": [42]
+        },
+        {
+          "key": [1, 69],
+          "value": [98]
+        },
+        {
+          "key": [2, 1, 2, 3, 4],
+          "value": [44]
+        }
+      ]
+    }
+  ]
+}

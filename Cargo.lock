@@ -1892,10 +1892,10 @@ dependencies = [
  "essential-state-read-vm",
  "essential-types",
  "pintc",
+ "serde_json",
  "test-util",
  "thiserror",
  "tokio",
- "toml",
  "yansi",
 ]
 
