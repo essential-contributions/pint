@@ -131,12 +131,10 @@ impl Evaluator {
                     (Imm::Real(expr), UnaryOp::Neg) => Ok(Imm::Real(-expr)),
                     (Imm::Int(expr), UnaryOp::Neg) => Ok(Imm::Int(-expr)),
                     (Imm::Bool(expr), UnaryOp::Not) => Ok(Imm::Bool(!expr)),
-                    _ => Err(handler.emit_err(Error::Compile {
-                        error: CompileError::Internal {
-                            msg: "type error: invalid unary op for expression",
-                            span: empty_span(),
-                        },
-                    })),
+                    _ => Err(handler.emit_internal_err(
+                        "type error: invalid unary op for expression".to_string(),
+                        empty_span(),
+                    )),
                 }
             }
 
@@ -160,12 +158,10 @@ impl Evaluator {
                         BinOp::GreaterThan => Ok(Imm::Bool(lhs > rhs)),
                         BinOp::GreaterThanOrEqual => Ok(Imm::Bool(lhs >= rhs)),
 
-                        _ => Err(handler.emit_err(Error::Compile {
-                            error: CompileError::Internal {
-                                msg: "type error: invalid binary op for reals",
-                                span: empty_span(),
-                            },
-                        })),
+                        _ => Err(handler.emit_internal_err(
+                            "type error: invalid binary op for reals".to_string(),
+                            empty_span(),
+                        )),
                     },
 
                     (Imm::Int(lhs), Imm::Int(rhs)) => match op {
@@ -184,12 +180,10 @@ impl Evaluator {
                         BinOp::GreaterThan => Ok(Imm::Bool(lhs > rhs)),
                         BinOp::GreaterThanOrEqual => Ok(Imm::Bool(lhs >= rhs)),
 
-                        _ => Err(handler.emit_err(Error::Compile {
-                            error: CompileError::Internal {
-                                msg: "type error: invalid binary op for ints",
-                                span: empty_span(),
-                            },
-                        })),
+                        _ => Err(handler.emit_internal_err(
+                            "type error: invalid binary op for ints".to_string(),
+                            empty_span(),
+                        )),
                     },
 
                     (Imm::Bool(lhs), Imm::Bool(rhs)) => match op {
@@ -205,12 +199,10 @@ impl Evaluator {
                         BinOp::LogicalAnd => Ok(Imm::Bool(lhs && rhs)),
                         BinOp::LogicalOr => Ok(Imm::Bool(lhs || rhs)),
 
-                        _ => Err(handler.emit_err(Error::Compile {
-                            error: CompileError::Internal {
-                                msg: "type error: invalid binary op for bools",
-                                span: empty_span(),
-                            },
-                        })),
+                        _ => Err(handler.emit_internal_err(
+                            "type error: invalid binary op for bools".to_string(),
+                            empty_span(),
+                        )),
                     },
 
                     (Imm::B256(lhs), Imm::B256(rhs)) => match op {
@@ -218,21 +210,18 @@ impl Evaluator {
                         BinOp::Equal => Ok(Imm::Bool(lhs == rhs)),
                         BinOp::NotEqual => Ok(Imm::Bool(lhs != rhs)),
 
-                        _ => Err(handler.emit_err(Error::Compile {
-                            error: CompileError::Internal {
-                                msg: "type error: invalid binary op for B256",
-                                span: empty_span(),
-                            },
-                        })),
+                        _ => Err(handler.emit_internal_err(
+                            "type error: invalid binary op for B256".to_string(),
+                            empty_span(),
+                        )),
                     },
 
-                    _ => Err(handler.emit_err(Error::Compile {
-                        error: CompileError::Internal {
-                            msg: "compile-time evaluation binary op between some types \
-                              not currently supported",
-                            span: empty_span(),
-                        },
-                    })),
+                    _ => Err(handler.emit_internal_err(
+                        "compile-time evaluation binary op between some types \
+                              not currently supported"
+                            .to_string(),
+                        empty_span(),
+                    )),
                 }
             }
 
@@ -430,12 +419,10 @@ impl Evaluator {
                     .iter()
                     .find(|(_, union)| union.name.name == ty_path)
                     .ok_or_else(|| {
-                        handler.emit_err(Error::Compile {
-                            error: CompileError::Internal {
-                                msg: "Union decl for variant not found",
-                                span: path_span.clone(),
-                            },
-                        })
+                        handler.emit_internal_err(
+                            "Union decl for variant not found".to_string(),
+                            path_span.clone(),
+                        )
                     })?;
 
                 let union_ty = Type::Union {
@@ -449,12 +436,10 @@ impl Evaluator {
                     .enumerate()
                     .find_map(|(idx, variant_name)| (variant_name == path[2..]).then_some(idx))
                     .ok_or_else(|| {
-                        handler.emit_err(Error::Compile {
-                            error: CompileError::Internal {
-                                msg: "Union tag not found in union decl",
-                                span: empty_span(),
-                            },
-                        })
+                        handler.emit_internal_err(
+                            "Union tag not found in union decl".to_string(),
+                            empty_span(),
+                        )
                     })? as i64;
 
                 let value = value
@@ -477,13 +462,12 @@ impl Evaluator {
                     if let Imm::UnionVariant { tag_num, .. } = imm {
                         Ok(Imm::Int(tag_num))
                     } else {
-                        Err(handler.emit_err(Error::Compile {
-                            error: CompileError::Internal {
-                                msg: "unexpected expression during compile-time \
-                                    evaluation of union expr (tag)",
-                                span: span.clone(),
-                            },
-                        }))
+                        Err(handler.emit_internal_err(
+                            "unexpected expression during compile-time \
+                                    evaluation of union expr (tag)"
+                                .to_string(),
+                            span.clone(),
+                        ))
                     }
                 }),
 
@@ -499,13 +483,12 @@ impl Evaluator {
                     {
                         Ok(imm_val.as_ref().clone())
                     } else {
-                        Err(handler.emit_err(Error::Compile {
-                            error: CompileError::Internal {
-                                msg: "unexpected expression during compile-time \
-                                    evaluation of union expr (value)",
-                                span: span.clone(),
-                            },
-                        }))
+                        Err(handler.emit_internal_err(
+                            "unexpected expression during compile-time \
+                                    evaluation of union expr (value)"
+                                .to_string(),
+                            span.clone(),
+                        ))
                     }
                 }),
 
@@ -527,13 +510,12 @@ impl Evaluator {
                             Ok(Imm::Bool(ub >= value && lb <= value))
                         }
 
-                        _ => Err(handler.emit_err(Error::Compile {
-                            error: CompileError::Internal {
-                                msg: "unexpected expression during compile-time evaluation \
-                            evaluation of in expr with range",
-                                span: empty_span(),
-                            },
-                        })),
+                        _ => Err(handler.emit_internal_err(
+                            "unexpected expression during compile-time evaluation \
+                            evaluation of in expr with range"
+                                .to_string(),
+                            empty_span(),
+                        )),
                     }
                 } else {
                     let collection = self.evaluate_key(collection, handler, contract)?;
@@ -541,13 +523,12 @@ impl Evaluator {
                     match collection {
                         Imm::Array(collection) => Ok(Imm::Bool(collection.contains(&value))),
 
-                        _ => Err(handler.emit_err(Error::Compile {
-                            error: CompileError::Internal {
-                                msg: "unexpected expression during compile-time evaluation \
-                            evaluation of in expr",
-                                span: empty_span(),
-                            },
-                        })),
+                        _ => Err(handler.emit_internal_err(
+                            "unexpected expression during compile-time evaluation \
+                            evaluation of in expr"
+                                .to_string(),
+                            empty_span(),
+                        )),
                     }
                 }
             }
@@ -561,12 +542,10 @@ impl Evaluator {
             | Expr::ExternalPredicateCall { .. }
             | Expr::Range { .. }
             | Expr::Generator { .. }
-            | Expr::Match { .. } => Err(handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "unexpected expression during compile-time evaluation",
-                    span: empty_span(),
-                },
-            })),
+            | Expr::Match { .. } => Err(handler.emit_internal_err(
+                "unexpected expression during compile-time evaluation".to_string(),
+                empty_span(),
+            )),
         }
     }
 }

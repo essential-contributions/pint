@@ -33,12 +33,10 @@ pub(crate) fn lower_casts(handler: &Handler, contract: &mut Contract) -> Result<
             {
                 let from_ty = value.get_ty(contract);
                 if from_ty.is_unknown() {
-                    handler.emit_err(Error::Compile {
-                        error: CompileError::Internal {
-                            msg: "expression type is `Unknown` while lowering casts",
-                            span: span.clone(),
-                        },
-                    });
+                    handler.emit_internal_err(
+                        "expression type is `Unknown` while lowering casts".to_string(),
+                        span.clone(),
+                    );
                 }
 
                 // The type checker will have already rejected bad cast types.
@@ -207,12 +205,10 @@ pub(crate) fn lower_array_ranges(
                         let value =
                             evaluator.evaluate_key(&old_range_expr_key, handler, contract)?;
                         if !matches!(value, Immediate::Int(_) | Immediate::UnionVariant { .. }) {
-                            return Err(handler.emit_err(Error::Compile {
-                                error: CompileError::Internal {
-                                    msg: "array range expression evaluates to non int immediate",
-                                    span: contract.expr_key_to_span(old_range_expr_key),
-                                },
-                            }));
+                            return Err(handler.emit_internal_err(
+                                "array range expression evaluates to non int immediate".to_string(),
+                                contract.expr_key_to_span(old_range_expr_key),
+                            ));
                         }
 
                         // Create a new Primitive expr for the new range.
@@ -230,12 +226,10 @@ pub(crate) fn lower_array_ranges(
                 } else {
                     let value = evaluator.evaluate_key(&old_range_expr_key, handler, contract)?;
                     if !matches!(value, Immediate::Int(_) | Immediate::UnionVariant { .. }) {
-                        return Err(handler.emit_err(Error::Compile {
-                            error: CompileError::Internal {
-                                msg: "array range expression evaluates to non int immediate",
-                                span: contract.expr_key_to_span(old_range_expr_key),
-                            },
-                        }));
+                        return Err(handler.emit_internal_err(
+                            "array range expression evaluates to non int immediate".to_string(),
+                            contract.expr_key_to_span(old_range_expr_key),
+                        ));
                     }
 
                     // Create a new Primitive expr for the new range.
@@ -316,12 +310,10 @@ pub(crate) fn lower_imm_accesses(
             if let Some((array_key, array_idx_key)) = array_idx {
                 // We have an array access into an immediate.  Evaluate the index.
                 let Some(idx_expr) = array_idx_key.try_get(contract) else {
-                    return Err(handler.emit_err(Error::Compile {
-                        error: CompileError::Internal {
-                            msg: "missing array index expression in lower_imm_accesses()",
-                            span: empty_span(),
-                        },
-                    }));
+                    return Err(handler.emit_internal_err(
+                        "missing array index expression in lower_imm_accesses()".to_string(),
+                        empty_span(),
+                    ));
                 };
 
                 match evaluator.evaluate(idx_expr, handler, contract) {
@@ -477,12 +469,10 @@ pub(crate) fn lower_imm_accesses(
             }
 
             if loop_check > 10_000 {
-                return Err(handler.emit_err(Error::Compile {
-                    error: CompileError::Internal {
-                        msg: "infinite loop in lower_imm_accesses()",
-                        span: empty_span(),
-                    },
-                }));
+                return Err(handler.emit_internal_err(
+                    "infinite loop in lower_imm_accesses()".to_string(),
+                    empty_span(),
+                ));
             }
         }
     }
@@ -549,21 +539,17 @@ pub(crate) fn lower_ins(handler: &Handler, contract: &mut Contract) -> Result<()
                         }
 
                         _ => {
-                            handler.emit_err(Error::Compile {
-                                error: CompileError::Internal {
-                                    msg: "invalid collection (not range or array) in `in` expr",
-                                    span: span.clone(),
-                                },
-                            });
+                            handler.emit_internal_err(
+                                "invalid collection (not range or array) in `in` expr".to_string(),
+                                span.clone(),
+                            );
                         }
                     }
                 } else {
-                    handler.emit_err(Error::Compile {
-                        error: CompileError::Internal {
-                            msg: "missing collection in `in` expr",
-                            span: span.clone(),
-                        },
-                    });
+                    handler.emit_internal_err(
+                        "missing collection in `in` expr".to_string(),
+                        span.clone(),
+                    );
                 }
             }
         }
@@ -1210,12 +1196,10 @@ fn convert_match_to_if_decl(
                 union_ty
                     .get_union_variant_ty(contract, &name)
                     .map_err(|_| {
-                        handler.emit_err(Error::Compile {
-                            error: CompileError::Internal {
-                                msg: "match can't be converted to if -- missing union type",
-                                span: name_span.clone(),
-                            },
-                        });
+                        handler.emit_internal_err(
+                            "match can't be converted to if -- missing union type".to_string(),
+                            name_span.clone(),
+                        );
                         handler.cancel()
                     })
                     .and_then(|binding_ty| match (binding, binding_ty) {
@@ -1227,12 +1211,10 @@ fn convert_match_to_if_decl(
 
                         // There's a mismatch.
                         _ => {
-                            handler.emit_err(Error::Compile {
-                                error: CompileError::Internal {
-                                    msg: "match can't be converted to if -- bindings mismatch",
-                                    span: span.clone(),
-                                },
-                            });
+                            handler.emit_internal_err(
+                                "match can't be converted to if -- bindings mismatch".to_string(),
+                                span.clone(),
+                            );
                             Err(handler.cancel())
                         }
                     })
@@ -1490,12 +1472,10 @@ fn convert_match_expr(
         {
             // Replace the bound values within the constraint exprs, if there is a binding.
             let bound_ty = union_ty.get_union_variant_ty(contract, name).map_err(|_| {
-                handler.emit_err(Error::Compile {
-                    error: CompileError::Internal {
-                        msg: "match can't be converted to if -- missing union type",
-                        span: name_span.clone(),
-                    },
-                });
+                handler.emit_internal_err(
+                    "match can't be converted to if -- missing union type".to_string(),
+                    name_span.clone(),
+                );
                 handler.cancel()
             })?;
 
@@ -1662,12 +1642,10 @@ fn convert_match_expr(
         let else_expr = else_block.as_ref().map(|eb| Ok(eb.1)).unwrap_or_else(|| {
             // There are no then branches and no else branch which makes it impossible to create an
             // expression. (NOTE: Currently the parser makes this impossible.)
-            Err(handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "Unable to convert a completely empty match expression.",
-                    span: contract.expr_key_to_span(match_expr_key),
-                },
-            }))
+            Err(handler.emit_internal_err(
+                "Unable to convert a completely empty match expression.".to_string(),
+                contract.expr_key_to_span(match_expr_key),
+            ))
         })?;
 
         let false_imm_key = contract.exprs.insert(
@@ -1705,12 +1683,10 @@ fn build_compare_tag_expr(
         .get_ty(contract)
         .get_union_variant_as_num(contract, tag)
         .ok_or_else(|| {
-            handler.emit_err(Error::Compile {
-                error: CompileError::Internal {
-                    msg: "Union tag not found in union decl",
-                    span: contract.expr_key_to_span(union_expr),
-                },
-            })
+            handler.emit_internal_err(
+                "Union tag not found in union decl".to_string(),
+                contract.expr_key_to_span(union_expr),
+            )
         })?;
 
     let get_tag_expr = contract.exprs.insert(

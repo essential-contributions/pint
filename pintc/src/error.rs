@@ -3,7 +3,7 @@ mod handler;
 mod lex_error;
 mod parse_error;
 
-use crate::span::{Span, Spanned};
+use crate::span::{empty_span, Span, Spanned};
 use ariadne::{FnCache, Label, Report, ReportKind, Source};
 use std::fmt::{Display, Formatter, Result, Write};
 use thiserror::Error;
@@ -37,6 +37,8 @@ pub enum Error {
         macro_name: String,
         macro_span: Span,
     },
+    #[error("compiler internal error: {msg}")]
+    Internal { msg: String, span: Span },
 }
 
 #[derive(Debug)]
@@ -183,6 +185,17 @@ impl ReportableError for Error {
                 });
                 labels
             }
+            Internal { msg, span } => {
+                if span == &empty_span() {
+                    Vec::new()
+                } else {
+                    vec![ErrorLabel {
+                        message: msg.to_string(),
+                        span: span.clone(),
+                        color: Color::Red,
+                    }]
+                }
+            }
         }
     }
 
@@ -193,6 +206,7 @@ impl ReportableError for Error {
             Parse { error } => error.note(),
             Compile { error } => error.note(),
             MacroBodyWrapper { child, .. } => child.note(),
+            Internal { .. } => None,
         }
     }
 
@@ -203,6 +217,7 @@ impl ReportableError for Error {
             Parse { error } => error.code().map(|code| format!("P{code}")),
             Compile { error } => error.code().map(|code| format!("C{code}")),
             MacroBodyWrapper { child, .. } => child.code(),
+            Internal { .. } => None,
         }
     }
 
@@ -213,6 +228,7 @@ impl ReportableError for Error {
             Parse { error } => error.help(),
             Compile { error } => error.help(),
             MacroBodyWrapper { child, .. } => child.help(),
+            Internal { .. } => None,
         }
     }
 }
@@ -225,6 +241,7 @@ impl Spanned for Error {
             Parse { error } => error.span(),
             Compile { error } => error.span(),
             MacroBodyWrapper { child, .. } => child.span(),
+            Internal { span, .. } => span,
         }
     }
 }

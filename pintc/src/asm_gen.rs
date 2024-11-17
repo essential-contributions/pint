@@ -1,5 +1,5 @@
 use crate::{
-    error::{CompileError, Error, ErrorEmitted, Handler},
+    error::{ErrorEmitted, Handler},
     expr::{Expr, ExternalIntrinsic, Immediate, IntrinsicKind},
     predicate::{ConstraintDecl, Contract, Predicate},
     span::empty_span,
@@ -76,12 +76,10 @@ pub fn compile_contract(
     // Predicates should be sorted topologically based on the dependency graph. That way, predicate
     // addresses that are required by other predicates are known in time.
     let Ok(sorted_nodes) = petgraph::algo::toposort(&dep_graph, None) else {
-        return Err(handler.emit_err(Error::Compile {
-            error: CompileError::Internal {
-                msg: "dependency cycles between predicates should have been caught before",
-                span: empty_span(),
-            },
-        }));
+        return Err(handler.emit_internal_err(
+            "dependency cycles between predicates should have been caught before".to_string(),
+            empty_span(),
+        ));
     };
 
     // This map keeps track of the compiled predicates and their addresses. We will use this later
@@ -116,12 +114,10 @@ pub fn compile_contract(
                 .remove(&pred.name)
                 .map(|(compiled_predicate, _)| (pred.name.clone(), compiled_predicate))
                 .ok_or_else(|| {
-                    handler.emit_err(Error::Compile {
-                        error: CompileError::Internal {
-                            msg: "predicate must exist in the compiled_predicates map",
-                            span: empty_span(),
-                        },
-                    })
+                    handler.emit_internal_err(
+                        "predicate must exist in the compiled_predicates map".to_string(),
+                        empty_span(),
+                    )
                 })
         })
         .collect::<Result<_, _>>()?;

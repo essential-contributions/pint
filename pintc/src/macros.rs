@@ -176,12 +176,10 @@ pub(crate) fn splice_args(
                     });
                 }
             } else {
-                handler.emit_err(Error::Compile {
-                    error: CompileError::Internal {
-                        msg: "type is array but failed to get range expr.",
-                        span: Span::new(call.span.context(), range),
-                    },
-                });
+                handler.emit_internal_err(
+                    "type is array but failed to get range expr.".to_string(),
+                    Span::new(call.span.context(), range),
+                );
             }
         } else {
             handler.emit_err(Error::Compile {

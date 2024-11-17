@@ -1,4 +1,4 @@
-use crate::{error::Error, warning::Warning};
+use crate::{error::Error, span::Span, warning::Warning};
 use core::cell::RefCell;
 
 /// A handler with which you can emit diagnostics.
@@ -23,6 +23,10 @@ impl Handler {
     pub fn emit_err(&self, err: Error) -> ErrorEmitted {
         self.inner.borrow_mut().errors.push(err);
         ErrorEmitted { _priv: () }
+    }
+
+    pub fn emit_internal_err(&self, msg: String, span: Span) -> ErrorEmitted {
+        self.emit_err(Error::Internal { msg, span })
     }
 
     /// Emit the warning `warn`.

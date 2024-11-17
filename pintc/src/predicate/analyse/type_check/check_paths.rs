@@ -22,12 +22,10 @@ impl Contract {
             if !decl_ty.is_unknown() {
                 Inference::Type(decl_ty.clone())
             } else {
-                handler.emit_err(Error::Compile {
-                    error: CompileError::Internal {
-                        msg: "const decl has unknown type *after* evaluation",
-                        span: span.clone(),
-                    },
-                });
+                handler.emit_internal_err(
+                    "const decl has unknown type *after* evaluation".to_string(),
+                    span.clone(),
+                );
                 Inference::Type(Type::Error(span.clone()))
             }
         } else if let Some(ty) = self
@@ -92,12 +90,10 @@ impl Contract {
                         Inference::Type(Type::Error(span.clone()))
                     }
                 } else {
-                    handler.emit_err(Error::Compile {
-                        error: CompileError::Internal {
-                            msg: "attempting to infer item without required predicate ref",
-                            span: span.clone(),
-                        },
-                    });
+                    handler.emit_internal_err(
+                        "attempting to infer item without required predicate ref".to_string(),
+                        span.clone(),
+                    );
                     Inference::Type(Type::Error(span.clone()))
                 }
             }
