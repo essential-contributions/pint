@@ -1,7 +1,0 @@
-[[data]]
-predicate_to_solve = { predicate = "::Simple" }
-state_mutations = [
-  { key = [0], value = [42] },             # storage::supply
-  { key = [1, 69], value = [98] },         # storage::map1[69]
-  { key = [2, 1, 2, 3, 4], value = [44] }, # storage::map2[0x0000000000000001000000000000000200000000000000030000000000000004]
-]

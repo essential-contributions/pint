@@ -1,13 +1,8 @@
 mod utils;
 
-use anyhow::anyhow;
-use essential_state_read_vm::types::{
-    solution::{Mutation, Solution, SolutionData},
-    ContentAddress, PredicateAddress,
-};
+use essential_state_read_vm::types::{solution::Solution, ContentAddress};
 use pintc::predicate::CompileOptions;
 use std::{
-    collections::HashMap,
     fs::{read_dir, File},
     io::{BufRead, BufReader},
     path::PathBuf,
@@ -94,11 +89,33 @@ async fn validation_e2e() -> anyhow::Result<()> {
             &compiled_contract.salt,
         );
 
-        let solution = parse_solution(
-            &path.with_extension("toml"),
-            &compiled_contract,
-            &contract_addr,
-        )?;
+        // Prase the solution JSON
+        let solution_file_name = path.with_extension("solution.json");
+        let Ok(solution_str_from_file) = std::fs::read_to_string(solution_file_name.clone()) else {
+            anyhow::bail!(
+                "test {} is missing a `*.solution.json` file",
+                entry.path().display(),
+            )
+        };
+
+        let Ok(solution) = serde_json::from_str::<Solution>(&solution_str_from_file) else {
+            anyhow::bail!(
+                "solution file {} file is not valid JSON",
+                solution_file_name.display()
+            )
+        };
+
+        // Make sure that the solution solves at least one predicate in the test.
+        if solution
+            .data
+            .iter()
+            .all(|data| data.predicate_to_solve.contract != contract_addr)
+        {
+            anyhow::bail!(
+                "solution for test {} does not solve any predicates in the test!",
+                entry.path().display()
+            )
+        }
 
         // Predicates to check are the ones that belong to our main contract
         let predicates_to_check = solution
@@ -164,127 +181,6 @@ async fn validation_e2e() -> anyhow::Result<()> {
     }
 
     Ok(())
-}
-
-/// Parse a `toml` file into a `Solution`
-fn parse_solution(
-    path: &std::path::Path,
-    compiled_contract: &pintc::asm_gen::CompiledContract,
-    contract_addr: &ContentAddress,
-) -> anyhow::Result<Solution> {
-    let toml_content_str = std::fs::read_to_string(path)?;
-    let toml_content = toml_content_str.parse::<toml::Value>()?;
-
-    let names_to_predicates = compiled_contract
-        .names
-        .iter()
-        .zip(compiled_contract.predicates.iter())
-        .map(|(name, predicate)| (name.clone(), predicate))
-        .collect::<HashMap<_, _>>();
-
-    let data = match toml_content.get("data") {
-        Some(data) => data
-            .as_array()
-            .unwrap_or(&Vec::new())
-            .iter()
-            .map(|e| {
-                // Decision variables are in a list of integers
-                let decision_variables = e
-                    .get("decision_variables")
-                    .and_then(|dv| dv.as_array())
-                    .unwrap_or(&Vec::new())
-                    .iter()
-                    .map(|d| {
-                        d.as_array()
-                            .unwrap_or(&Vec::new())
-                            .iter()
-                            .map(|d| {
-                                d.as_integer().ok_or_else(|| {
-                                    anyhow!("Invalid integer value in list of decision variables")
-                                })
-                            })
-                            .collect::<anyhow::Result<Vec<_>, _>>()
-                    })
-                    .collect::<anyhow::Result<Vec<_>, _>>()?;
-
-                let predicate_to_solve = match e.get("predicate_to_solve") {
-                    Some(s) => PredicateAddress {
-                        contract: {
-                            if let Some(contract) = s.get("set") {
-                                ContentAddress(hex_to_bytes(contract.as_str().ok_or_else(
-                                    || anyhow!("Invalid persistent predicate_to_solve set"),
-                                )?))
-                            } else {
-                                contract_addr.clone()
-                            }
-                        },
-                        predicate: match s.get("predicate") {
-                            // Here, we convert the predicate name into an address that is equal to
-                            // the index of the predicate in the contract. This just a way to later
-                            // figure out what constraints we have to check.
-                            Some(predicate) => {
-                                if let Some(predicate) =
-                                    names_to_predicates.get(predicate.as_str().unwrap())
-                                {
-                                    essential_hash::content_addr(*predicate)
-                                } else {
-                                    ContentAddress(hex_to_bytes(predicate.as_str().ok_or_else(
-                                        || anyhow!("Invalid persistent predicate_to_solve set"),
-                                    )?))
-                                }
-                            }
-                            None => {
-                                return Err(anyhow!("Invalid persistent predicate_to_solve set"))
-                            }
-                        },
-                    },
-                    None => return Err(anyhow!("'predicate_to_solve' field is missing")),
-                };
-
-                let state_mutations = e
-                    .get("state_mutations")
-                    .and_then(|muta| muta.as_array())
-                    .unwrap_or(&Vec::new())
-                    .iter()
-                    .map(|mutation| {
-                        Ok(Mutation {
-                            key: mutation
-                                .get("key")
-                                .and_then(|word| word.as_array())
-                                .unwrap_or(&Vec::new())
-                                .iter()
-                                .map(|d| {
-                                    d.as_integer().ok_or_else(|| {
-                                        anyhow!("Invalid integer value in state mutation key")
-                                    })
-                                })
-                                .collect::<anyhow::Result<Vec<_>, _>>()?,
-                            value: mutation
-                                .get("value")
-                                .and_then(|word| word.as_array())
-                                .unwrap_or(&Vec::new())
-                                .iter()
-                                .map(|d| {
-                                    d.as_integer().ok_or_else(|| {
-                                        anyhow!("Invalid integer value in state mutation word")
-                                    })
-                                })
-                                .collect::<anyhow::Result<Vec<_>, _>>()?,
-                        })
-                    })
-                    .collect::<anyhow::Result<Vec<_>>>()?;
-
-                Ok(SolutionData {
-                    predicate_to_solve,
-                    decision_variables,
-                    state_mutations,
-                })
-            })
-            .collect::<anyhow::Result<Vec<_>>>()?,
-        None => Vec::new(),
-    };
-
-    Ok(Solution { data })
 }
 
 fn parse_db_section(

@@ -1,1 +1,5 @@
+# Ignore all JSON files
 *.json
+
+# Exclude solution.json files from being ignored
+!*.solution.json

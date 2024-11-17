@@ -17,10 +17,10 @@ essential-state-read-vm = { workspace = true }
 essential-types = { workspace = true }
 #pint-solve = { path = "../pint-solve", default-features = false }
 pintc = { workspace = true }
+serde_json = { workspace = true }
 test-util = { path = "../test-util" }
 thiserror = "1"
 tokio = { workspace = true }
-toml = "0.8"
 yansi = { workspace = true }
 
 # Disable for now since we can't handle non-scalarized arrays and tuples yet

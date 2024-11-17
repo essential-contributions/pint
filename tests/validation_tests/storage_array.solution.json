@@ -1,0 +1,134 @@
+{
+  "data": [
+    {
+      "predicate_to_solve": {
+        "contract": "7771F3867BB16A751DB270CB21207AAC0ACDB27ABEBE54F585C58F6559D28777",
+        "predicate": "50CF7B1E4E222C037872A66241C834A91EEFA89972B5318F417AA526C8C1D754"
+      },
+      "decision_variables": [],
+      "state_mutations": [
+        {
+          "key": [0, 0],
+          "value": [2]
+        },
+        {
+          "key": [0, 1],
+          "value": [3]
+        },
+        {
+          "key": [1, 0],
+          "value": [1, 1, 1, 1]
+        },
+        {
+          "key": [1, 1],
+          "value": [2, 2, 2, 2]
+        },
+        {
+          "key": [1, 2],
+          "value": [3, 3, 3, 3]
+        },
+        {
+          "key": [2, 0],
+          "value": [42]
+        },
+        {
+          "key": [2, 1],
+          "value": [43]
+        },
+        {
+          "key": [2, 2],
+          "value": [44]
+        },
+        {
+          "key": [2, 3],
+          "value": [52]
+        },
+        {
+          "key": [2, 4],
+          "value": [53]
+        },
+        {
+          "key": [2, 5],
+          "value": [54]
+        },
+        {
+          "key": [3, 69, 0],
+          "value": [99]
+        },
+        {
+          "key": [3, 69, 1],
+          "value": [100]
+        },
+        {
+          "key": [3, 69, 2],
+          "value": [101]
+        }
+      ]
+    },
+    {
+      "predicate_to_solve": {
+        "contract": "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE",
+        "predicate": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "decision_variables": [],
+      "state_mutations": [
+        {
+          "key": [0, 0],
+          "value": [12]
+        },
+        {
+          "key": [0, 1],
+          "value": [13]
+        },
+        {
+          "key": [1, 0],
+          "value": [11, 11, 11, 11]
+        },
+        {
+          "key": [1, 1],
+          "value": [12, 12, 12, 12]
+        },
+        {
+          "key": [1, 2],
+          "value": [13, 13, 13, 13]
+        },
+        {
+          "key": [2, 0],
+          "value": [142]
+        },
+        {
+          "key": [2, 1],
+          "value": [143]
+        },
+        {
+          "key": [2, 2],
+          "value": [144]
+        },
+        {
+          "key": [2, 3],
+          "value": [152]
+        },
+        {
+          "key": [2, 4],
+          "value": [153]
+        },
+        {
+          "key": [2, 5],
+          "value": [154]
+        },
+        {
+          "key": [3, 69, 0],
+          "value": [199]
+        },
+        {
+          "key": [3, 69, 1],
+          "value": [1100]
+        },
+        {
+          "key": [3, 69, 2],
+          "value": [1101]
+        }
+      ]
+    }
+  ]
+}

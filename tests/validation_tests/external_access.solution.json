@@ -1,0 +1,41 @@
+{
+  "data": [
+    {
+      "predicate_to_solve": {
+        "contract": "6A315BA10D30B972A3DBF09A6573B1A8A42A404D3866AEC2E61E5C00E586FD62",
+        "predicate": "6E7970211D13A13763A00A7A24054623E5E0118D7B8517915509DEC333E01A42"
+      },
+      "decision_variables": [],
+      "state_mutations": []
+    },
+    {
+      "predicate_to_solve": {
+        "contract": "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE",
+        "predicate": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "decision_variables": [],
+      "state_mutations": [
+        {
+          "key": [0],
+          "value": [17, 17, 17, 17]
+        },
+        {
+          "key": [1],
+          "value": [34, 51, 68, 85]
+        },
+        {
+          "key": [2, 69],
+          "value": [153, 153, 153, 153]
+        },
+        {
+          "key": [3, 9, 1, 2, 3, 4],
+          "value": [43]
+        },
+        {
+          "key": [4, 88, 8, 7, 6, 5, 999],
+          "value": [255, 255, 255, 255]
+        }
+      ]
+    }
+  ]
+}

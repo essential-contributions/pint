@@ -1,0 +1,77 @@
+{
+  "data": [
+    {
+      "predicate_to_solve": {
+        "contract": "8C8829BE91106FE40361A2B3BF1BA27E21F18AD4D41C4505C30CC8FEF2D11052",
+        "predicate": "E6F4B3383343403AE63A6E2E22AF2F2F5ED3728B80AEE5AA76C043638082DF21"
+      },
+      "decision_variables": [],
+      "state_mutations": [
+        {
+          "key": [0],
+          "value": [42]
+        },
+        {
+          "key": [1],
+          "value": [98]
+        },
+        {
+          "key": [2],
+          "value": [44]
+        },
+        {
+          "key": [3],
+          "value": []
+        },
+        {
+          "key": [4, 0],
+          "value": [4, 5, 6, 7]
+        },
+        {
+          "key": [4, 1],
+          "value": [8]
+        },
+        {
+          "key": [5, 0],
+          "value": [0]
+        },
+        {
+          "key": [5, 1],
+          "value": [1]
+        },
+        {
+          "key": [5, 2],
+          "value": [2]
+        },
+        {
+          "key": [5, 3],
+          "value": [3]
+        },
+        {
+          "key": [5, 4],
+          "value": [4]
+        },
+        {
+          "key": [5, 5],
+          "value": [0]
+        },
+        {
+          "key": [6, 0],
+          "value": []
+        },
+        {
+          "key": [6, 1],
+          "value": []
+        },
+        {
+          "key": [6, 2],
+          "value": []
+        },
+        {
+          "key": [6, 3],
+          "value": []
+        }
+      ]
+    }
+  ]
+}
