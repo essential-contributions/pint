@@ -1569,18 +1569,32 @@ impl Contract {
         value: Option<ExprKey>,
         span: &Span,
     ) -> Inference {
-        // Re-split the path into pre :: union_name :: variant_name.  This is a bit
+        // Re-split the path into pre :: union_or_alias_name :: variant_name.  This is a bit
         // unfortunate, and perhaps we need to revisit how we do paths and idents.
         if let Some(sep_idx) = name.rfind("::") {
-            let union_name = &name[0..sep_idx];
+            let union_or_alias_name = &name[0..sep_idx];
+
+            // Try to find the union directly using the name. Otherwise, try to find an alias to a
+            // union.
+            let union_decl = self
+                .unions
+                .iter()
+                .find_map(|(k, ud)| (ud.name.name == union_or_alias_name).then(|| (k, ud.clone())))
+                .or_else(|| {
+                    self.new_types.iter().find_map(|alias| {
+                        if let Type::Union { decl, .. } = &alias.ty {
+                            (union_or_alias_name == alias.name.name)
+                                .then(|| (*decl, self.unions[*decl].clone()))
+                        } else {
+                            None
+                        }
+                    })
+                });
+
             let variant_name = &name[(sep_idx + 2)..];
 
             // Find the union.
-            if let Some((decl, union_decl)) = self
-                .unions
-                .iter()
-                .find(|(_, ud)| ud.name.name == union_name)
-            {
+            if let Some((decl, union_decl)) = union_decl {
                 // Find the variant.
                 if let Some(opt_var_ty) = union_decl.variants.iter().find_map(
                     |UnionVariant {

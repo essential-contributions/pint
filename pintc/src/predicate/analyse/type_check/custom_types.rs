@@ -18,8 +18,6 @@ impl Contract {
         self.lower_nested_newtypes(handler)?;
         self.lower_custom_types_in_contract();
 
-        //self.lower_custom_types_in_newtypes(handler)?;
-
         Ok(())
     }
 

@@ -1717,9 +1717,10 @@ fn build_compare_tag_expr(
 }
 
 pub(super) fn lower_union_variant_paths(contract: &mut Contract) {
-    // TODO: we really need to split the prefix and suffix of path expressions up.
-    fn get_path_parts<'a>(contract: &'a Contract, path: &'a str) -> Option<(&'a str, &'a str)> {
-        path.rfind("::").map(|sep_idx| {
+    // Converts a path to a union path, if possible. The path may stay the same or may be resolved
+    // if an alias to the union is used in the original path.
+    fn resolve_path(contract: &Contract, path: &str, expr_key: ExprKey) -> Option<String> {
+        let path_parts = path.rfind("::").map(|sep_idx| {
             let prefix = &path[0..sep_idx];
             let suffix = &path[(sep_idx + 2)..];
 
@@ -1739,49 +1740,56 @@ pub(super) fn lower_union_variant_paths(contract: &mut Contract) {
                 // Not an alias, ditto.
                 (prefix, suffix)
             }
-        })
+        });
+
+        if let Some((path_prefix, path_suffix)) = path_parts {
+            // We have *some* path expression whose type is a union.  Could be a variable
+            // or constant, could be a path to the union (maybe?) or to a non-value
+            // variant.
+            if let Some(union_name) = expr_key.get_ty(contract).get_union_name(contract) {
+                if path_prefix == union_name {
+                    // The name of the union matches the path prefix.  We'll assume the
+                    // suffix matches a variant..?  It really shouldn't type-check if not.
+                    return Some(path_prefix.to_string() + "::" + path_suffix);
+                }
+            }
+        }
+        None
     }
 
-    let mut replacements: Vec<(PredKey, ExprKey, Type, String, Span)> = Vec::default();
-
+    let mut replacements: Vec<(PredKey, ExprKey, String, Option<ExprKey>, Span)> = Vec::default();
     for pred_key in contract.preds.keys() {
         for expr_key in contract.exprs(pred_key) {
-            if let Expr::Path(path, span) = expr_key.get(contract) {
-                let expr_ty = expr_key.get_ty(contract);
-                if expr_ty.is_union() {
-                    if let Some((path_prefix, path_suffix)) = get_path_parts(contract, path) {
-                        // We have *some* path expression whose type is a union.  Could be a variable
-                        // or constant, could be a path to the union (maybe?) or to a non-value
-                        // variant.
-                        if let Some(union_name) = expr_ty.get_union_name(contract) {
-                            if path_prefix == union_name {
-                                // The name of the union matches the path prefix.  We'll assume the
-                                // suffix matches a variant..?  It really shouldn't type-check if not.
-                                replacements.push((
-                                    pred_key,
-                                    expr_key,
-                                    expr_ty.clone(),
-                                    path_prefix.to_string() + "::" + path_suffix,
-                                    span.clone(),
-                                ));
-                            }
-                        }
+            match expr_key.get(contract) {
+                Expr::Path(path, span) if expr_key.get_ty(contract).is_union() => {
+                    if let Some(resolved) = resolve_path(contract, path, expr_key) {
+                        replacements.push((pred_key, expr_key, resolved, None, span.clone()));
                     }
                 }
+
+                Expr::UnionVariant {
+                    path, value, span, ..
+                } => {
+                    if let Some(resolved) = resolve_path(contract, path, expr_key) {
+                        replacements.push((pred_key, expr_key, resolved, *value, span.clone()));
+                    }
+                }
+
+                _ => {}
             }
         }
     }
 
     // For every found union variant path, replace it with an equivalent union variant expression.
-    for (pred_key, old_expr_key, union_ty, path, span) in replacements {
+    for (pred_key, old_expr_key, path, value, span) in replacements {
         let new_expr_key = contract.exprs.insert(
             Expr::UnionVariant {
                 path,
                 path_span: span.clone(),
-                value: None,
+                value,
                 span,
             },
-            union_ty,
+            old_expr_key.get_ty(contract).clone(),
         );
 
         contract.replace_exprs(Some(pred_key), old_expr_key, new_expr_key);
