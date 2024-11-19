@@ -1,13 +1,14 @@
 use crate::{
-    error::{ErrorEmitted, Handler},
+    error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{Expr, ExternalIntrinsic, Immediate, IntrinsicKind},
     predicate::{ConstraintDecl, Contract, Predicate},
     span::empty_span,
 };
 use asm_builder::AsmBuilder;
 use essential_types::{predicate::Predicate as CompiledPredicate, ContentAddress};
+use fxhash::FxHashMap;
+use fxhash::FxHashSet;
 use petgraph::{graph::NodeIndex, Graph};
-use std::collections::HashMap;
 
 mod asm_builder;
 mod display;
@@ -33,11 +34,11 @@ pub fn compile_contract(
 
     // This map keeps track of what node indices (in the dependency graph) are assigned to what
     // predicates (identified by names)
-    let mut names_to_indices = HashMap::<String, NodeIndex>::new();
+    let mut names_to_indices = FxHashMap::<String, NodeIndex>::default();
 
     // This is a map between node indices in the dependency graph and references to the
     // corresponding predicates.
-    let mut indices_to_predicates = HashMap::<NodeIndex, &Predicate>::new();
+    let mut indices_to_predicates = FxHashMap::<NodeIndex, &Predicate>::default();
 
     for (_, pred) in contract.preds.iter() {
         let new_node = dep_graph.add_node(pred.name.clone());
@@ -85,8 +86,8 @@ pub fn compile_contract(
     // This map keeps track of the compiled predicates and their addresses. We will use this later
     // when producing the final compiled contract. It is also useful when compiling predicates that
     // require the addresses of other predicates.
-    let mut compiled_predicates: HashMap<String, (CompiledPredicate, ContentAddress)> =
-        HashMap::new();
+    let mut compiled_predicates: FxHashMap<String, (CompiledPredicate, ContentAddress)> =
+        FxHashMap::default();
 
     // Now compile all predicates in topological order
     for idx in &sorted_nodes {
@@ -100,6 +101,36 @@ pub fn compile_contract(
                 predicate.name.clone(),
                 (compiled_predicate, compiled_predicate_address),
             );
+        }
+    }
+
+    // check for duplicate predicates
+    // let mut duplicate_addresses: Vec<Vec<&ContentAddress>> = vec![];
+    // let mut duplicate_preds: Vec<Vec<String>> = vec![];
+    let mut unique_addresses: FxHashSet<&ContentAddress> = FxHashSet::default();
+    let mut unique_names: FxHashMap<&ContentAddress, &String> = FxHashMap::default();
+    let duplicated_preds: Vec<FxHashSet<String>> = vec![];
+    for (string, (compiled_pred, content_address)) in &compiled_predicates {
+        // TODO-ian: find a way to keep track of span
+
+        // if needed, can rely on order because compiled_predicates is a FxHashMap
+
+        if !unique_addresses.insert(content_address) {
+            println!("string: {}", string);
+            println!("duped address found");
+
+            // get the name for the original, unduped address
+            let original_name = unique_names.get(content_address).unwrap();
+
+            handler.emit_err(Error::Compile {
+                error: CompileError::IdenticalPredicates {
+                    original_name: original_name.to_string(),
+                    duplicate_name: string.to_string(),
+                    span: empty_span(),
+                },
+            });
+        } else {
+            unique_names.insert(content_address, string);
         }
     }
 
@@ -138,7 +169,7 @@ pub fn compile_contract(
 pub fn compile_predicate(
     handler: &Handler,
     contract: &Contract,
-    compiled_predicates: &HashMap<String, (CompiledPredicate, ContentAddress)>,
+    compiled_predicates: &FxHashMap<String, (CompiledPredicate, ContentAddress)>,
     pred: &Predicate,
 ) -> Result<CompiledPredicate, ErrorEmitted> {
     let mut builder = AsmBuilder::new(compiled_predicates);

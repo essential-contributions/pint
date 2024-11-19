@@ -372,6 +372,12 @@ pub enum CompileError {
     },
     #[error("invalid position for accessing storage")]
     InvalidStorageAccess { span: Span },
+    #[error("Identical predicates found in the same contract")]
+    IdenticalPredicates {
+        original_name: String,
+        duplicate_name: String,
+        span: Span,
+    },
 }
 
 // This is here purely at the suggestion of Clippy, who pointed out that these error variants are
@@ -1229,6 +1235,12 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
+            IdenticalPredicates { original_name, duplicate_name, span } => vec![ErrorLabel {
+                message: format!("predicates `{original_name}` and `{duplicate_name}` have identical constraints"),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
             FileIO { .. } => Vec::new(),
         }
     }
@@ -1352,6 +1364,11 @@ impl ReportableError for CompileError {
 
             InvalidStorageAccess { .. } => Some(
                 "storage can only be accessed in the initializer of a `let` declaration"
+                    .to_string(),
+            ),
+
+            IdenticalPredicates { .. } => Some(
+                "contract cannot compile unless each predicate has a unique overall set of constraints, even if individual constraints within the set are not unique"
                     .to_string(),
             ),
 
@@ -1640,7 +1657,8 @@ impl Spanned for CompileError {
             | MissingUnionExprValue { span, .. }
             | UnionVariantTypeMismatch { span, .. }
             | OperatorInvalidType { span, .. }
-            | InvalidStorageAccess { span, .. } => span,
+            | InvalidStorageAccess { span, .. }
+            | IdenticalPredicates { span, .. } => span,
 
             DependencyCycle { spans } => &spans[0],
 
