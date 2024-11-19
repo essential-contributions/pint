@@ -105,22 +105,14 @@ pub fn compile_contract(
     }
 
     // check for duplicate predicates
-    // let mut duplicate_addresses: Vec<Vec<&ContentAddress>> = vec![];
-    // let mut duplicate_preds: Vec<Vec<String>> = vec![];
     let mut unique_addresses: FxHashSet<&ContentAddress> = FxHashSet::default();
-    let mut unique_names: FxHashMap<&ContentAddress, &String> = FxHashMap::default();
-    let duplicated_preds: Vec<FxHashSet<String>> = vec![];
-    for (string, (compiled_pred, content_address)) in &compiled_predicates {
+    let mut original_predicate_names: FxHashMap<&ContentAddress, &String> = FxHashMap::default();
+    for (string, (_, content_address)) in &compiled_predicates {
         // TODO-ian: find a way to keep track of span
-
         // if needed, can rely on order because compiled_predicates is a FxHashMap
 
         if !unique_addresses.insert(content_address) {
-            println!("string: {}", string);
-            println!("duped address found");
-
-            // get the name for the original, unduped address
-            let original_name = unique_names.get(content_address).unwrap();
+            let original_name = original_predicate_names.get(content_address).unwrap();
 
             handler.emit_err(Error::Compile {
                 error: CompileError::IdenticalPredicates {
@@ -130,7 +122,7 @@ pub fn compile_contract(
                 },
             });
         } else {
-            unique_names.insert(content_address, string);
+            original_predicate_names.insert(content_address, string);
         }
     }
 
