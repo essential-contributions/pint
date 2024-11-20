@@ -11,13 +11,15 @@ fn check_order() {
             "{}",
             compile(
                 r#"
-            predicate A() {
-                constraint B@[]();
-                constraint C@[]();
+            predicate A(x: int) {
+                constraint B@[](x);
+                constraint C@[](x);
             }
-            predicate B() {
+            predicate B(x: int) {
+                constraint x == 1;
             }
-            predicate C() {
+            predicate C(x: int) {
+                constraint x == 2;
             }
             "#,
             )
@@ -26,21 +28,31 @@ fn check_order() {
             predicate ::A {
                 --- Constraints ---
                 constraint 0
+                  Stack(Push(1))
+                  Stack(Push(0))
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Access(DecisionVar)
                   Access(ThisContractAddress)
-                  Stack(Push(-5015437933321959706))
-                  Stack(Push(-4022861202447085451))
-                  Stack(Push(-8440564760172310971))
-                  Stack(Push(-2049596813535960749))
-                  Stack(Push(64))
+                  Stack(Push(-7172445384416157795))
+                  Stack(Push(8030251082724392970))
+                  Stack(Push(-5296280123301877640))
+                  Stack(Push(6993252154795660112))
+                  Stack(Push(80))
                   Crypto(Sha256)
                   Access(PredicateExists)
                 constraint 1
+                  Stack(Push(1))
+                  Stack(Push(0))
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Access(DecisionVar)
                   Access(ThisContractAddress)
-                  Stack(Push(-5015437933321959706))
-                  Stack(Push(-4022861202447085451))
-                  Stack(Push(-8440564760172310971))
-                  Stack(Push(-2049596813535960749))
-                  Stack(Push(64))
+                  Stack(Push(-3487102877995749633))
+                  Stack(Push(2456710878984127610))
+                  Stack(Push(-4612594924742728332))
+                  Stack(Push(6890225921685255628))
+                  Stack(Push(80))
                   Crypto(Sha256)
                   Access(PredicateExists)
                 constraint 2
@@ -53,6 +65,13 @@ fn check_order() {
             predicate ::B {
                 --- Constraints ---
                 constraint 0
+                  Stack(Push(0))
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Access(DecisionVar)
+                  Stack(Push(1))
+                  Pred(Eq)
+                constraint 1
                   Access(MutKeys)
                   Stack(Push(0))
                   Pred(EqSet)
@@ -62,6 +81,13 @@ fn check_order() {
             predicate ::C {
                 --- Constraints ---
                 constraint 0
+                  Stack(Push(0))
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Access(DecisionVar)
+                  Stack(Push(2))
+                  Pred(Eq)
+                constraint 1
                   Access(MutKeys)
                   Stack(Push(0))
                   Pred(EqSet)

@@ -108,17 +108,20 @@ pub fn compile_contract(
     let mut unique_addresses: FxHashSet<&ContentAddress> = FxHashSet::default();
     let mut original_predicate_names: FxHashMap<&ContentAddress, &String> = FxHashMap::default();
     for (string, (_, content_address)) in &compiled_predicates {
-        // TODO-ian: find a way to keep track of span
-        // if needed, can rely on order because compiled_predicates is a FxHashMap
-
         if !unique_addresses.insert(content_address) {
-            let original_name = original_predicate_names.get(content_address).unwrap();
-
-            // Try something like contract.symbols.symbols[&pred.name]... the contract object
-            //  has a list of symbols which maps symbols (including predicate names) to their spans.
-
-            let original_span = contract.symbols.symbols.get(*original_name).unwrap();
-            let span = contract.symbols.symbols.get(string).unwrap();
+            let original_name = original_predicate_names
+                .get(content_address)
+                .expect("predicate name guaranteed to exist");
+            let original_span = contract
+                .symbols
+                .symbols
+                .get(*original_name)
+                .expect("original predicate name missing in contract symbols table");
+            let span = contract
+                .symbols
+                .symbols
+                .get(string)
+                .expect("predicate name missing in contract symbols table");
 
             handler.emit_err(Error::Compile {
                 error: CompileError::IdenticalPredicates {
