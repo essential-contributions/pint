@@ -372,7 +372,7 @@ pub enum CompileError {
     },
     #[error("invalid position for accessing storage")]
     InvalidStorageAccess { span: Span },
-    #[error("Identical predicates found in the same contract")]
+    #[error("identical predicates found in the same contract")]
     IdenticalPredicates {
         original_name: String,
         duplicate_name: String,
