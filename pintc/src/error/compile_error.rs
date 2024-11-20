@@ -1242,12 +1242,12 @@ impl ReportableError for CompileError {
                 ..
             } => vec![
                 ErrorLabel {
-                    message: "original declaration here".to_string(),
+                    message: "original predicate declaration here".to_string(),
                     span: original_span.clone(),
                     color: Color::Red,
                 },
                 ErrorLabel {
-                    message: "identical constraints here".to_string(),
+                    message: "predicate with identical bytecode here".to_string(),
                     span: span.clone(),
                     color: Color::Blue,
                 },
@@ -1379,9 +1379,10 @@ impl ReportableError for CompileError {
                     .to_string(),
             ),
 
-            IdenticalPredicates { .. } => {
-                Some("two predicates in a contract cannot have the exact same bytecode".to_string())
-            }
+            IdenticalPredicates { .. } => Some(
+                "two predicates in a contract cannot have the exact same (optimized) bytecode"
+                    .to_string(),
+            ),
 
             FileIO { .. }
             | MacroNotFound { .. }
