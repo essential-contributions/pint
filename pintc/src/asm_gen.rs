@@ -104,10 +104,14 @@ pub fn compile_contract(
         }
     }
 
-    // check for duplicate predicates
+    // Now check for duplicate predicates
     let mut unique_addresses: FxHashSet<&ContentAddress> = FxHashSet::default();
     let mut original_predicate_names: FxHashMap<&ContentAddress, &String> = FxHashMap::default();
-    for (string, (_, content_address)) in &compiled_predicates {
+
+    let mut compiled_predicates_vec: Vec<_> = compiled_predicates.iter().collect();
+    compiled_predicates_vec.reverse(); // Guarantees the error message refers to the first declaration of the predicate
+
+    for (string, (_, content_address)) in &compiled_predicates_vec {
         if !unique_addresses.insert(content_address) {
             let original_name = original_predicate_names
                 .get(content_address)
@@ -120,7 +124,7 @@ pub fn compile_contract(
             let span = contract
                 .symbols
                 .symbols
-                .get(string)
+                .get(*string)
                 .expect("predicate name missing in contract symbols table");
 
             handler.emit_err(Error::Compile {
