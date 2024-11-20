@@ -548,9 +548,10 @@ impl Param {
 
 /// An in-progress predicate, possibly malformed or containing redundant information.  Designed to
 /// be iterated upon and to be reduced to a [Predicate].
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 pub struct Predicate {
     pub name: Ident,
+    pub span: Span,
 
     pub params: Vec<Param>,
     pub variables: Variables,
@@ -567,10 +568,28 @@ pub struct Predicate {
     pub symbols: SymbolTable,
 }
 
+impl Default for Predicate {
+    fn default() -> Self {
+        Self {
+            name: Default::default(),
+            span: empty_span(),
+            params: Default::default(),
+            variables: Default::default(),
+            constraints: Default::default(),
+            if_decls: Default::default(),
+            match_decls: Default::default(),
+            ephemerals: Default::default(),
+            calls: Default::default(),
+            symbols: Default::default(),
+        }
+    }
+}
+
 impl Predicate {
-    pub fn new(name: Ident) -> Self {
+    pub fn new(name: Ident, span: Span) -> Self {
         Self {
             name,
+            span,
             ..Default::default()
         }
     }

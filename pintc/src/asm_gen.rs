@@ -104,7 +104,7 @@ pub fn compile_contract(
                 (
                     compiled_predicate,
                     compiled_predicate_address,
-                    predicate.name.span.clone(),
+                    predicate.span.clone(),
                 ),
             );
         }
@@ -112,7 +112,7 @@ pub fn compile_contract(
 
     // Now check for duplicate predicates
     let mut unique_addresses: FxHashSet<&ContentAddress> = FxHashSet::default();
-    let mut original_predicate_names: FxHashMap<&ContentAddress, (&String, &Span)> =
+    let mut original_predicates: FxHashMap<&ContentAddress, (&String, &Span)> =
         FxHashMap::default();
 
     let mut compiled_predicates_vec: Vec<_> = compiled_predicates.iter().collect();
@@ -120,10 +120,10 @@ pub fn compile_contract(
 
     for (string, (_, content_address, span)) in &compiled_predicates_vec {
         if !unique_addresses.insert(content_address) {
-            let original_ident = original_predicate_names
+            let original_predicate = original_predicates
                 .get(content_address)
                 .expect("predicate name guaranteed to exist");
-            let mut original_span = original_ident.1;
+            let mut original_span = original_predicate.1;
             let mut span = span;
 
             // Ensure the error label appears before the hint label
@@ -133,14 +133,14 @@ pub fn compile_contract(
 
             handler.emit_err(Error::Compile {
                 error: CompileError::IdenticalPredicates {
-                    original_name: original_ident.0.to_string(),
+                    original_name: original_predicate.0.to_string(),
                     duplicate_name: string.to_string(),
                     original_span: original_span.clone(),
                     span: span.clone(),
                 },
             });
         } else {
-            original_predicate_names.insert(content_address, (string, span));
+            original_predicates.insert(content_address, (string, span));
         }
     }
 

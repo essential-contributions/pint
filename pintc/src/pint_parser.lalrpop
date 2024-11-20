@@ -113,15 +113,7 @@ PredicateOpen: () = {
         let pred_key = context
             .contract
             .preds
-            .insert(
-                Predicate::new(
-                    Ident {
-                        name: name.to_string(),
-                        hygienic: false,
-                        span: (context.span_from)(l, r),
-                    }
-                )
-            );
+            .insert(Predicate::new(name, (context.span_from)(l, r)));
 
         // Keep track of the macro call in this new predicate
         context
