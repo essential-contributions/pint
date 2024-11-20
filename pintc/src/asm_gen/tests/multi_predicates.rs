@@ -115,14 +115,14 @@ fn identical_empty_predicates() {
             "#,
         ),
         expect_test::expect![[r#"
-            Identical predicates found in the same contract
+            identical predicates found in the same contract
             @13..26: original declaration here
             @58..71: identical constraints here
-            predicates may share some, but not all constraints
-            Identical predicates found in the same contract
+            two predicates in a contract cannot have the exact same bytecode
+            identical predicates found in the same contract
             @13..26: original declaration here
             @103..116: identical constraints here
-            predicates may share some, but not all constraints
+            two predicates in a contract cannot have the exact same bytecode
         "#]],
     );
 }
@@ -143,10 +143,10 @@ fn identical_predicates() {
           "#,
         ),
         expect_test::expect![[r#"
-            Identical predicates found in the same contract
+            identical predicates found in the same contract
             @11..26: original declaration here
             @92..108: identical constraints here
-            predicates may share some, but not all constraints
+            two predicates in a contract cannot have the exact same bytecode
         "#]],
     );
 }
