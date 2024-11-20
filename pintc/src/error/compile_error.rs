@@ -1242,12 +1242,12 @@ impl ReportableError for CompileError {
                 ..
             } => vec![
                 ErrorLabel {
-                    message: format!("original declaration here"),
+                    message: "original declaration here".to_string(),
                     span: original_span.clone(),
                     color: Color::Red,
                 },
                 ErrorLabel {
-                    message: format!("identical constraints here"),
+                    message: "identical constraints here".to_string(),
                     span: span.clone(),
                     color: Color::Blue,
                 },
