@@ -36,6 +36,37 @@ pub(super) fn compile(code: &str) -> CompiledContract {
     compile_contract(&handler, Default::default(), &contract).unwrap()
 }
 
+/// Compile some code into `CompiledContract`. Panics if compilation is successful.
+#[cfg(test)]
+pub(super) fn compile_with_error(code: &str) -> String {
+    use crate::{error::ReportableError, predicate::CompileOptions};
+
+    let mut tmpfile = tempfile::NamedTempFile::new().unwrap();
+    write!(tmpfile.as_file_mut(), "{}", code).unwrap();
+    let handler = Handler::default();
+    let deps = Default::default();
+    let contract = parse_project(&handler, &deps, tmpfile.path())
+        .unwrap()
+        .compile(
+            &handler,
+            CompileOptions {
+                skip_optimize: false,
+                print_flat: false,
+            },
+        )
+        .unwrap();
+    let _ = compile_contract(&handler, Default::default(), &contract);
+
+    if handler.has_errors() {
+        let errors = handler.consume().0;
+        errors.iter().fold(String::new(), |acc, error| {
+            format!("{}{}", acc, error.display_raw())
+        })
+    } else {
+        panic!("compilation was successful");
+    }
+}
+
 #[test]
 fn bool_literals() {
     check(
