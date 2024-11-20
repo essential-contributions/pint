@@ -987,7 +987,7 @@ pub struct Interface {
 
 #[derive(Clone, Debug, Default)]
 pub struct SymbolTable {
-    symbols: FxHashMap<String, Span>,
+    pub symbols: FxHashMap<String, Span>,
 }
 
 impl SymbolTable {

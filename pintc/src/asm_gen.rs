@@ -114,11 +114,18 @@ pub fn compile_contract(
         if !unique_addresses.insert(content_address) {
             let original_name = original_predicate_names.get(content_address).unwrap();
 
+            // Try something like contract.symbols.symbols[&pred.name]... the contract object
+            //  has a list of symbols which maps symbols (including predicate names) to their spans.
+
+            let original_span = contract.symbols.symbols.get(*original_name).unwrap();
+            let span = contract.symbols.symbols.get(string).unwrap();
+
             handler.emit_err(Error::Compile {
                 error: CompileError::IdenticalPredicates {
                     original_name: original_name.to_string(),
                     duplicate_name: string.to_string(),
-                    span: empty_span(),
+                    original_span: original_span.clone(),
+                    span: span.clone(),
                 },
             });
         } else {

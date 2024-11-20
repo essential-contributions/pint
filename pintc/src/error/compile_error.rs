@@ -376,6 +376,7 @@ pub enum CompileError {
     IdenticalPredicates {
         original_name: String,
         duplicate_name: String,
+        original_span: Span,
         span: Span,
     },
 }
@@ -1235,11 +1236,22 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
-            IdenticalPredicates { original_name, duplicate_name, span } => vec![ErrorLabel {
-                message: format!("predicates `{original_name}` and `{duplicate_name}` have identical constraints"),
-                span: span.clone(),
-                color: Color::Red,
-            }],
+            IdenticalPredicates {
+                original_span,
+                span,
+                ..
+            } => vec![
+                ErrorLabel {
+                    message: format!("original declaration here"),
+                    span: original_span.clone(),
+                    color: Color::Red,
+                },
+                ErrorLabel {
+                    message: format!("identical constraints here"),
+                    span: span.clone(),
+                    color: Color::Blue,
+                },
+            ],
 
             FileIO { .. } => Vec::new(),
         }
@@ -1367,10 +1379,9 @@ impl ReportableError for CompileError {
                     .to_string(),
             ),
 
-            IdenticalPredicates { .. } => Some(
-                "contract cannot compile unless each predicate has a unique overall set of constraints, even if individual constraints within the set are not unique"
-                    .to_string(),
-            ),
+            IdenticalPredicates { .. } => {
+                Some("predicates may share some, but not all constraints".to_string())
+            }
 
             FileIO { .. }
             | MacroNotFound { .. }
