@@ -1380,7 +1380,7 @@ impl ReportableError for CompileError {
             ),
 
             IdenticalPredicates { .. } => {
-                Some("predicates may share some, but not all constraints".to_string())
+                Some("two predicates in a contract cannot have the exact same bytecode".to_string())
             }
 
             FileIO { .. }
