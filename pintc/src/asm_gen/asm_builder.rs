@@ -9,7 +9,6 @@ use crate::{
     types::Type,
 };
 use essential_types::{predicate::Predicate as CompiledPredicate, ContentAddress};
-use fxhash::FxHashMap;
 use state_asm::{
     Access, Alu, Constraint as ConstraintOp, Crypto, Op as StateOp, Pred, Stack, StateMemory,
     TotalControlFlow,
@@ -28,7 +27,7 @@ pub struct AsmBuilder<'a> {
 
     // A reference to a `HahsMap` from predicate names to the compiled predicates and their
     // addresses
-    compiled_predicates: &'a FxHashMap<String, (CompiledPredicate, ContentAddress)>,
+    compiled_predicates: &'a HashMap<String, (CompiledPredicate, ContentAddress)>,
 
     // A map from names of variables to their chosen state slot indices. Each variable is stored in
     // a single slot.
@@ -117,7 +116,7 @@ enum Location {
 impl<'a> AsmBuilder<'a> {
     /// Creates a new `AsmBuilder` given a set of compiled predicates and their addresses.
     pub fn new(
-        compiled_predicates: &'a FxHashMap<String, (CompiledPredicate, ContentAddress)>,
+        compiled_predicates: &'a HashMap<String, (CompiledPredicate, ContentAddress)>,
     ) -> Self {
         Self {
             state_programs: Vec::new(),

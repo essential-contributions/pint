@@ -32,9 +32,9 @@ impl Contract {
         let mut pred_spans = HashMap::<NodeIndex, Span>::new();
 
         for (_, pred) in self.preds.iter() {
-            let new_node = dep_graph.add_node(pred.name.clone());
-            names_to_indices.insert(pred.name.clone(), new_node);
-            pred_spans.insert(new_node, self.symbols.symbols[&pred.name].clone());
+            let new_node = dep_graph.add_node(pred.name.name.clone());
+            names_to_indices.insert(pred.name.name.clone(), new_node);
+            pred_spans.insert(new_node, self.symbols.symbols[&pred.name.name].clone());
         }
 
         for (pred_key, pred) in self.preds.iter() {
@@ -44,7 +44,7 @@ impl Contract {
             for expr in self.exprs(pred_key) {
                 if let Some(Expr::LocalPredicateCall { predicate, .. }) = expr.try_get(self) {
                     let from = names_to_indices[predicate];
-                    let to = names_to_indices[&pred.name];
+                    let to = names_to_indices[&pred.name.name];
                     dep_graph.add_edge(from, to, ());
                 } else if let Some(Expr::IntrinsicCall {
                     kind: (IntrinsicKind::External(ExternalIntrinsic::AddressOf), _),
@@ -58,7 +58,7 @@ impl Contract {
                     }) = args.first().and_then(|name| name.try_get(self))
                     {
                         let from = names_to_indices[name];
-                        let to = names_to_indices[&pred.name];
+                        let to = names_to_indices[&pred.name.name];
                         dep_graph.add_edge(from, to, ());
                     }
                 }

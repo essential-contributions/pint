@@ -550,7 +550,7 @@ impl Param {
 /// be iterated upon and to be reduced to a [Predicate].
 #[derive(Debug, Default, Clone)]
 pub struct Predicate {
-    pub name: String,
+    pub name: Ident,
 
     pub params: Vec<Param>,
     pub variables: Variables,
@@ -568,7 +568,7 @@ pub struct Predicate {
 }
 
 impl Predicate {
-    pub fn new(name: String) -> Self {
+    pub fn new(name: Ident) -> Self {
         Self {
             name,
             ..Default::default()
@@ -582,7 +582,7 @@ impl Predicate {
         contract: &Contract,
     ) -> Result<PredicateABI, ErrorEmitted> {
         Ok(PredicateABI {
-            name: self.name.clone(),
+            name: self.name.to_string(),
             params: self
                 .params
                 .iter()
@@ -987,7 +987,7 @@ pub struct Interface {
 
 #[derive(Clone, Debug, Default)]
 pub struct SymbolTable {
-    pub symbols: FxHashMap<String, Span>,
+    symbols: FxHashMap<String, Span>,
 }
 
 impl SymbolTable {

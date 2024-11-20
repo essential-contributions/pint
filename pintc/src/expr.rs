@@ -141,6 +141,16 @@ pub struct Ident {
     pub(super) span: Span,
 }
 
+impl Default for Ident {
+    fn default() -> Self {
+        Self {
+            name: String::default(),
+            hygienic: bool::default(),
+            span: empty_span(),
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum TupleAccess {
     Error,
