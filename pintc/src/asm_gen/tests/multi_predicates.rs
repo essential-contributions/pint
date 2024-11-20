@@ -102,10 +102,8 @@ fn check_order() {
 fn identical_empty_predicates() {
     // Predicates with identical constraints should fail to compile
     check(
-        &format!(
-            "{:?}",
-            compile_with_error(
-                r#"
+        &compile_with_error(
+            r#"
             predicate Foo() {
             }
 
@@ -115,11 +113,17 @@ fn identical_empty_predicates() {
             predicate Cab() {
             }
             "#,
-            )
         ),
-        expect_test::expect![[
-            r#""Identical predicates found in the same contract\n@13..26: original declaration here\n@58..71: identical constraints here\npredicates may share some, but not all constraints\nIdentical predicates found in the same contract\n@13..26: original declaration here\n@103..116: identical constraints here\npredicates may share some, but not all constraints\n""#
-        ]],
+        expect_test::expect![[r#"
+            Identical predicates found in the same contract
+            @13..26: original declaration here
+            @58..71: identical constraints here
+            predicates may share some, but not all constraints
+            Identical predicates found in the same contract
+            @13..26: original declaration here
+            @103..116: identical constraints here
+            predicates may share some, but not all constraints
+        "#]],
     );
 }
 
@@ -127,10 +131,8 @@ fn identical_empty_predicates() {
 fn identical_predicates() {
     // Predicates with identical constraints should fail to compile
     check(
-        &format!(
-            "{}",
-            compile_with_error(
-                r#"
+        &compile_with_error(
+            r#"
           predicate Beast(x: int) {
               constraint x > 2;
           }
@@ -139,7 +141,6 @@ fn identical_predicates() {
               constraint x > 2;
           }
           "#,
-            )
         ),
         expect_test::expect![[r#"
             Identical predicates found in the same contract
