@@ -116,16 +116,21 @@ pub fn compile_contract(
             let original_name = original_predicate_names
                 .get(content_address)
                 .expect("predicate name guaranteed to exist");
-            let original_span = contract
+            let mut original_span = contract
                 .symbols
                 .symbols
                 .get(*original_name)
                 .expect("original predicate name missing in contract symbols table");
-            let span = contract
+            let mut span = contract
                 .symbols
                 .symbols
                 .get(*string)
                 .expect("predicate name missing in contract symbols table");
+
+            // Ensure the error label appears before the hint label
+            if span.start() < original_span.start() {
+                (original_span, span) = (span, original_span);
+            }
 
             handler.emit_err(Error::Compile {
                 error: CompileError::IdenticalPredicates {
