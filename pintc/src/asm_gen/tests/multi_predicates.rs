@@ -97,3 +97,50 @@ fn check_order() {
         "#]],
     );
 }
+
+#[test]
+#[should_panic]
+fn identical_empty_predicates() {
+    // Predicates with identical constraints should fail to compile
+    check(
+        &format!(
+            "{}",
+            compile(
+                r#"
+            predicate Foo() {
+            }
+
+            predicate Bar() {
+            }
+
+            predicate Cab() {
+            }
+            "#,
+            )
+        ),
+        expect_test::expect![[r#""#]],
+    );
+}
+
+#[test]
+#[should_panic]
+fn identical_predicates() {
+    // Predicates with identical constraints should fail to compile
+    check(
+        &format!(
+            "{}",
+            compile(
+                r#"
+          predicate Beast(x: int) {
+              constraint x > 2;
+          }
+
+          predicate Animal(x: int) {
+              constraint x > 2;
+          }
+          "#,
+            )
+        ),
+        expect_test::expect![[r#""#]],
+    );
+}
