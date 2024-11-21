@@ -721,7 +721,7 @@ impl Contract {
                         // Ensure that we're not referring to the same predicate that the intrinsic
                         // is used in
                         if let Some(pred) = pred {
-                            if pred.name == *name {
+                            if pred.name.name == *name {
                                 handler.emit_err(Error::Compile {
                                     error: CompileError::AddressOfSelf {
                                         name: name.to_string(),
@@ -732,7 +732,7 @@ impl Contract {
                         }
 
                         // Ensure that the intrinsic refers to a predicate in the same contract
-                        if self.preds.iter().all(|(_, pred)| pred.name != *name) {
+                        if self.preds.iter().all(|(_, pred)| pred.name.name != *name) {
                             handler.emit_err(Error::Compile {
                                 error: CompileError::PredicateNameNotFound {
                                     name: name.to_string(),
@@ -766,7 +766,7 @@ impl Contract {
 
         if deps.is_empty() {
             if let Some(pred) = pred {
-                if *called_predicate == pred.name {
+                if *called_predicate == pred.name.name {
                     handler.emit_err(Error::Compile {
                         error: CompileError::SelfReferencialPredicate {
                             pred_name: called_predicate.to_string(),
@@ -782,7 +782,7 @@ impl Contract {
             let Some((_, called_predicate)) = self
                 .preds
                 .iter()
-                .find(|(_, pred)| pred.name == *called_predicate)
+                .find(|(_, pred)| pred.name.name == *called_predicate)
             else {
                 handler.emit_err(Error::Compile {
                     error: CompileError::MissingPredicate {

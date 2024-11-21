@@ -372,6 +372,13 @@ pub enum CompileError {
     },
     #[error("invalid position for accessing storage")]
     InvalidStorageAccess { span: Span },
+    #[error("identical predicates found in the same contract")]
+    IdenticalPredicates {
+        original_name: String,
+        duplicate_name: String,
+        original_span: Span,
+        span: Span,
+    },
 }
 
 // This is here purely at the suggestion of Clippy, who pointed out that these error variants are
@@ -1229,6 +1236,23 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
+            IdenticalPredicates {
+                original_span,
+                span,
+                ..
+            } => vec![
+                ErrorLabel {
+                    message: "original predicate declaration here".to_string(),
+                    span: original_span.clone(),
+                    color: Color::Red,
+                },
+                ErrorLabel {
+                    message: "predicate with identical bytecode here".to_string(),
+                    span: span.clone(),
+                    color: Color::Blue,
+                },
+            ],
+
             FileIO { .. } => Vec::new(),
         }
     }
@@ -1352,6 +1376,11 @@ impl ReportableError for CompileError {
 
             InvalidStorageAccess { .. } => Some(
                 "storage can only be accessed in the initializer of a `let` declaration"
+                    .to_string(),
+            ),
+
+            IdenticalPredicates { .. } => Some(
+                "two predicates in a contract cannot have the exact same (optimized) bytecode"
                     .to_string(),
             ),
 
@@ -1640,7 +1669,8 @@ impl Spanned for CompileError {
             | MissingUnionExprValue { span, .. }
             | UnionVariantTypeMismatch { span, .. }
             | OperatorInvalidType { span, .. }
-            | InvalidStorageAccess { span, .. } => span,
+            | InvalidStorageAccess { span, .. }
+            | IdenticalPredicates { span, .. } => span,
 
             DependencyCycle { spans } => &spans[0],
 

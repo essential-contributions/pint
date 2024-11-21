@@ -1886,7 +1886,7 @@ fn macro_call() {
     assert!(result.is_ok());
     assert!(context.contract.preds.iter().count() == 1);
     let (pred_key, pred) = context.contract.preds.iter().next().unwrap();
-    assert!(pred.name == "::test");
+    assert!(pred.name.name == "::test");
 
     assert!(context.macro_calls.get(&pred_key).unwrap().len() == 1);
 
