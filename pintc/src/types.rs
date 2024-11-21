@@ -579,10 +579,9 @@ impl Type {
             | Self::Unknown(span)
             | Self::Any(span)
             | Self::Custom { span, .. }
-            | Self::Alias { span, .. } => Err(handler.emit_internal_err(
-                "unexpected type when getting size".to_string(),
-                span.clone(),
-            )),
+            | Self::Alias { span, .. } => {
+                Err(handler.emit_internal_err("unexpected type when getting size", span.clone()))
+            }
         }
     }
 
@@ -641,7 +640,7 @@ impl Type {
             | Self::Any(span)
             | Self::Custom { span, .. }
             | Self::Alias { span, .. } => Err(handler.emit_internal_err(
-                "unexpected type when calculating storage slots".to_string(),
+                "unexpected type when calculating storage slots",
                 span.clone(),
             )),
         }

@@ -132,7 +132,7 @@ impl Evaluator {
                     (Imm::Int(expr), UnaryOp::Neg) => Ok(Imm::Int(-expr)),
                     (Imm::Bool(expr), UnaryOp::Not) => Ok(Imm::Bool(!expr)),
                     _ => Err(handler.emit_internal_err(
-                        "type error: invalid unary op for expression".to_string(),
+                        "type error: invalid unary op for expression",
                         empty_span(),
                     )),
                 }
@@ -159,7 +159,7 @@ impl Evaluator {
                         BinOp::GreaterThanOrEqual => Ok(Imm::Bool(lhs >= rhs)),
 
                         _ => Err(handler.emit_internal_err(
-                            "type error: invalid binary op for reals".to_string(),
+                            "type error: invalid binary op for reals",
                             empty_span(),
                         )),
                     },
@@ -181,7 +181,7 @@ impl Evaluator {
                         BinOp::GreaterThanOrEqual => Ok(Imm::Bool(lhs >= rhs)),
 
                         _ => Err(handler.emit_internal_err(
-                            "type error: invalid binary op for ints".to_string(),
+                            "type error: invalid binary op for ints",
                             empty_span(),
                         )),
                     },
@@ -200,7 +200,7 @@ impl Evaluator {
                         BinOp::LogicalOr => Ok(Imm::Bool(lhs || rhs)),
 
                         _ => Err(handler.emit_internal_err(
-                            "type error: invalid binary op for bools".to_string(),
+                            "type error: invalid binary op for bools",
                             empty_span(),
                         )),
                     },
@@ -211,15 +211,14 @@ impl Evaluator {
                         BinOp::NotEqual => Ok(Imm::Bool(lhs != rhs)),
 
                         _ => Err(handler.emit_internal_err(
-                            "type error: invalid binary op for B256".to_string(),
+                            "type error: invalid binary op for B256",
                             empty_span(),
                         )),
                     },
 
                     _ => Err(handler.emit_internal_err(
                         "compile-time evaluation binary op between some types \
-                              not currently supported"
-                            .to_string(),
+                              not currently supported",
                         empty_span(),
                     )),
                 }
@@ -420,7 +419,7 @@ impl Evaluator {
                     .find(|(_, union)| union.name.name == ty_path)
                     .ok_or_else(|| {
                         handler.emit_internal_err(
-                            "Union decl for variant not found".to_string(),
+                            "Union decl for variant not found",
                             path_span.clone(),
                         )
                     })?;
@@ -436,10 +435,7 @@ impl Evaluator {
                     .enumerate()
                     .find_map(|(idx, variant_name)| (variant_name == path[2..]).then_some(idx))
                     .ok_or_else(|| {
-                        handler.emit_internal_err(
-                            "Union tag not found in union decl".to_string(),
-                            empty_span(),
-                        )
+                        handler.emit_internal_err("Union tag not found in union decl", empty_span())
                     })? as i64;
 
                 let value = value
@@ -464,8 +460,7 @@ impl Evaluator {
                     } else {
                         Err(handler.emit_internal_err(
                             "unexpected expression during compile-time \
-                                    evaluation of union expr (tag)"
-                                .to_string(),
+                                    evaluation of union expr (tag)",
                             span.clone(),
                         ))
                     }
@@ -485,8 +480,7 @@ impl Evaluator {
                     } else {
                         Err(handler.emit_internal_err(
                             "unexpected expression during compile-time \
-                                    evaluation of union expr (value)"
-                                .to_string(),
+                                    evaluation of union expr (value)",
                             span.clone(),
                         ))
                     }
@@ -512,8 +506,7 @@ impl Evaluator {
 
                         _ => Err(handler.emit_internal_err(
                             "unexpected expression during compile-time evaluation \
-                            evaluation of in expr with range"
-                                .to_string(),
+                            evaluation of in expr with range",
                             empty_span(),
                         )),
                     }
@@ -525,8 +518,7 @@ impl Evaluator {
 
                         _ => Err(handler.emit_internal_err(
                             "unexpected expression during compile-time evaluation \
-                            evaluation of in expr"
-                                .to_string(),
+                            evaluation of in expr",
                             empty_span(),
                         )),
                     }
@@ -542,8 +534,9 @@ impl Evaluator {
             | Expr::ExternalPredicateCall { .. }
             | Expr::Range { .. }
             | Expr::Generator { .. }
+            | Expr::Map { .. }
             | Expr::Match { .. } => Err(handler.emit_internal_err(
-                "unexpected expression during compile-time evaluation".to_string(),
+                "unexpected expression during compile-time evaluation",
                 empty_span(),
             )),
         }
@@ -782,6 +775,22 @@ impl ExprKey {
                     kind,
                     gen_ranges,
                     conditions,
+                    body,
+                    span,
+                }
+            }
+            Expr::Map {
+                param,
+                range,
+                body,
+                span,
+            } => {
+                let range = range.plug_in(contract, values_map);
+                let body = body.plug_in(contract, values_map);
+
+                Expr::Map {
+                    param,
+                    range,
                     body,
                     span,
                 }

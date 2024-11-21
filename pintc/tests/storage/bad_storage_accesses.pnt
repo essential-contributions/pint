@@ -1,6 +1,6 @@
 storage {
     t: { int, int[3] },
-    map: ( int => { int, int, b256 } ),
+    m: ( int => { int, int, b256 } ),
     a: ( b256 => int[storage::t.0] ),
     bb: b256,
 }
@@ -9,7 +9,7 @@ interface Foo {
     storage {
         a: int[3][storage::t.0],
     }
-    
+
     predicate Bar();
 }
 
@@ -26,7 +26,7 @@ predicate Test(
     b: bool,
     u: G,
 ) {
-    constraint x == storage::map[3].2;
+    constraint x == storage::m[3].2;
 
     constraint storage::a[addr][storage::t.0] == 0;
 
@@ -56,7 +56,7 @@ predicate Test(
 // type ::MyType = {int, int[storage::t.0]};
 // storage {
 //     t: {int, int[3]},
-//     map: ( int => {int, int, b256} ),
+//     m: ( int => {int, int, b256} ),
 //     a: ( b256 => int[storage::t.0] ),
 //     bb: b256,
 // }
@@ -66,7 +66,7 @@ predicate Test(
 //     }
 //     predicate Bar();
 // }
-// 
+//
 // predicate ::Test(
 //     ::x: b256,
 //     ::addr: b256,
@@ -74,7 +74,7 @@ predicate Test(
 //     ::b: bool,
 //     ::u: ::G,
 // ) {
-//     constraint (::x == storage::map[3].2);
+//     constraint (::x == storage::m[3].2);
 //     constraint (storage::a[::addr][storage::t.0] == 0);
 //     constraint (::y == storage::t);
 //     constraint ::Foo@[storage::bb]::Bar@[storage::bb]();
@@ -97,49 +97,49 @@ predicate Test(
 
 // typecheck_failure <<<
 // invalid position for accessing storage
-// @546..556: storage cannot be accessed in this position
+// @538..548: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of a `let` declaration
 // invalid position for accessing storage
-// @252..264: storage cannot be accessed in this position
+// @246..258: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of a `let` declaration
 // invalid position for accessing storage
-// @627..639: storage cannot be accessed in this position
+// @619..631: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of a `let` declaration
 // invalid position for accessing storage
-// @488..518: storage cannot be accessed in this position
+// @480..510: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of a `let` declaration
 // invalid position for accessing storage
-// @897..908: storage cannot be accessed in this position
+// @889..900: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of a `let` declaration
 // invalid position for accessing storage
-// @716..728: storage cannot be accessed in this position
+// @708..720: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of a `let` declaration
 // invalid position for accessing storage
-// @295..307: storage cannot be accessed in this position
+// @289..301: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of a `let` declaration
 // invalid position for accessing storage
-// @589..601: storage cannot be accessed in this position
+// @581..593: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of a `let` declaration
 // invalid position for accessing storage
-// @878..889: storage cannot be accessed in this position
+// @870..881: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of a `let` declaration
 // invalid position for accessing storage
-// @453..470: storage cannot be accessed in this position
+// @447..462: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of a `let` declaration
 // invalid position for accessing storage
-// @800..812: storage cannot be accessed in this position
+// @792..804: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of a `let` declaration
 // invalid position for accessing storage
-// @322..334: storage cannot be accessed in this position
+// @316..328: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of a `let` declaration
 // invalid position for accessing storage
-// @678..690: storage cannot be accessed in this position
+// @670..682: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of a `let` declaration
 // invalid position for accessing storage
-// @177..189: storage cannot be accessed in this position
+// @175..187: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of a `let` declaration
 // invalid position for accessing storage
-// @95..107: storage cannot be accessed in this position
+// @93..105: storage cannot be accessed in this position
 // storage can only be accessed in the initializer of a `let` declaration
 // compiler internal error: unexpected expression during compile-time evaluation
 // >>>

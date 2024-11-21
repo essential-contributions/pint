@@ -25,8 +25,11 @@ impl Handler {
         ErrorEmitted { _priv: () }
     }
 
-    pub fn emit_internal_err(&self, msg: String, span: Span) -> ErrorEmitted {
-        self.emit_err(Error::Internal { msg, span })
+    pub fn emit_internal_err<S: Into<String>>(&self, msg: S, span: Span) -> ErrorEmitted {
+        self.emit_err(Error::Internal {
+            msg: msg.into(),
+            span,
+        })
     }
 
     /// Emit the warning `warn`.

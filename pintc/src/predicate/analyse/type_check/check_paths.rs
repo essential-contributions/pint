@@ -23,19 +23,11 @@ impl Contract {
                 Inference::Type(decl_ty.clone())
             } else {
                 handler.emit_internal_err(
-                    "const decl has unknown type *after* evaluation".to_string(),
+                    "const decl has unknown type *after* evaluation",
                     span.clone(),
                 );
                 Inference::Type(Type::Error(span.clone()))
             }
-        } else if let Some(ty) = self
-            .new_types
-            .iter()
-            .find_map(|NewTypeDecl { name, ty, .. }| (&name.name == path).then_some(ty))
-        {
-            // TODO: What is this matching?  When would an expression just be an alias?
-            // It's a fully matched newtype.
-            Inference::Type(ty.clone())
         } else {
             // It might be a union variant. If it isn't we get a handy list of potential
             // variant names we can return in our error.
@@ -91,7 +83,7 @@ impl Contract {
                     }
                 } else {
                     handler.emit_internal_err(
-                        "attempting to infer item without required predicate ref".to_string(),
+                        "attempting to infer item without required predicate ref",
                         span.clone(),
                     );
                     Inference::Type(Type::Error(span.clone()))

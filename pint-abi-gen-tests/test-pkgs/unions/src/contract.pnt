@@ -16,7 +16,7 @@ storage {
     oo: lib3::foo::OO,
     array: RR[2],
     tuple: { lib2::A, lib3::foo::TT },
-    map: ( b256 => WW ),
+    bmap: ( b256 => WW ),
 }
 
 predicate Foo(
@@ -63,9 +63,9 @@ predicate Foo(
     let array = mut storage::array;
     let tuple = mut storage::tuple;
     let map_1 = mut
-    storage::map[0x2222222222222222222222222222222222222222222222222222222222222222];
+    storage::bmap[0x2222222222222222222222222222222222222222222222222222222222222222];
     let map_2 = mut
-    storage::map[0x3333333333333333333333333333333333333333333333333333333333333333];
+    storage::bmap[0x3333333333333333333333333333333333333333333333333333333333333333];
 
     constraint u1' == UU::A(69);
     constraint u2' == UU::B;

@@ -120,10 +120,8 @@ impl Contract {
             }
 
             if loop_check > 10_000 {
-                return Err(handler.emit_internal_err(
-                    "infinite loop in lower_nested_newtypes()".to_string(),
-                    empty_span(),
-                ));
+                return Err(handler
+                    .emit_internal_err("infinite loop in lower_nested_newtypes()", empty_span()));
             }
         }
 

@@ -838,6 +838,7 @@ TermInner: Expr = {
         Expr::Immediate { value: imm, span }
     },
     GeneratorExpr,
+    LoopExpr,
     IntrinsicCallExpr,
     PredicateCallExpr,
     ArrayExpr,
@@ -885,6 +886,21 @@ GeneratorExpr: Expr = {
             kind: GeneratorKind::Exists,
             gen_ranges,
             conditions: conditions.unwrap_or_default(),
+            body,
+            span: (context.span_from)(l, r),
+        }
+    }
+}
+
+LoopExpr: Expr = {
+    MapExpr,
+}
+
+MapExpr: Expr = {
+    <l:@L> "map" <param:Ident> "in" <range:Expr> "{" <body:Expr> "}" <r:@R> => {
+        Expr::Map {
+            param,
+            range,
             body,
             span: (context.span_from)(l, r),
         }
@@ -1354,6 +1370,7 @@ extern {
 
         "forall" => lexer::Token::ForAll,
         "exists" => lexer::Token::Exists,
+        "map" => lexer::Token::Map,
         "where" => lexer::Token::Where,
 
         "ident" => lexer::Token::Ident(<(String, bool)>),

@@ -239,6 +239,10 @@ impl ExprKey {
                     || body.can_panic(contract, pred)
             }
 
+            Expr::Map { range, body, .. } => {
+                range.can_panic(contract, pred) || body.can_panic(contract, pred)
+            }
+
             Expr::UnionTag { union_expr, .. } | Expr::UnionValue { union_expr, .. } => {
                 union_expr.can_panic(contract, pred)
             }
@@ -380,6 +384,11 @@ impl ExprKey {
                     conditions.iter().for_each(|condition| {
                         storage_accesses.extend(condition.collect_storage_accesses(contract));
                     });
+                    storage_accesses.extend(body.collect_storage_accesses(contract));
+                }
+
+                Expr::Map { range, body, .. } => {
+                    storage_accesses.extend(range.collect_storage_accesses(contract));
                     storage_accesses.extend(body.collect_storage_accesses(contract));
                 }
 
@@ -638,6 +647,11 @@ impl<'a> Iterator for ExprsIter<'a> {
                     queue_if_new!(self, cond);
                 }
 
+                queue_if_new!(self, body);
+            }
+
+            Expr::Map { range, body, .. } => {
+                queue_if_new!(self, range);
                 queue_if_new!(self, body);
             }
 

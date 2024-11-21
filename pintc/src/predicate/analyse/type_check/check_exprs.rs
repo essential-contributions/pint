@@ -121,17 +121,12 @@ impl Contract {
         expr_key: ExprKey,
     ) -> Result<Inference, ErrorEmitted> {
         let expr: &Expr = expr_key.try_get(self).ok_or_else(|| {
-            handler.emit_internal_err(
-                "orphaned expr key when type checking".to_string(),
-                empty_span(),
-            )
+            handler.emit_internal_err("orphaned expr key when type checking", empty_span())
         })?;
 
         match expr {
-            Expr::Error(span) => Err(handler.emit_internal_err(
-                "unable to type check from error expression".to_string(),
-                span.clone(),
-            )),
+            Expr::Error(span) => Err(handler
+                .emit_internal_err("unable to type check from error expression", span.clone())),
 
             Expr::Immediate { value, span } => Ok(self.infer_immediate(handler, value, span)),
 
@@ -243,8 +238,15 @@ impl Contract {
                 span,
             } => Ok(self.infer_generator_expr(handler, kind, gen_ranges, conditions, *body, span)),
 
+            Expr::Map {
+                param,
+                range,
+                body,
+                span,
+            } => self.infer_map_expr(handler, param, *range, *body, span),
+
             Expr::UnionTag { .. } | Expr::UnionValue { .. } => Err(handler.emit_internal_err(
-                "union utility expressions should not exist during type checking".to_string(),
+                "union utility expressions should not exist during type checking",
                 empty_span(),
             )),
         }
@@ -272,7 +274,7 @@ impl Contract {
             let ary_ty = imm.get_ty(Some(span));
             let Type::Array { ty: el0_ty, .. } = &ary_ty else {
                 handler.emit_internal_err(
-                    "array immediate does NOT have an array type?".to_string(),
+                    "array immediate does NOT have an array type?",
                     span.clone(),
                 );
                 return Inference::Type(Type::Error(span.clone()));
@@ -434,10 +436,7 @@ impl Contract {
 
         match op {
             UnaryOp::Error => {
-                handler.emit_internal_err(
-                    "unable to type check unary op error".to_string(),
-                    span.clone(),
-                );
+                handler.emit_internal_err("unable to type check unary op error", span.clone());
                 Inference::Type(Type::Error(span.clone()))
             }
 
@@ -1296,10 +1295,7 @@ impl Contract {
                         span: span.clone(),
                     })
                 } else {
-                    handler.emit_internal_err(
-                        "range ty is not numeric or array?".to_string(),
-                        span.clone(),
-                    );
+                    handler.emit_internal_err("range ty is not numeric or array?", span.clone());
                     Inference::Type(Type::Error(span.clone()))
                 }
             } else {
@@ -1415,7 +1411,7 @@ impl Contract {
                 Inference::Type(el_ty.clone())
             } else {
                 handler.emit_internal_err(
-                    "failed to get array element type in infer_index_expr()".to_string(),
+                    "failed to get array element type in infer_index_expr()",
                     span.clone(),
                 );
 
@@ -1440,9 +1436,7 @@ impl Contract {
                 Inference::Type(to_ty.clone())
             } else {
                 handler.emit_internal_err(
-                    "failed to get array element type \
-                          in infer_index_expr()"
-                        .to_string(),
+                    "failed to get array element type in infer_index_expr()",
                     span.clone(),
                 );
 
@@ -1508,7 +1502,7 @@ impl Contract {
                 match field {
                     TupleAccess::Error => {
                         handler.emit_internal_err(
-                            "unable to type check tuple field access error".to_string(),
+                            "unable to type check tuple field access error",
                             span.clone(),
                         );
                         Inference::Type(Type::Error(span.clone()))
@@ -1774,6 +1768,47 @@ impl Contract {
             })
         } else {
             Inference::Dependencies(deps)
+        }
+    }
+
+    fn infer_map_expr(
+        &self,
+        handler: &Handler,
+        param: &Ident,
+        range: ExprKey,
+        body: ExprKey,
+        span: &Span,
+    ) -> Result<Inference, ErrorEmitted> {
+        // A map always has an array type of the same size as the input range or array.  The
+        // element type is the same as the body.
+        // TODO: support Expr::Range as range.
+        let range_ty = range.get_ty(self);
+        if range_ty.is_unknown() {
+            Ok(Inference::Dependant(range))
+        } else {
+            let body_ty = body.get_ty(self);
+            if body_ty.is_unknown() {
+                if let Some(el_ty) = range_ty.get_array_el_type() {
+                    Ok(Inference::BoundDependencies {
+                        deps: Vec::default(),
+                        bound_deps: vec![(param.clone(), el_ty.clone(), vec![body])],
+                    })
+                } else {
+                    Err(handler.emit_err(Error::Compile {
+                        error: CompileError::InvalidMapRangeType {
+                            found_ty: self.with_ctrct(range_ty).to_string(),
+                            span: range_ty.span().clone(),
+                        },
+                    }))
+                }
+            } else {
+                Ok(Inference::Type(Type::Array {
+                    ty: Box::new(body_ty.clone()),
+                    range: range_ty.get_array_range_expr(),
+                    size: range_ty.get_array_size(),
+                    span: span.clone(),
+                }))
+            }
         }
     }
 }
