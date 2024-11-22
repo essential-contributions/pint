@@ -17,6 +17,4 @@ predicate test(c: int) {
 // flattening_failure <<<
 // attempt to access array with out of bounds index
 // @72..73: array index is out of bounds
-// attempt to access array with out of bounds index
-// @72..73: array index is out of bounds
 // >>>

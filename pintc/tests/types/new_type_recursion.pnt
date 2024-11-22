@@ -33,7 +33,4 @@ predicate test(
 // type alias refers to itself
 // @25..26: type alias `::C` is used recursively in declaration
 // @31..48: `::C` is declared here
-// type alias refers to itself
-// @11..12: type alias `::A` is used recursively in declaration
-// @0..14: `::A` is declared here
 // >>>

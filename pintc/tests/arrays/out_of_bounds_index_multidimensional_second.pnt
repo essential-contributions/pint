@@ -21,6 +21,4 @@ predicate test(b: int[4][2]) {
 // @125..126: array index is out of bounds
 // attempt to access array with out of bounds index
 // @96..97: array index is out of bounds
-// attempt to access array with out of bounds index
-// @125..126: array index is out of bounds
 // >>>

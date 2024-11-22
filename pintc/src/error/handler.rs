@@ -110,8 +110,26 @@ impl Handler {
     }
 
     pub fn consume(self) -> (Vec<Error>, Vec<Warning>) {
-        let inner = self.inner.into_inner();
-        (inner.errors, inner.warnings)
+        use super::Spanned;
+
+        let HandlerInner {
+            mut errors,
+            mut warnings,
+        } = self.inner.into_inner();
+
+        let mut seen_errors = fxhash::FxHashSet::default();
+        errors.retain(|err| {
+            let sig = err.span().clone();
+            seen_errors.insert(sig)
+        });
+
+        let mut seen_warnings = fxhash::FxHashSet::default();
+        warnings.retain(|warn| {
+            let sig = warn.span().clone();
+            seen_warnings.insert(sig)
+        });
+
+        (errors, warnings)
     }
 
     pub fn append(&self, other: Handler) {

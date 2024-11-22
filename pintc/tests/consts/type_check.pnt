@@ -44,8 +44,6 @@ predicate test() { }
 // @168..169: range type mismatch; expecting `bool` type, found `int` type
 // union variant type mismatch
 // @240..245: expecting type `int`, found `bool`
-// attempt to use an invalid constant as an array index
-// @330..338: this must be a non-negative integer value
 // condition for select expression must be a `bool`
 // @281..293: invalid type `int`, expecting `bool`
 // >>>
