@@ -86,12 +86,30 @@ impl Contract {
         // on another then there must be some sort of recursive loop which must fail.)  So
         // performing N-1 evaluation passes for N consts should resolve all dependencies and in
         // most cases will be done in only 1 or 2 passes.
+        //
+        // An added complexity is initialisers which have an erroneous, internally inconsistent
+        // type, like `false in 1..2`.  We must abort for any const decls with bad types, but we
+        // can't let a type error stall the iterative dependency resolution.
+
+        // Perform a type check for each const intialiser first.  Some may fail due to
+        // dependencies, but those which are genuinely busted should be caught here.  Store any
+        // errors in its own handler.  If errors are found we'll only report them if we failed to
+        // evaluate any initialisers too.
+        let ty_chk_handler = Handler::default();
+        self.consts
+            .values()
+            .map(|cnst| cnst.expr)
+            .collect::<Vec<ExprKey>>()
+            .into_iter()
+            .for_each(|cnst_expr_key| {
+                let _ = self.type_check_single_expr(&ty_chk_handler, None, cnst_expr_key);
+            });
 
         let mut evaluator = Evaluator::new(self);
         let mut new_immediates = Vec::default();
 
         // Use a temporary error handler to manage in-progress errors.
-        let tmp_handler = Handler::default();
+        let eval_handler = Handler::default();
 
         let const_count = self.consts.len();
         for loop_idx in 0..const_count {
@@ -102,7 +120,8 @@ impl Contract {
                 if !evaluator.contains_path(path) {
                     if let Expr::Immediate { value, .. } = expr {
                         evaluator.insert_value(path.clone(), value.clone());
-                    } else if let Ok(imm) = evaluator.evaluate_key(&cnst.expr, &tmp_handler, self) {
+                    } else if let Ok(imm) = evaluator.evaluate_key(&cnst.expr, &eval_handler, self)
+                    {
                         evaluator.insert_value(path.clone(), imm);
 
                         // Take note of this const as we need to update the const declaration
@@ -112,19 +131,32 @@ impl Contract {
                 }
             }
 
-            if !tmp_handler.has_errors() {
+            if !eval_handler.has_errors() {
                 // We evaluated all the consts without error.  Stop now.
                 break;
             }
 
             if loop_idx != (const_count - 1) {
                 // This isn't the last iteration.  Clear the temporary errors.
-                tmp_handler.clear_errors();
+                eval_handler.clear_errors();
             }
         }
 
-        // There's little point in continuing if we weren't able to lower all consts.
-        handler.append(tmp_handler);
+        // Gather errors from both the type checks and the evaluations.  We're a bit conservative
+        // here:
+        // - Ignore all internal errors from the type checker.
+        // - Ignore internal errors from the evaluator, but only if there are other errors.
+        // - Only emit the type errors if there are evaluation errors too.
+
+        ty_chk_handler.remove_internal(true);
+        eval_handler.remove_internal(false);
+
+        if eval_handler.has_errors() {
+            handler.append(ty_chk_handler);
+        }
+        handler.append(eval_handler);
+
+        // There's little point in continuing if we have errors at this stage.
         if handler.has_errors() {
             return Err(handler.cancel());
         }
