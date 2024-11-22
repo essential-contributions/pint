@@ -15,7 +15,7 @@
 //! including the encoding of keys, values and mutations from higher-level types.
 
 use addr::Addresses;
-use essential_types::{contract::Contract, PredicateAddress};
+use essential_types::{contract::Contract, predicate::Program, PredicateAddress};
 use pint_abi_types::{ContractABI, ParamABI, PredicateABI, TupleField, TypeABI, UnionVariant};
 use pint_abi_visit::Nesting;
 use proc_macro::TokenStream;
@@ -472,12 +472,15 @@ pub fn from_file(input: TokenStream) -> TokenStream {
     });
 
     // Load the contract itself if provided.
-    let contract: Option<Contract> = args.contract.map(|contract| {
-        let contract_path = resolve_path(contract.value().as_ref());
-        read_from_json_file(&contract_path).unwrap_or_else(|err| {
-            panic!("failed to deserialize {contract_path:?} from JSON to `Contract`: {err}");
+    let contract: Option<Contract> = args
+        .contract
+        .map(|contract| {
+            let contract_path = resolve_path(contract.value().as_ref());
+            read_from_json_file::<(Contract, Vec<Program>)>(&contract_path).unwrap_or_else(|err| {
+                panic!("failed to deserialize {contract_path:?} from JSON to `Contract`: {err}");
+            })
         })
-    });
+        .map(|(contract, _)| contract);
 
     // Collect the contract and predicate addresses.
     let addrs = contract.as_ref().map(Addresses::from);

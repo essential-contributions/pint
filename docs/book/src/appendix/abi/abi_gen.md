@@ -31,16 +31,16 @@ solutions **directly using Rust types** without having to do the encoding manual
 
 In order to construct a solution to a predicate, you need construct two vectors:
 
-1. A vector of all the predicate arguments.
+1. A vector containing the predicate data.
 1. A vector of all the state mutations.
 
-### Predicate Arguments
+### Predicate Data
 
-In order to construct a vector of arguments for the predicate above, you can use the following
+In order to construct the predicate data for the predicate above, you can use the following
 syntax:
 
 ```rust
-{{#include ../../../../../examples/abi_gen_example.rs:arguments}}
+{{#include ../../../../../examples/abi_gen_example.rs:predicate_data}}
 ```
 
 The module `MyPredicate` (which clearly corresponds to the predicate `MyPredicate` in our contract
@@ -74,8 +74,8 @@ of the `gen_from_file` macro. The resulting object is of type
 [`essential_types`](https://docs.rs/essential-types/latest/essential_types/index.html) crate.
 
 Because all state mutations are optional, they need to be set individually using their own builder
-methods (unlike predicate arguments). For simple types like `int`, `bool`, `b256`, and unions, the
-syntax is self explanatory. Those types have corresponding Rust types as for predicate arguments:
+methods (unlike predicate data). For simple types like `int`, `bool`, `b256`, and unions, the
+syntax is self explanatory. Those types have corresponding Rust types as for predicate data:
 
 | Pint Type | Rust Type  |
 | --------- | ---------- |
@@ -117,9 +117,8 @@ We now have everything we need to produce a solution. When working with the Esse
 ```
 
 where we have used the address of the `MyPredicate` to specify which predicate to solve, the vector
-`arguments` to specify values for `decision_variables` (recall that we sometimes refer to predicate
-parameters as decision variables), and the vector `state_mutations` to specify the proposed state
-mutations.
+`data` to specify values for `predicate_data`, and the vector `state_mutations` to specify the
+proposed state mutations.
 
 Note that this solutions only has a single `SolutionsData`. In general, solutions may contain
 multiple `SolutionData` objects which can all be produced by following the steps above.

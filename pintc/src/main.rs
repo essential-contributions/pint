@@ -107,10 +107,7 @@ fn main() -> anyhow::Result<()> {
             serde_json::to_writer_pretty(File::create(json_abi_path)?, &abi)?;
             serde_json::to_writer(
                 File::create(output_file_path)?,
-                &essential_types::contract::Contract {
-                    predicates: compiled_contract.predicates,
-                    salt: compiled_contract.salt,
-                },
+                &(compiled_contract.contract, compiled_contract.programs),
             )?;
 
             // Report any warnings

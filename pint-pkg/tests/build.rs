@@ -113,7 +113,7 @@ predicate test(bob_age: Age) {
 
         // It should have at least one constraint.
         assert!(
-            !predicate.constraints.is_empty(),
+            !predicate.nodes.is_empty(),
             "built foo should have at least one constraint"
         );
     });
@@ -196,7 +196,7 @@ predicate test(bob: { age: int }) {
 
         // It should have at least one constraint.
         assert!(
-            !predicate.constraints.is_empty(),
+            !predicate.nodes.is_empty(),
             "built foo should have at least one constraint"
         );
     });
@@ -299,13 +299,26 @@ predicate test() {
             contract: &pint_pkg::build::BuiltContract,
             ca: &ContentAddress,
         ) -> bool {
+            // Map from content addresses to programs
+            let get_program = contract
+                .programs
+                .iter()
+                .map(|program| (essential_hash::content_addr(program), program))
+                .collect::<HashMap<_, _>>();
+
             // Check one word-sized chunk of the CA at a time. We do this because
             // in the bytecode, the CA is "pushed" to the stack one word at a time.
             for ca_chunk in ca.0.chunks(std::mem::size_of::<Word>()) {
                 let mut contains_chunk = false;
                 for predicate in &contract.contract.predicates {
-                    for constraint in &predicate.constraints {
-                        if constraint.windows(ca_chunk.len()).any(|w| w == ca_chunk) {
+                    for node in &predicate.nodes {
+                        if get_program
+                            .get(&node.program_address)
+                            .unwrap()
+                            .0
+                            .windows(ca_chunk.len())
+                            .any(|w| w == ca_chunk)
+                        {
                             contains_chunk |= true;
                         }
                     }

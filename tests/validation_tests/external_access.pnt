@@ -17,8 +17,6 @@ interface Bar {
 }
 
 predicate Foo() {
-    let addr = 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE;
-
     let address = Bar@[addr]::storage::address;
     let address2 = Bar@[addr]::storage::address2;
     let map_entry = Bar@[addr]::storage::imap[69];
@@ -36,4 +34,7 @@ predicate Foo() {
     constraint map_entry' == 0x0000000000000099000000000000009900000000000000990000000000000099;
     constraint map_in_map_entry' - map_in_map_entry == 1;
     constraint map_in_map_in_map_entry' == 0x00000000000000FF00000000000000FF00000000000000FF00000000000000FF;
+    
+    // Put this at this end just to stress test the fact that order does not matter
+    let addr = 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE;
 }

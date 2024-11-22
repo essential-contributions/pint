@@ -39,7 +39,7 @@ predicate Foo(x: int, y: bool) {
 // storage {
 //     x: int,
 // }
-//
+// 
 // predicate ::Foo(
 //     ::x: int,
 //     ::y: bool,
@@ -78,7 +78,7 @@ predicate Foo(x: int, y: bool) {
 // storage {
 //     x: int,
 // }
-//
+// 
 // predicate ::Foo(
 //     ::x: int,
 //     ::y: bool,
@@ -118,7 +118,7 @@ predicate Foo(x: int, y: bool) {
 // storage {
 //     x: int,
 // }
-//
+// 
 // predicate ::Foo(
 //     ::x: int,
 //     ::y: bool,

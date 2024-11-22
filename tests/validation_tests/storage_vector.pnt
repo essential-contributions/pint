@@ -26,6 +26,8 @@ interface Foo {
 }
 
 predicate Bar() {
+    let addr = 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE;
+
     // Test external storage vectors
 
     // v0 starts empty
@@ -75,7 +77,6 @@ predicate Bar() {
 
 
     // Test external storage vectors
-    let addr = 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE;
 
     // v0 starts empty
     let foo_v0_0 = Foo@[addr]::storage::v0[0];

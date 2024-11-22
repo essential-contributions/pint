@@ -13,8 +13,11 @@ interface Foo {
     }
 }
 
+
 predicate Bar() {
     let a = mut storage::a;
+
+    let addr = 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE;
 
     constraint (a')[0][0].0 == 1;
     constraint (a')[0][0].1.0 == 1;
@@ -59,7 +62,6 @@ predicate Bar() {
     constraint a_1_2' == { 6, { 6, 0x0000000000000006000000000000000600000000000000060000000000000006
     }};
 
-    let addr = 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE;
 
     let foo_a = Foo@[addr]::storage::a;
 

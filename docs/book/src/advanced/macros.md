@@ -61,7 +61,7 @@ then _pasted_ exactly where the macro was called.
 The arguments to a macro call may be collections of tokens which do not necessarily parse to a
 proper expression, as in the previous example. For example, an operator like `+` or a type name such
 as `int` are valid!. If the token is an identifier, then it may be used as a name, such as the name
-of a decision variable or a new type. Here's an example:
+of a local variable or a new type. Here's an example:
 
 ```pint
 {{#include ../../../../examples/macros_1.pnt:ops}}

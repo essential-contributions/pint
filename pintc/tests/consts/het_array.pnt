@@ -5,7 +5,7 @@ predicate test() {
 
 // parsed <<<
 // const ::a = [11, false];
-//
+// 
 // predicate ::test(
 // ) {
 // }

@@ -1,11 +1,11 @@
 {
-  "data": [
+  "solutions": [
     {
       "predicate_to_solve": {
-        "contract": "EDC26A44502854D46FEFC919E9E889FB2940759458F26F2BA60227B34C2A54DC",
-        "predicate": "ADB89774577D4D97634F452E0A5789B14AF40CBA8888C8280426B7059E676828"
+        "contract": "<>",
+        "predicate": "<::Bar>"
       },
-      "decision_variables": [],
+      "predicate_data": [],
       "state_mutations": [
         {
           "key": [1],
@@ -58,7 +58,7 @@
         "contract": "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE",
         "predicate": "0000000000000000000000000000000000000000000000000000000000000000"
       },
-      "decision_variables": [],
+      "predicate_data": [],
       "state_mutations": [
         {
           "key": [1],
