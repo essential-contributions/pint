@@ -26,7 +26,7 @@ normal = ["pint-solve"]
 anyhow = { workspace = true }
 ariadne = { workspace = true }
 clap = { workspace = true }
-constraint-asm = { workspace = true }
+essential-asm = { workspace = true }
 essential-hash = { workspace = true }
 essential-types = { workspace = true }
 expect-test = { workspace = true }
@@ -42,7 +42,6 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 similar-asserts = { version = "1.5", default-features = false }
 slotmap = "1.0"
-state-asm = { workspace = true }
 thiserror = { workspace = true }
 yansi = { workspace = true }
 

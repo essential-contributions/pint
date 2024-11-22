@@ -1,11 +1,11 @@
 {
-  "data": [
+  "solutions": [
     {
       "predicate_to_solve": {
-        "contract": "802FBF930458EA17FD9935051F1869C50756D1CF84968C8AC77B50F43DEF5EAF",
-        "predicate": "19C7CF16CECEF05C9A4A17142D60B0F2B109E7877F998218AAFB237D56A9ACEF"
+        "contract": "<>",
+        "predicate": "<::test>"
       },
-      "decision_variables": [[1, 3, 0], [55]],
+      "predicate_data": [[1, 3, 0], [55]],
       "state_mutations": []
     }
   ]

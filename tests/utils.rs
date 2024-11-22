@@ -1,5 +1,5 @@
-use essential_state_read_vm::{
-    types::{solution::Solution, ContentAddress, Key, Word},
+use essential_vm::{
+    types::{solution::SolutionSet, ContentAddress, Key, Word},
     StateRead,
 };
 use std::{
@@ -77,11 +77,11 @@ impl State {
     }
 
     /// Apply all mutations proposed by the given solution.
-    pub fn apply_mutations(&mut self, solution: &Solution) {
-        for data in &solution.data {
-            for mutation in data.state_mutations.iter() {
+    pub fn apply_mutations(&mut self, set: &SolutionSet) {
+        for solution in &set.solutions {
+            for mutation in solution.state_mutations.iter() {
                 self.set(
-                    data.predicate_to_solve.contract.clone(),
+                    solution.predicate_to_solve.contract.clone(),
                     &mutation.key,
                     mutation.value.clone(),
                 );

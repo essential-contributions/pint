@@ -21,10 +21,10 @@ interface Baz {
     }
 }
 
-predicate Foo() {
-    let bar_addr = 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE;
-    let baz_addr = 0xDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD;
+const bar_addr = 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE;
+const baz_addr = 0xDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD;
 
+predicate Foo() {
     let x = Bar@[bar_addr]::storage::x;
     let y = Bar@[bar_addr]::storage::y;
     let w = Baz@[baz_addr]::storage::w;

@@ -14,6 +14,7 @@ interface Foo {
     }
 }
 
+
 predicate Bar() {
     let addr = 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE;
 

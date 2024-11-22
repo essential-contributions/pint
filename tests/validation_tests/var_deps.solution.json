@@ -3,21 +3,21 @@
     {
       "predicate_to_solve": {
         "contract": "<>",
-        "predicate": "<::Simple>"
+        "predicate": "<::foo>"
       },
-      "predicate_data": [],
+      "predicate_data": [[41], [1]],
       "state_mutations": [
         {
           "key": [0],
-          "value": [42]
-        },
-        {
-          "key": [1, 69],
           "value": [98]
         },
         {
-          "key": [2, 1, 2, 3, 4],
-          "value": [44]
+          "key": [1, 0],
+          "value": [22]
+        },
+        {
+          "key": [1, 1],
+          "value": [23]
         }
       ]
     }

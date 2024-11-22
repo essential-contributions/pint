@@ -19,10 +19,14 @@ pub use read::Read;
 #[doc(inline)]
 pub use write::Write;
 
-use std::path::Path;
+use std::{collections::BTreeSet, path::Path};
 use thiserror::Error;
 use types::{
-    essential::{contract::Contract, predicate::Predicate, Word},
+    essential::{
+        contract::Contract,
+        predicate::{Predicate, Program},
+        Word,
+    },
     ContractABI, PredicateABI,
 };
 
@@ -110,7 +114,7 @@ pub fn from_path(path: &Path) -> Result<ContractABI, FromPathError> {
 ///
 /// By default, after building a pint package this will be located within the
 /// package's output directory at `out/<profile>/<name>.json`.
-pub fn contract_from_path(path: &Path) -> Result<Contract, FromPathError> {
+pub fn contract_from_path(path: &Path) -> Result<(Contract, BTreeSet<Program>), FromPathError> {
     let json_str = std::fs::read_to_string(path)?;
     let abi = serde_json::from_str(&json_str)?;
     Ok(abi)

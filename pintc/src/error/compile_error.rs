@@ -321,6 +321,8 @@ pub enum CompileError {
     },
     #[error("dependency cycle detected between predicates")]
     DependencyCycle { spans: Vec<Span> },
+    #[error("dependency cycle detected between variables")]
+    VarsDependencyCycle { spans: Vec<Span> },
     #[error("intrinsic `__address_of` cannot refer to the predicate it's used in")]
     AddressOfSelf { name: String, span: Span },
     #[error("predicate `{name}` not found")]
@@ -1139,6 +1141,15 @@ impl ReportableError for CompileError {
                 })
                 .collect::<Vec<_>>(),
 
+            VarsDependencyCycle { spans } => spans
+                .iter()
+                .map(|span| ErrorLabel {
+                    message: "this variable is on the dependency cycle".to_string(),
+                    span: span.clone(),
+                    color: Color::Red,
+                })
+                .collect::<Vec<_>>(),
+
             AddressOfSelf { name, span } => vec![ErrorLabel {
                 message: format!(
                     "this argument refers to prediate `{name}` in which this intrinsic is used"
@@ -1454,6 +1465,7 @@ impl ReportableError for CompileError {
             | SuperfluousUnionExprValue { .. }
             | MissingUnionExprValue { .. }
             | UnionVariantTypeMismatch { .. }
+            | VarsDependencyCycle { .. }
             | InvalidMapRangeType { .. } => None,
         }
     }
@@ -1683,6 +1695,7 @@ impl Spanned for CompileError {
             | InvalidMapRangeType { span, .. } => span,
 
             DependencyCycle { spans } => &spans[0],
+            VarsDependencyCycle { spans } => &spans[0],
 
             SelectBranchesTypeMismatch { large_err }
             | OperatorTypeError { large_err, .. }

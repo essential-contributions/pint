@@ -1,5 +1,5 @@
 use pint_abi::types::essential::{
-    solution::{Mutation, Solution, SolutionData},
+    solution::{Mutation, Solution, SolutionSet},
     Key, PredicateAddress,
 };
 use pint_abi_gen_tests::array;
@@ -19,7 +19,7 @@ async fn test_array_solution_foo() {
 
     // Determine the content address of the contract.
     let contract_path = pkg_dir.join("out/debug/array.json");
-    let contract = pint_abi::contract_from_path(&contract_path).unwrap();
+    let (contract, programs) = pint_abi::contract_from_path(&contract_path).unwrap();
 
     // Determine the predicate address by loading the ABI and finding the matching predicate.
     let abi_path = pkg_dir.join("out/debug/array-abi.json");
@@ -153,41 +153,53 @@ async fn test_array_solution_foo() {
         assert_eq!(key, &mutation.key);
     }
 
-    // Create the solution data.
-    let solution_data = SolutionData {
+    // Create the solution for predicate `Foo`.
+    let solution = Solution {
         predicate_to_solve: array::Foo::ADDRESS,
-        decision_variables: vec![],
+        predicate_data: vec![],
         state_mutations,
     };
 
-    // Create the solution.
-    let solution = Arc::new(Solution {
-        data: vec![solution_data],
+    // Create the solution set.
+    let solution_set = Arc::new(SolutionSet {
+        solutions: vec![solution],
     });
 
-    // Check the solution is valid.
-    essential_check::solution::check(&solution).unwrap();
+    // Check the solution set is valid.
+    essential_check::solution::check_set(&solution_set).unwrap();
 
     // Start with an empty pre-state.
     let pre_state = State::new(vec![(array::ADDRESS, vec![])]);
 
     // Create the post-state by applying the mutations.
     let mut post_state = pre_state.clone();
-    post_state.apply_mutations(&solution);
+    post_state.apply_mutations(&solution_set);
 
     // Our `get_predicate` function can only return `Foo`.
     let predicate = Arc::new(pred.clone());
     let get_predicate = |_: &_| predicate.clone();
+    let get_programs = Arc::new(
+        programs
+            .iter()
+            .map(|program| {
+                (
+                    essential_hash::content_addr(program),
+                    Arc::new(program.clone()),
+                )
+            })
+            .collect::<std::collections::HashMap<_, _>>(),
+    );
 
     // Default configuration.
     let config = Default::default();
 
     // Check our proposed mutations are valid against the contract.
-    essential_check::solution::check_predicates(
+    essential_check::solution::check_set_predicates(
         &pre_state,
         &post_state,
-        solution,
+        solution_set,
         get_predicate,
+        get_programs,
         config,
     )
     .await

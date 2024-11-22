@@ -1,7 +1,9 @@
 mod utils;
 
-use essential_state_read_vm::types::{solution::Solution, ContentAddress};
+use essential_vm::types::{solution::SolutionSet, ContentAddress};
 use pintc::predicate::CompileOptions;
+use regex::Regex;
+use std::collections::HashMap;
 use std::{
     fs::{read_dir, File},
     io::{BufRead, BufReader},
@@ -38,6 +40,10 @@ async fn validation_e2e() -> anyhow::Result<()> {
             if first_line.contains("<disabled>") {
                 continue;
             }
+
+            /*if !first_line.contains("<enabled>") {
+                continue;
+            }*/
         }
 
         println!("Testing {}.", entry.path().display());
@@ -83,54 +89,75 @@ async fn validation_e2e() -> anyhow::Result<()> {
 
         let contract_addr = essential_hash::contract_addr::from_predicate_addrs(
             compiled_contract
+                .contract
                 .predicates
                 .iter()
                 .map(essential_hash::content_addr),
-            &compiled_contract.salt,
+            &compiled_contract.contract.salt,
         );
 
         // Prase the solution JSON
         let solution_file_name = path.with_extension("solution.json");
-        let Ok(solution_str_from_file) = std::fs::read_to_string(solution_file_name.clone()) else {
+        let Ok(mut solution_str_from_file) = std::fs::read_to_string(solution_file_name.clone())
+        else {
             anyhow::bail!(
                 "test {} is missing a `*.solution.json` file",
                 entry.path().display(),
             )
         };
 
-        let Ok(solution) = serde_json::from_str::<Solution>(&solution_str_from_file) else {
+        // Replace `<>` with the address of the contract.
+        solution_str_from_file =
+            solution_str_from_file.replace("<>", &format!("{}", contract_addr));
+
+        // Replace `<PredicateName>` with the address of `PredicateName`
+        let re = Regex::new(r"<([^>]+)>").unwrap();
+        let solution_str_from_file =
+            re.replace_all(&solution_str_from_file, |caps: &regex::Captures| {
+                let predicate_name = &caps[1];
+                let index = compiled_contract
+                    .predicate_metadata
+                    .iter()
+                    .position(|(name, _, _)| predicate_name == name)
+                    .expect("predicate must exist");
+                format!(
+                    "{}",
+                    essential_hash::content_addr(&compiled_contract.contract.predicates[index])
+                )
+            });
+
+        let Ok(solution_set) = serde_json::from_str::<SolutionSet>(&solution_str_from_file) else {
             anyhow::bail!(
                 "solution file {} file is not valid JSON",
                 solution_file_name.display()
             )
         };
 
-        // Make sure that the solution solves at least one predicate in the test.
-        if solution
-            .data
+        if solution_set
+            .solutions
             .iter()
             .all(|data| data.predicate_to_solve.contract != contract_addr)
         {
             anyhow::bail!(
-                "solution for test {} does not solve any predicates in the test!",
+                "solution set for test {} does not solve any predicates in the test!",
                 entry.path().display()
             )
         }
 
         // Predicates to check are the ones that belong to our main contract
-        let predicates_to_check = solution
-            .data
+        let predicates_to_check = solution_set
+            .solutions
             .iter()
             .enumerate()
             .filter(|&(_, data)| (data.predicate_to_solve.contract == contract_addr))
             .map(|(idx, data)| (idx, data.predicate_to_solve.predicate.clone()))
             .collect::<Vec<_>>();
 
-        // Pre-populate the pre-state with all the db content, but first, every solution data
-        // predicate set has to be inserted.
+        // Pre-populate the pre-state with all the db content, but first, every solved contract has
+        // to be inserted.
         let mut pre_state = State::new(
-            solution
-                .data
+            solution_set
+                .solutions
                 .iter()
                 .map(|data| (data.predicate_to_solve.contract.clone(), vec![]))
                 .collect(),
@@ -142,11 +169,25 @@ async fn validation_e2e() -> anyhow::Result<()> {
 
         // Apply the state mutations to the state to produce the post state.
         let mut post_state = pre_state.clone();
-        post_state.apply_mutations(&solution);
+        post_state.apply_mutations(&solution_set);
+
+        let get_programs = Arc::new(
+            compiled_contract
+                .programs
+                .iter()
+                .map(|program| {
+                    (
+                        essential_hash::content_addr(program),
+                        Arc::new(program.clone()),
+                    )
+                })
+                .collect::<HashMap<_, _>>(),
+        );
 
         // Now check each predicate in `predicates_to_check`
         for (idx, addr) in predicates_to_check {
             let predicate = compiled_contract
+                .contract
                 .predicates
                 .iter()
                 .find(|predicate| addr == essential_hash::content_addr(*predicate))
@@ -155,16 +196,20 @@ async fn validation_e2e() -> anyhow::Result<()> {
             match essential_check::solution::check_predicate(
                 &pre_state,
                 &post_state,
-                Arc::new(solution.clone()),
+                Arc::new(solution_set.clone()),
                 Arc::new(predicate.clone()),
-                idx as u16, // solution data index
+                &get_programs,
+                idx as u16, // solution index
                 &Default::default(),
             )
             .await
             {
                 Ok(_) => {}
                 Err(err) => {
-                    println!("{}", format!("    Error submitting solution: {err}").red());
+                    println!(
+                        "{}",
+                        format!("    Error submitting solution set: {err}").red()
+                    );
                     failed_tests.push(path.clone());
                     break;
                 }
