@@ -15,7 +15,7 @@ pub(crate) fn const_folding(handler: &Handler, contract: &mut Contract) {
     // This is an unbound loop which breaks if when there are no more consts to fold.
     // It will also break after a gazillion iterations in case of an infinite loop bug.
     for loop_count in 0.. {
-        if !fold_consts(contract) && !fold_identities(contract) {
+        if !fold_consts(contract) && !fold_identities(contract) && !fold_const_lets(contract) {
             break;
         }
 
@@ -25,6 +25,99 @@ pub(crate) fn const_folding(handler: &Handler, contract: &mut Contract) {
             break;
         }
     }
+}
+
+// todo - ian - when solved, roll it into fold_consts
+// ex:
+// storage {
+//     y: int,
+// }
+//
+// predicate ::Foo(
+// ) {
+//     let ::x: int = 5;
+//     let ::y: int = (__storage_get({0}) + ::x);
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+//
+// becomes
+//
+// storage {
+//     y: int,
+// }
+//
+// predicate ::Foo(
+// ) {
+//     let ::y: int = (__storage_get({0}) + 5);
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// so we know that ::x is a const somewhere. Likely means we need to evaluate on ::x but the evaluator requires an immediate which ::x is not
+// so what is the middle step that allows us to evaluate ::x to see if it resolves to an immediate?
+
+// create a map of paths to immediates (that we know) <String, Immediate>
+// then we do const folding
+// change the evaluator to receive the maps (can be empty). The map will be used when we see a path to replace it with an immediate
+// what about the case of let x = 5;, let z = x + 5;? Running the evaluator will only get one. But we're already in an optimization loop so we just keep going and on pass 2 we will resolve let z = x + 5 as let z = 10 as 10;
+
+// new solution structure has hardcoded addresses. When I change the optimization, the bytecode for some tests may change and I'll get an error. Need to go build the pint code contract again and update each address
+// mindless but easy
+// error 'solution for test does not solve an predicate'
+
+// TODO - ian - open issue to return address with pintc instead of just pint cli. And assign to self next.
+pub(crate) fn fold_const_lets(contract: &mut Contract) -> bool {
+    // println!("contract: {:#?}", contract);
+    let mut scope_values: FxHashMap<String, Immediate> = FxHashMap::default();
+    let mut expr_keys_to_replace: FxHashMap<ExprKey, (Expr, Type)> = FxHashMap::default();
+    let mut did_fold_const: bool = false;
+
+    for pred_key in contract.preds.keys().collect::<Vec<_>>() {
+        for var in contract.preds.get(pred_key).unwrap().variables() {
+            // check if expr is immediate
+            // if so, store in scope_values both name (path) and value (imm)
+            let expr = var.1.expr.get(&contract);
+            if let Expr::Immediate { value, .. } = expr {
+                scope_values.insert(var.1.name.clone(), value.clone());
+            }
+        }
+
+        // loop over exprs and feed in scope values to the evaluator
+        // then *crossed fingers*, the evaluator will return 5 for x?
+
+        let evaluator = Evaluator::from_values(contract, scope_values.clone());
+
+        for expr_key in contract.exprs(pred_key) {
+            if let Expr::Path(..) = expr_key.get(&contract) {
+                // TODO - ian - see if we need to filter by path or not.
+
+                if let Ok(imm) = evaluator.evaluate_key(&expr_key, &Handler::default(), contract) {
+                    let simplified_expr = Expr::Immediate {
+                        value: imm.clone(),
+                        span: expr_key.get(contract).span().clone(),
+                    };
+
+                    expr_keys_to_replace.insert(
+                        expr_key,
+                        (simplified_expr, expr_key.get_ty(contract).clone()),
+                    );
+                }
+            }
+        }
+
+        for (old_expr_key, (simplified_expr, simplified_type)) in &expr_keys_to_replace {
+            let simplified_expr_key = contract
+                .exprs
+                .insert(simplified_expr.clone(), simplified_type.clone());
+
+            contract.replace_exprs(Some(pred_key), *old_expr_key, simplified_expr_key);
+        }
+
+        if !expr_keys_to_replace.is_empty() {
+            did_fold_const = true;
+        }
+        expr_keys_to_replace = FxHashMap::default();
+    }
+
+    did_fold_const
 }
 
 /// In a given contract, replace any expression that can be evaluated to a const, with it's const value.
