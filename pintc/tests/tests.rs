@@ -321,6 +321,7 @@ mod e2e {
     e2e_test!(generators);
     e2e_test!(interfaces);
     e2e_test!(intrinsics);
+    e2e_test!(loops);
     e2e_test!(macros);
     e2e_test!(modules);
     e2e_test!(optimizations);

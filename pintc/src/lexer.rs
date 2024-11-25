@@ -149,11 +149,17 @@ pub enum Token {
     #[token("in")]
     In,
 
-    // Generators
+    // Generators & Morphisms
     #[token("forall")]
     ForAll,
     #[token("exists")]
     Exists,
+    #[token("map")]
+    Map,
+    #[token("fold")]
+    Fold,
+    #[token("filter")]
+    Filter,
     #[token("where")]
     Where,
 
@@ -203,14 +209,16 @@ pub type MacroBody = Vec<(usize, Token, usize)>;
 #[cfg(test)]
 pub(super) static KEYWORDS: &[Token] = &[
     Token::As,
-    Token::Bool,
     Token::B256,
+    Token::Bool,
     Token::Cond,
     Token::Const,
     Token::Constraint,
     Token::Else,
     Token::Exists,
     Token::False,
+    Token::Filter,
+    Token::Fold,
     Token::ForAll,
     Token::If,
     Token::In,
@@ -218,6 +226,7 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Interface,
     Token::Let,
     Token::Macro,
+    Token::Map,
     Token::Match,
     Token::Mut,
     Token::Nil,
@@ -330,6 +339,9 @@ impl fmt::Display for Token {
             Token::In => write!(f, "in"),
             Token::ForAll => write!(f, "forall"),
             Token::Exists => write!(f, "exists"),
+            Token::Map => write!(f, "map"),
+            Token::Fold => write!(f, "fold"),
+            Token::Filter => write!(f, "filter"),
             Token::Where => write!(f, "where"),
             Token::Ident((ident, _)) => write!(f, "{ident}"),
             Token::IntrinsicName(ident) => write!(f, "{ident}"),

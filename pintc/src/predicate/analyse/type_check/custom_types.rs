@@ -18,8 +18,6 @@ impl Contract {
         self.lower_nested_newtypes(handler)?;
         self.lower_custom_types_in_contract();
 
-        //self.lower_custom_types_in_newtypes(handler)?;
-
         Ok(())
     }
 
@@ -122,10 +120,8 @@ impl Contract {
             }
 
             if loop_check > 10_000 {
-                return Err(handler.emit_internal_err(
-                    "infinite loop in lower_nested_newtypes()".to_string(),
-                    empty_span(),
-                ));
+                return Err(handler
+                    .emit_internal_err("infinite loop in lower_nested_newtypes()", empty_span()));
             }
         }
 

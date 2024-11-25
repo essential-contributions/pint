@@ -23,7 +23,7 @@ pub(crate) fn const_folding(handler: &Handler, contract: &mut Contract) {
 
         // If the loop has gone for too long then there's an internal error. Arbitrary limit...
         if loop_count > 10_000 {
-            handler.emit_internal_err("Infinite loop in const_folding".to_string(), empty_span());
+            handler.emit_internal_err("Infinite loop in const_folding", empty_span());
             break;
         }
     }

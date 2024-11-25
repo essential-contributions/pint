@@ -1,15 +1,13 @@
-use std::collections::HashMap;
-
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{Expr, ExternalIntrinsic, Immediate, IntrinsicKind},
     predicate::{ConstraintDecl, Contract, Predicate},
     span::{empty_span, Span},
 };
+
 use asm_builder::AsmBuilder;
 use essential_types::{predicate::Predicate as CompiledPredicate, ContentAddress};
-use fxhash::FxHashMap;
-use fxhash::FxHashSet;
+use fxhash::{FxHashMap, FxHashSet};
 use petgraph::{graph::NodeIndex, Graph};
 
 mod asm_builder;
@@ -80,7 +78,7 @@ pub fn compile_contract(
     // addresses that are required by other predicates are known in time.
     let Ok(sorted_nodes) = petgraph::algo::toposort(&dep_graph, None) else {
         return Err(handler.emit_internal_err(
-            "dependency cycles between predicates should have been caught before".to_string(),
+            "dependency cycles between predicates should have been caught before",
             empty_span(),
         ));
     };
@@ -156,7 +154,7 @@ pub fn compile_contract(
                 .map(|(compiled_predicate, _, _)| (pred.name.name.clone(), compiled_predicate))
                 .ok_or_else(|| {
                     handler.emit_internal_err(
-                        "predicate must exist in the compiled_predicates map".to_string(),
+                        "predicate must exist in the compiled_predicates map",
                         empty_span(),
                     )
                 })
@@ -182,7 +180,7 @@ pub fn compile_predicate(
     compiled_predicates: &FxHashMap<String, (CompiledPredicate, ContentAddress, Span)>,
     pred: &Predicate,
 ) -> Result<CompiledPredicate, ErrorEmitted> {
-    let no_span_predicates: HashMap<String, (CompiledPredicate, ContentAddress)> =
+    let no_span_predicates: FxHashMap<String, (CompiledPredicate, ContentAddress)> =
         compiled_predicates
             .iter()
             .map(|(k, (compiled_predicate, content_address, _span))| {

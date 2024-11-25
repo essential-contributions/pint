@@ -150,14 +150,12 @@ impl Contract {
                 if let Some(cnst) = self.consts.get_mut(&new_path) {
                     cnst.expr = new_expr_key;
                 } else {
-                    handler.emit_internal_err(
-                        "missing const decl for immediate update".to_string(),
-                        empty_span(),
-                    );
+                    handler
+                        .emit_internal_err("missing const decl for immediate update", empty_span());
                 }
             } else {
                 handler.emit_internal_err(
-                    "missing immediate value for const expr update".to_string(),
+                    "missing immediate value for const expr update",
                     empty_span(),
                 );
             }
@@ -177,15 +175,13 @@ impl Contract {
                         | Inference::Dependant(_)
                         | Inference::Dependencies(_)
                         | Inference::BoundDependencies { .. } => {
-                            handler.emit_internal_err(
-                                "const inferred a dependant type".to_string(),
-                                empty_span(),
-                            );
+                            handler
+                                .emit_internal_err("const inferred a dependant type", empty_span());
                         }
                     }
                 } else {
                     handler.emit_internal_err(
-                        "missing immediate value for const decl_ty update".to_string(),
+                        "missing immediate value for const decl_ty update",
                         empty_span(),
                     );
                 }

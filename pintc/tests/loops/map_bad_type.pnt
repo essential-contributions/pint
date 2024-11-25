@@ -1,0 +1,22 @@
+predicate test(ary: bool[4]) {
+    let b = map x in ary { x + 11 };
+
+    let c: int[4] = map x in ary { !x };
+}
+
+// parsed <<<
+// predicate ::test(
+//     ::ary: bool[4],
+// ) {
+//     let ::b = map x in ::ary { (::x + 11) };
+//     let ::c: int[4] = map x in ::ary { !::x };
+// }
+// >>>
+
+// typecheck_failure <<<
+// operator invalid type error
+// @58..64: invalid non-numeric type `bool` for operator `+`
+// variable initialization type error
+// @89..108: initializing expression has unexpected type `bool[4]`
+// @80..86: expecting type `int[4]`
+// >>>

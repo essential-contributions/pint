@@ -79,8 +79,8 @@ async fn test_solution_foo() {
                 .entry(1, unions::RR::A(unions::lib::PP::T(unions::lib::QQ::M)))
         })
         .tuple(|tup| tup._0(unions::lib2::A::B)._1(unions::lib3::foo::TT::A))
-        .map(|map| map.entry([0x2222222222222222; 4], unions::WW::D))
-        .map(|map| map.entry([0x3333333333333333; 4], unions::WW::E(unions::UU::A(55))))
+        .bmap(|bmap| bmap.entry([0x2222222222222222; 4], unions::WW::D))
+        .bmap(|bmap| bmap.entry([0x3333333333333333; 4], unions::WW::E(unions::UU::A(55))))
         .into();
 
     // Build the same set of keys, so we can ensure they match the mutations.
@@ -98,8 +98,8 @@ async fn test_solution_foo() {
         .oo()
         .array(|arr| arr.entry(0).entry(1))
         .tuple(|tup| tup._0()._1())
-        .map(|map| map.entry([0x2222222222222222; 4]))
-        .map(|map| map.entry([0x3333333333333333; 4]))
+        .bmap(|bmap| bmap.entry([0x2222222222222222; 4]))
+        .bmap(|bmap| bmap.entry([0x3333333333333333; 4]))
         .into();
 
     // Check keys match the mutation keys.

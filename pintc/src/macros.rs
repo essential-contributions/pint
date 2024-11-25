@@ -177,7 +177,7 @@ pub(crate) fn splice_args(
                 }
             } else {
                 handler.emit_internal_err(
-                    "type is array but failed to get range expr.".to_string(),
+                    "type is array but failed to get range expr.",
                     Span::new(call.span.context(), range),
                 );
             }

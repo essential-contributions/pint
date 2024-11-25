@@ -4,14 +4,14 @@ use ::lib::ERC20_1;
 storage {
     x: int,
     y: bool,
-    map: (int => (int => b256)),
+    m: (int => (int => b256)),
 }
 
 interface ERC20_0 {
     storage {
         x: int,
         y: bool,
-        map: (int => (int => b256)),
+        m: (int => (int => b256)),
     }
 }
 
@@ -22,19 +22,19 @@ predicate Foo() {
 
     let internal_x = storage::x;
     let internal_y = storage::y;
-    let internal_map = storage::map[3][4];
+    let internal_map = storage::m[3][4];
 
     let external_x_0 = ::ERC20_0@[addr0]::storage::x;
     let external_y_0 = ERC20_0@[addr0]::storage::y;
-    let external_map_0 = ERC20_0@[addr0]::storage::map[3][4];
+    let external_map_0 = ERC20_0@[addr0]::storage::m[3][4];
 
     let external_x_1 = ERC20_1@[addr1]::storage::x;
     let external_y_1 = ERC20_1@[addr1]::storage::y;
-    let external_map_1 = ERC20_1@[addr1]::storage::map[3][4];
+    let external_map_1 = ERC20_1@[addr1]::storage::m[3][4];
 
     let external_x_2 = lib::ERC20_2@[addr2]::storage::x;
     let external_y_2 = lib::ERC20_2@[addr2]::storage::y;
-    let external_map_2 = lib::ERC20_2@[addr2]::storage::map[3][4];
+    let external_map_2 = lib::ERC20_2@[addr2]::storage::m[3][4];
 }
 
 predicate Bar() {
@@ -44,49 +44,49 @@ predicate Bar() {
 
     let internal_x = storage::x;
     let internal_y = storage::y;
-    let internal_map = storage::map[3][4];
+    let internal_map = storage::m[3][4];
 
     let external_x_0 = ::ERC20_0@[addr0]::storage::x;
     let external_y_0 = ERC20_0@[addr0]::storage::y;
-    let external_map_0 = ERC20_0@[addr0]::storage::map[3][4];
+    let external_map_0 = ERC20_0@[addr0]::storage::m[3][4];
 
     let external_x_1 = ::lib::ERC20_1@[addr1]::storage::x;
     let external_y_1 = ::lib::ERC20_1@[addr1]::storage::y;
-    let external_map_1 = ::lib::ERC20_1@[addr1]::storage::map[3][4];
+    let external_map_1 = ::lib::ERC20_1@[addr1]::storage::m[3][4];
 
     let external_x_2 = ERC20_2@[addr2]::storage::x;
     let external_y_2 = ERC20_2@[addr2]::storage::y;
-    let external_map_2 = ERC20_2@[addr2]::storage::map[3][4];
+    let external_map_2 = ERC20_2@[addr2]::storage::m[3][4];
 }
 
 // parsed <<<
 // storage {
 //     x: int,
 //     y: bool,
-//     map: ( int => ( int => b256 ) ),
+//     m: ( int => ( int => b256 ) ),
 // }
 // interface ::ERC20_0 {
 //     storage {
 //         x: int,
 //         y: bool,
-//         map: ( int => ( int => b256 ) ),
+//         m: ( int => ( int => b256 ) ),
 //     }
 // }
 // interface ::lib::ERC20_1 {
 //     storage {
 //         x: int,
 //         y: bool,
-//         map: ( int => ( int => b256 ) ),
+//         m: ( int => ( int => b256 ) ),
 //     }
 // }
 // interface ::lib::ERC20_2 {
 //     storage {
 //         x: int,
 //         y: bool,
-//         map: ( int => ( int => b256 ) ),
+//         m: ( int => ( int => b256 ) ),
 //     }
 // }
-// 
+//
 // predicate ::Foo(
 // ) {
 //     let ::addr0 = 0x0000000000000000000000000000000000000000000000000000000000000000;
@@ -94,18 +94,18 @@ predicate Bar() {
 //     let ::addr2 = 0x2222222222222222222222222222222222222222222222222222222222222222;
 //     let ::internal_x = storage::x;
 //     let ::internal_y = storage::y;
-//     let ::internal_map = storage::map[3][4];
+//     let ::internal_map = storage::m[3][4];
 //     let ::external_x_0 = ::ERC20_0@[::addr0]::storage::x;
 //     let ::external_y_0 = ::ERC20_0@[::addr0]::storage::y;
-//     let ::external_map_0 = ::ERC20_0@[::addr0]::storage::map[3][4];
+//     let ::external_map_0 = ::ERC20_0@[::addr0]::storage::m[3][4];
 //     let ::external_x_1 = ::lib::ERC20_1@[::addr1]::storage::x;
 //     let ::external_y_1 = ::lib::ERC20_1@[::addr1]::storage::y;
-//     let ::external_map_1 = ::lib::ERC20_1@[::addr1]::storage::map[3][4];
+//     let ::external_map_1 = ::lib::ERC20_1@[::addr1]::storage::m[3][4];
 //     let ::external_x_2 = ::lib::ERC20_2@[::addr2]::storage::x;
 //     let ::external_y_2 = ::lib::ERC20_2@[::addr2]::storage::y;
-//     let ::external_map_2 = ::lib::ERC20_2@[::addr2]::storage::map[3][4];
+//     let ::external_map_2 = ::lib::ERC20_2@[::addr2]::storage::m[3][4];
 // }
-// 
+//
 // predicate ::Bar(
 // ) {
 //     let ::addr0 = 0x0000000000000000000000000000000000000000000000000000000000000000;
@@ -113,16 +113,16 @@ predicate Bar() {
 //     let ::addr2 = 0x2222222222222222222222222222222222222222222222222222222222222222;
 //     let ::internal_x = storage::x;
 //     let ::internal_y = storage::y;
-//     let ::internal_map = storage::map[3][4];
+//     let ::internal_map = storage::m[3][4];
 //     let ::external_x_0 = ::ERC20_0@[::addr0]::storage::x;
 //     let ::external_y_0 = ::ERC20_0@[::addr0]::storage::y;
-//     let ::external_map_0 = ::ERC20_0@[::addr0]::storage::map[3][4];
+//     let ::external_map_0 = ::ERC20_0@[::addr0]::storage::m[3][4];
 //     let ::external_x_1 = ::lib::ERC20_1@[::addr1]::storage::x;
 //     let ::external_y_1 = ::lib::ERC20_1@[::addr1]::storage::y;
-//     let ::external_map_1 = ::lib::ERC20_1@[::addr1]::storage::map[3][4];
+//     let ::external_map_1 = ::lib::ERC20_1@[::addr1]::storage::m[3][4];
 //     let ::external_x_2 = ::lib::ERC20_2@[::addr2]::storage::x;
 //     let ::external_y_2 = ::lib::ERC20_2@[::addr2]::storage::y;
-//     let ::external_map_2 = ::lib::ERC20_2@[::addr2]::storage::map[3][4];
+//     let ::external_map_2 = ::lib::ERC20_2@[::addr2]::storage::m[3][4];
 // }
 // >>>
 
@@ -130,30 +130,30 @@ predicate Bar() {
 // storage {
 //     x: int,
 //     y: bool,
-//     map: ( int => ( int => b256 ) ),
+//     m: ( int => ( int => b256 ) ),
 // }
 // interface ::ERC20_0 {
 //     storage {
 //         x: int,
 //         y: bool,
-//         map: ( int => ( int => b256 ) ),
+//         m: ( int => ( int => b256 ) ),
 //     }
 // }
 // interface ::lib::ERC20_1 {
 //     storage {
 //         x: int,
 //         y: bool,
-//         map: ( int => ( int => b256 ) ),
+//         m: ( int => ( int => b256 ) ),
 //     }
 // }
 // interface ::lib::ERC20_2 {
 //     storage {
 //         x: int,
 //         y: bool,
-//         map: ( int => ( int => b256 ) ),
+//         m: ( int => ( int => b256 ) ),
 //     }
 // }
-// 
+//
 // predicate ::Foo(
 // ) {
 //     let ::addr0: b256 = 0x0000000000000000000000000000000000000000000000000000000000000000;
@@ -173,7 +173,7 @@ predicate Bar() {
 //     let ::external_map_2: b256 = __storage_get_extern(::addr2, {2, 3, 4});
 //     constraint __eq_set(__mut_keys(), {0});
 // }
-// 
+//
 // predicate ::Bar(
 // ) {
 //     let ::addr0: b256 = 0x0000000000000000000000000000000000000000000000000000000000000000;

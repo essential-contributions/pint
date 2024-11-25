@@ -123,6 +123,12 @@ pub enum Expr {
         body: ExprKey,
         span: Span,
     },
+    Map {
+        param: Ident,
+        range: ExprKey,
+        body: ExprKey,
+        span: Span,
+    },
     UnionTag {
         union_expr: ExprKey,
         span: Span,
@@ -327,6 +333,7 @@ impl Spanned for Expr {
             | Expr::In { span, .. }
             | Expr::Generator { span, .. }
             | Expr::Range { span, .. }
+            | Expr::Map { span, .. }
             | Expr::UnionTag { span, .. }
             | Expr::UnionValue { span, .. } => span,
         }
@@ -437,6 +444,11 @@ impl Expr {
             } => {
                 gen_ranges.iter_mut().for_each(|(_, expr)| replace(expr));
                 conditions.iter_mut().for_each(&mut replace);
+                replace(body);
+            }
+
+            Expr::Map { range, body, .. } => {
+                replace(range);
                 replace(body);
             }
 

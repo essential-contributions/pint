@@ -175,7 +175,7 @@ fn unroll_generator(
                     Immediate::Bool(true) => {}
                     _ => {
                         return Err(handler.emit_internal_err(
-                            "type error: boolean expression expected".to_string(),
+                            "type error: boolean expression expected",
                             empty_span(),
                         ))
                     }
