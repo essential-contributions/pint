@@ -33,7 +33,7 @@ predicate Foo() {
 //     vec: b256[],
 //     m: ( int => {b256, int} ),
 // }
-//
+// 
 // predicate ::Foo(
 // ) {
 //     let ::x = mut storage::x;
@@ -59,7 +59,7 @@ predicate Foo() {
 //     vec: b256[],
 //     m: ( int => {b256, int} ),
 // }
-//
+// 
 // predicate ::Foo(
 // ) {
 //     let ::x: int = __storage_get({0});

@@ -45,7 +45,7 @@ predicate Test(f: int, g: int, h: bool) {
 //     tup: {int, int},
 //     bmap: ( int => bool ),
 // }
-//
+// 
 // predicate ::Test(
 //     ::f: int,
 //     ::g: int,
@@ -81,7 +81,7 @@ predicate Test(f: int, g: int, h: bool) {
 //     tup: {int, int},
 //     bmap: ( int => bool ),
 // }
-//
+// 
 // predicate ::Test(
 //     ::f: int,
 //     ::g: int,
@@ -118,7 +118,7 @@ predicate Test(f: int, g: int, h: bool) {
 //     tup: {int, int},
 //     bmap: ( int => bool ),
 // }
-//
+// 
 // predicate ::Test(
 //     ::f: int,
 //     ::g: int,

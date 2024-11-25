@@ -15,9 +15,7 @@ pub(crate) fn const_folding(handler: &Handler, contract: &mut Contract) {
     // This is an unbound loop which breaks if when there are no more consts to fold.
     // It will also break after a gazillion iterations in case of an infinite loop bug.
     for loop_count in 0.. {
-        if !fold_consts(contract) && !fold_identities(contract)
-        //  && !fold_const_lets(contract)
-        {
+        if !fold_consts(contract) && !fold_identities(contract) {
             break;
         }
 
@@ -37,6 +35,8 @@ pub(crate) fn const_folding(handler: &Handler, contract: &mut Contract) {
 /// 1 + 2 < 4 is true
 /// 1 + ::x is 6 where ::x is 5
 /// // TODO - ian - open issue to return address with pintc instead of just pint cli. And assign to self next.
+/// // TODO - cleanup? Might be unwraps and stuff that need to be handled
+/// // TODO - ian open issue about folding let x = 5, let y = storage::y + x; let z = storage::y + x + z (currently not folding x and z)
 ///
 // new solution structure has hardcoded addresses. When I change the optimization, the bytecode for some tests may change and I'll get an error. Need to go build the pint code contract again and update each address
 // mindless but easy
@@ -49,7 +49,7 @@ pub(crate) fn fold_consts(contract: &mut Contract) -> bool {
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         // Create a map of variables that were declared as immediates for folding later
         for var in contract.preds.get(pred_key).unwrap().variables() {
-            let expr = var.1.expr.get(&contract);
+            let expr = var.1.expr.get(contract);
             if let Expr::Immediate { value, .. } = expr {
                 scope_values.insert(var.1.name.clone(), value.clone());
             }

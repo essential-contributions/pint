@@ -86,7 +86,7 @@ predicate Bar() {
 //         m: ( int => ( int => b256 ) ),
 //     }
 // }
-//
+// 
 // predicate ::Foo(
 // ) {
 //     let ::addr0 = 0x0000000000000000000000000000000000000000000000000000000000000000;
@@ -105,7 +105,7 @@ predicate Bar() {
 //     let ::external_y_2 = ::lib::ERC20_2@[::addr2]::storage::y;
 //     let ::external_map_2 = ::lib::ERC20_2@[::addr2]::storage::m[3][4];
 // }
-//
+// 
 // predicate ::Bar(
 // ) {
 //     let ::addr0 = 0x0000000000000000000000000000000000000000000000000000000000000000;
@@ -153,7 +153,7 @@ predicate Bar() {
 //         m: ( int => ( int => b256 ) ),
 //     }
 // }
-//
+// 
 // predicate ::Foo(
 // ) {
 //     let ::addr0: b256 = 0x0000000000000000000000000000000000000000000000000000000000000000;
@@ -173,7 +173,7 @@ predicate Bar() {
 //     let ::external_map_2: b256 = __storage_get_extern(::addr2, {2, 3, 4});
 //     constraint __eq_set(__mut_keys(), {0});
 // }
-//
+// 
 // predicate ::Bar(
 // ) {
 //     let ::addr0: b256 = 0x0000000000000000000000000000000000000000000000000000000000000000;
