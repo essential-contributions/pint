@@ -35,16 +35,17 @@ pub(crate) fn const_folding(handler: &Handler, contract: &mut Contract) {
 /// 1 + 2 < 4 is true
 /// 1 + ::x is 6 where ::x is 5
 pub(crate) fn fold_consts(contract: &mut Contract) -> bool {
-    let mut scope_values: FxHashMap<String, Immediate> = FxHashMap::default();
-    let mut expr_keys_to_replace: FxHashMap<ExprKey, (Expr, Type)> = FxHashMap::default();
     let mut did_fold_const: bool = false;
 
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
+        let mut expr_keys_to_replace: FxHashMap<ExprKey, (Expr, Type)> = FxHashMap::default();
+        let mut scope_values: FxHashMap<String, Immediate> = FxHashMap::default();
+
         // Create a map of variables that were declared as immediates for folding later
         if let Some(pred) = contract.preds.get(pred_key) {
             for (_, var) in pred.variables() {
                 if let Expr::Immediate { value, .. } = var.expr.get(contract) {
-                    scope_values.insert(var.1.name.clone(), value.clone());
+                    scope_values.insert(var.name.clone(), value.clone());
                 }
             }
         }
@@ -80,8 +81,6 @@ pub(crate) fn fold_consts(contract: &mut Contract) -> bool {
         if !expr_keys_to_replace.is_empty() {
             did_fold_const = true;
         }
-        expr_keys_to_replace = FxHashMap::default();
-        scope_values = FxHashMap::default();
     }
 
     did_fold_const
