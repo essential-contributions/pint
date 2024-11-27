@@ -13,7 +13,7 @@ use crate::{
 use fxhash::FxHashSet;
 
 impl Contract {
-    pub(super) fn type_check_single_expr(
+    pub(crate) fn type_check_single_expr(
         &mut self,
         handler: &Handler,
         pred_key: Option<PredKey>,

@@ -292,14 +292,15 @@ fn exprs() {
         ],
     );
     // forall
-    let src = "predicate test(k: int) { 
-    constraint forall i in 0..3, j in 0..3 where !(i >= j), i - 1 >= 0 && j > 0 { !(i - j < k) }; }";
+    let src = "predicate test(k: int) { \
+                   constraint forall i in 0..3, j in 0..3 where !(i >= j), i - 1 >= 0 && j > 0 { \
+                       !(i - j < k) }; \
+                   }";
     check(
         &run_test(src),
-        expect_test::expect![[r#"
-            compiler internal error: forall generator present in final predicate exprs slotmap
-            compiler internal error: range present in final predicate exprs slotmap
-            compiler internal error: range present in final predicate exprs slotmap"#]],
+        expect_test::expect![
+            "compiler internal error: forall generator present in final predicate exprs slotmap"
+        ],
     );
     // exists
     let src = "predicate test(a: int[2][2]) {
@@ -308,10 +309,9 @@ fn exprs() {
     };}";
     check(
         &run_test(src),
-        expect_test::expect![[r#"
-            compiler internal error: exists generator present in final predicate exprs slotmap
-            compiler internal error: range present in final predicate exprs slotmap
-            compiler internal error: range present in final predicate exprs slotmap"#]],
+        expect_test::expect![
+            "compiler internal error: exists generator present in final predicate exprs slotmap"
+        ],
     );
 }
 
@@ -337,11 +337,10 @@ fn variables() {
     validate(&handler, &mut contract);
     check(
         &error::Errors(handler.consume().0).to_string(),
-        expect_test::expect![[r#"
-            compiler internal error: Unknown expr type found invalid predicate expr_types slotmap key
-            compiler internal error: unknown type present in final predicate expr_types slotmap
-            compiler internal error: error expression present in final predicate exprs slotmap
-            compiler internal error: final predicate variable_types slotmap is missing corresponding key from variables slotmap"#]],
+        expect_test::expect![
+            "compiler internal error: \
+                Unknown expr type found invalid predicate expr_types slotmap key"
+        ],
     );
 }
 
@@ -368,8 +367,10 @@ fn vars() {
     validate(&handler, &mut contract);
     check(
         &error::Errors(handler.consume().0).to_string(),
-        expect_test::expect![[r#"
-            compiler internal error: final predicate var_types slotmap is missing corresponding key from vars slotmap"#]],
+        expect_test::expect![
+            "compiler internal error: \
+                final predicate var_types slotmap is missing corresponding key from vars slotmap"
+        ],
     );
 }
 

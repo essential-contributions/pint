@@ -44,16 +44,10 @@ predicate Simple(addr: b256) {
 // operator invalid type error
 // @181..189: invalid non-numeric type `bool` for operator `+`
 // address expression type error
-// @181..189: address expression has unexpected type `int`
-// @181..189: expecting type `b256`
-// address expression type error
 // @294..300: address expression has unexpected type `{int, int}`
 // @294..300: expecting type `b256`
 // operator invalid type error
 // @417..425: invalid non-numeric type `bool` for operator `+`
-// address expression type error
-// @417..425: address expression has unexpected type `int`
-// @417..425: expecting type `b256`
 // address expression type error
 // @530..535: address expression has unexpected type `bool`
 // @530..535: expecting type `b256`

@@ -73,6 +73,25 @@ impl Handler {
         self.inner.borrow_mut().warnings.clear();
     }
 
+    pub fn remove_internal(&self, always_remove: bool) {
+        // Only remove the internal errors if there are other errors in the mix also. Otherwise we
+        // may get a semi-false negative for .has_errors() later.
+        let has_non_internals = !always_remove
+            && self
+                .inner
+                .borrow()
+                .errors
+                .iter()
+                .any(|err| !matches!(err, Error::Internal { .. }));
+
+        if always_remove || has_non_internals {
+            self.inner
+                .borrow_mut()
+                .errors
+                .retain(|err| !matches!(err, Error::Internal { .. }));
+        }
+    }
+
     pub fn scope<T>(
         &self,
         f: impl FnOnce(&Handler) -> Result<T, ErrorEmitted>,
@@ -91,8 +110,26 @@ impl Handler {
     }
 
     pub fn consume(self) -> (Vec<Error>, Vec<Warning>) {
-        let inner = self.inner.into_inner();
-        (inner.errors, inner.warnings)
+        use super::Spanned;
+
+        let HandlerInner {
+            mut errors,
+            mut warnings,
+        } = self.inner.into_inner();
+
+        let mut seen_errors = fxhash::FxHashSet::default();
+        errors.retain(|err| {
+            let sig = err.span().clone();
+            seen_errors.insert(sig)
+        });
+
+        let mut seen_warnings = fxhash::FxHashSet::default();
+        warnings.retain(|warn| {
+            let sig = warn.span().clone();
+            seen_warnings.insert(sig)
+        });
+
+        (errors, warnings)
     }
 
     pub fn append(&self, other: Handler) {

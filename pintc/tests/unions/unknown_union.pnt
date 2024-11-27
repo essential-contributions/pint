@@ -53,8 +53,6 @@ predicate test(
 // @337..352: union variant `::known::good` should not bind a value
 // missing union variant value
 // @405..418: union variant `better` requires a value of type `int`
-// cannot find value `::known::better` in this scope
-// @405..418: not found in this scope
 // union variant type mismatch
 // @491..495: expecting type `int`, found `bool`
 // >>>

@@ -1,0 +1,49 @@
+// Const decls which have no decl type but have an inconsistent initialiser type.  They should
+// produce type errors and never attempt to evaluate.
+
+const a = true in 2..3;
+const b = [11, true];
+
+union u = one | two(int);
+const c = u::two(false);
+
+const d = 33 + false;
+const e = 44 ? 55 : 66;
+
+const x = [true, true];
+const f = x[false];
+
+predicate test() { }
+
+// parsed <<<
+// const ::f = ::x[false];
+// const ::b = [11, true];
+// const ::x = [true, true];
+// const ::e = (44 ? 55 : 66);
+// const ::d = (33 + false);
+// const ::a = true in 2..3;
+// const ::c = ::u::two(false);
+// union ::u = one | two(int);
+//
+// predicate ::test(
+// ) {
+// }
+// >>>
+
+// typecheck_failure <<<
+// indexed expression invalid
+// @330..338: value must be an array or a storage map; found `Error`
+// array element type mismatch
+// @189..193: array element has type `bool`
+// expecting array element type `int`
+// condition for select expression must be a `bool`
+// @281..283: invalid type `int`, expecting `bool`
+// operator invalid type error
+// @259..269: invalid non-numeric type `bool` for operator `+`
+// value type and range type differ
+// @168..169: range type mismatch; expecting `bool` type, found `int` type
+// union variant type mismatch
+// @240..245: expecting type `int`, found `bool`
+// condition for select expression must be a `bool`
+// @281..293: invalid type `int`, expecting `bool`
+// >>>

@@ -124,10 +124,6 @@ predicate test(a2: Undefined, b2: Undefined, a: int, b: Foo, d: Baz) {
 // @330..339: type is undefined
 // undefined type
 // @350..359: type is undefined
-// type not allowed in storage
-// @17..26: found type ::Undefined in storage
-// type not allowed in storage
-// @35..44: found type ::Undefined in storage
 // invalid cast
 // @557..572: illegal cast to `::Undefined`
 // casts may only be made to `int`
