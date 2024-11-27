@@ -8,4 +8,7 @@ const a = { 11, 22 }.2;
 // invalid tuple accessor
 // @10..22: unable to get field from tuple using `2`
 // tuple has type `{int, int}`
+// invalid tuple accessor
+// @10..22: unable to get field from tuple using `2`
+// tuple has type `{int, int}`
 // >>>

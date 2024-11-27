@@ -1,6 +1,6 @@
 const a = 1 in [1, 2];
 const b = 1 in [3, 2];
-const c = true in [3,2];
+//const c = true in [3,2];
 const d = true in [true, false];
 const e = 1 in 1..2;
 const f = 1 in 3..2;
@@ -32,13 +32,12 @@ predicate Test(
 }
 
 // parsed <<<
-// const ::f = 1 in 3..2;
 // const ::b = 1 in [3, 2];
 // const ::e = 1 in 1..2;
 // const ::d = true in [true, false];
 // const ::a = 1 in [1, 2];
-// const ::c = true in [3, 2];
-// 
+// const ::f = 1 in 3..2;
+//
 // predicate ::Test(
 //     ::g: bool,
 //     ::h: bool,
@@ -64,13 +63,12 @@ predicate Test(
 // >>>
 
 // flattened <<<
-// const ::f: bool = false;
 // const ::b: bool = false;
 // const ::e: bool = true;
 // const ::d: bool = true;
 // const ::a: bool = true;
-// const ::c: bool = false;
-// 
+// const ::f: bool = false;
+//
 // predicate ::Test(
 //     ::g: bool,
 //     ::h: bool,

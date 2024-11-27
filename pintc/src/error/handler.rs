@@ -73,6 +73,25 @@ impl Handler {
         self.inner.borrow_mut().warnings.clear();
     }
 
+    pub fn remove_internal(&self, always_remove: bool) {
+        // Only remove the internal errors if there are other errors in the mix also. Otherwise we
+        // may get a semi-false negative for .has_errors() later.
+        let has_non_internals = !always_remove
+            && self
+                .inner
+                .borrow()
+                .errors
+                .iter()
+                .any(|err| !matches!(err, Error::Internal { .. }));
+
+        if always_remove || has_non_internals {
+            self.inner
+                .borrow_mut()
+                .errors
+                .retain(|err| !matches!(err, Error::Internal { .. }));
+        }
+    }
+
     pub fn scope<T>(
         &self,
         f: impl FnOnce(&Handler) -> Result<T, ErrorEmitted>,
