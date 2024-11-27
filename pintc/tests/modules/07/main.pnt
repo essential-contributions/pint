@@ -26,7 +26,4 @@ predicate test() {
 // multiple source files found for module
 // @146..153: multiple source files found for module b
 // both the files `tests/modules/07/b.pnt` and `tests/modules/07/b/b.pnt` exist, where only one or the other is allowed
-// no file found for path
-// @146..153: failed to resolve path b::c::d
-// one of the modules `b::c` or `b` must exist
 // >>>

@@ -1,6 +1,6 @@
 use std::{fmt, ops::Range, path::Path, sync::Arc};
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Span {
     pub(super) context: Arc<Path>,
     pub(super) range: Range<usize>,

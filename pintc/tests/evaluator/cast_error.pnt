@@ -18,13 +18,4 @@ const c = 44 as bool;
 // invalid cast
 // @60..70: illegal cast to `bool`
 // casts may only be made to `int`
-// invalid cast
-// @33..48: illegal cast from `int[2]`
-// casts may only be made from `bool`s,`int`s, and enumeration unions to `int`
-// invalid cast
-// @10..21: illegal cast from `{int}`
-// casts may only be made from `bool`s,`int`s, and enumeration unions to `int`
-// invalid cast
-// @60..70: illegal cast from `int`
-// casts may only be made from `bool`s,`int`s, and enumeration unions to `int`
 // >>>

@@ -17,8 +17,6 @@ predicate test(a: Ambiguous) {
 // typecheck_failure <<<
 // undefined type
 // @17..33: type is undefined
-// undefined type
-// @17..33: type is undefined
 // cannot find value `::Ambiguous::MissingVariant` in this scope
 // @87..112: not found in this scope
 // >>>

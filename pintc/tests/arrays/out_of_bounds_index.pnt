@@ -25,6 +25,4 @@ predicate test(b: int[4]) {
 // @100..101: array index is out of bounds
 // attempt to access array with out of bounds index
 // @74..75: array index is out of bounds
-// attempt to use an invalid constant as an array length
-// @127..145: this must be a strictly positive integer value
 // >>>
