@@ -42,9 +42,8 @@ pub(crate) fn fold_consts(contract: &mut Contract) -> bool {
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         // Create a map of variables that were declared as immediates for folding later
         if let Some(pred) = contract.preds.get(pred_key) {
-            for var in pred.variables() {
-                let expr = var.1.expr.get(contract);
-                if let Expr::Immediate { value, .. } = expr {
+            for (_, var) in pred.variables() {
+                if let Expr::Immediate { value, .. } = var.expr.get(contract) {
                     scope_values.insert(var.1.name.clone(), value.clone());
                 }
             }
