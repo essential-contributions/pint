@@ -41,9 +41,9 @@ async fn validation_e2e() -> anyhow::Result<()> {
                 continue;
             }
 
-            /*if !first_line.contains("<enabled>") {
-                continue;
-            }*/
+            //            if !first_line.contains("<enabled>") {
+            //                continue;
+            //            }
         }
 
         println!("Testing {}.", entry.path().display());

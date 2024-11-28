@@ -1249,6 +1249,7 @@ dependencies = [
  "anyhow",
  "ariadne",
  "clap",
+ "either",
  "essential-asm",
  "essential-hash",
  "essential-types",

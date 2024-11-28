@@ -1177,7 +1177,7 @@ PathWithLast<Last>: String = {
 }
 
 StoragePath: Expr = {
-    <l:@L> <mutable: "mut"?> "storage" "::" <name:Ident> <r:@R> => {
+    <l:@L> <mutable: "mut"?> "storage" "::" <name:Ident> <state: "'"?> <r:@R> => {
         let span = (context.span_from)(l, r);
         if !context.mod_path.is_empty() {
             // `storage` blocks in sub-modules are not allowed
@@ -1189,17 +1189,25 @@ StoragePath: Expr = {
             Expr::LocalStorageAccess {
                 name: name.to_string(),
                 mutable: mutable.is_some(),
+                state: match state {
+                    None => State::Pre,
+                    Some(_) => State::Post,
+                },
                 span,
             }
         }
     },
 
     <l:@L> <interface: Path> "@" "[" <address: Expr> "]"
-        "::" "storage" "::" <name:Ident> <r:@R> => {
+        "::" "storage" "::" <name:Ident> <state: "'"?> <r:@R> => {
         Expr::ExternalStorageAccess {
             interface,
             address,
             name: name.to_string(),
+            state: match state {
+                None => State::Pre,
+                Some(_) => State::Post,
+            },
             span: (context.span_from)(l, r),
         }
     },

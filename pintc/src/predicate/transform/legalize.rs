@@ -1,6 +1,6 @@
 use crate::{
     error::{ErrorEmitted, Handler},
-    expr::{BinaryOp, Expr, ExternalIntrinsic, IntrinsicKind, UnaryOp},
+    expr::{BinaryOp, Expr, ExternalIntrinsic, IntrinsicKind, State, UnaryOp},
     predicate::{ConstraintDecl, Contract, ExprKey, PredKey, Variable},
     span::empty_span,
     types::{PrimitiveKind, Type},
@@ -134,6 +134,7 @@ pub(crate) fn legalize_vector_accesses_in_predicate(
                 Expr::LocalStorageAccess {
                     name: storage_vec_name.clone(),
                     mutable: false,
+                    state: State::Pre,
                     span: empty_span(),
                 },
                 storage_access_ty.clone(),

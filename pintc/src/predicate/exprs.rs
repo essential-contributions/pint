@@ -156,7 +156,10 @@ impl ExprKey {
                 matches!(
                     kind.0,
                     IntrinsicKind::Internal(
-                        InternalIntrinsic::StorageGet | InternalIntrinsic::StorageGetExtern
+                        InternalIntrinsic::PreState
+                            | InternalIntrinsic::PreStateExtern
+                            | InternalIntrinsic::PostState
+                            | InternalIntrinsic::PostStateExtern
                     ) | IntrinsicKind::External(ExternalIntrinsic::VecLen)
                 ) || args.iter().any(|arg| arg.can_panic(contract, pred))
             }
@@ -300,7 +303,10 @@ impl ExprKey {
                     if let (
                         IntrinsicKind::External(ExternalIntrinsic::VecLen)
                         | IntrinsicKind::Internal(
-                            InternalIntrinsic::StorageGet | InternalIntrinsic::StorageGetExtern,
+                            InternalIntrinsic::PreState
+                            | InternalIntrinsic::PreStateExtern
+                            | InternalIntrinsic::PostState
+                            | InternalIntrinsic::PostStateExtern,
                         ),
                         _,
                     ) = kind

@@ -9,7 +9,7 @@ use std::{
 use thiserror::Error;
 
 // A test `StateRead` implementation represented using a map.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct State(BTreeMap<ContentAddress, BTreeMap<Key, Vec<Word>>>);
 
 #[derive(Debug, Error)]

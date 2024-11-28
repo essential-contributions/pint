@@ -33,7 +33,7 @@ predicate Simple(
     let external_1 
         = Foo@[0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE]::storage::y; // 69
 
-    constraint w == x + 99; // 141
+    constraint w == storage::x + 99; // 141
     constraint u == y * 3;  // 129
     constraint v == z * z;  // 1936
     constraint e_old == external_1;
@@ -42,10 +42,13 @@ predicate Simple(
     constraint forall i in 0..4 {
         a[i] == i*i
     };
-    constraint x' - x == 1; // x' == 43
-    constraint y' == y + 4; // y' == 47
-    constraint x' + y' > 89 && x' * y' > 1932;
+    constraint storage::x' - storage::x == 1; // x' == 43
+    constraint storage::y' == storage::y + 4; // y' == 47
+    constraint x' + y' > 89 && storage::x' * y' > 1932;
     constraint x < y;
     constraint w + u + v == 2206;
     constraint external_1' - external_1 == 1;
+    constraint 
+        Foo@[0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE]::storage::y'
+      - Foo@[0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE]::storage::y == 1;
 }

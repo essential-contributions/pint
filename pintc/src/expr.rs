@@ -37,12 +37,14 @@ pub enum Expr {
     LocalStorageAccess {
         name: String,
         mutable: bool,
+        state: State,
         span: Span,
     },
     ExternalStorageAccess {
         interface: String,
         address: ExprKey,
         name: String,
+        state: State,
         span: Span,
     },
     UnaryOp {
@@ -138,6 +140,21 @@ pub enum Expr {
         variant_ty: Type,
         span: Span,
     },
+}
+
+#[derive(Clone, Debug, Default)]
+pub enum State {
+    /// State prior to mutations.
+    #[default]
+    Pre = 0,
+    /// State post mutations.
+    Post,
+}
+
+impl State {
+    pub fn is_post(&self) -> bool {
+        matches!(self, Self::Post)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
