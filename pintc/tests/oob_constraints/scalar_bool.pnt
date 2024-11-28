@@ -1,0 +1,24 @@
+predicate test(flag: bool, switch: bool) {
+    constraint flag && !switch;
+}
+
+// parsed <<<
+// predicate ::test(
+//     ::flag: bool,
+//     ::switch: bool,
+// ) {
+//     constraint (::flag && !::switch);
+// }
+// >>>
+
+// flattened <<<
+// predicate ::test(
+//     ::flag: bool,
+//     ::switch: bool,
+// ) {
+//     constraint (::flag && !::switch);
+//     constraint ((::flag == 0) || (::flag == 1));
+//     constraint ((::switch == 0) || (::switch == 1));
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>

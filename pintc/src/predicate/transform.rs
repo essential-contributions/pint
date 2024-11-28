@@ -1,3 +1,4 @@
+mod implicit_constraints;
 mod legalize;
 mod lower;
 mod unroll;
@@ -15,6 +16,13 @@ use validate::validate;
 
 impl super::Contract {
     pub fn flatten(mut self, handler: &Handler) -> Result<Self, ErrorEmitted> {
+        // Add validation constraints for predicate parameters where possible.  This isn't so much
+        // of a transform as an analysis.  But it's adding new constraints to the contract so it
+        // _is_ transforming... Perhaps we need a stage between type-checking/analysis and
+        // transform/flattening.  Either way it should go at the top here because the constaints
+        // may introduce expressions which need to be flattened.
+        implicit_constraints::constrain_params(&mut self);
+
         // Transform each `match` declaration into equivalent `if` declarations, which are then
         // lowered along with user defined `if` declarations next.  Also transform `match`
         // expressions into equivalent `select` expressions, with any inner constraints

@@ -324,6 +324,7 @@ mod e2e {
     e2e_test!(loops);
     e2e_test!(macros);
     e2e_test!(modules);
+    e2e_test!(oob_constraints);
     e2e_test!(optimizations);
     e2e_test!(regression);
     e2e_test!(root_types);

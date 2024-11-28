@@ -43,6 +43,7 @@ predicate B(b: bool) {
 //     ::b: bool,
 // ) {
 //     constraint (::b == (11 < 22));
+//     constraint ((::b == 0) || (::b == 1));
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

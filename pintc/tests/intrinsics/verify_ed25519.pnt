@@ -104,6 +104,16 @@ predicate test(
 //     constraint (::verify_ed25519_7 == __verify_ed25519(::a[1], ::sig, ::hash2));
 //     constraint (::verify_ed25519_8 == __verify_ed25519(::a[1][2], ::sig, ::hash2));
 //     constraint (::verify_ed25519_9 == __verify_ed25519(::a[1][2][3], ::sig, ::hash2));
+//     constraint ((::verify_ed25519_0 == 0) || (::verify_ed25519_0 == 1));
+//     constraint ((::verify_ed25519_1 == 0) || (::verify_ed25519_1 == 1));
+//     constraint ((::verify_ed25519_2 == 0) || (::verify_ed25519_2 == 1));
+//     constraint ((::verify_ed25519_3 == 0) || (::verify_ed25519_3 == 1));
+//     constraint ((::verify_ed25519_4 == 0) || (::verify_ed25519_4 == 1));
+//     constraint ((::verify_ed25519_5 == 0) || (::verify_ed25519_5 == 1));
+//     constraint ((::verify_ed25519_6 == 0) || (::verify_ed25519_6 == 1));
+//     constraint ((::verify_ed25519_7 == 0) || (::verify_ed25519_7 == 1));
+//     constraint ((::verify_ed25519_8 == 0) || (::verify_ed25519_8 == 1));
+//     constraint ((::verify_ed25519_9 == 0) || (::verify_ed25519_9 == 1));
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

@@ -89,7 +89,7 @@ async fn validation_e2e() -> anyhow::Result<()> {
             &compiled_contract.salt,
         );
 
-        // Prase the solution JSON
+        // Parse the solution JSON
         let solution_file_name = path.with_extension("solution.json");
         let Ok(solution_str_from_file) = std::fs::read_to_string(solution_file_name.clone()) else {
             anyhow::bail!(

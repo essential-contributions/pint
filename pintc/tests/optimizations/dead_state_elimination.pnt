@@ -107,6 +107,7 @@ predicate Test(f: int, g: int, h: bool) {
 //     constraint (::f == (::b + ::c[0]));
 //     constraint (::g == (::d.1 + ::d_0));
 //     constraint (::h == (::e_1 == ::e_0));
+//     constraint ((::h == 0) || (::h == 1));
 //     constraint __eq_set(__mut_keys(), {{1, 0}, 2, {1, (0 + 1)}, 2, {0}, 1, 8});
 // }
 // >>>
@@ -137,6 +138,7 @@ predicate Test(f: int, g: int, h: bool) {
 //     constraint (::f == (::b + ::c[0]));
 //     constraint (::g == (::d.1 + ::d_0));
 //     constraint (::h == (::e_1 == ::e_0));
+//     constraint ((::h == 0) || (::h == 1));
 //     constraint __eq_set(__mut_keys(), {{1, 0}, 2, {1, 1}, 2, {0}, 1, 8});
 // }
 // >>>
