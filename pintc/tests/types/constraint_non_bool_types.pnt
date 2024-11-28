@@ -10,7 +10,7 @@ predicate test(a: b256) {
 
 // parsed <<<
 // union ::Colour = Red | Green | Blue;
-// 
+//
 // predicate ::test(
 //     ::a: b256,
 // ) {

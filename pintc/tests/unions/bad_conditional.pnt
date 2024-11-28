@@ -8,7 +8,7 @@ predicate test(a: pet) {
 
 // parsed <<<
 // union ::pet = cats(int) | dogs(int) | emu;
-// 
+//
 // predicate ::test(
 //     ::a: ::pet,
 // ) {

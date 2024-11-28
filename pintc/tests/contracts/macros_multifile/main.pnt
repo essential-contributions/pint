@@ -34,7 +34,7 @@ predicate Bar(a: int) {
 //     constraint (4 == 4);
 //     constraint (::a == 3);
 // }
-// 
+//
 // predicate ::Bar(
 //     ::a: int,
 // ) {
@@ -51,7 +51,7 @@ predicate Bar(a: int) {
 //     constraint (::a == 3);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
-// 
+//
 // predicate ::Bar(
 //     ::a: int,
 // ) {

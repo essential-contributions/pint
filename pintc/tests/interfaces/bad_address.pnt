@@ -29,7 +29,7 @@ predicate Simple(addr: b256) {
 //         y: b256,
 //     );
 // }
-// 
+//
 // predicate ::Simple(
 //     ::addr: b256,
 // ) {

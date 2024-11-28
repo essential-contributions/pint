@@ -7,7 +7,7 @@ predicate test(b: int) {
 // parsed <<<
 // const ::a = (::b::x * 11);
 // const ::b::x: int = 22;
-// 
+//
 // predicate ::test(
 //     ::b: int,
 // ) {
@@ -18,7 +18,7 @@ predicate test(b: int) {
 // flattened <<<
 // const ::a: int = 242;
 // const ::b::x: int = 22;
-// 
+//
 // predicate ::test(
 //     ::b: int,
 // ) {

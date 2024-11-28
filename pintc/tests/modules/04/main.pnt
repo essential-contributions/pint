@@ -14,7 +14,7 @@ predicate test(debbie_skill: debbie::Skill, pedro_skill: Skill, kip_skill: kip::
 // union ::Skill = Nunchuck | BowHunting | ComputerHacking;
 // union ::kip::Skill = ChattingOnlineWithBabes | CageFighting;
 // union ::debbie::Skill = GlamourShots | Handicrafts;
-// 
+//
 // predicate ::test(
 //     ::debbie_skill: ::debbie::Skill,
 //     ::pedro_skill: ::Skill,
@@ -30,7 +30,7 @@ predicate test(debbie_skill: debbie::Skill, pedro_skill: Skill, kip_skill: kip::
 // union ::Skill = Nunchuck | BowHunting | ComputerHacking;
 // union ::kip::Skill = ChattingOnlineWithBabes | CageFighting;
 // union ::debbie::Skill = GlamourShots | Handicrafts;
-// 
+//
 // predicate ::test(
 //     ::debbie_skill: ::debbie::Skill,
 //     ::pedro_skill: ::Skill,

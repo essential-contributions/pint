@@ -29,7 +29,7 @@ predicate test(
 // parsed <<<
 // union ::inner = x | y(int) | z;
 // union ::outer = a(::inner) | b(int);
-// 
+//
 // predicate ::test(
 //     ::k: int,
 //     ::l: ::outer,
@@ -62,7 +62,7 @@ predicate test(
 // flattened <<<
 // union ::inner = x | y(int) | z;
 // union ::outer = a(::inner) | b(int);
-// 
+//
 // predicate ::test(
 //     ::k: int,
 //     ::l: ::outer,

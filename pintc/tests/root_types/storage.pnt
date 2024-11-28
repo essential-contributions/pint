@@ -17,7 +17,7 @@ predicate test() {
 // storage {
 //     x: ::ary,
 // }
-// 
+//
 // predicate ::test(
 // ) {
 //     let ::y = storage::x[1];
@@ -31,7 +31,7 @@ predicate test() {
 // storage {
 //     x: int[3],
 // }
-// 
+//
 // predicate ::test(
 // ) {
 //     let ::y: int = __storage_get({0, (0 + (1 * 1))});

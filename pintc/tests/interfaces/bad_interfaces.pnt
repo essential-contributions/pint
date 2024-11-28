@@ -41,7 +41,7 @@ predicate Simple(
 //         y: b256,
 //     );
 // }
-// 
+//
 // predicate ::Simple(
 //     ::addr1: b256,
 //     ::addr2: b256,

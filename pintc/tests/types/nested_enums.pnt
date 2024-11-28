@@ -51,7 +51,7 @@ predicate Foo(
 //         left: ::Father,
 //     );
 // }
-// 
+//
 // predicate ::Foo(
 //     ::bob: {child: {age: int, pet: ::Animal}, pet: ::Animal},
 //     ::friends_pets: ::Animal[3],
@@ -80,7 +80,7 @@ predicate Foo(
 //         left: {child: {age: int, pet: ::Animal}, pet: ::Animal},
 //     );
 // }
-// 
+//
 // predicate ::Foo(
 //     ::bob: {child: {age: int, pet: ::Animal}, pet: ::Animal},
 //     ::friends_pets: ::Animal[3],

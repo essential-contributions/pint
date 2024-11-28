@@ -24,13 +24,13 @@ predicate decl_test(n: number) {
 
 // parsed <<<
 // union ::number = zero | one(int) | more(bool);
-// 
+//
 // predicate ::test(
 //     ::n: ::number,
 // ) {
 //     constraint match ::n { ::number::zero(x) => (::x == 0), ::number::one => true, else => false };
 // }
-// 
+//
 // predicate ::decl_test(
 //     ::n: ::number,
 // ) {

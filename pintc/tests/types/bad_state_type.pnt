@@ -18,7 +18,7 @@ predicate Foo() {
 //     map1: ( int => bool ),
 //     map2: ( int => ( bool => b256 ) ),
 // }
-// 
+//
 // predicate ::Foo(
 // ) {
 //     let ::map1 = storage::map1;

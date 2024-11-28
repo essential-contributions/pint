@@ -10,7 +10,7 @@ predicate Foo() {
 // storage {
 //     x: int,
 // }
-// 
+//
 // predicate ::Foo(
 // ) {
 //     let ::y = storage::y;

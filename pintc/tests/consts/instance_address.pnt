@@ -19,7 +19,7 @@ predicate Q(x: int) {
 //         x: int,
 //     );
 // }
-// 
+//
 // predicate ::Q(
 //     ::x: int,
 // ) {
@@ -36,7 +36,7 @@ predicate Q(x: int) {
 //         x: int,
 //     );
 // }
-// 
+//
 // predicate ::Q(
 //     ::x: int,
 // ) {

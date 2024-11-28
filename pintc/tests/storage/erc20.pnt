@@ -50,7 +50,7 @@ predicate Burn (
 //     balances: ( b256 => int ),
 //     total_supply: int,
 // }
-// 
+//
 // predicate ::Transfer(
 //     ::from: b256,
 //     ::to: b256,
@@ -64,7 +64,7 @@ predicate Burn (
 //     constraint (::from_balance' == (::from_balance - ::value));
 //     constraint (::to_balance' == (::to_balance + ::value));
 // }
-// 
+//
 // predicate ::Mint(
 //     ::account: b256,
 //     ::value: int,
@@ -74,7 +74,7 @@ predicate Burn (
 //     constraint (::total_supply' == (::total_supply + ::value));
 //     constraint (::account_balance' == (::account_balance + ::value));
 // }
-// 
+//
 // predicate ::Burn(
 //     ::account: b256,
 //     ::value: int,
@@ -92,7 +92,7 @@ predicate Burn (
 //     balances: ( b256 => int ),
 //     total_supply: int,
 // }
-// 
+//
 // predicate ::Transfer(
 //     ::from: b256,
 //     ::to: b256,
@@ -107,7 +107,7 @@ predicate Burn (
 //     constraint (::to_balance' == (::to_balance + ::value));
 //     constraint __eq_set(__mut_keys(), {0});
 // }
-// 
+//
 // predicate ::Mint(
 //     ::account: b256,
 //     ::value: int,
@@ -118,7 +118,7 @@ predicate Burn (
 //     constraint (::account_balance' == (::account_balance + ::value));
 //     constraint __eq_set(__mut_keys(), {0});
 // }
-// 
+//
 // predicate ::Burn(
 //     ::account: b256,
 //     ::value: int,

@@ -26,13 +26,13 @@ predicate decl_test(n: number) {
 
 // parsed <<<
 // union ::number = one(bool) | two(int) | three(int[3]);
-// 
+//
 // predicate ::test(
 //     ::n: ::number,
 // ) {
 //     constraint (0 <= match ::n { ::number::one(n) => (::n ? 11 : 22), ::number::two(n) => (::n * ::n), ::number::three(n) => ::n[0] });
 // }
-// 
+//
 // predicate ::decl_test(
 //     ::n: ::number,
 // ) {
@@ -52,14 +52,14 @@ predicate decl_test(n: number) {
 
 // flattened <<<
 // union ::number = one(bool) | two(int) | three(int[3]);
-// 
+//
 // predicate ::test(
 //     ::n: ::number,
 // ) {
 //     constraint (0 <= ((UnTag(::n) == 0) ? (UnVal(::n, bool) ? 11 : 22) : ((UnTag(::n) == 1) ? (UnVal(::n, int) * UnVal(::n, int)) : UnVal(::n, int[3])[0])));
 //     constraint __eq_set(__mut_keys(), {0});
 // }
-// 
+//
 // predicate ::decl_test(
 //     ::n: ::number,
 // ) {

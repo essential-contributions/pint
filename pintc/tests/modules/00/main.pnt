@@ -4,7 +4,7 @@ predicate test(a: int) {
 
 // parsed <<<
 // const ::b::b = 1;
-// 
+//
 // predicate ::test(
 //     ::a: int,
 // ) {
@@ -14,7 +14,7 @@ predicate test(a: int) {
 
 // flattened <<<
 // const ::b::b: int = 1;
-// 
+//
 // predicate ::test(
 //     ::a: int,
 // ) {

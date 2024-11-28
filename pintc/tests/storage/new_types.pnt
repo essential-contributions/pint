@@ -27,7 +27,7 @@ predicate test() {
 //     n: ( bool => ::Count ),
 //     o: ( ::OneOrTheOther => ::Haaash ),
 // }
-// 
+//
 // predicate ::test(
 // ) {
 //     let ::x = storage::m[true];
@@ -48,7 +48,7 @@ predicate test() {
 //     n: ( bool => int ),
 //     o: ( bool => b256 ),
 // }
-// 
+//
 // predicate ::test(
 // ) {
 //     let ::x: int = __storage_get({0, true});

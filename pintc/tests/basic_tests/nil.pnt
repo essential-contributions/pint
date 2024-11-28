@@ -31,7 +31,7 @@ predicate test() {
 //     x: int,
 //     z: {int, int, int},
 // }
-// 
+//
 // predicate ::test(
 // ) {
 //     let ::x = storage::x;
@@ -56,7 +56,7 @@ predicate test() {
 //     x: int,
 //     z: {int, int, int},
 // }
-// 
+//
 // predicate ::test(
 // ) {
 //     let ::x: int = __storage_get({0});

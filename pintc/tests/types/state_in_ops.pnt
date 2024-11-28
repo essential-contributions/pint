@@ -15,7 +15,7 @@ predicate test() {
 //     i: int,
 //     b: bool,
 // }
-// 
+//
 // predicate ::test(
 // ) {
 //     let ::i1 = storage::i;

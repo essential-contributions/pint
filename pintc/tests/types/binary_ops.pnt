@@ -24,7 +24,7 @@ predicate test() {
 
 // parsed <<<
 // union ::T = FortyTwo | FleventyFive;
-// 
+//
 // predicate ::test(
 // ) {
 //     let ::a = (11 + false);

@@ -14,7 +14,7 @@ predicate test(
 // type ::B = ::C[2];
 // type ::C = {::B, ::B};
 // type ::D = ::A;
-// 
+//
 // predicate ::test(
 //     ::x: ::A,
 //     ::y: ::B,

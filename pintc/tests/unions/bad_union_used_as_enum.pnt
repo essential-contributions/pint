@@ -6,7 +6,7 @@ predicate Foo(a: int[U]) {
 
 // parsed <<<
 // union ::U = A(int) | B;
-// 
+//
 // predicate ::Foo(
 //     ::a: int[::U],
 // ) {

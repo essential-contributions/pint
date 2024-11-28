@@ -65,7 +65,7 @@ predicate test(h: Hooray, pt: A) {
 //         x: ::A,
 //     );
 // }
-// 
+//
 // predicate ::test(
 //     ::h: ::Hooray,
 //     ::pt: ::A,
@@ -107,7 +107,7 @@ predicate test(h: Hooray, pt: A) {
 //         x: ::TheLetterA,
 //     );
 // }
-// 
+//
 // predicate ::test(
 //     ::h: int[3],
 //     ::pt: ::TheLetterA,

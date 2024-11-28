@@ -38,7 +38,7 @@ predicate CoinGame(coin: CoinFace, prize: int) {
 // parsed <<<
 // union ::Face = Head | Tail;
 // union ::CoinFace = Penny(::Face) | Nickel(::Face) | Dime(::Face) | Quarter(::Face);
-// 
+//
 // predicate ::CoinGame(
 //     ::coin: ::CoinFace,
 //     ::prize: int,
@@ -74,7 +74,7 @@ predicate CoinGame(coin: CoinFace, prize: int) {
 // flattened <<<
 // union ::Face = Head | Tail;
 // union ::CoinFace = Penny(::Face) | Nickel(::Face) | Dime(::Face) | Quarter(::Face);
-// 
+//
 // predicate ::CoinGame(
 //     ::coin: ::CoinFace,
 //     ::prize: int,

@@ -8,7 +8,7 @@ predicate test() {
 // parsed <<<
 // union ::Foo = Bar | Baz;
 // union ::Bar = Baz | Xyzzy;
-// 
+//
 // predicate ::test(
 // ) {
 //     let ::a = ::Baz;

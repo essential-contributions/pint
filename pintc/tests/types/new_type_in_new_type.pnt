@@ -13,7 +13,7 @@ predicate test(x: B, y: D) {
 // type ::B = ::A[2];
 // type ::C = {::A, ::A};
 // type ::D = {::C, ::C};
-// 
+//
 // predicate ::test(
 //     ::x: ::B,
 //     ::y: ::D,
@@ -28,7 +28,7 @@ predicate test(x: B, y: D) {
 // type ::B = int[2];
 // type ::C = {int, int};
 // type ::D = {{int, int}, {int, int}};
-// 
+//
 // predicate ::test(
 //     ::x: int[2],
 //     ::y: {{int, int}, {int, int}},

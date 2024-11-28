@@ -27,7 +27,7 @@ predicate test() {
 //         v: int[],
 //     }
 // }
-// 
+//
 // predicate ::test(
 // ) {
 //     let ::l = __vec_len(storage::v);
@@ -45,7 +45,7 @@ predicate test() {
 //         v: int[],
 //     }
 // }
-// 
+//
 // predicate ::test(
 // ) {
 //     let ::l: int = __storage_get({0});

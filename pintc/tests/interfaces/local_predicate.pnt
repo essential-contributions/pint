@@ -195,7 +195,7 @@ predicate Bar(
 //     constraint (::bar_e[0][0] == {10, 11});
 //     constraint (::bar_e[1] == [{16, 17}, {18, 19}, {110, 111}]);
 // }
-// 
+//
 // predicate ::Foo(
 //     ::nonce: int,
 //     ::x: int,
@@ -208,7 +208,7 @@ predicate Bar(
 // ) {
 //     constraint (::nonce == 0);
 // }
-// 
+//
 // predicate ::Bar(
 //     ::nonce: int,
 //     ::x: int,
@@ -282,7 +282,7 @@ predicate Bar(
 //     constraint (::bar_e[1] == [{16, 17}, {18, 19}, {110, 111}]);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
-// 
+//
 // predicate ::Foo(
 //     ::nonce: int,
 //     ::x: int,
@@ -296,7 +296,7 @@ predicate Bar(
 //     constraint (::nonce == 0);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
-// 
+//
 // predicate ::Bar(
 //     ::nonce: int,
 //     ::x: int,

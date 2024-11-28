@@ -23,7 +23,7 @@ predicate test(
 
 // parsed <<<
 // union ::Cake = Crab | Mud | Uranium | Urinal;
-// 
+//
 // predicate ::test(
 //     ::a: int,
 //     ::c: bool,
@@ -44,7 +44,7 @@ predicate test(
 
 // flattened <<<
 // union ::Cake = Crab | Mud | Uranium | Urinal;
-// 
+//
 // predicate ::test(
 //     ::a: int,
 //     ::c: bool,

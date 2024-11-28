@@ -9,7 +9,7 @@ predicate test(saddest_sound: Chord) {
 // parsed <<<
 // union ::Key = CMajor | DMinor;
 // union ::Chord = FFlatDiminished | EMinorOverG;
-// 
+//
 // predicate ::test(
 //     ::saddest_sound: ::Chord,
 // ) {

@@ -22,14 +22,14 @@ predicate decl_test(x: either) {
 
 // parsed <<<
 // union ::either = left | right;
-// 
+//
 // predicate ::test(
 //     ::x: ::either,
 // ) {
 //     constraint (::x == ::either::right);
 //     constraint match ::x { ::either::left => true, ::either::right => false };
 // }
-// 
+//
 // predicate ::decl_test(
 //     ::x: ::either,
 // ) {
@@ -47,7 +47,7 @@ predicate decl_test(x: either) {
 
 // flattened <<<
 // union ::either = left | right;
-// 
+//
 // predicate ::test(
 //     ::x: ::either,
 // ) {
@@ -55,7 +55,7 @@ predicate decl_test(x: either) {
 //     constraint ((UnTag(::x) == 0) ? true : false);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
-// 
+//
 // predicate ::decl_test(
 //     ::x: ::either,
 // ) {

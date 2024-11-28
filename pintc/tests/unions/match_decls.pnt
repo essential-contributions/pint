@@ -30,7 +30,7 @@ predicate test(x: group, y: group) {
 
 // parsed <<<
 // union ::group = empty | one(int) | couple({int, int});
-// 
+//
 // predicate ::test(
 //     ::x: ::group,
 //     ::y: ::group,
@@ -67,7 +67,7 @@ predicate test(x: group, y: group) {
 
 // flattened <<<
 // union ::group = empty | one(int) | couple({int, int});
-// 
+//
 // predicate ::test(
 //     ::x: ::group,
 //     ::y: ::group,

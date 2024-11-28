@@ -11,7 +11,7 @@ predicate test(v_len: int) {
 // storage {
 //     v: int[],
 // }
-// 
+//
 // predicate ::test(
 //     ::v_len: int,
 // ) {

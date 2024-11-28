@@ -16,7 +16,7 @@ predicate test() {
 //     b: {( int => int ), int},
 //     c: {::a, int},
 // }
-// 
+//
 // predicate ::test(
 // ) {
 //     let ::d = storage::b;

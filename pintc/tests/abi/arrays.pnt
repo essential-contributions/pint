@@ -21,7 +21,7 @@ predicate Foo(
 //     my_map: ( int => int[9][5] ),
 //     my_nested_map: ( int => ( b256 => int[3] ) ),
 // }
-// 
+//
 // predicate ::Foo(
 //     ::b1: b256[9],
 //     ::b2: b256[3][2][2],
@@ -38,7 +38,7 @@ predicate Foo(
 //     my_map: ( int => int[9][5] ),
 //     my_nested_map: ( int => ( b256 => int[3] ) ),
 // }
-// 
+//
 // predicate ::Foo(
 //     ::b1: b256[9],
 //     ::b2: b256[3][2][2],

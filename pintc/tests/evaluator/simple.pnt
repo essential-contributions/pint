@@ -21,7 +21,7 @@ predicate test(
 
 // parsed <<<
 // union ::Egg = Ovum | Oeuf | Uovo | HuaManu;
-// 
+//
 // predicate ::test(
 //     ::a: int[[1, 2, 3][1]],
 //     ::b0: int[{1, 2, 3}.1],
@@ -38,7 +38,7 @@ predicate test(
 
 // flattened <<<
 // union ::Egg = Ovum | Oeuf | Uovo | HuaManu;
-// 
+//
 // predicate ::test(
 //     ::a: int[2],
 //     ::b0: int[2],

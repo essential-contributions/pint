@@ -24,13 +24,13 @@ predicate decl_test(e: Union) {
 
 // parsed <<<
 // union ::Union = Zero | One | Two;
-// 
+//
 // predicate ::test(
 //     ::e: ::Union,
 // ) {
 //     constraint (0 == match ::e { ::Union::Zero => 0, ::Union::One => 1, ::Union::Two => 2 });
 // }
-// 
+//
 // predicate ::decl_test(
 //     ::e: ::Union,
 // ) {
@@ -50,14 +50,14 @@ predicate decl_test(e: Union) {
 
 // flattened <<<
 // union ::Union = Zero | One | Two;
-// 
+//
 // predicate ::test(
 //     ::e: ::Union,
 // ) {
 //     constraint (0 == ((UnTag(::e) == 0) ? 0 : ((UnTag(::e) == 1) ? 1 : 2)));
 //     constraint __eq_set(__mut_keys(), {0});
 // }
-// 
+//
 // predicate ::decl_test(
 //     ::e: ::Union,
 // ) {

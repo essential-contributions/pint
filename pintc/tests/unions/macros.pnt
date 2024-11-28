@@ -24,7 +24,7 @@ predicate test(thing: value) {
 
 // parsed <<<
 // union ::value = nuh | uhuh(int);
-// 
+//
 // predicate ::test(
 //     ::thing: ::value,
 // ) {
@@ -41,7 +41,7 @@ predicate test(thing: value) {
 
 // flattened <<<
 // union ::value = nuh | uhuh(int);
-// 
+//
 // predicate ::test(
 //     ::thing: ::value,
 // ) {

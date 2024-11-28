@@ -20,7 +20,7 @@ predicate test(a: int) {
 // const ::x = true;
 // const ::z = true;
 // const ::y = 33;
-// 
+//
 // predicate ::test(
 //     ::a: int,
 // ) {
@@ -41,7 +41,7 @@ predicate test(a: int) {
 // const ::x: bool = true;
 // const ::z: bool = true;
 // const ::y: int = 33;
-// 
+//
 // predicate ::test(
 //     ::a: int,
 // ) {

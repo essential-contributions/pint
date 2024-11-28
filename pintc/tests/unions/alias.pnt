@@ -26,7 +26,7 @@ predicate Test() {
 // storage {
 //     a: ( ::MyAlias2 => bool ),
 // }
-// 
+//
 // predicate ::Test(
 // ) {
 //     let ::a1 = mut storage::a[::MyAlias1::a(true)];
@@ -48,7 +48,7 @@ predicate Test() {
 // storage {
 //     a: ( ::MyUnion => bool ),
 // }
-// 
+//
 // predicate ::Test(
 // ) {
 //     let ::a1: bool = __storage_get({0, ::MyUnion::a(true)});

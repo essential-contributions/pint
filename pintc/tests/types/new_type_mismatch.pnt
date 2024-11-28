@@ -7,7 +7,7 @@ predicate test(i: I, j: I) {
 
 // parsed <<<
 // type ::I = int;
-// 
+//
 // predicate ::test(
 //     ::i: ::I,
 //     ::j: ::I,

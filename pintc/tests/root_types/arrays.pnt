@@ -21,7 +21,7 @@ predicate Foo(
 // type ::myTuple = {x: int};
 // type ::myTupleArray = {x: int[5]};
 // type ::myNestedArrayTuple = {y: {z: int[{4, 1}.0]}};
-// 
+//
 // predicate ::Foo(
 //     ::a: ::myArrayTuple,
 //     ::b: ::myNestedArrayTuple,
@@ -38,7 +38,7 @@ predicate Foo(
 // type ::myTuple = {x: int};
 // type ::myTupleArray = {x: int[5]};
 // type ::myNestedArrayTuple = {y: {z: int[4]}};
-// 
+//
 // predicate ::Foo(
 //     ::a: int[3],
 //     ::b: {y: {z: int[4]}},

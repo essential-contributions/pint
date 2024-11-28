@@ -15,7 +15,7 @@ predicate Bar(x: int, y: MyType) {
 // parsed <<<
 // union ::MyUnion = A | B;
 // type ::MyType = ::MyUnion;
-// 
+//
 // predicate ::Foo(
 //     ::x: int,
 //     ::y: ::MyUnion,
@@ -23,7 +23,7 @@ predicate Bar(x: int, y: MyType) {
 //     constraint (::y == ::MyUnion::A);
 //     constraint (::x == 3);
 // }
-// 
+//
 // predicate ::Bar(
 //     ::x: int,
 //     ::y: ::MyType,
@@ -36,7 +36,7 @@ predicate Bar(x: int, y: MyType) {
 // flattened <<<
 // union ::MyUnion = A | B;
 // type ::MyType = ::MyUnion;
-// 
+//
 // predicate ::Foo(
 //     ::x: int,
 //     ::y: ::MyUnion,
@@ -45,7 +45,7 @@ predicate Bar(x: int, y: MyType) {
 //     constraint (::x == 3);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
-// 
+//
 // predicate ::Bar(
 //     ::x: int,
 //     ::y: ::MyUnion,

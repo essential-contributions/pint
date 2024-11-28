@@ -13,7 +13,7 @@ predicate test(
 
 // parsed <<<
 // union ::MyUnion = A | B;
-// 
+//
 // predicate ::test(
 //     ::y: bool,
 //     ::t: {int, bool, {b256, {int, bool}}, b256},
@@ -29,7 +29,7 @@ predicate test(
 
 // flattened <<<
 // union ::MyUnion = A | B;
-// 
+//
 // predicate ::test(
 //     ::y: bool,
 //     ::t: {int, bool, {b256, {int, bool}}, b256},
