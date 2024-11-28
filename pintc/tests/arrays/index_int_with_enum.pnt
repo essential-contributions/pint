@@ -10,7 +10,7 @@ predicate test(ary: int[4]) {
 // parsed <<<
 // const ::g: int[2] = [11, 22];
 // union ::Num = Zero | One | Two | Three;
-// 
+//
 // predicate ::test(
 //     ::ary: int[4],
 // ) {

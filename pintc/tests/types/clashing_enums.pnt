@@ -13,7 +13,7 @@ predicate test() {
 // parsed <<<
 // union ::AttackingBird = Goose | Duck | Chicken;
 // union ::AppropriateDefence = Kick | Runaway | Duck | StareDown;
-// 
+//
 // predicate ::test(
 // ) {
 //     let ::unfortunate_action = ((::AttackingBird::Goose != ::AttackingBird::Goose) ? ::Duck : ::Kick);

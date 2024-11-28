@@ -16,13 +16,13 @@ predicate decl_test(x: count) {
 
 // parsed <<<
 // union ::count = nul | one | many(int);
-// 
+//
 // predicate ::test(
 //     ::x: ::count,
 // ) {
 //     constraint match ::x { ::count::one => true };
 // }
-// 
+//
 // predicate ::decl_test(
 //     ::x: ::count,
 // ) {

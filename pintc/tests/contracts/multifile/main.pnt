@@ -20,7 +20,7 @@ predicate Bar(
 // parsed <<<
 // union ::baz::MyUnion = A | B;
 // type ::baz::MyType = ::baz::MyUnion;
-// 
+//
 // predicate ::Bar(
 //     ::y: int,
 //     ::e1: ::baz::MyUnion,
@@ -39,7 +39,7 @@ predicate Bar(
 // flattened <<<
 // union ::baz::MyUnion = A | B;
 // type ::baz::MyType = ::baz::MyUnion;
-// 
+//
 // predicate ::Bar(
 //     ::y: int,
 //     ::e1: ::baz::MyUnion,

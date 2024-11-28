@@ -44,7 +44,7 @@ predicate test(
 //     y: ::MyAliasedMap,
 //     z: ::MyComplexMap,
 // }
-// 
+//
 // predicate ::test(
 //     ::m: ::MyInt,
 //     ::o: ::MyBool,
@@ -75,7 +75,7 @@ predicate test(
 //     y: ( b256 => {int, int} ),
 //     z: ( bool => ( b256 => int ) ),
 // }
-// 
+//
 // predicate ::test(
 //     ::m: int,
 //     ::o: bool,

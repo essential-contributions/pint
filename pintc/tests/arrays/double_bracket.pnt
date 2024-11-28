@@ -52,7 +52,7 @@ predicate test() {
 //     b1: ( int[2][2] => int ),
 //     b2: {int, ( int[2][2] => int[2] )},
 // }
-// 
+//
 // predicate ::test(
 // ) {
 //     let ::a0 = [[1]];

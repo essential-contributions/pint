@@ -8,7 +8,7 @@ predicate Foo(a: myCustom) {
 // parsed <<<
 // type ::myAlias = int;
 // type ::myCustom = ::myAlias;
-// 
+//
 // predicate ::Foo(
 //     ::a: ::myCustom,
 // ) {
@@ -19,7 +19,7 @@ predicate Foo(a: myCustom) {
 // flattened <<<
 // type ::myAlias = int;
 // type ::myCustom = int;
-// 
+//
 // predicate ::Foo(
 //     ::a: int,
 // ) {

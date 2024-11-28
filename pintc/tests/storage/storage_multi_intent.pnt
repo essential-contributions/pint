@@ -70,7 +70,7 @@ predicate Bar(
 //     map2: ( b256 => bool ),
 //     map3: ( int => ( int => b256 ) ),
 // }
-// 
+//
 // predicate ::Foo(
 //     ::x: int,
 //     ::address: b256,
@@ -92,7 +92,7 @@ predicate Bar(
 //     constraint (::and == ((::b1 && ::map_2_access_1) && ::map_2_access_2));
 //     constraint (::sum == (((::x + ::i0) + ::map_1_access_1) + ::map_1_access_2));
 // }
-// 
+//
 // predicate ::Bar(
 //     ::x: int,
 //     ::address: b256,
@@ -124,7 +124,7 @@ predicate Bar(
 //     map2: ( b256 => bool ),
 //     map3: ( int => ( int => b256 ) ),
 // }
-// 
+//
 // predicate ::Foo(
 //     ::x: int,
 //     ::address: b256,
@@ -147,7 +147,7 @@ predicate Bar(
 //     constraint (::sum == (((::x + ::i0) + ::map_1_access_1) + ::map_1_access_2));
 //     constraint __eq_set(__mut_keys(), {0});
 // }
-// 
+//
 // predicate ::Bar(
 //     ::x: int,
 //     ::address: b256,

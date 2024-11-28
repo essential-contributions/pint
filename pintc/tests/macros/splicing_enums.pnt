@@ -45,7 +45,7 @@ predicate test(counts: int[Feeling], max_feeling: int, feeling: Feeling) {
 
 // parsed <<<
 // union ::Feeling = Uneasy | Queasy | Awkward | Anxious;
-// 
+//
 // predicate ::test(
 //     ::counts: int[::Feeling],
 //     ::max_feeling: int,
@@ -66,7 +66,7 @@ predicate test(counts: int[Feeling], max_feeling: int, feeling: Feeling) {
 
 // flattened <<<
 // union ::Feeling = Uneasy | Queasy | Awkward | Anxious;
-// 
+//
 // predicate ::test(
 //     ::counts: int[::Feeling],
 //     ::max_feeling: int,

@@ -32,7 +32,7 @@ predicate test(
 //     c: b256,
 //     d: {int, bool},
 // }
-// 
+//
 // predicate ::test(
 //     ::a_len: int,
 //     ::b_len: int,
@@ -58,7 +58,7 @@ predicate test(
 //     c: b256,
 //     d: {int, bool},
 // }
-// 
+//
 // predicate ::test(
 //     ::a_len: int,
 //     ::b_len: int,

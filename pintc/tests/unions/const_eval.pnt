@@ -14,7 +14,7 @@ predicate test(y: bool) {
 // const ::b: bool[match ::a { ::node::nope => 22, ::node::sure(x) => ::x.0 }] = [true, true, false, true, false, false, false, true, false, false, false];
 // const ::a = ::node::sure({11, false});
 // union ::node = nope | sure({int, bool});
-// 
+//
 // predicate ::test(
 //     ::y: bool,
 // ) {
@@ -26,7 +26,7 @@ predicate test(y: bool) {
 // const ::b: bool[11] = [true, true, false, true, false, false, false, true, false, false, false];
 // const ::a: ::node = ::node::sure({11, false});
 // union ::node = nope | sure({int, bool});
-// 
+//
 // predicate ::test(
 //     ::y: bool,
 // ) {

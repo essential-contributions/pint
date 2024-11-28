@@ -107,7 +107,7 @@ predicate Simple(
 //     );
 //     predicate I3();
 // }
-// 
+//
 // predicate ::Simple(
 //     ::addr1: b256,
 //     ::addr2: b256,
@@ -171,7 +171,7 @@ predicate Simple(
 //     );
 //     predicate I3();
 // }
-// 
+//
 // predicate ::Simple(
 //     ::addr1: b256,
 //     ::addr2: b256,

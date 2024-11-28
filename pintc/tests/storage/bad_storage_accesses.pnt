@@ -66,7 +66,7 @@ predicate Test(
 //     }
 //     predicate Bar();
 // }
-// 
+//
 // predicate ::Test(
 //     ::x: b256,
 //     ::addr: b256,

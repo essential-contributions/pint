@@ -6,7 +6,7 @@ predicate test(a: Ambiguous) {
 
 // parsed <<<
 // type ::Ambiguous = ::NonExistentUnion;
-// 
+//
 // predicate ::test(
 //     ::a: ::Ambiguous,
 // ) {

@@ -71,7 +71,7 @@ predicate Bar() {
 //         map_to_arrays: ( int => int[3] ),
 //     }
 // }
-// 
+//
 // predicate ::Bar(
 // ) {
 //     let ::addr = 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE;
@@ -117,7 +117,7 @@ predicate Bar() {
 //         map_to_arrays: ( int => int[3] ),
 //     }
 // }
-// 
+//
 // predicate ::Bar(
 // ) {
 //     let ::addr: b256 = 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE;

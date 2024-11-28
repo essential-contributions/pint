@@ -6,7 +6,7 @@ predicate Foo(a: int) {
 
 // parsed <<<
 // const ::ContractID: b256 = 0x0003000300030003000300030003000300030003000300030003000300030003;
-// 
+//
 // predicate ::Foo(
 //     ::a: int,
 // ) {
@@ -16,7 +16,7 @@ predicate Foo(a: int) {
 
 // flattened <<<
 // const ::ContractID: b256 = 0x0003000300030003000300030003000300030003000300030003000300030003;
-// 
+//
 // predicate ::Foo(
 //     ::a: int,
 // ) {

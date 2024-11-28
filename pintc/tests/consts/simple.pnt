@@ -38,7 +38,7 @@ predicate test(q: int, r: b256, s: int, t: int, u: bool, v: JacketColour) {
 // const ::f = {66, 77};
 // const ::c: int = 33;
 // union ::JacketColour = Cream | Bone | White | OffWhite | Ivory | Beige;
-// 
+//
 // predicate ::test(
 //     ::q: int,
 //     ::r: b256,
@@ -69,7 +69,7 @@ predicate test(q: int, r: b256, s: int, t: int, u: bool, v: JacketColour) {
 // const ::f: {int, int} = {66, 77};
 // const ::c: int = 33;
 // union ::JacketColour = Cream | Bone | White | OffWhite | Ivory | Beige;
-// 
+//
 // predicate ::test(
 //     ::q: int,
 //     ::r: b256,

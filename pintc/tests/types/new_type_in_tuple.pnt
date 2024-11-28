@@ -23,7 +23,7 @@ predicate test(
 // type ::A = int;
 // type ::B = {x: ::A, y: ::A};
 // type ::C = ::A[3];
-// 
+//
 // predicate ::test(
 //     ::a: int,
 //     ::b: {x: int, y: int},
@@ -46,7 +46,7 @@ predicate test(
 // type ::A = int;
 // type ::B = {x: int, y: int};
 // type ::C = int[3];
-// 
+//
 // predicate ::test(
 //     ::a: int,
 //     ::b: {x: int, y: int},

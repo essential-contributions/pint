@@ -31,7 +31,7 @@ predicate foo() {
 //         y: bool,
 //     );
 // }
-// 
+//
 // predicate ::foo(
 // ) {
 //     let ::counter = ::Counter@[::ContractID]::storage::counter;
@@ -54,7 +54,7 @@ predicate foo() {
 //         y: bool,
 //     );
 // }
-// 
+//
 // predicate ::foo(
 // ) {
 //     let ::counter: int = __storage_get_extern(0x6D05CB94739FFB92CA96750EBF262A82C3ED8F05262DD26B503D732F0B74777E, {0});

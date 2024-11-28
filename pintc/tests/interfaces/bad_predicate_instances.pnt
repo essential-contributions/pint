@@ -29,33 +29,33 @@ predicate U() {
 // ) {
 //     constraint ::Bar@[]();
 // }
-// 
+//
 // predicate ::Baz(
 // ) {
 //     constraint ::Bar@[]();
 // }
-// 
+//
 // predicate ::P(
 // ) {
 //     constraint ::P@[]();
 // }
-// 
+//
 // predicate ::A(
 //     ::x: int,
 // ) {
 // }
-// 
+//
 // predicate ::B(
 // ) {
 //     constraint ::A@[](1, 2);
 // }
-// 
+//
 // predicate ::W(
 //     ::x: int,
 //     ::y: b256,
 // ) {
 // }
-// 
+//
 // predicate ::U(
 // ) {
 //     constraint ::W@[](1, 2, 3);

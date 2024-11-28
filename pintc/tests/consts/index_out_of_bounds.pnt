@@ -6,7 +6,7 @@ predicate test() {
 
 // parsed <<<
 // const ::a: int[3] = [11, 22, 33];
-// 
+//
 // predicate ::test(
 // ) {
 //     constraint (::a[9] != 0);

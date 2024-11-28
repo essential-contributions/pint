@@ -42,7 +42,7 @@ predicate Simple(p: int, q: { int, b256[2] }) {
 //     t: {int, int},
 //     a: int[3],
 // }
-// 
+//
 // predicate ::Simple(
 //     ::p: int,
 //     ::q: {int, b256[2]},
@@ -69,7 +69,7 @@ predicate Simple(p: int, q: { int, b256[2] }) {
 //     t: {int, int},
 //     a: int[3],
 // }
-// 
+//
 // predicate ::Simple(
 //     ::p: int,
 //     ::q: {int, b256[2]},

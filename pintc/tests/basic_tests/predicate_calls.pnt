@@ -106,7 +106,7 @@ predicate Foo(
 //         y6: int[5],
 //     );
 // }
-// 
+//
 // predicate ::Foo(
 //     ::addr1: b256,
 //     ::addr2: b256,
@@ -146,7 +146,7 @@ predicate Foo(
 //         y6: int[5],
 //     );
 // }
-// 
+//
 // predicate ::Foo(
 //     ::addr1: b256,
 //     ::addr2: b256,

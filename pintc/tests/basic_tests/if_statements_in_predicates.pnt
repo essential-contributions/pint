@@ -92,7 +92,7 @@ predicate Bar(
 //     } else {
 //     }
 // }
-// 
+//
 // predicate ::Bar(
 //     ::condition: bool,
 //     ::condition2: bool,
@@ -146,7 +146,7 @@ predicate Bar(
 //     constraint (!::condition2 || (::yy != ::xx));
 //     constraint __eq_set(__mut_keys(), {0});
 // }
-// 
+//
 // predicate ::Bar(
 //     ::condition: bool,
 //     ::condition2: bool,

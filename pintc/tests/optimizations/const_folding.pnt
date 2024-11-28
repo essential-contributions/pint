@@ -93,7 +93,7 @@ predicate Test(
 // const ::test_array: int[2] = [1, 2];
 // const ::test_tuple: {bool, int} = {false, 5};
 // const ::test: int = 20;
-// 
+//
 // predicate ::Test(
 //     ::a: int,
 //     ::b: int,
@@ -178,7 +178,7 @@ predicate Test(
 // const ::test_array: int[2] = [1, 2];
 // const ::test_tuple: {bool, int} = {false, 5};
 // const ::test: int = 20;
-// 
+//
 // predicate ::Test(
 //     ::a: int,
 //     ::b: int,
@@ -249,7 +249,7 @@ predicate Test(
 // const ::test_array: int[2] = [1, 2];
 // const ::test_tuple: {bool, int} = {false, 5};
 // const ::test: int = 20;
-// 
+//
 // predicate ::Test(
 //     ::a: int,
 //     ::b: int,

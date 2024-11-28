@@ -52,7 +52,7 @@ predicate test(
 //         external: int,
 //     }
 // }
-// 
+//
 // predicate ::test(
 //     ::e_old: int,
 //     ::e_new: int,
@@ -91,7 +91,7 @@ predicate test(
 //         external: int,
 //     }
 // }
-// 
+//
 // predicate ::test(
 //     ::e_old: int,
 //     ::e_new: int,

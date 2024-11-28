@@ -25,7 +25,7 @@ predicate test() {
 //     map1: ( int => int ),
 //     map2: ( b256 => bool ),
 // }
-// 
+//
 // predicate ::test(
 // ) {
 //     let ::x = 5;

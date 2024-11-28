@@ -7,7 +7,7 @@ predicate A() {
 // parsed <<<
 // const ::b::b = false;
 // const ::a = true;
-// 
+//
 // predicate ::A(
 // ) {
 //     constraint (::a && !::b::b);
@@ -17,7 +17,7 @@ predicate A() {
 // flattened <<<
 // const ::b::b: bool = false;
 // const ::a: bool = true;
-// 
+//
 // predicate ::A(
 // ) {
 //     constraint (true && !false);

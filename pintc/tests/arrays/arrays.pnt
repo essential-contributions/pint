@@ -21,7 +21,7 @@ predicate test(
 
 // parsed <<<
 // union ::Colour = Red | Green | Blue;
-// 
+//
 // predicate ::test(
 //     ::a: int[5],
 //     ::a1: int,
@@ -41,7 +41,7 @@ predicate test(
 
 // flattened <<<
 // union ::Colour = Red | Green | Blue;
-// 
+//
 // predicate ::test(
 //     ::a: int[5],
 //     ::a1: int,

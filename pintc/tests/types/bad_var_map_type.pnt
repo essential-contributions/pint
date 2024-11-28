@@ -7,7 +7,7 @@ predicate test(
 
 // parsed <<<
 // type ::MyMap = ( int => int );
-// 
+//
 // predicate ::test(
 //     ::y: ::MyMap,
 //     ::x: ( int => int ),

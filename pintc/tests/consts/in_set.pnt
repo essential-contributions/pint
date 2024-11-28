@@ -11,7 +11,7 @@ predicate B(b: bool) {
 
 // parsed <<<
 // const ::a = 11;
-// 
+//
 // predicate ::A(
 //     ::b: int,
 //     ::c: int,
@@ -19,7 +19,7 @@ predicate B(b: bool) {
 //     constraint (::b == ::a);
 //     constraint (::c > (::a * 2));
 // }
-// 
+//
 // predicate ::B(
 //     ::b: bool,
 // ) {
@@ -29,7 +29,7 @@ predicate B(b: bool) {
 
 // flattened <<<
 // const ::a: int = 11;
-// 
+//
 // predicate ::A(
 //     ::b: int,
 //     ::c: int,
@@ -38,7 +38,7 @@ predicate B(b: bool) {
 //     constraint (::c > (11 * 2));
 //     constraint __eq_set(__mut_keys(), {0});
 // }
-// 
+//
 // predicate ::B(
 //     ::b: bool,
 // ) {

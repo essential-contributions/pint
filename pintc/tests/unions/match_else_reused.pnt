@@ -24,13 +24,13 @@ predicate decl_test(x: value) {
 
 // parsed <<<
 // union ::value = nul | scalar(int);
-// 
+//
 // predicate ::test(
 //     ::x: ::value,
 // ) {
 //     constraint match ::x { ::value::nul => false, ::value::scalar(n) => (::n > 0), ::value::nul => true };
 // }
-// 
+//
 // predicate ::decl_test(
 //     ::x: ::value,
 // ) {

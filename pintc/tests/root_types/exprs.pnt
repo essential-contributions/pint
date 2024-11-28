@@ -35,7 +35,7 @@ predicate Foo(
 // type ::myNestedTuple = int[{::two, 1}.0];
 // type ::myNestedArray = int[[2, 1][1]];
 // type ::complexType = {::myNestedCast, ::myNestedSelect}[2 in [1, ::two, 3] as int];
-// 
+//
 // predicate ::Foo(
 //     ::a: ::myNestedCast,
 //     ::b: ::myNestedUnaryOp,
@@ -62,7 +62,7 @@ predicate Foo(
 // type ::myNestedTuple = int[2];
 // type ::myNestedArray = int[1];
 // type ::complexType = {int[4], int[5]}[1];
-// 
+//
 // predicate ::Foo(
 //     ::a: int[4],
 //     ::b: int[3],

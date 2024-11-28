@@ -15,7 +15,7 @@ predicate test() {
 // parsed <<<
 // const ::b::c = 5;
 // union ::d::MyUnion = A | B;
-// 
+//
 // predicate ::test(
 // ) {
 //     let ::c1 = ::b::c;
@@ -30,7 +30,7 @@ predicate test() {
 // flattened <<<
 // const ::b::c: int = 5;
 // union ::d::MyUnion = A | B;
-// 
+//
 // predicate ::test(
 // ) {
 //     let ::c1: int = 5;

@@ -11,7 +11,7 @@ predicate test(x: int, y: bool, z: SupperGuest) {
 
 // parsed <<<
 // union ::SupperGuest = Bartholomew | JamesL | Andrew | Judas | Peter | John | Thomas | JamesG | Philip | Matthew | Jude | Simon;
-// 
+//
 // predicate ::test(
 //     ::x: int,
 //     ::y: bool,

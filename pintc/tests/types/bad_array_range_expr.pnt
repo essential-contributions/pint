@@ -15,7 +15,7 @@ predicate test(
 
 // parsed <<<
 // union ::MyUnion = A | B;
-// 
+//
 // predicate ::test(
 //     ::a: int[true],
 //     ::b: int[false],

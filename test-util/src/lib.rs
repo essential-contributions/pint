@@ -288,7 +288,7 @@ pub fn update_expected(test_path: &Path, section_name: &str, new_expected: &str)
     let mut file = OpenOptions::new().append(true).open(test_path).unwrap();
     writeln!(file, "\n// {section_name} <<<").unwrap();
     for line in new_expected.lines() {
-        writeln!(file, "// {}", line).unwrap();
+        writeln!(file, "{}", format!("// {line}").trim_end()).unwrap();
     }
     writeln!(file, "// >>>").unwrap();
 }

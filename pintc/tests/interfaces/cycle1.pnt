@@ -30,28 +30,28 @@ predicate F() {
 // ) {
 //     constraint ::B@[]();
 // }
-// 
+//
 // predicate ::B(
 // ) {
 //     constraint ::C@[]();
 // }
-// 
+//
 // predicate ::C(
 // ) {
 //     constraint ::A@[]();
 // }
-// 
+//
 // predicate ::D(
 // ) {
 //     constraint ::E@[]();
 //     constraint ::A@[]();
 // }
-// 
+//
 // predicate ::E(
 // ) {
 //     constraint ::F@[]();
 // }
-// 
+//
 // predicate ::F(
 // ) {
 //     constraint ::D@[]();

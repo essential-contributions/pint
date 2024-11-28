@@ -22,7 +22,7 @@ predicate test(p: int) {
 //     z: ( int => int ),
 //     w: {int, int},
 // }
-// 
+//
 // predicate ::test(
 //     ::p: int,
 // ) {

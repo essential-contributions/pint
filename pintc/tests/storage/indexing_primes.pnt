@@ -48,7 +48,7 @@ predicate test() {
 //     y: {int[2], int[2]},
 //     z: {int, int}[2],
 // }
-// 
+//
 // predicate ::test(
 // ) {
 //     let ::a = storage::v;
@@ -89,7 +89,7 @@ predicate test() {
 //     y: {int[2], int[2]},
 //     z: {int, int}[2],
 // }
-// 
+//
 // predicate ::test(
 // ) {
 //     let ::a: int = __storage_get({0});

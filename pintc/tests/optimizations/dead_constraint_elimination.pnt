@@ -33,7 +33,7 @@ predicate Test(x: int, y: int) {
 // const ::d: int[5] = [0, 1, 2, 3, 4];
 // const ::a = true;
 // const ::c = {1, 2};
-// 
+//
 // predicate ::Test(
 //     ::x: int,
 //     ::y: int,
@@ -62,7 +62,7 @@ predicate Test(x: int, y: int) {
 // const ::d: int[5] = [0, 1, 2, 3, 4];
 // const ::a: bool = true;
 // const ::c: {int, int} = {1, 2};
-// 
+//
 // predicate ::Test(
 //     ::x: int,
 //     ::y: int,
@@ -92,7 +92,7 @@ predicate Test(x: int, y: int) {
 // const ::d: int[5] = [0, 1, 2, 3, 4];
 // const ::a: bool = true;
 // const ::c: {int, int} = {1, 2};
-// 
+//
 // predicate ::Test(
 //     ::x: int,
 //     ::y: int,

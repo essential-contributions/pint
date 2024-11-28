@@ -8,7 +8,7 @@ predicate test(b: int[4]) {
 
 // parsed <<<
 // const ::a: int[2] = [11, 22];
-// 
+//
 // predicate ::test(
 //     ::b: int[4],
 // ) {

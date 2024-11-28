@@ -50,7 +50,7 @@ predicate test(
 // storage {
 //     x: int,
 // }
-// 
+//
 // predicate ::test(
 //     ::hash0: b256,
 //     ::this_address: b256,

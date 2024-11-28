@@ -14,7 +14,7 @@ predicate Foo() {
 
 // parsed <<<
 // const ::FOO = [{a: 1, b: 2}];
-// 
+//
 // predicate ::Foo(
 // ) {
 //     constraint ((::FOO.a + ::FOO.b) == 3);

@@ -25,7 +25,7 @@ predicate test(
 
 // parsed <<<
 // union ::known = good | better(int);
-// 
+//
 // predicate ::test(
 //     ::a: ::unknown,
 //     ::b: ::known,

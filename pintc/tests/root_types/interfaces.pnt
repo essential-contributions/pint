@@ -25,7 +25,7 @@ predicate test(addr1: b256) {
 //         x1: ::ary,
 //     );
 // }
-// 
+//
 // predicate ::test(
 //     ::addr1: b256,
 // ) {
@@ -45,7 +45,7 @@ predicate test(addr1: b256) {
 //         x1: int[3],
 //     );
 // }
-// 
+//
 // predicate ::test(
 //     ::addr1: b256,
 // ) {

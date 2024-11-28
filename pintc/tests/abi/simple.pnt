@@ -27,7 +27,7 @@ predicate Foo(
 //     my_map: ( int => {int, {b256, int}} ),
 //     my_nested_map: ( int => ( b256 => {int, {b256, int}} ) ),
 // }
-// 
+//
 // predicate ::Foo(
 //     ::v0: bool,
 //     ::v1: int,
@@ -48,7 +48,7 @@ predicate Foo(
 //     my_map: ( int => {int, {b256, int}} ),
 //     my_nested_map: ( int => ( b256 => {int, {b256, int}} ) ),
 // }
-// 
+//
 // predicate ::Foo(
 //     ::v0: bool,
 //     ::v1: int,

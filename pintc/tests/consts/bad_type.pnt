@@ -11,7 +11,7 @@ predicate test(d: b256) {
 // const ::b: int = {11, 22};
 // const ::a: int = false;
 // const ::c = 33;
-// 
+//
 // predicate ::test(
 //     ::d: b256,
 // ) {

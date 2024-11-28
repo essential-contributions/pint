@@ -12,7 +12,7 @@ predicate test(a: int) {
 // const ::two_ints: ::deuce = [11, 22];
 // const ::five = 5;
 // type ::deuce = int[(10 / ::five)];
-// 
+//
 // predicate ::test(
 //     ::a: int,
 // ) {
@@ -24,7 +24,7 @@ predicate test(a: int) {
 // const ::two_ints: int[2] = [11, 22];
 // const ::five: int = 5;
 // type ::deuce = int[2];
-// 
+//
 // predicate ::test(
 //     ::a: int,
 // ) {
