@@ -164,7 +164,7 @@ pub enum WriteError {
     Io(#[from] std::io::Error),
 }
 
-impl<'p> PlanBuilder<'p> {
+impl PlanBuilder<'_> {
     /// Produce the next package that is to be built.
     pub fn next_pkg(&mut self) -> Option<PrebuiltPkg> {
         let &n = self.order.next()?;

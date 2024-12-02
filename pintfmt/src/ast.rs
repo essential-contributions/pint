@@ -49,7 +49,7 @@ pub(super) enum Decl<'sc> {
     Newline,
 }
 
-impl<'sc> Format for Decl<'sc> {
+impl Format for Decl<'_> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         match self {
             Self::Use { use_tree } => {
@@ -179,7 +179,7 @@ pub struct FnSig<'sc> {
     pub(super) return_type: Type<'sc>,
 }
 
-impl<'sc> Format for FnSig<'sc> {
+impl Format for FnSig<'_> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         formatted_code.write(&format!("fn {}(", self.name));
 
@@ -208,7 +208,7 @@ pub struct Block<'sc> {
     pub(super) final_expr: Box<Expr<'sc>>,
 }
 
-impl<'sc> Format for Block<'sc> {
+impl Format for Block<'_> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         formatted_code.write_line("{");
         formatted_code.increase_indent();
@@ -240,7 +240,7 @@ pub(super) enum Type<'sc> {
     Array(Box<Self>, Vec<Expr<'sc>>),
 }
 
-impl<'sc> Format for Type<'sc> {
+impl Format for Type<'_> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         match self {
             Type::Primitive(primitive_ty) => formatted_code.write(primitive_ty),
@@ -310,7 +310,7 @@ pub(super) struct UnaryOp<'sc> {
     pub expr: Box<Expr<'sc>>,
 }
 
-impl<'sc> Format for UnaryOp<'sc> {
+impl Format for UnaryOp<'_> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         write!(formatted_code, "{}", self.prefix_op)?;
         self.expr.format(formatted_code)?;
@@ -325,7 +325,7 @@ pub(super) struct BinaryOp<'sc> {
     pub rhs: Box<Expr<'sc>>,
 }
 
-impl<'sc> Format for BinaryOp<'sc> {
+impl Format for BinaryOp<'_> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         self.lhs.format(formatted_code)?;
         write!(formatted_code, " {} ", self.op)?;
@@ -340,7 +340,7 @@ pub(super) struct Call<'sc> {
     pub args: Vec<Expr<'sc>>,
 }
 
-impl<'sc> Format for Call<'sc> {
+impl Format for Call<'_> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         self.path.format(formatted_code)?;
 
@@ -364,7 +364,7 @@ pub(super) struct In<'sc> {
     pub rhs: Box<Expr<'sc>>,
 }
 
-impl<'sc> Format for In<'sc> {
+impl Format for In<'_> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         self.lhs.format(formatted_code)?;
         formatted_code.write(" in ");
@@ -379,7 +379,7 @@ pub(super) struct Range<'sc> {
     pub ub: Box<Expr<'sc>>,
 }
 
-impl<'sc> Format for Range<'sc> {
+impl Format for Range<'_> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         self.lb.format(formatted_code)?;
         formatted_code.write("..");
@@ -394,7 +394,7 @@ pub(super) struct Cast<'sc> {
     pub ty: Type<'sc>,
 }
 
-impl<'sc> Format for Cast<'sc> {
+impl Format for Cast<'_> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         self.value.format(formatted_code)?;
         formatted_code.write(" as ");
@@ -411,7 +411,7 @@ pub(super) struct If<'sc> {
     pub false_code_block: Block<'sc>,
 }
 
-impl<'sc> Format for If<'sc> {
+impl Format for If<'_> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         formatted_code.write("if ");
         self.condition.format(formatted_code)?;
@@ -431,7 +431,7 @@ pub(super) struct Cond<'sc> {
     pub else_branch: Box<Expr<'sc>>,
 }
 
-impl<'sc> Format for Cond<'sc> {
+impl Format for Cond<'_> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         formatted_code.write_line("cond {");
         formatted_code.increase_indent();
@@ -463,7 +463,7 @@ pub(super) struct TupleExpr<'sc> {
     pub fields: Vec<(Option<String>, Expr<'sc>)>,
 }
 
-impl<'sc> Format for TupleExpr<'sc> {
+impl Format for TupleExpr<'_> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         formatted_code.write("{");
 
@@ -498,7 +498,7 @@ pub(super) struct TupleFieldAccess<'sc> {
     pub field: String,
 }
 
-impl<'sc> Format for TupleFieldAccess<'sc> {
+impl Format for TupleFieldAccess<'_> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         self.tuple.format(formatted_code)?;
         formatted_code.write(&format!(".{}", self.field));
@@ -511,7 +511,7 @@ pub(super) struct ArrayExpr<'sc> {
     pub elements: Vec<Expr<'sc>>,
 }
 
-impl<'sc> Format for ArrayExpr<'sc> {
+impl Format for ArrayExpr<'_> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         formatted_code.write("[");
 
@@ -534,7 +534,7 @@ pub(super) struct ArrayElementAccess<'sc> {
     pub index: Box<Expr<'sc>>,
 }
 
-impl<'sc> Format for ArrayElementAccess<'sc> {
+impl Format for ArrayElementAccess<'_> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         self.array.format(formatted_code)?;
         formatted_code.write("[");
@@ -563,7 +563,7 @@ pub(super) enum Expr<'sc> {
     ArrayElementAccess(ArrayElementAccess<'sc>),
 }
 
-impl<'sc> Format for Expr<'sc> {
+impl Format for Expr<'_> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         match self {
             Self::Immediate(immediate) => immediate.format(formatted_code)?,
@@ -591,7 +591,7 @@ impl<'sc> Format for Expr<'sc> {
     }
 }
 
-impl<'sc> Format for Ast<'sc> {
+impl Format for Ast<'_> {
     fn format(&self, formatted_code: &mut FormattedCode) -> Result<(), FormatterError> {
         for node in self {
             node.format(formatted_code)?;

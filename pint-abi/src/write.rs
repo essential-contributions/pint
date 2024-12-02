@@ -8,7 +8,7 @@ pub trait Write {
     fn write_word(&mut self, w: Word) -> Result<(), Self::Error>;
 }
 
-impl<'a, W: Write> Write for &'a mut W {
+impl<W: Write> Write for &'_ mut W {
     type Error = W::Error;
     fn write_word(&mut self, w: Word) -> Result<(), Self::Error> {
         (*self).write_word(w)
