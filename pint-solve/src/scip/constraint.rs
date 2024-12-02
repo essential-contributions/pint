@@ -4,7 +4,7 @@ use crate::{
 };
 use russcip::{prelude::*, ProblemCreated};
 
-impl<'a> super::Solver<'a, ProblemCreated> {
+impl super::Solver<'_, ProblemCreated> {
     pub(super) fn convert_constraint(&mut self, constraint_expr: &Expr) -> Result<(), SolveError> {
         let new_cons_name = self.new_cons_name();
         match constraint_expr {

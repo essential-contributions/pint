@@ -778,7 +778,7 @@ struct BlockStatementExprs<'a> {
     iter: Box<dyn Iterator<Item = ExprKey> + 'a>,
 }
 
-impl<'a> Iterator for BlockStatementExprs<'a> {
+impl Iterator for BlockStatementExprs<'_> {
     type Item = ExprKey;
 
     fn next(&mut self) -> Option<Self::Item> {

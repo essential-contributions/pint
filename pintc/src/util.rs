@@ -1,4 +1,4 @@
-/// A place for small utility functions which can use used in various places throughout the crate.
+//! A place for small utility functions which can use used in various places throughout the crate.
 
 macro_rules! write_many_iter_with_ctrct {
     ($f: expr, $i: ident, $sep: literal, $contract: ident) => {

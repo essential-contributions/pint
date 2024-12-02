@@ -19,9 +19,9 @@ pub struct Solver<'a, State> {
     unique_cons_suffix: usize, // unique suffix for names of cosntraints
 }
 
-impl<'a, State> Solver<'a, State> {
+impl<State> Solver<'_, State> {
     /// Creates a new instance of `Solver` given a `FlatPint` instance.
-    pub fn new(flatpint: &'a FlatPint) -> Solver<ProblemCreated> {
+    pub fn new(flatpint: &FlatPint) -> Solver<ProblemCreated> {
         Solver {
             model: Model::new()
                 .hide_output()
@@ -77,7 +77,7 @@ impl<'a> Solver<'a, ProblemCreated> {
     }
 }
 
-impl<'a> super::Solver<'a, Solved> {
+impl super::Solver<'_, Solved> {
     /// Returns a `FxHashMap` that contains a solution. It maps decision variable names, as
     /// `String`s, to `flatpint::Immediate` values. Returns an empty `FxHashMap` in case a solution
     /// cannot be found

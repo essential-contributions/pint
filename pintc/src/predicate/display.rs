@@ -59,7 +59,7 @@ impl<'a, T> WithPred<'a, T> {
 
 impl Predicate {
     /// Helps out some `thing: T` by adding `self` as context.
-    pub fn with_pred<'a, T>(&'a self, contract: &'a Contract, thing: T) -> WithPred<T> {
+    pub fn with_pred<'a, T>(&'a self, contract: &'a Contract, thing: T) -> WithPred<'a, T> {
         WithPred {
             thing,
             contract,

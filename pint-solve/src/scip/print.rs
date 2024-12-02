@@ -3,7 +3,7 @@ use russcip::{prelude::*, Solved};
 use std::fmt::Write;
 use yansi::Paint;
 
-impl<'a> super::Solver<'a, Solved> {
+impl super::Solver<'_, Solved> {
     /// Pretty print the output of the solver which includes a valid solution for all the variables
     /// in case of success. Skips any helper variables introduced by the solver. Rounds to 3
     /// decimal places.

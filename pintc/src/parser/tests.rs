@@ -14,7 +14,7 @@ use pint_parser as yp;
 use lalrpop_util::lalrpop_mod;
 
 #[cfg(test)]
-lalrpop_mod!(#[allow(unused)] pub pint_parser);
+lalrpop_mod!(#[allow(unused, clippy::empty_line_after_outer_attr)] pub pint_parser);
 
 /// Given a parser, some source code, and a parser context, parse the source code and return the
 /// parsed result or the full set of errors
