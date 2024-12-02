@@ -76,19 +76,19 @@ impl Variables {
 impl VariableKey {
     /// Returns an `Option` containing the `Variable` corresponding to key `self`. Returns `None` if
     /// the key can't be found in the `variables` map.
-    pub fn try_get<'a>(&'a self, pred: &'a Predicate) -> Option<&Variable> {
+    pub fn try_get<'a>(&self, pred: &'a Predicate) -> Option<&'a Variable> {
         pred.variables.variables.get(*self)
     }
 
     /// Returns the `Variable` corresponding to key `self`. Panics if the key can't be found in the
     /// `variables` map.
-    pub fn get<'a>(&'a self, pred: &'a Predicate) -> &Variable {
+    pub fn get<'a>(&self, pred: &'a Predicate) -> &'a Variable {
         pred.variables.variables.get(*self).unwrap()
     }
 
     /// Returns the type of key `self` given a `Predicate`. Panics if the type can't be
     /// found in the `variable_types` map.
-    pub fn get_ty<'a>(&'a self, pred: &'a Predicate) -> &Type {
+    pub fn get_ty<'a>(&self, pred: &'a Predicate) -> &'a Type {
         pred.variables.variable_types.get(*self).unwrap()
     }
 

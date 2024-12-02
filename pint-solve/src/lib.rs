@@ -11,7 +11,7 @@ use lalrpop_util::lalrpop_mod;
 #[cfg(feature = "solver-scip")]
 use russcip::ProblemCreated;
 
-lalrpop_mod!(#[allow(unused, clippy::ptr_arg, clippy::type_complexity)] pub flatpint_parser);
+lalrpop_mod!(#[allow(unused, clippy::ptr_arg, clippy::type_complexity, clippy::empty_line_after_outer_attr)] pub flatpint_parser);
 
 pub fn parse_flatpint(
     src: &str,

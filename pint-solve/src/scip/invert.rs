@@ -7,7 +7,7 @@ use russcip::ProblemCreated;
 /// Invert a Boolean expression. Takes an `ExprKey` and returns another `ExprKey` that
 /// represents its inverse. For example, a `>=` binary op expression becomes a `<` binary op
 /// expression.
-impl<'a> super::Solver<'a, ProblemCreated> {
+impl super::Solver<'_, ProblemCreated> {
     pub(super) fn invert_expression(expr: &Expr) -> Result<Expr, SolveError> {
         match expr {
             Expr::Immediate(value) => match value {

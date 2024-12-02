@@ -10,7 +10,7 @@ use std::rc::Rc;
 const DEFAULT_LB: f64 = -f64::INFINITY;
 const DEFAULT_UB: f64 = f64::INFINITY;
 
-impl<'a> super::Solver<'a, ProblemCreated> {
+impl super::Solver<'_, ProblemCreated> {
     pub(super) fn convert_variable(&mut self, var: &Var) {
         let ty = &var.ty;
         let name = &var.name;

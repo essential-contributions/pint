@@ -636,7 +636,7 @@ impl VecTokenSourceState {
     }
 }
 
-impl<'a> TokenSource<'a> {
+impl TokenSource<'_> {
     fn next(&mut self) -> Option<Result<Token, ParseError>> {
         match self {
             TokenSource::LogosLexer(lex) => lex.next(),
@@ -683,7 +683,7 @@ enum LexerState {
 //
 // We implement special case macro parsing here as an adapter to the adapter, as we need to wrap up
 // macro params and body tokens before passing them to the parser.
-impl<'a> Iterator for Lexer<'a> {
+impl Iterator for Lexer<'_> {
     type Item = Result<(usize, Token, usize), ParseError>;
 
     fn next(&mut self) -> Option<Self::Item> {

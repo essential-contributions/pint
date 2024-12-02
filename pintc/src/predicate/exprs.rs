@@ -85,37 +85,37 @@ impl Exprs {
 impl ExprKey {
     /// Returns an `Option` containing the `Expr` corresponding to key `self`. Returns `None` if
     /// the key can't be found in the `exprs` map.
-    pub fn try_get<'a>(&'a self, contract: &'a Contract) -> Option<&Expr> {
+    pub fn try_get<'a>(&self, contract: &'a Contract) -> Option<&'a Expr> {
         contract.exprs.exprs.get(*self)
     }
 
     /// Returns the `Expr` corresponding to key `self`. Panics if the key can't be found in the
     /// `exprs` map.
-    pub fn get<'a>(&'a self, contract: &'a Contract) -> &Expr {
+    pub fn get<'a>(&self, contract: &'a Contract) -> &'a Expr {
         contract.exprs.exprs.get(*self).unwrap()
     }
 
     /// Returns a mutable reference to the `Expr` corresponding to key `self`. Panics if the key
     /// can't be found in the `exprs` map.
-    pub fn get_mut<'a>(&'a self, contract: &'a mut Contract) -> &mut Expr {
+    pub fn get_mut<'a>(&self, contract: &'a mut Contract) -> &'a mut Expr {
         contract.exprs.exprs.get_mut(*self).unwrap()
     }
 
     /// Returns the type of key `self` given a `Contract`. Panics if the type can't be
     /// found in the `expr_types` map.
-    pub fn get_ty<'a>(&'a self, contract: &'a Contract) -> &Type {
+    pub fn get_ty<'a>(&self, contract: &'a Contract) -> &'a Type {
         contract.exprs.expr_types.get(*self).unwrap()
     }
 
     /// Returns a mutable reference to the type of key `self` given a `Contract`. Panics if the type can't be
     /// found in the `expr_types` map.
-    pub fn get_ty_mut<'a>(&'a self, contract: &'a mut Contract) -> &mut Type {
+    pub fn get_ty_mut<'a>(&self, contract: &'a mut Contract) -> &'a mut Type {
         contract.exprs.expr_types.get_mut(*self).unwrap()
     }
 
     /// Set the type of key `self` in a `Contract`. Panics if the type can't be found in
     /// the `expr_types` map.
-    pub fn set_ty<'a>(&'a self, ty: Type, contract: &'a mut Contract) {
+    pub fn set_ty(&self, ty: Type, contract: &mut Contract) {
         contract.exprs.expr_types.insert(*self, ty);
     }
 
@@ -485,7 +485,7 @@ impl<'a> ExprsIter<'a> {
     }
 }
 
-impl<'a> Iterator for ExprsIter<'a> {
+impl Iterator for ExprsIter<'_> {
     type Item = ExprKey;
 
     fn next(&mut self) -> Option<Self::Item> {

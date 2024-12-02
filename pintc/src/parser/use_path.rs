@@ -96,7 +96,7 @@ fn check_use_path(paths: Vec<UsePath>, expect: expect_test::Expect) {
 use lalrpop_util::lalrpop_mod;
 
 #[cfg(test)]
-lalrpop_mod!(#[allow(unused)] pub pint_parser);
+lalrpop_mod!(#[allow(unused, clippy::empty_line_after_outer_attr)] pub pint_parser);
 
 #[test]
 fn gather_use_paths() {

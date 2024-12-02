@@ -17,7 +17,7 @@ use std::{
 
 use lalrpop_util::lalrpop_mod;
 
-lalrpop_mod!(#[allow(clippy::ptr_arg, clippy::type_complexity)] pub pint_parser);
+lalrpop_mod!(#[allow(clippy::ptr_arg, clippy::type_complexity, clippy::empty_line_after_outer_attr)] pub pint_parser);
 
 mod use_path;
 pub(crate) use use_path::{UsePath, UseTree};
@@ -314,7 +314,7 @@ macro_rules! parse_with {
     }};
 }
 
-impl<'a> ProjectParser<'a> {
+impl ProjectParser<'_> {
     fn parse_module(
         &mut self,
         src_path: &Arc<Path>,
