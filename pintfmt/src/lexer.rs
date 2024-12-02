@@ -111,7 +111,7 @@ pub(super) fn lex(src: &str) -> (Vec<(Token, Span)>, Vec<FormatterError>) {
         })
 }
 
-impl<'sc> fmt::Display for Token<'sc> {
+impl fmt::Display for Token<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Token::Eq => write!(f, "="),

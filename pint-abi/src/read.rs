@@ -14,14 +14,14 @@ pub trait Read {
     fn read(&mut self, buf: &mut [Word]) -> Result<usize, Self::Error>;
 }
 
-impl<'a, T: Read> Read for &'a mut T {
+impl<T: Read> Read for &'_ mut T {
     type Error = T::Error;
     fn read(&mut self, buf: &mut [Word]) -> Result<usize, Self::Error> {
         (*self).read(buf)
     }
 }
 
-impl<'a> Read for &'a [Word] {
+impl Read for &'_ [Word] {
     type Error = core::convert::Infallible;
     fn read(&mut self, buf: &mut [Word]) -> Result<usize, Self::Error> {
         let amt = core::cmp::min(self.len(), buf.len());

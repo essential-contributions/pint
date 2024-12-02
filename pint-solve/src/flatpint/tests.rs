@@ -5,7 +5,7 @@ use flatpint_parser as fyp;
 use lalrpop_util::lalrpop_mod;
 
 #[cfg(test)]
-lalrpop_mod!(#[allow(unused)] pub flatpint_parser);
+lalrpop_mod!(#[allow(unused, clippy::empty_line_after_outer_attr)] pub flatpint_parser);
 
 #[cfg(test)]
 fn check(actual: &str, expect: expect_test::Expect) {
