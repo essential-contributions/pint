@@ -32,10 +32,10 @@ predicate Test(
 }
 
 // parsed <<<
-// const ::b = 1 in [3, 2];
-// const ::e = 1 in 1..2;
-// const ::d = true in [true, false];
 // const ::a = 1 in [1, 2];
+// const ::b = 1 in [3, 2];
+// const ::d = true in [true, false];
+// const ::e = 1 in 1..2;
 // const ::f = 1 in 3..2;
 //
 // predicate ::Test(
@@ -63,10 +63,10 @@ predicate Test(
 // >>>
 
 // flattened <<<
-// const ::b: bool = false;
-// const ::e: bool = true;
-// const ::d: bool = true;
 // const ::a: bool = true;
+// const ::b: bool = false;
+// const ::d: bool = true;
+// const ::e: bool = true;
 // const ::f: bool = false;
 //
 // predicate ::Test(

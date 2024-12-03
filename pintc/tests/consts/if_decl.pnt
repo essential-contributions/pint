@@ -18,8 +18,8 @@ predicate test(a: int) {
 
 // parsed <<<
 // const ::x = true;
-// const ::z = true;
 // const ::y = 33;
+// const ::z = true;
 //
 // predicate ::test(
 //     ::a: int,
@@ -39,8 +39,8 @@ predicate test(a: int) {
 
 // flattened <<<
 // const ::x: bool = true;
-// const ::z: bool = true;
 // const ::y: int = 33;
+// const ::z: bool = true;
 //
 // predicate ::test(
 //     ::a: int,

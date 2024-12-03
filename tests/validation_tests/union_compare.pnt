@@ -2,10 +2,10 @@ union pet = cats(int) | dogs(int) | emu;
 union maybe_addr = no_addr | addr(b256);
 
 predicate test(
-    a: pet, 
-    b: pet, 
-    no_base_addr: maybe_addr, 
-    a_base_addr: maybe_addr, 
+    a: pet,
+    b: pet,
+    no_base_addr: maybe_addr,
+    a_base_addr: maybe_addr,
     actual_addr:b256
 ) {
     constraint b == pet::dogs(2);
@@ -21,6 +21,6 @@ predicate test(
 
     constraint actual_addr == match no_base_addr {
         maybe_addr::no_addr => 0x0000000000000000000000000000000000000000000000000000000000000000,
-        maybe_addr::addr(a) => a,
+        maybe_addr::addr(addr) => addr,
     };
 }

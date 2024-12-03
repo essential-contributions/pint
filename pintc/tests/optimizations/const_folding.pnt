@@ -90,9 +90,9 @@ predicate Test(
 }
 
 // parsed <<<
+// const ::test: int = 20;
 // const ::test_array: int[2] = [1, 2];
 // const ::test_tuple: {bool, int} = {false, 5};
-// const ::test: int = 20;
 //
 // predicate ::Test(
 //     ::a: int,
@@ -175,9 +175,9 @@ predicate Test(
 // >>>
 
 // flattened <<<
+// const ::test: int = 20;
 // const ::test_array: int[2] = [1, 2];
 // const ::test_tuple: {bool, int} = {false, 5};
-// const ::test: int = 20;
 //
 // predicate ::Test(
 //     ::a: int,
@@ -246,9 +246,9 @@ predicate Test(
 // >>>
 
 // optimized <<<
+// const ::test: int = 20;
 // const ::test_array: int[2] = [1, 2];
 // const ::test_tuple: {bool, int} = {false, 5};
-// const ::test: int = 20;
 //
 // predicate ::Test(
 //     ::a: int,

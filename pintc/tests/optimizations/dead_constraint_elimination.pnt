@@ -29,10 +29,10 @@ predicate Test(x: int, y: int) {
 }
 
 // parsed <<<
-// const ::b = (3 < 4);
-// const ::d: int[5] = [0, 1, 2, 3, 4];
 // const ::a = true;
+// const ::b = (3 < 4);
 // const ::c = {1, 2};
+// const ::d: int[5] = [0, 1, 2, 3, 4];
 //
 // predicate ::Test(
 //     ::x: int,
@@ -58,10 +58,10 @@ predicate Test(x: int, y: int) {
 // >>>
 
 // flattened <<<
-// const ::b: bool = true;
-// const ::d: int[5] = [0, 1, 2, 3, 4];
 // const ::a: bool = true;
+// const ::b: bool = true;
 // const ::c: {int, int} = {1, 2};
+// const ::d: int[5] = [0, 1, 2, 3, 4];
 //
 // predicate ::Test(
 //     ::x: int,
@@ -88,10 +88,10 @@ predicate Test(x: int, y: int) {
 // >>>
 
 // optimized <<<
-// const ::b: bool = true;
-// const ::d: int[5] = [0, 1, 2, 3, 4];
 // const ::a: bool = true;
+// const ::b: bool = true;
 // const ::c: {int, int} = {1, 2};
+// const ::d: int[5] = [0, 1, 2, 3, 4];
 //
 // predicate ::Test(
 //     ::x: int,

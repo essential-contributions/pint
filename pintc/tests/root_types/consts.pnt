@@ -9,8 +9,8 @@ predicate test(a: int) {
 }
 
 // parsed <<<
-// const ::two_ints: ::deuce = [11, 22];
 // const ::five = 5;
+// const ::two_ints: ::deuce = [11, 22];
 // type ::deuce = int[(10 / ::five)];
 //
 // predicate ::test(
@@ -21,8 +21,8 @@ predicate test(a: int) {
 // >>>
 
 // flattened <<<
-// const ::two_ints: int[2] = [11, 22];
 // const ::five: int = 5;
+// const ::two_ints: int[2] = [11, 22];
 // type ::deuce = int[2];
 //
 // predicate ::test(

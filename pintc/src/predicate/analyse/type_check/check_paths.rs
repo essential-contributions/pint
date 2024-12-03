@@ -18,7 +18,11 @@ impl Contract {
         // report some hints.
         let mut hints = Vec::new();
 
-        if let Some(Const { decl_ty, .. }) = self.consts.get(path) {
+        if let Some(Const { decl_ty, .. }) = self
+            .consts
+            .iter()
+            .find_map(|(id, cnst)| (&id.name == path).then_some(cnst))
+        {
             if !decl_ty.is_unknown() {
                 Inference::Type(decl_ty.clone())
             } else {

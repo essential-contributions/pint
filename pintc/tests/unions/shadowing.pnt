@@ -1,0 +1,237 @@
+const c_name: int = 11;
+
+union wrapper = b(bool) | i(int);
+
+predicate test_exprs(b_or_i: wrapper, p_name: int) {
+    let l_name = 0;
+
+    constraint match b_or_i {
+        wrapper::b(c_name) => true,
+        wrapper::i(c_name) => match b_or_i {
+            wrapper::b(c_name) => true,
+            wrapper::i(c_name) => c_name == 11,
+        },
+    };
+
+    constraint match b_or_i {
+        wrapper::b(p_name) => true,
+        wrapper::i(p_name) => p_name == 22,
+    };
+
+    constraint match b_or_i {
+        wrapper::b(l_name) => true,
+        wrapper::i(l_name) => l_name == 33,
+    };
+
+    constraint match b_or_i {
+        wrapper::b(b_name) => match b_or_i {
+            wrapper::b(b_name) => true,
+            wrapper::i(b_name) => b_name == 44,
+        },
+        wrapper::i(b_name) => b_name == 55,
+    };
+}
+
+predicate test_stmts(b_or_i: wrapper, p_name: int) {
+    let l_name = 0;
+
+    match b_or_i {
+        wrapper::b(c_name) => { constraint true; }
+        wrapper::i(c_name) => {
+            match b_or_i {
+                wrapper::b(c_name) => { constraint true; }
+                wrapper::i(c_name) => { constraint c_name == 11; }
+            }
+        }
+    }
+
+    match b_or_i {
+        wrapper::b(p_name) => { constraint true; }
+        wrapper::i(p_name) => { constraint p_name == 22; }
+    }
+
+    match b_or_i {
+        wrapper::b(l_name) => { constraint true; }
+        wrapper::i(l_name) => { constraint l_name == 33; }
+    }
+
+    match b_or_i {
+        wrapper::b(b_name) => {
+            constraint match b_or_i {
+                wrapper::b(b_name) => true,
+                wrapper::i(b_name) => b_name == 44,
+            };
+        }
+        wrapper::i(b_name) => { constraint b_name == 55; }
+    }
+
+    match b_or_i {
+        wrapper::b(b_name) => {
+            match b_or_i {
+                wrapper::b(b_name) => { constraint true; }
+                wrapper::i(b_name) => { constraint b_name == 66; }
+            }
+        }
+        wrapper::i(b_name) => { constraint b_name == 77; }
+    }
+}
+
+// parsed <<<
+// const ::c_name: int = 11;
+// union ::wrapper = b(bool) | i(int);
+//
+// predicate ::test_exprs(
+//     ::b_or_i: ::wrapper,
+//     ::p_name: int,
+// ) {
+//     let ::l_name = 0;
+//     constraint match ::b_or_i { ::wrapper::b(c_name) => true, ::wrapper::i(c_name) => match ::b_or_i { ::wrapper::b(c_name) => true, ::wrapper::i(c_name) => (::c_name == 11) } };
+//     constraint match ::b_or_i { ::wrapper::b(p_name) => true, ::wrapper::i(p_name) => (::p_name == 22) };
+//     constraint match ::b_or_i { ::wrapper::b(l_name) => true, ::wrapper::i(l_name) => (::l_name == 33) };
+//     constraint match ::b_or_i { ::wrapper::b(b_name) => match ::b_or_i { ::wrapper::b(b_name) => true, ::wrapper::i(b_name) => (::b_name == 44) }, ::wrapper::i(b_name) => (::b_name == 55) };
+// }
+//
+// predicate ::test_stmts(
+//     ::b_or_i: ::wrapper,
+//     ::p_name: int,
+// ) {
+//     let ::l_name = 0;
+//     match ::b_or_i {
+//         ::wrapper::b(c_name) => {
+//             constraint true
+//         }
+//         ::wrapper::i(c_name) => {
+//             match ::b_or_i {
+//                 ::wrapper::b(c_name) => {
+//                     constraint true
+//                 }
+//                 ::wrapper::i(c_name) => {
+//                     constraint (::c_name == 11)
+//                 }
+//             }
+//         }
+//     }
+//     match ::b_or_i {
+//         ::wrapper::b(p_name) => {
+//             constraint true
+//         }
+//         ::wrapper::i(p_name) => {
+//             constraint (::p_name == 22)
+//         }
+//     }
+//     match ::b_or_i {
+//         ::wrapper::b(l_name) => {
+//             constraint true
+//         }
+//         ::wrapper::i(l_name) => {
+//             constraint (::l_name == 33)
+//         }
+//     }
+//     match ::b_or_i {
+//         ::wrapper::b(b_name) => {
+//             constraint match ::b_or_i { ::wrapper::b(b_name) => true, ::wrapper::i(b_name) => (::b_name == 44) }
+//         }
+//         ::wrapper::i(b_name) => {
+//             constraint (::b_name == 55)
+//         }
+//     }
+//     match ::b_or_i {
+//         ::wrapper::b(b_name) => {
+//             match ::b_or_i {
+//                 ::wrapper::b(b_name) => {
+//                     constraint true
+//                 }
+//                 ::wrapper::i(b_name) => {
+//                     constraint (::b_name == 66)
+//                 }
+//             }
+//         }
+//         ::wrapper::i(b_name) => {
+//             constraint (::b_name == 77)
+//         }
+//     }
+// }
+// >>>
+
+// flattening_failure <<<
+// symbol `b_name` has already been declared
+// @637..643: previous declaration of the symbol `b_name` here
+// @686..692: `b_name` redeclared here
+// `b_name` must be declared or imported only once in this scope
+// symbol `b_name` has already been declared
+// @637..643: previous declaration of the symbol `b_name` here
+// @726..732: `b_name` redeclared here
+// `b_name` must be declared or imported only once in this scope
+// symbol `l_name` has already been declared
+// @117..131: previous declaration of the symbol `l_name` here
+// @519..525: `l_name` redeclared here
+// `l_name` must be declared or imported only once in this scope
+// symbol `l_name` has already been declared
+// @117..131: previous declaration of the symbol `l_name` here
+// @555..561: `l_name` redeclared here
+// `l_name` must be declared or imported only once in this scope
+// symbol `p_name` has already been declared
+// @98..104: previous declaration of the symbol `p_name` here
+// @401..407: `p_name` redeclared here
+// `p_name` must be declared or imported only once in this scope
+// symbol `p_name` has already been declared
+// @98..104: previous declaration of the symbol `p_name` here
+// @437..443: `p_name` redeclared here
+// `p_name` must be declared or imported only once in this scope
+// symbol `c_name` has already been declared
+// @6..12: previous declaration of the symbol `c_name` here
+// @183..189: `c_name` redeclared here
+// `c_name` must be declared or imported only once in this scope
+// symbol `c_name` has already been declared
+// @6..12: previous declaration of the symbol `c_name` here
+// @219..225: `c_name` redeclared here
+// `c_name` must be declared or imported only once in this scope
+// symbol `c_name` has already been declared
+// @219..225: previous declaration of the symbol `c_name` here
+// @268..274: `c_name` redeclared here
+// `c_name` must be declared or imported only once in this scope
+// symbol `c_name` has already been declared
+// @219..225: previous declaration of the symbol `c_name` here
+// @308..314: `c_name` redeclared here
+// `c_name` must be declared or imported only once in this scope
+// symbol `b_name` has already been declared
+// @1762..1768: previous declaration of the symbol `b_name` here
+// @1829..1835: `b_name` redeclared here
+// `b_name` must be declared or imported only once in this scope
+// symbol `b_name` has already been declared
+// @1762..1768: previous declaration of the symbol `b_name` here
+// @1888..1894: `b_name` redeclared here
+// `b_name` must be declared or imported only once in this scope
+// symbol `l_name` has already been declared
+// @117..131: previous declaration of the symbol `l_name` here
+// @1350..1356: `l_name` redeclared here
+// `l_name` must be declared or imported only once in this scope
+// symbol `l_name` has already been declared
+// @117..131: previous declaration of the symbol `l_name` here
+// @1401..1407: `l_name` redeclared here
+// `l_name` must be declared or imported only once in this scope
+// symbol `p_name` has already been declared
+// @98..104: previous declaration of the symbol `p_name` here
+// @1214..1220: `p_name` redeclared here
+// `p_name` must be declared or imported only once in this scope
+// symbol `p_name` has already been declared
+// @98..104: previous declaration of the symbol `p_name` here
+// @1265..1271: `p_name` redeclared here
+// `p_name` must be declared or imported only once in this scope
+// symbol `c_name` has already been declared
+// @6..12: previous declaration of the symbol `c_name` here
+// @928..934: `c_name` redeclared here
+// `c_name` must be declared or imported only once in this scope
+// symbol `c_name` has already been declared
+// @6..12: previous declaration of the symbol `c_name` here
+// @979..985: `c_name` redeclared here
+// `c_name` must be declared or imported only once in this scope
+// symbol `c_name` has already been declared
+// @6..12: previous declaration of the symbol `c_name` here
+// @1046..1052: `c_name` redeclared here
+// `c_name` must be declared or imported only once in this scope
+// symbol `c_name` has already been declared
+// @6..12: previous declaration of the symbol `c_name` here
+// @1105..1111: `c_name` redeclared here
+// `c_name` must be declared or imported only once in this scope
+// >>>

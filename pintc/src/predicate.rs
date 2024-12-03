@@ -32,7 +32,7 @@ pub struct Contract {
     pub preds: slotmap::SlotMap<PredKey, Predicate>,
 
     pub exprs: Exprs,
-    pub consts: FxHashMap<String, Const>,
+    pub consts: Vec<(Ident, Const)>,
     pub storage: Option<(Vec<StorageVar>, Span)>,
     pub interfaces: Vec<Interface>,
 
@@ -265,14 +265,12 @@ impl Contract {
 
         // But we need to replace any 'root' set exprs too, such as those in consts values and
         // types, the new-type aliases and then any references in Predicates.
-        self.consts
-            .values_mut()
-            .for_each(|Const { expr, decl_ty }| {
-                if *expr == old_expr {
-                    *expr = new_expr;
-                }
-                decl_ty.replace_type_expr(old_expr, new_expr);
-            });
+        for (_id, Const { expr, decl_ty }) in &mut self.consts {
+            if *expr == old_expr {
+                *expr = new_expr;
+            }
+            decl_ty.replace_type_expr(old_expr, new_expr);
+        }
 
         if let Some((storage_vars, _)) = &mut self.storage {
             storage_vars
@@ -333,9 +331,9 @@ impl Contract {
             });
 
         // Update every declared const type.
-        self.consts
-            .values_mut()
-            .for_each(|Const { decl_ty, .. }| f(decl_ty));
+        for (_id, Const { decl_ty, .. }) in &mut self.consts {
+            f(decl_ty)
+        }
 
         // Update every union decl variant type.
         for UnionDecl { variants, .. } in self.unions.values_mut() {
@@ -528,8 +526,8 @@ impl Contract {
             )
             .chain(
                 self.consts
-                    .values()
-                    .filter_map(|Const { decl_ty, .. }| decl_ty.get_array_range_expr()),
+                    .iter()
+                    .filter_map(|(_id, Const { decl_ty, .. })| decl_ty.get_array_range_expr()),
             )
     }
 }

@@ -14,8 +14,8 @@ predicate test(a: int[4], b: int[5], c: int[2]) {
 }
 
 // parsed <<<
-// const ::h: int[3] = [444, 555, 666];
 // const ::g: int[2] = [222, 333];
+// const ::h: int[3] = [444, 555, 666];
 //
 // predicate ::test(
 //     ::a: int[4],
