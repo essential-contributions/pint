@@ -1,4 +1,5 @@
-use clap::Parser;
+use clap::{builder::styling::Style, Parser};
+use essential_types::ContentAddress;
 use pintc::{
     asm_gen::compile_contract, cli::Args, error, parser, predicate::CompileOptions, warning,
 };
@@ -6,6 +7,7 @@ use std::{
     fs::{create_dir_all, File},
     path::{Path, PathBuf},
 };
+use yansi::Condition;
 
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
@@ -89,6 +91,54 @@ fn main() -> anyhow::Result<()> {
             json_abi_path.set_extension("json");
             json_abi_path = output_directory_path.join(json_abi_path);
 
+            // Output content addresses for the contract and it's predicates
+            // todo - ian - figure out contract address
+            // todo - ian - figure out salting properly
+            // todo - ian - figure out where to put this and how to best organize the helper functions
+            // could do a struct that has display?
+            let pinned_name = filepath
+                .file_stem()
+                .expect("Failed to get file stem")
+                .to_str()
+                .expect("Invalid unicode in contract name");
+
+            let name_col_w = name_col_w(pinned_name, &compiled_contract.names);
+            let compiled_predicate_contract_addresses = &compiled_contract
+                .predicates
+                .iter()
+                .map(|compiled_predicate| essential_hash::content_addr(compiled_predicate));
+
+            let ca = essential_hash::contract_addr::from_predicate_addrs(
+                compiled_predicate_contract_addresses
+                    .clone()
+                    .map(|ca| ca.clone()),
+                &args.salt.unwrap_or_default(),
+            );
+
+            let bold = Style::new().bold();
+            let kind_str = "contract";
+            let padded_kind_str = format!("{kind_str:>12}");
+            let padding = &padded_kind_str[..padded_kind_str.len() - kind_str.len()];
+            println!(
+                "{padding}{}contract{} {:<name_col_w$} {}",
+                bold.render(),
+                bold.render_reset(),
+                pinned_name,
+                ca,
+            );
+
+            let iter = &mut compiled_predicate_contract_addresses
+                .clone()
+                .zip(compiled_contract.names)
+                .map(|(ca, name)| (name, ca))
+                .peekable();
+            while let Some((name, ca)) = iter.next() {
+                let pred_name = summary_predicate_name(&name);
+                let name = format!("{}{}", pinned_name, pred_name);
+                let pipe = iter.peek().map(|_| "├──").unwrap_or("└──");
+                println!("         {pipe} {:<name_col_w$} {}", name, ca);
+            }
+
             // Compute the JSON ABI
             let abi = match handler.scope(|handler| contract.abi(handler)) {
                 Ok(abi) => abi,
@@ -130,4 +180,23 @@ fn main() -> anyhow::Result<()> {
     };
 
     Ok(())
+}
+
+// In the summary, the root predicate name is empty
+fn summary_predicate_name(pred_name: &str) -> &str {
+    match pred_name {
+        "" => " (predicate)",
+        _ => pred_name,
+    }
+}
+
+/// Determine the width of the column required to fit the name and all
+/// name+predicate combos.
+fn name_col_w(name: &str, compiled_predicate_names: &Vec<String>) -> usize {
+    let mut name_w = 0;
+    for name in compiled_predicate_names {
+        let w = summary_predicate_name(&name).chars().count();
+        name_w = std::cmp::max(name_w, w);
+    }
+    name.chars().count() + name_w
 }
