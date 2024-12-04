@@ -107,7 +107,7 @@ fn main() -> anyhow::Result<()> {
             let compiled_predicate_contract_addresses: Vec<_> = compiled_contract
                 .predicates
                 .iter()
-                .map(|compiled_predicate| essential_hash::content_addr(compiled_predicate))
+                .map(essential_hash::content_addr)
                 .collect();
             let ca = essential_hash::contract_addr::from_predicate_addrs(
                 compiled_predicate_contract_addresses.iter().cloned(),

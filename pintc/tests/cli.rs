@@ -1,5 +1,7 @@
 use std::{fs, io::Write, path::PathBuf};
 
+use tempfile::Builder;
+
 fn remove_ansi_codes(input: &str) -> String {
     let re = regex::Regex::new(r"\x1B\[([0-9;]*[A-Za-z])").unwrap();
     re.replace_all(input, "").to_string()
@@ -7,6 +9,11 @@ fn remove_ansi_codes(input: &str) -> String {
 
 #[cfg(test)]
 fn check(actual: &str, expect: expect_test::Expect) {
+    expect.assert_eq(actual);
+}
+
+#[cfg(test)]
+fn check_file(actual: &str, expect: expect_test::ExpectFile) {
     expect.assert_eq(actual);
 }
 
@@ -113,7 +120,11 @@ fn compile_errors() {
 
 #[test]
 fn default_output() {
-    let mut input_file = tempfile::NamedTempFile::new().unwrap();
+    let mut input_file = Builder::new()
+        .prefix(".tmpOm3IwU")
+        .rand_bytes(0)
+        .tempfile()
+        .unwrap();
     write!(input_file.as_file_mut(), "predicate test() {{}}").unwrap();
 
     let output = pintc_command(input_file.path().to_str().unwrap());
@@ -121,13 +132,26 @@ fn default_output() {
     assert!(input_file.path().with_extension("json").exists());
     let _ = fs::remove_file(input_file.path().with_extension("json"));
 
+    let mut expected_output_file = tempfile::NamedTempFile::new().unwrap();
+    write!(expected_output_file.as_file_mut(), 
+"    contract .tmpOm3IwU       EB87FCE275A9AB10996D212F39221A56B90E01C37FA9D16EE04A3FE8E17DEED9
+         └── .tmpOm3IwU::test BA6595C5C75346E6C82BED0CE770D0758ADD1712163FCE45E38E5E8EAC6AA153
+").unwrap();
+
     check(&output.stderr, expect_test::expect![""]);
-    check(&output.stdout, expect_test::expect![""]);
+    check_file(
+        &output.stdout,
+        expect_test::expect_file![expected_output_file.path()],
+    );
 }
 
 #[test]
 fn explicit_output() {
-    let mut input_file = tempfile::NamedTempFile::new().unwrap();
+    let mut input_file = Builder::new()
+        .prefix(".tmpulGrH8")
+        .rand_bytes(0)
+        .tempfile()
+        .unwrap();
     write!(input_file.as_file_mut(), "predicate test() {{}}").unwrap();
 
     let temp_dir = tempfile::TempDir::new().unwrap();
@@ -142,13 +166,26 @@ fn explicit_output() {
     assert!(output_file.exists());
     let _ = fs::remove_file(output_file);
 
+    let mut expected_output_file = tempfile::NamedTempFile::new().unwrap();
+    write!(expected_output_file.as_file_mut(), 
+"    contract .tmpulGrH8       EB87FCE275A9AB10996D212F39221A56B90E01C37FA9D16EE04A3FE8E17DEED9
+         └── .tmpulGrH8::test BA6595C5C75346E6C82BED0CE770D0758ADD1712163FCE45E38E5E8EAC6AA153
+").unwrap();
+
     check(&output.stderr, expect_test::expect![""]);
-    check(&output.stdout, expect_test::expect![""]);
+    check_file(
+        &output.stdout,
+        expect_test::expect_file![expected_output_file.path()],
+    );
 }
 
 #[test]
 fn explicit_salt() {
-    let mut input_file = tempfile::NamedTempFile::new().unwrap();
+    let mut input_file = Builder::new()
+        .prefix(".dmXkll")
+        .rand_bytes(0)
+        .tempfile()
+        .unwrap();
     write!(input_file.as_file_mut(), "predicate test() {{}}").unwrap();
 
     // Salt has 64 digits
@@ -157,8 +194,17 @@ fn explicit_salt() {
         input_file.path().to_str().unwrap(),
     ));
 
+    let mut expected_output_file = tempfile::NamedTempFile::new().unwrap();
+    write!(expected_output_file.as_file_mut(), 
+"    contract .dmXkll       4337DBAA25DD2434C4C96F4D3EF1C57B06366875BBACB51768D8FFB01027980B
+         └── .dmXkll::test BA6595C5C75346E6C82BED0CE770D0758ADD1712163FCE45E38E5E8EAC6AA153
+").unwrap();
+
     check(&output.stderr, expect_test::expect![""]);
-    check(&output.stdout, expect_test::expect![""]);
+    check_file(
+        &output.stdout,
+        expect_test::expect_file![expected_output_file.path()],
+    );    
 
     // Salt has less than 64 digits
     let output = pintc_command(&format!(
@@ -166,8 +212,17 @@ fn explicit_salt() {
         input_file.path().to_str().unwrap(),
     ));
 
+    let mut expected_output_file = tempfile::NamedTempFile::new().unwrap();
+    write!(expected_output_file.as_file_mut(), 
+"    contract .dmXkll       AB92EA32F6DC2E304C5385A28A9BAB1DE90C7B441362F98E7556B3AD796D0EBA
+         └── .dmXkll::test BA6595C5C75346E6C82BED0CE770D0758ADD1712163FCE45E38E5E8EAC6AA153
+").unwrap();
+
     check(&output.stderr, expect_test::expect![""]);
-    check(&output.stdout, expect_test::expect![""]);
+    check_file(
+        &output.stdout,
+        expect_test::expect_file![expected_output_file.path()],
+    );
 }
 
 #[test]
