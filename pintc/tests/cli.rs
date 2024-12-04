@@ -133,10 +133,9 @@ fn default_output() {
     let _ = fs::remove_file(input_file.path().with_extension("json"));
 
     let mut expected_output_file = tempfile::NamedTempFile::new().unwrap();
-    write!(expected_output_file.as_file_mut(), 
-"    contract .tmpOm3IwU       EB87FCE275A9AB10996D212F39221A56B90E01C37FA9D16EE04A3FE8E17DEED9
-         └── .tmpOm3IwU::test BA6595C5C75346E6C82BED0CE770D0758ADD1712163FCE45E38E5E8EAC6AA153
-").unwrap();
+    let expected_output = "    contract .tmpOm3IwU       EB87FCE275A9AB10996D212F39221A56B90E01C37FA9D16EE04A3FE8E17DEED9
+         └── .tmpOm3IwU::test BA6595C5C75346E6C82BED0CE770D0758ADD1712163FCE45E38E5E8EAC6AA153\n";
+    write!(expected_output_file.as_file_mut(), "{}", expected_output).unwrap();
 
     check(&output.stderr, expect_test::expect![""]);
     check_file(
@@ -167,10 +166,9 @@ fn explicit_output() {
     let _ = fs::remove_file(output_file);
 
     let mut expected_output_file = tempfile::NamedTempFile::new().unwrap();
-    write!(expected_output_file.as_file_mut(), 
-"    contract .tmpulGrH8       EB87FCE275A9AB10996D212F39221A56B90E01C37FA9D16EE04A3FE8E17DEED9
-         └── .tmpulGrH8::test BA6595C5C75346E6C82BED0CE770D0758ADD1712163FCE45E38E5E8EAC6AA153
-").unwrap();
+    let expected_output = "    contract .tmpulGrH8       EB87FCE275A9AB10996D212F39221A56B90E01C37FA9D16EE04A3FE8E17DEED9
+         └── .tmpulGrH8::test BA6595C5C75346E6C82BED0CE770D0758ADD1712163FCE45E38E5E8EAC6AA153\n";
+    write!(expected_output_file.as_file_mut(), "{}", expected_output).unwrap();
 
     check(&output.stderr, expect_test::expect![""]);
     check_file(
@@ -195,16 +193,15 @@ fn explicit_salt() {
     ));
 
     let mut expected_output_file = tempfile::NamedTempFile::new().unwrap();
-    write!(expected_output_file.as_file_mut(), 
-"    contract .dmXkll       4337DBAA25DD2434C4C96F4D3EF1C57B06366875BBACB51768D8FFB01027980B
-         └── .dmXkll::test BA6595C5C75346E6C82BED0CE770D0758ADD1712163FCE45E38E5E8EAC6AA153
-").unwrap();
+    let expected_output = "    contract .dmXkll       4337DBAA25DD2434C4C96F4D3EF1C57B06366875BBACB51768D8FFB01027980B
+         └── .dmXkll::test BA6595C5C75346E6C82BED0CE770D0758ADD1712163FCE45E38E5E8EAC6AA153\n";
+    write!(expected_output_file.as_file_mut(), "{}", expected_output).unwrap();
 
     check(&output.stderr, expect_test::expect![""]);
     check_file(
         &output.stdout,
         expect_test::expect_file![expected_output_file.path()],
-    );    
+    );
 
     // Salt has less than 64 digits
     let output = pintc_command(&format!(
@@ -213,10 +210,9 @@ fn explicit_salt() {
     ));
 
     let mut expected_output_file = tempfile::NamedTempFile::new().unwrap();
-    write!(expected_output_file.as_file_mut(), 
-"    contract .dmXkll       AB92EA32F6DC2E304C5385A28A9BAB1DE90C7B441362F98E7556B3AD796D0EBA
-         └── .dmXkll::test BA6595C5C75346E6C82BED0CE770D0758ADD1712163FCE45E38E5E8EAC6AA153
-").unwrap();
+    let expected_output = "    contract .dmXkll       AB92EA32F6DC2E304C5385A28A9BAB1DE90C7B441362F98E7556B3AD796D0EBA
+         └── .dmXkll::test BA6595C5C75346E6C82BED0CE770D0758ADD1712163FCE45E38E5E8EAC6AA153\n";
+    write!(expected_output_file.as_file_mut(), "{}", expected_output).unwrap();
 
     check(&output.stderr, expect_test::expect![""]);
     check_file(
