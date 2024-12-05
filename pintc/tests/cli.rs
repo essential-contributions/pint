@@ -10,11 +10,6 @@ fn check(actual: &str, expect: expect_test::Expect) {
     expect.assert_eq(actual);
 }
 
-#[cfg(test)]
-fn check_file(actual: &str, expect: expect_test::ExpectFile) {
-    expect.assert_eq(actual);
-}
-
 struct Output {
     stdout: String,
     stderr: String,
@@ -126,16 +121,18 @@ fn default_output() {
     assert!(input_file.path().with_extension("json").exists());
     let _ = fs::remove_file(input_file.path().with_extension("json"));
 
-    let input_file_name = input_file.path().file_name().unwrap().to_str().unwrap();
-    let mut expected_output_file = tempfile::NamedTempFile::new().unwrap();
-    let expected_output = format!("    contract {input_file_name}       EB87FCE275A9AB10996D212F39221A56B90E01C37FA9D16EE04A3FE8E17DEED9
-         └── {input_file_name}::test BA6595C5C75346E6C82BED0CE770D0758ADD1712163FCE45E38E5E8EAC6AA153\n");
-    write!(expected_output_file.as_file_mut(), "{}", expected_output).unwrap();
+    let stdout = output.stdout.replace(
+        input_file.path().file_stem().unwrap().to_str().unwrap(),
+        "<filename>",
+    );
+    let stdout = stdout.trim();
 
     check(&output.stderr, expect_test::expect![""]);
-    check_file(
-        &output.stdout,
-        expect_test::expect_file![expected_output_file.path()],
+    check(
+        &stdout,
+        expect_test::expect![[r#"
+        contract <filename>       EB87FCE275A9AB10996D212F39221A56B90E01C37FA9D16EE04A3FE8E17DEED9
+                 └── <filename>::test BA6595C5C75346E6C82BED0CE770D0758ADD1712163FCE45E38E5E8EAC6AA153"#]],
     );
 }
 
@@ -156,16 +153,18 @@ fn explicit_output() {
     assert!(output_file.exists());
     let _ = fs::remove_file(output_file);
 
-    let input_file_name = input_file.path().file_name().unwrap().to_str().unwrap();
-    let mut expected_output_file = tempfile::NamedTempFile::new().unwrap();
-    let expected_output = format!("    contract {input_file_name}       EB87FCE275A9AB10996D212F39221A56B90E01C37FA9D16EE04A3FE8E17DEED9
-         └── {input_file_name}::test BA6595C5C75346E6C82BED0CE770D0758ADD1712163FCE45E38E5E8EAC6AA153\n");
-    write!(expected_output_file.as_file_mut(), "{}", expected_output).unwrap();
+    let stdout = output.stdout.replace(
+        input_file.path().file_stem().unwrap().to_str().unwrap(),
+        "<filename>",
+    );
+    let stdout = stdout.trim();
 
     check(&output.stderr, expect_test::expect![""]);
-    check_file(
-        &output.stdout,
-        expect_test::expect_file![expected_output_file.path()],
+    check(
+        &stdout,
+        expect_test::expect![[r#"
+        contract <filename>       EB87FCE275A9AB10996D212F39221A56B90E01C37FA9D16EE04A3FE8E17DEED9
+                 └── <filename>::test BA6595C5C75346E6C82BED0CE770D0758ADD1712163FCE45E38E5E8EAC6AA153"#]],
     );
 }
 
@@ -180,16 +179,18 @@ fn explicit_salt() {
         input_file.path().to_str().unwrap(),
     ));
 
-    let input_file_name = input_file.path().file_name().unwrap().to_str().unwrap();
-    let mut expected_output_file = tempfile::NamedTempFile::new().unwrap();
-    let expected_output = format!("    contract {input_file_name}       4337DBAA25DD2434C4C96F4D3EF1C57B06366875BBACB51768D8FFB01027980B
-         └── {input_file_name}::test BA6595C5C75346E6C82BED0CE770D0758ADD1712163FCE45E38E5E8EAC6AA153\n");
-    write!(expected_output_file.as_file_mut(), "{}", expected_output).unwrap();
+    let stdout = output.stdout.replace(
+        input_file.path().file_stem().unwrap().to_str().unwrap(),
+        "<filename>",
+    );
+    let stdout = stdout.trim();
 
     check(&output.stderr, expect_test::expect![""]);
-    check_file(
-        &output.stdout,
-        expect_test::expect_file![expected_output_file.path()],
+    check(
+        &stdout,
+        expect_test::expect![[r#"
+            contract <filename>       4337DBAA25DD2434C4C96F4D3EF1C57B06366875BBACB51768D8FFB01027980B
+                     └── <filename>::test BA6595C5C75346E6C82BED0CE770D0758ADD1712163FCE45E38E5E8EAC6AA153"#]],
     );
 
     // Salt has less than 64 digits
@@ -198,15 +199,18 @@ fn explicit_salt() {
         input_file.path().to_str().unwrap(),
     ));
 
-    let mut expected_output_file = tempfile::NamedTempFile::new().unwrap();
-    let expected_output = format!("    contract {input_file_name}       AB92EA32F6DC2E304C5385A28A9BAB1DE90C7B441362F98E7556B3AD796D0EBA
-         └── {input_file_name}::test BA6595C5C75346E6C82BED0CE770D0758ADD1712163FCE45E38E5E8EAC6AA153\n");
-    write!(expected_output_file.as_file_mut(), "{}", expected_output).unwrap();
+    let stdout = output.stdout.replace(
+        input_file.path().file_stem().unwrap().to_str().unwrap(),
+        "<filename>",
+    );
+    let stdout = stdout.trim();
 
     check(&output.stderr, expect_test::expect![""]);
-    check_file(
-        &output.stdout,
-        expect_test::expect_file![expected_output_file.path()],
+    check(
+        &stdout,
+        expect_test::expect![[r#"
+            contract <filename>       AB92EA32F6DC2E304C5385A28A9BAB1DE90C7B441362F98E7556B3AD796D0EBA
+                     └── <filename>::test BA6595C5C75346E6C82BED0CE770D0758ADD1712163FCE45E38E5E8EAC6AA153"#]],
     );
 }
 
@@ -280,22 +284,24 @@ fn multiple_predicate_output() {
     assert!(input_file.path().with_extension("json").exists());
     let _ = fs::remove_file(input_file.path().with_extension("json"));
 
-    let input_file_name = input_file.path().file_name().unwrap().to_str().unwrap();
-    let mut expected_output_file = tempfile::NamedTempFile::new().unwrap();
-    let expected_output = format!("    contract {input_file_name}           2F807BAF77DBE874929689A2A4011FC8C4AB5499FA7544FF599524E4354B4957
-         ├── {input_file_name}::test     BA6595C5C75346E6C82BED0CE770D0758ADD1712163FCE45E38E5E8EAC6AA153
-         ├── {input_file_name}::check    D40185838803AB6CF672C5C01D70A93F47666990443F39A151CD244CB0B81F07
-         ├── {input_file_name}::verify   9C765AEC92FC1F9D6F712ED04AFBC00AB67FD549EBA12878610D05C86F549350
-         ├── {input_file_name}::validate CF9B52686DD22EFF2217FD8739AFC47ABFFCC55AC1F0A5745F9EFFF8443CF5CC
-         ├── {input_file_name}::assess   9BD346668B83A078F68F635F57CFABC551865BD447534F2CF6B0E9707A144E58
-         ├── {input_file_name}::examine  F8B346FB584A105E6161440581AA987CBC5E7AEAD5F75C7C66120EB18C6CDA4B
-         ├── {input_file_name}::inspect  1D4EF7D65DAD4F59395291107A49FD0EF5D3A772BA711D1CAA4A5C404626A200
-         └── {input_file_name}::evaluate FD36462040324A54DEAD7781ACC79487F481DFDC21006A1E9E0A8FBFB8AC6669\n");
-    write!(expected_output_file.as_file_mut(), "{}", expected_output).unwrap();
+    let stdout = output.stdout.replace(
+        input_file.path().file_stem().unwrap().to_str().unwrap(),
+        "<filename>",
+    );
+    let stdout = stdout.trim();
 
     check(&output.stderr, expect_test::expect![""]);
-    check_file(
-        &output.stdout,
-        expect_test::expect_file![expected_output_file.path()],
+    check(
+        &stdout,
+        expect_test::expect![[r#"
+            contract <filename>           2F807BAF77DBE874929689A2A4011FC8C4AB5499FA7544FF599524E4354B4957
+                     ├── <filename>::test     BA6595C5C75346E6C82BED0CE770D0758ADD1712163FCE45E38E5E8EAC6AA153
+                     ├── <filename>::check    D40185838803AB6CF672C5C01D70A93F47666990443F39A151CD244CB0B81F07
+                     ├── <filename>::verify   9C765AEC92FC1F9D6F712ED04AFBC00AB67FD549EBA12878610D05C86F549350
+                     ├── <filename>::validate CF9B52686DD22EFF2217FD8739AFC47ABFFCC55AC1F0A5745F9EFFF8443CF5CC
+                     ├── <filename>::assess   9BD346668B83A078F68F635F57CFABC551865BD447534F2CF6B0E9707A144E58
+                     ├── <filename>::examine  F8B346FB584A105E6161440581AA987CBC5E7AEAD5F75C7C66120EB18C6CDA4B
+                     ├── <filename>::inspect  1D4EF7D65DAD4F59395291107A49FD0EF5D3A772BA711D1CAA4A5C404626A200
+                     └── <filename>::evaluate FD36462040324A54DEAD7781ACC79487F481DFDC21006A1E9E0A8FBFB8AC6669"#]],
     );
 }
