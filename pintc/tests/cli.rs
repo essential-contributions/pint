@@ -129,7 +129,7 @@ fn default_output() {
 
     check(&output.stderr, expect_test::expect![""]);
     check(
-        &stdout,
+        stdout,
         expect_test::expect![[r#"
         contract <filename>       EB87FCE275A9AB10996D212F39221A56B90E01C37FA9D16EE04A3FE8E17DEED9
                  └── <filename>::test BA6595C5C75346E6C82BED0CE770D0758ADD1712163FCE45E38E5E8EAC6AA153"#]],
@@ -161,7 +161,7 @@ fn explicit_output() {
 
     check(&output.stderr, expect_test::expect![""]);
     check(
-        &stdout,
+        stdout,
         expect_test::expect![[r#"
         contract <filename>       EB87FCE275A9AB10996D212F39221A56B90E01C37FA9D16EE04A3FE8E17DEED9
                  └── <filename>::test BA6595C5C75346E6C82BED0CE770D0758ADD1712163FCE45E38E5E8EAC6AA153"#]],
@@ -187,7 +187,7 @@ fn explicit_salt() {
 
     check(&output.stderr, expect_test::expect![""]);
     check(
-        &stdout,
+        stdout,
         expect_test::expect![[r#"
             contract <filename>       4337DBAA25DD2434C4C96F4D3EF1C57B06366875BBACB51768D8FFB01027980B
                      └── <filename>::test BA6595C5C75346E6C82BED0CE770D0758ADD1712163FCE45E38E5E8EAC6AA153"#]],
@@ -207,7 +207,7 @@ fn explicit_salt() {
 
     check(&output.stderr, expect_test::expect![""]);
     check(
-        &stdout,
+        stdout,
         expect_test::expect![[r#"
             contract <filename>       AB92EA32F6DC2E304C5385A28A9BAB1DE90C7B441362F98E7556B3AD796D0EBA
                      └── <filename>::test BA6595C5C75346E6C82BED0CE770D0758ADD1712163FCE45E38E5E8EAC6AA153"#]],
@@ -292,7 +292,7 @@ fn multiple_predicate_output() {
 
     check(&output.stderr, expect_test::expect![""]);
     check(
-        &stdout,
+        stdout,
         expect_test::expect![[r#"
             contract <filename>           2F807BAF77DBE874929689A2A4011FC8C4AB5499FA7544FF599524E4354B4957
                      ├── <filename>::test     BA6595C5C75346E6C82BED0CE770D0758ADD1712163FCE45E38E5E8EAC6AA153
