@@ -1,11 +1,12 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
-    expr::{Expr, ExternalIntrinsic, Immediate, IntrinsicKind},
+    expr::{Expr, ExternalIntrinsic, Immediate, InternalIntrinsic, IntrinsicKind},
     predicate::{ConstraintDecl, Contract, ExprKey, Predicate, Variable},
     span::{empty_span, Span, Spanned},
 };
 
 use asm_builder::AsmBuilder;
+use either::Either;
 use essential_types::{
     predicate::{Edge, Node, Predicate as CompiledPredicate, Program, Reads},
     ContentAddress,
@@ -206,6 +207,10 @@ type CompiledPredicates = FxHashMap<
 
 #[derive(Clone, Debug)]
 enum NodeType {
+    Temp {
+        expr: ExprKey,
+        reads: Reads,
+    },
     NonLeaf {
         index: usize,
         var: Variable,
@@ -223,10 +228,17 @@ impl NodeType {
         matches!(self, NodeType::Leaf { .. })
     }
 
+    fn expr(&self) -> ExprKey {
+        match self {
+            Self::NonLeaf { var, .. } => var.expr,
+            Self::Leaf { expr, .. } | Self::Temp { expr, .. } => *expr,
+        }
+    }
+
     fn span(&self, contract: &Contract) -> Span {
         match self {
             Self::NonLeaf { var, .. } => var.span.clone(),
-            Self::Leaf { expr, .. } => expr.get(contract).span().clone(),
+            Self::Leaf { expr, .. } | Self::Temp { expr, .. } => expr.get(contract).span().clone(),
         }
     }
 }
@@ -280,11 +292,47 @@ pub fn compile_predicate(
     }
 
     for (index, ConstraintDecl { expr, .. }) in pred.constraints.iter().enumerate() {
+        let storage_accesses = expr.collect_storage_accesses(contract);
+
+        let (post_accesses, pre_accesses): (Vec<_>, Vec<_>) = storage_accesses
+            .into_iter()
+            .partition::<Vec<_>, _>(|access| {
+                matches!(
+                    access.get(contract),
+                    Expr::IntrinsicCall {
+                        kind: (
+                            IntrinsicKind::Internal(
+                                InternalIntrinsic::PostState | InternalIntrinsic::PostStateExtern
+                            ),
+                            _
+                        ),
+                        ..
+                    }
+                )
+            });
+
         let constraint_node = data_flow_graph.add_node(NodeType::Leaf {
             index,
             expr: *expr,
-            reads: Reads::Pre,
+            reads: if !pre_accesses.is_empty() && post_accesses.is_empty() {
+                Reads::Pre
+            } else if pre_accesses.is_empty() && !post_accesses.is_empty() {
+                Reads::Post
+            } else {
+                Reads::Pre
+            },
         });
+
+        if !pre_accesses.is_empty() && !post_accesses.is_empty() {
+            for access in post_accesses {
+                // create temporary nodes
+                let temp_node = data_flow_graph.add_node(NodeType::Temp {
+                    expr: access,
+                    reads: Reads::Post,
+                });
+                data_flow_graph.add_edge(temp_node, constraint_node, ());
+            }
+        }
 
         for (var_name, reads) in expr.collect_path_to_var_exprs(contract, pred) {
             data_flow_graph.add_edge(vars_to_nodes[&(var_name, reads)], constraint_node, ());
@@ -365,8 +413,8 @@ pub fn compile_predicate(
     // v_nodes[i] contains the index of the compute graph node corresponding to variable i
     let mut v_nodes = vec![0; pred.variables().count()];
 
-    let mut builder = AsmBuilder::new(&no_span_predicates);
     for node in &sorted_nodes {
+        let mut builder = AsmBuilder::new(&no_span_predicates);
         // Collect all the parents of this node and sort them according to their order in
         // `sorted_nodes`
         let mut parents = data_flow_graph
@@ -377,23 +425,47 @@ pub fn compile_predicate(
         // Produce a list of the input variables to this node
         let node_inputs = parents
             .iter()
-            .filter_map(|node| match &data_flow_graph[*node] {
-                NodeType::NonLeaf { var, reads, .. } => Some((var, reads)),
-                NodeType::Leaf { .. } => None,
-            })
+            .map(|node| data_flow_graph[*node].clone())
             .collect::<Vec<_>>();
 
+        let asm = builder.compile_compute_node(
+            handler,
+            &data_flow_graph[*node],
+            &node_inputs,
+            contract,
+            pred,
+        )?;
+
+        let address = essential_hash::content_addr(&Program(
+            essential_asm::to_bytes(asm.iter().copied()).collect(),
+        ));
+        programs.insert(Program(
+            essential_asm::to_bytes(asm.iter().copied()).collect(),
+        ));
+
         match &data_flow_graph[*node] {
-            NodeType::Leaf { index, expr, reads } => {
+            NodeType::Temp { reads, .. } => {
+                // This is basically a temp variable
+                compiled_predicate.nodes.push(Node {
+                    program_address: address,
+                    edge_start,
+                    reads: *reads,
+                });
+                // v_nodes[*index] = compiled_predicate.nodes.len() - 1;
+
+                // Handle the edges out of this node
+                for edge in data_flow_graph.edges(*node) {
+                    let to = edge.target();
+                    compiled_predicate
+                        .edges
+                        .push(sorted_nodes.iter().position(|n| *n == to).unwrap() as u16);
+                }
+                edge_start += data_flow_graph.edges(*node).count() as u16;
+            }
+            NodeType::Leaf { index, reads, .. } => {
                 // This is basically a constraint
                 // No edges expected out of this node
-                let asm = builder.compile_leaf_node(handler, &node_inputs, expr, contract, pred)?;
-                let address = essential_hash::content_addr(&Program(
-                    essential_asm::to_bytes(asm.iter().copied()).collect(),
-                ));
-                programs.insert(Program(
-                    essential_asm::to_bytes(asm.iter().copied()).collect(),
-                ));
+
                 compiled_predicate.nodes.push(Node {
                     program_address: address,
                     edge_start: Edge::MAX,
@@ -401,21 +473,7 @@ pub fn compile_predicate(
                 });
                 c_nodes[*index] = compiled_predicate.nodes.len() - 1;
             }
-            NodeType::NonLeaf { index, var, reads } => {
-                // This is basically a variable
-                let asm = builder.compile_non_leaf_node(
-                    handler,
-                    &node_inputs,
-                    &var.expr,
-                    contract,
-                    pred,
-                )?;
-                let address = essential_hash::content_addr(&Program(
-                    essential_asm::to_bytes(asm.iter().copied()).collect(),
-                ));
-                programs.insert(Program(
-                    essential_asm::to_bytes(asm.iter().copied()).collect(),
-                ));
+            NodeType::NonLeaf { index, reads, .. } => {
                 compiled_predicate.nodes.push(Node {
                     program_address: address,
                     edge_start,

@@ -631,6 +631,7 @@ impl ExprKey {
                 interface,
                 address,
                 name,
+                state,
                 span,
             } => {
                 let address = address.plug_in(contract, values_map);
@@ -639,6 +640,7 @@ impl ExprKey {
                     interface,
                     address,
                     name,
+                    state,
                     span,
                 }
             }
