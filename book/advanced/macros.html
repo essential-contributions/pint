@@ -201,7 +201,7 @@ then <em>pasted</em> exactly where the macro was called.</p>
 <p>The arguments to a macro call may be collections of tokens which do not necessarily parse to a
 proper expression, as in the previous example. For example, an operator like <code>+</code> or a type name such
 as <code>int</code> are valid!. If the token is an identifier, then it may be used as a name, such as the name
-of a decision variable or a new type. Here's an example:</p>
+of a local variable or a new type. Here's an example:</p>
 <pre><code class="language-pint">macro @do_decls($a, $a_expr, $b, $b_expr, $ty, $op) {
     let $a: $ty = $a_expr;
     let $b: $ty = $b_expr;

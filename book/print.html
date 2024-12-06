@@ -300,7 +300,7 @@ variables are stored (i.e. their keys) and their types. This information is cruc
 correct solutions.</li>
 </ul>
 <blockquote>
-<p><strong>Note</strong>: <a href="getting_started/../appendix/abi.html">Appendix C</a> contains the ABI spec.</p>
+<p><strong>Note</strong>: <a href="getting_started/../appendix/abi/abi_spec.html">Appendix C.1</a> contains the ABI spec.</p>
 </blockquote>
 <p>Now that we have built and inspected the artifacts of our project, we can proceed to build an
 application that interacts with this contract. We won't cover this topic here, but you can check out
@@ -2169,7 +2169,7 @@ then <em>pasted</em> exactly where the macro was called.</p>
 <p>The arguments to a macro call may be collections of tokens which do not necessarily parse to a
 proper expression, as in the previous example. For example, an operator like <code>+</code> or a type name such
 as <code>int</code> are valid!. If the token is an identifier, then it may be used as a name, such as the name
-of a decision variable or a new type. Here's an example:</p>
+of a local variable or a new type. Here's an example:</p>
 <pre><code class="language-pint">macro @do_decls($a, $a_expr, $b, $b_expr, $ty, $op) {
     let $a: $ty = $a_expr;
     let $b: $ty = $b_expr;
@@ -3132,15 +3132,15 @@ predicate MyPredicate(
 solutions <strong>directly using Rust types</strong> without having to do the encoding manually.</p>
 <p>In order to construct a solution to a predicate, you need construct two vectors:</p>
 <ol>
-<li>A vector of all the predicate arguments.</li>
+<li>A vector containing the predicate data.</li>
 <li>A vector of all the state mutations.</li>
 </ol>
-<h3 id="predicate-arguments"><a class="header" href="#predicate-arguments">Predicate Arguments</a></h3>
-<p>In order to construct a vector of arguments for the predicate above, you can use the following
+<h3 id="predicate-data"><a class="header" href="#predicate-data">Predicate Data</a></h3>
+<p>In order to construct the predicate data for the predicate above, you can use the following
 syntax:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>    let arguments = MyPredicate::Vars {
+</span>    let predicate_data = MyPredicate::Vars {
         x: 42,
         y: true,
         z: (2, [0x1111111100000000; 4]),
@@ -3185,8 +3185,8 @@ of the <code>gen_from_file</code> macro. The resulting object is of type
 <code>Vec&lt;essential_types::solution::Mutation&gt;</code> from the
 <a href="https://docs.rs/essential-types/latest/essential_types/index.html"><code>essential_types</code></a> crate.</p>
 <p>Because all state mutations are optional, they need to be set individually using their own builder
-methods (unlike predicate arguments). For simple types like <code>int</code>, <code>bool</code>, <code>b256</code>, and unions, the
-syntax is self explanatory. Those types have corresponding Rust types as for predicate arguments:</p>
+methods (unlike predicate data). For simple types like <code>int</code>, <code>bool</code>, <code>b256</code>, and unions, the
+syntax is self explanatory. Those types have corresponding Rust types as for predicate data:</p>
 <div class="table-wrapper"><table><thead><tr><th>Pint Type</th><th>Rust Type</th></tr></thead><tbody>
 <tr><td><code>int</code></td><td><code>i64</code></td></tr>
 <tr><td><code>bool</code></td><td><code>bool</code></td></tr>
@@ -3220,18 +3220,17 @@ of each predicate as constants:</p>
 <code>Solution</code> object can be constructed as follows:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>    let solution = essential_types::solution::Solution {
-        data: vec![essential_types::solution::SolutionData {
+</span>    let solution_set = essential_types::solution::SolutionSet {
+        solutions: vec![essential_types::solution::Solution {
             predicate_to_solve: MyPredicate::ADDRESS,
-            decision_variables: arguments.into(),
+            predicate_data: predicate_data.into(),
             state_mutations,
         }],
     };
 <span class="boring">}</span></code></pre></pre>
 <p>where we have used the address of the <code>MyPredicate</code> to specify which predicate to solve, the vector
-<code>arguments</code> to specify values for <code>decision_variables</code> (recall that we sometimes refer to predicate
-parameters as decision variables), and the vector <code>state_mutations</code> to specify the proposed state
-mutations.</p>
+<code>data</code> to specify values for <code>predicate_data</code>, and the vector <code>state_mutations</code> to specify the
+proposed state mutations.</p>
 <p>Note that this solutions only has a single <code>SolutionsData</code>. In general, solutions may contain
 multiple <code>SolutionData</code> objects which can all be produced by following the steps above.</p>
 <h3 id="storage-keys"><a class="header" href="#storage-keys">Storage Keys</a></h3>
