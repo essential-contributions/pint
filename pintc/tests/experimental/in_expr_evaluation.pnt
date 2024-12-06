@@ -11,11 +11,11 @@ predicate Test() {
 }
 
 // parsed <<<
-// const ::b = 1.23e0 in [3.45e0, 2.2e0];
-// const ::d = 1.1e0 in 3.1e0..2.2e0;
 // const ::a = 1e0 in [1e0, 2e0];
+// const ::b = 1.23e0 in [3.45e0, 2.2e0];
 // const ::c = 1.5e0 in 1e0..2e0;
-// 
+// const ::d = 1.1e0 in 3.1e0..2.2e0;
+//
 // predicate ::Test(
 // ) {
 //     let ::e = 1.4e0 in [1.1e0, 2.9e0];
@@ -26,11 +26,11 @@ predicate Test() {
 // >>>
 
 // flattened <<<
-// const ::b: bool = false;
-// const ::d: bool = false;
 // const ::a: bool = true;
+// const ::b: bool = false;
 // const ::c: bool = true;
-// 
+// const ::d: bool = false;
+//
 // predicate ::Test(
 // ) {
 //     let ::e: bool = ((1.4e0 == 1.1e0) || (1.4e0 == 2.9e0));

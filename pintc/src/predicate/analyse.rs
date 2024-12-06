@@ -97,8 +97,8 @@ impl Contract {
         // evaluate any initialisers too.
         let ty_chk_handler = Handler::default();
         self.consts
-            .values()
-            .map(|cnst| cnst.expr)
+            .iter()
+            .map(|cnst| cnst.1.expr)
             .collect::<Vec<ExprKey>>()
             .into_iter()
             .for_each(|cnst_expr_key| {
@@ -117,16 +117,16 @@ impl Contract {
                 let expr = cnst.expr.get(self);
 
                 // There's no need to re-evaluate known immediates.
-                if !evaluator.contains_path(path) {
+                if !evaluator.contains_path(&path.name) {
                     if let Expr::Immediate { value, .. } = expr {
-                        evaluator.insert_value(path.clone(), value.clone());
+                        evaluator.insert_value(path.name.clone(), value.clone());
                     } else if let Ok(imm) = evaluator.evaluate_key(&cnst.expr, &eval_handler, self)
                     {
-                        evaluator.insert_value(path.clone(), imm);
+                        evaluator.insert_value(path.name.clone(), imm);
 
                         // Take note of this const as we need to update the const declaration
                         // with the new evaluated immediate value.
-                        new_immediates.push(path.clone());
+                        new_immediates.push(path.name.clone());
                     }
                 }
             }
@@ -167,8 +167,10 @@ impl Contract {
         for new_path in new_immediates {
             let init_span: Span = self
                 .consts
-                .get(&new_path)
-                .map(|cnst| self.expr_key_to_span(cnst.expr))
+                .iter()
+                .find_map(|(id, cnst)| {
+                    (id.name == new_path).then(|| self.expr_key_to_span(cnst.expr))
+                })
                 .unwrap_or_else(empty_span);
 
             if let Some(imm_value) = all_const_immediates.get(&new_path) {
@@ -179,7 +181,8 @@ impl Contract {
 
                 let new_expr_key = self.exprs.insert(new_expr, imm_value.get_ty(None));
 
-                if let Some(cnst) = self.consts.get_mut(&new_path) {
+                if let Some((_, cnst)) = self.consts.iter_mut().find(|(id, _)| id.name == new_path)
+                {
                     cnst.expr = new_expr_key;
                 } else {
                     handler
@@ -197,11 +200,13 @@ impl Contract {
         let mut type_replacements: Vec<(String, Type)> = Vec::default();
         for (path, Const { expr, decl_ty, .. }) in &self.consts {
             if decl_ty.is_unknown() {
-                if let Some(imm_value) = all_const_immediates.get(path) {
+                if let Some(imm_value) = all_const_immediates.get(&path.name) {
                     // Check the type is valid.
                     let span = self.expr_key_to_span(*expr);
                     match self.infer_immediate(handler, imm_value, &span) {
-                        Inference::Type(new_ty) => type_replacements.push((path.clone(), new_ty)),
+                        Inference::Type(new_ty) => {
+                            type_replacements.push((path.name.clone(), new_ty))
+                        }
 
                         Inference::Ignored
                         | Inference::Dependant(_)
@@ -221,7 +226,11 @@ impl Contract {
         }
 
         for (path, new_ty) in type_replacements {
-            self.consts.get_mut(&path).unwrap().decl_ty = new_ty;
+            self.consts
+                .iter_mut()
+                .find_map(|(id, cnst)| (id.name == path).then_some(cnst))
+                .unwrap()
+                .decl_ty = new_ty;
         }
 
         handler.result(())

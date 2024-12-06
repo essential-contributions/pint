@@ -5,8 +5,8 @@ predicate A() {
 }
 
 // parsed <<<
-// const ::b::b = false;
 // const ::a = true;
+// const ::b::b = false;
 //
 // predicate ::A(
 // ) {
@@ -15,8 +15,8 @@ predicate A() {
 // >>>
 
 // flattened <<<
-// const ::b::b: bool = false;
 // const ::a: bool = true;
+// const ::b::b: bool = false;
 //
 // predicate ::A(
 // ) {

@@ -234,13 +234,16 @@ ConstDecl: () = {
         ) {
             let decl_ty = ty.unwrap_or_else(|| Type::Unknown(name.span.clone()));
 
-            context.contract.consts.insert(
-                full_name,
+            context.contract.consts.push((
+                Ident {
+                    name: full_name,
+                    ..name
+                },
                 Const {
                     expr: init,
                     decl_ty,
                 },
-            );
+            ));
         }
     }
 }

@@ -1,5 +1,5 @@
 use crate::{
-    error::{CompileError, Error, ErrorEmitted, Handler},
+    error::{CompileError, Error, ErrorEmitted, Handler, ParseError},
     expr::{
         evaluate::Evaluator, BinaryOp, Expr, ExternalIntrinsic, Immediate, IntrinsicKind,
         MatchBranch, TupleAccess, UnaryOp,
@@ -7,7 +7,7 @@ use crate::{
     predicate::{
         BlockStatement, Const, ConstraintDecl, Contract, ExprKey, ExprsIter, Ident, IfDecl,
         Interface, MatchDecl, MatchDeclBranch, Param, PredKey, PredicateInterface, StorageVar,
-        VisitorKind,
+        Variable, VisitorKind,
     },
     span::{empty_span, Span, Spanned},
     types::{self, NewTypeDecl, PrimitiveKind, Type},
@@ -15,7 +15,7 @@ use crate::{
 
 use fxhash::FxHashMap;
 
-use std::{collections::VecDeque, sync::Arc};
+use std::{collections::VecDeque, rc::Rc};
 
 mod lower_storage_accesses;
 pub(crate) use lower_storage_accesses::lower_storage_accesses;
@@ -923,7 +923,7 @@ pub(super) fn replace_const_refs(contract: &mut Contract) {
             .filter_map(|path_expr_key| {
                 if let Expr::Path(path, _span) = path_expr_key.get(contract) {
                     consts.iter().find_map(|(const_path, const_expr_key)| {
-                        (path == const_path).then_some((path_expr_key, *const_expr_key))
+                        (path == &const_path.name).then_some((path_expr_key, *const_expr_key))
                     })
                 } else {
                     None
@@ -1117,7 +1117,7 @@ pub(super) fn lower_matches(
                 contract,
                 pred_key,
                 match_decl,
-                Arc::new(BindingStack::default()),
+                Rc::new(BindingStack::default()),
             )?;
             contract.preds[pred_key].if_decls.push(if_decl);
         }
@@ -1164,7 +1164,7 @@ fn convert_match_to_if_decl(
     contract: &mut Contract,
     pred_key: PredKey,
     match_decl: MatchDecl,
-    binding_stack: Arc<BindingStack>,
+    binding_stack: Rc<BindingStack>,
 ) -> Result<IfDecl, ErrorEmitted> {
     let MatchDecl {
         match_expr,
@@ -1200,7 +1200,18 @@ fn convert_match_to_if_decl(
                     })
                     .and_then(|binding_ty| match (binding, binding_ty) {
                         // Both are bound.
-                        (Some(id), Some(ty)) => Ok(Some(Arc::new((match_expr, id, ty.clone())))),
+                        (Some(id), Some(ty)) => {
+                            // Check the binding isn't shadowing anything.  Add to handler if so
+                            // but still continue.
+                            check_match_binding_is_shadower(
+                                handler,
+                                contract,
+                                Some(&binding_stack),
+                                &id,
+                            );
+
+                            Ok(Some(Rc::new((match_expr, id, ty.clone()))))
+                        }
 
                         // Both are unbound.
                         (None, None) => Ok(None),
@@ -1228,7 +1239,7 @@ fn convert_match_to_if_decl(
                                     contract,
                                     pred_key,
                                     BindingStack::wrap(
-                                        full_binding.as_ref().map(Arc::clone),
+                                        full_binding.as_ref().map(Rc::clone),
                                         &binding_stack,
                                     ),
                                     block,
@@ -1250,7 +1261,7 @@ fn convert_match_to_if_decl(
                         handler,
                         contract,
                         pred_key,
-                        Arc::clone(&binding_stack),
+                        Rc::clone(&binding_stack),
                         block,
                     )
                 })
@@ -1305,7 +1316,7 @@ fn convert_match_block_statement(
     handler: &Handler,
     contract: &mut Contract,
     pred_key: PredKey,
-    binding_stack: Arc<BindingStack>,
+    binding_stack: Rc<BindingStack>,
     block_stmt: BlockStatement,
 ) -> Result<BlockStatement, ErrorEmitted> {
     match block_stmt {
@@ -1341,7 +1352,7 @@ fn convert_match_block_statement(
                         handler,
                         contract,
                         pred_key,
-                        Arc::clone(&binding_stack),
+                        Rc::clone(&binding_stack),
                         stmt,
                     )
                 })
@@ -1356,7 +1367,7 @@ fn convert_match_block_statement(
                                 handler,
                                 contract,
                                 pred_key,
-                                Arc::clone(&binding_stack),
+                                Rc::clone(&binding_stack),
                                 stmt,
                             )
                         })
@@ -1466,6 +1477,12 @@ fn convert_match_expr(
             expr,
         } in match_branches
         {
+            // Check for shadowing.  Report in the handler but continue.
+            if let Some(binding) = binding {
+                check_match_binding_is_shadower(handler, contract, None, binding);
+                check_match_binding_is_not_rebound(handler, contract, binding, *expr);
+            }
+
             // Replace the bound values within the constraint exprs, if there is a binding.
             let bound_ty = union_ty.get_union_variant_ty(contract, name).map_err(|_| {
                 handler.emit_internal_err(
@@ -1533,8 +1550,8 @@ fn convert_match_expr(
 
         if let Some((binding, bound_ty)) = then_branch.binding {
             let binding_stack = BindingStack::wrap(
-                Some(Arc::new((then_branch.union_expr, binding, bound_ty))),
-                &Arc::new(BindingStack::default()),
+                Some(Rc::new((then_branch.union_expr, binding, bound_ty))),
+                &Rc::new(BindingStack::default()),
             );
 
             for constraint_expr in &mut then_branch.constraints {
@@ -1712,6 +1729,83 @@ fn build_compare_tag_expr(
     ))
 }
 
+fn check_match_binding_is_shadower(
+    handler: &Handler,
+    contract: &Contract,
+    binding_stack: Option<&BindingStack>,
+    binding: &Ident,
+) {
+    // We check against consts, predicate params, lets and other bindings.  Other names, like those
+    // of types or the predicates are not in the same scope and can't be shadowed.
+
+    let emit_clash_err = |prev_span| {
+        handler.emit_err(Error::Parse {
+            error: ParseError::NameClash {
+                sym: binding.name.clone(),
+                span: binding.span.clone(),
+                prev_span,
+            },
+        });
+    };
+
+    for (id, _) in &contract.consts {
+        if id.name.len() > 2 && id.name[2..] == binding.name {
+            emit_clash_err(id.span.clone());
+        }
+    }
+
+    for pred in contract.preds.values() {
+        for Param { name, .. } in &pred.params {
+            if name.name.len() > 2 && name.name[2..] == binding.name {
+                emit_clash_err(name.span.clone());
+            }
+        }
+
+        for (_, Variable { name, span, .. }) in pred.variables() {
+            if name.len() > 2 && name[2..] == binding.name {
+                emit_clash_err(span.clone());
+            }
+        }
+    }
+
+    if let Some(binding_stack) = binding_stack {
+        if let Some(bound_span) = binding_stack.is_bound(binding) {
+            emit_clash_err(bound_span.clone());
+        }
+    }
+}
+
+fn check_match_binding_is_not_rebound(
+    handler: &Handler,
+    contract: &Contract,
+    existing_binding: &Ident,
+    expr_key: ExprKey,
+) {
+    // Visit all the children of the expr, find any match expressions and check their bindings
+    // against the passed existing one.
+    contract.visitor_from_key(
+        VisitorKind::DepthFirstParentsBeforeChildren,
+        expr_key,
+        &mut |_, expr| {
+            if let Expr::Match { match_branches, .. } = expr {
+                for MatchBranch { binding, .. } in match_branches {
+                    if let Some(binding) = binding {
+                        if binding.name == existing_binding.name {
+                            handler.emit_err(Error::Parse {
+                                error: ParseError::NameClash {
+                                    sym: binding.name.clone(),
+                                    span: binding.span.clone(),
+                                    prev_span: existing_binding.span.clone(),
+                                },
+                            });
+                        }
+                    }
+                }
+            }
+        },
+    );
+}
+
 pub(super) fn lower_union_variant_paths(contract: &mut Contract) {
     // Converts a path to a union path, if possible. The path may stay the same or may be resolved
     // if an alias to the union is used in the original path.
@@ -1794,26 +1888,38 @@ pub(super) fn lower_union_variant_paths(contract: &mut Contract) {
 
 #[derive(Default)]
 struct BindingStack {
-    binding: Option<Arc<(ExprKey, Ident, Type)>>,
-    next: Option<Arc<Self>>,
+    binding: Option<Rc<(ExprKey, Ident, Type)>>,
+    next: Option<Rc<Self>>,
 }
 
 impl BindingStack {
-    fn wrap(new_binding: Option<Arc<(ExprKey, Ident, Type)>>, other: &Arc<Self>) -> Arc<Self> {
+    fn wrap(new_binding: Option<Rc<(ExprKey, Ident, Type)>>, other: &Rc<Self>) -> Rc<Self> {
         if let Some(binding) = new_binding {
-            Arc::new(BindingStack {
-                binding: Some(Arc::clone(&binding)),
-                next: Some(Arc::clone(other)),
+            Rc::new(BindingStack {
+                binding: Some(Rc::clone(&binding)),
+                next: Some(Rc::clone(other)),
             })
         } else {
             // No new binding to wrap; just return other.
-            Arc::clone(other)
+            Rc::clone(other)
         }
     }
 
     fn is_empty(&self) -> bool {
         // Assuming .next is None if .binding is None.
         self.binding.is_none()
+    }
+
+    fn is_bound(&self, id: &Ident) -> Option<&Span> {
+        if let Some(binding) = &self.binding {
+            let (_, binding, _) = binding.as_ref();
+
+            if binding.name == id.name {
+                return Some(&binding.span);
+            }
+        }
+
+        self.next.as_ref().and_then(|next| next.is_bound(id))
     }
 
     fn replace_binding(&self, contract: &mut Contract, pred_key: PredKey, expr_key: &mut ExprKey) {

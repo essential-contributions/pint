@@ -26,17 +26,17 @@ predicate test(q: int, r: b256, s: int, t: int, u: bool, v: JacketColour) {
 }
 
 // parsed <<<
-// const ::i: bool[3] = [false, true, true];
-// const ::b = 0x2222222222222222222222222222222222222222222222222222222222222222;
-// const ::h: {int, bool} = {1010, false};
-// const ::e = (0x5555555555555555555555555555555555555555555555555555555555555555 == 0x5555555555555555555555555555555555555555555555555555555555555555);
-// const ::k: ::JacketColour = ::JacketColour::Bone;
-// const ::d: b256 = 0x4444444444444444444444444444444444444444444444444444444444444444;
 // const ::a = 11;
-// const ::g = [88, 99];
-// const ::j = ::JacketColour::Beige;
-// const ::f = {66, 77};
+// const ::b = 0x2222222222222222222222222222222222222222222222222222222222222222;
 // const ::c: int = 33;
+// const ::d: b256 = 0x4444444444444444444444444444444444444444444444444444444444444444;
+// const ::e = (0x5555555555555555555555555555555555555555555555555555555555555555 == 0x5555555555555555555555555555555555555555555555555555555555555555);
+// const ::f = {66, 77};
+// const ::g = [88, 99];
+// const ::h: {int, bool} = {1010, false};
+// const ::i: bool[3] = [false, true, true];
+// const ::j = ::JacketColour::Beige;
+// const ::k: ::JacketColour = ::JacketColour::Bone;
 // union ::JacketColour = Cream | Bone | White | OffWhite | Ivory | Beige;
 //
 // predicate ::test(
@@ -57,17 +57,17 @@ predicate test(q: int, r: b256, s: int, t: int, u: bool, v: JacketColour) {
 // >>>
 
 // flattened <<<
-// const ::i: bool[3] = [false, true, true];
-// const ::b: b256 = 0x2222222222222222222222222222222222222222222222222222222222222222;
-// const ::h: {int, bool} = {1010, false};
-// const ::e: bool = true;
-// const ::k: ::JacketColour = ::JacketColour::Bone;
-// const ::d: b256 = 0x4444444444444444444444444444444444444444444444444444444444444444;
 // const ::a: int = 11;
-// const ::g: int[_] = [88, 99];
-// const ::j: ::JacketColour = ::JacketColour::Beige;
-// const ::f: {int, int} = {66, 77};
+// const ::b: b256 = 0x2222222222222222222222222222222222222222222222222222222222222222;
 // const ::c: int = 33;
+// const ::d: b256 = 0x4444444444444444444444444444444444444444444444444444444444444444;
+// const ::e: bool = true;
+// const ::f: {int, int} = {66, 77};
+// const ::g: int[_] = [88, 99];
+// const ::h: {int, bool} = {1010, false};
+// const ::i: bool[3] = [false, true, true];
+// const ::j: ::JacketColour = ::JacketColour::Beige;
+// const ::k: ::JacketColour = ::JacketColour::Bone;
 // union ::JacketColour = Cream | Bone | White | OffWhite | Ivory | Beige;
 //
 // predicate ::test(

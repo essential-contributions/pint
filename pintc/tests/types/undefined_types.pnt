@@ -42,8 +42,8 @@ predicate test(a2: Undefined, b2: Undefined, a: int, b: Foo, d: Baz) {
 }
 
 // parsed <<<
-// const ::b0: ::Undefined = 0;
 // const ::a0: ::Undefined = 0;
+// const ::b0: ::Undefined = 0;
 // union ::Baz = X | Y;
 // type ::A = ::Undefined;
 // type ::B = ::Undefined;
@@ -101,9 +101,9 @@ predicate test(a2: Undefined, b2: Undefined, a: int, b: Foo, d: Baz) {
 // undefined type
 // @563..572: type is undefined
 // undefined type
-// @84..93: type is undefined
-// undefined type
 // @59..68: type is undefined
+// undefined type
+// @84..93: type is undefined
 // undefined type
 // @17..26: type is undefined
 // undefined type
@@ -134,9 +134,9 @@ predicate test(a2: Undefined, b2: Undefined, a: int, b: Foo, d: Baz) {
 // @617..625: illegal cast to `::Bar`
 // casts may only be made to `int`
 // const initialization type error
-// @96..97: const initializer has unexpected type `int`
-// @84..93: expecting type `::Undefined`
-// const initialization type error
 // @71..72: const initializer has unexpected type `int`
 // @59..68: expecting type `::Undefined`
+// const initialization type error
+// @96..97: const initializer has unexpected type `int`
+// @84..93: expecting type `::Undefined`
 // >>>

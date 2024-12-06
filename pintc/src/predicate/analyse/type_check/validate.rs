@@ -59,9 +59,9 @@ impl Contract {
         }
 
         // Check all constants
-        self.consts
-            .values()
-            .for_each(|Const { decl_ty, .. }| check_custom_type(decl_ty, handler));
+        for (_id, Const { decl_ty, .. }) in &self.consts {
+            check_custom_type(decl_ty, handler);
+        }
 
         // Check all unions.
         for UnionDecl { variants, .. } in self.unions.values() {
@@ -174,7 +174,7 @@ impl Contract {
             bad_storage_accesses.extend(expr.collect_storage_accesses(self));
         }
 
-        for Const { expr, .. } in self.consts.values() {
+        for (_id, Const { expr, .. }) in &self.consts {
             bad_storage_accesses.extend(expr.collect_storage_accesses(self));
         }
 
@@ -255,11 +255,14 @@ impl Contract {
         handler: &Handler,
     ) -> Result<(), ErrorEmitted> {
         // Now confirm that every const initialiser type matches the const decl type.
-        for Const {
-            expr: init_expr_key,
-            decl_ty,
-            ..
-        } in self.consts.values()
+        for (
+            _id,
+            Const {
+                expr: init_expr_key,
+                decl_ty,
+                ..
+            },
+        ) in &self.consts
         {
             let init_ty = init_expr_key.get_ty(self);
 

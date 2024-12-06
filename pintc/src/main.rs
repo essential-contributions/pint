@@ -105,6 +105,7 @@ fn main() -> anyhow::Result<()> {
 
             // Compute and print the content addresses for the contract and its predicates
             let compiled_predicate_contract_addresses: Vec<_> = compiled_contract
+                .contract
                 .predicates
                 .iter()
                 .map(essential_hash::content_addr)
