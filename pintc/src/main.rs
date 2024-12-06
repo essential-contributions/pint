@@ -1,4 +1,4 @@
-use clap::Parser;
+use clap::{builder::styling::Style, Parser};
 use pintc::{
     asm_gen::compile_contract, cli::Args, error, parser, predicate::CompileOptions, warning,
 };
@@ -102,6 +102,49 @@ fn main() -> anyhow::Result<()> {
                     pintc::pintc_bail!(errors_len, filepath)
                 }
             };
+
+            // Compute and print the content addresses for the contract and its predicates
+            let compiled_predicate_contract_addresses: Vec<_> = compiled_contract
+                .predicates
+                .iter()
+                .map(essential_hash::content_addr)
+                .collect();
+            let ca = essential_hash::contract_addr::from_predicate_addrs(
+                compiled_predicate_contract_addresses.iter().cloned(),
+                &args.salt.unwrap_or_default(),
+            );
+
+            let pinned_name = filepath
+                .file_stem()
+                .expect("Failed to get file stem")
+                .to_str()
+                .expect("Invalid unicode in contract name");
+            let name_col_w = {
+                let mut name_w = 0;
+                for name in &compiled_contract.names {
+                    let w = name.chars().count();
+                    name_w = std::cmp::max(name_w, w);
+                }
+                pinned_name.chars().count() + name_w
+            };
+            let bold = Style::new().bold();
+            println!(
+                "    {}contract{} {:<name_col_w$} {}",
+                bold.render(),
+                bold.render_reset(),
+                pinned_name,
+                ca,
+            );
+
+            let mut iter = compiled_predicate_contract_addresses
+                .iter()
+                .zip(&compiled_contract.names)
+                .peekable();
+            while let Some((ca, name)) = iter.next() {
+                let name = format!("{}{}", pinned_name, name);
+                let pipe = iter.peek().map(|_| "├──").unwrap_or("└──");
+                println!("         {pipe} {:<name_col_w$} {}", name, ca);
+            }
 
             // Write ABI and contract
             serde_json::to_writer_pretty(File::create(json_abi_path)?, &abi)?;
