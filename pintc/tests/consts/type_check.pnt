@@ -24,7 +24,7 @@ predicate test() { }
 // const ::a = true in 2..3;
 // const ::c = ::u::two(false);
 // union ::u = one | two(int);
-// 
+//
 // predicate ::test(
 // ) {
 // }

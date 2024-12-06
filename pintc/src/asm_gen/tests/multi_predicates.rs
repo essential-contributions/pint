@@ -26,22 +26,12 @@ fn check_order() {
         ),
         expect_test::expect![[r#"
             predicate ::A {
-                --- Constraints ---
-                constraint 0
-                  Stack(Push(1))
+                --- Nodes ---
+                node 0
+                  Access(MutKeys)
                   Stack(Push(0))
-                  Stack(Push(0))
-                  Stack(Push(1))
-                  Access(PredicateData)
-                  Access(ThisContractAddress)
-                  Stack(Push(1097050218124307716))
-                  Stack(Push(-689786681852912457))
-                  Stack(Push(-6083956818317571560))
-                  Stack(Push(4139034240085840423))
-                  Stack(Push(80))
-                  Crypto(Sha256)
-                  Access(PredicateExists)
-                constraint 1
+                  Pred(EqSet)
+                node 1
                   Stack(Push(1))
                   Stack(Push(0))
                   Stack(Push(0))
@@ -55,43 +45,50 @@ fn check_order() {
                   Stack(Push(80))
                   Crypto(Sha256)
                   Access(PredicateExists)
-                constraint 2
-                  Access(MutKeys)
+                node 2
+                  Stack(Push(1))
                   Stack(Push(0))
-                  Pred(EqSet)
-                --- State Reads ---
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Access(PredicateData)
+                  Access(ThisContractAddress)
+                  Stack(Push(1097050218124307716))
+                  Stack(Push(-689786681852912457))
+                  Stack(Push(-6083956818317571560))
+                  Stack(Push(4139034240085840423))
+                  Stack(Push(80))
+                  Crypto(Sha256)
+                  Access(PredicateExists)
             }
 
             predicate ::B {
-                --- Constraints ---
-                constraint 0
+                --- Nodes ---
+                node 0
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
+                node 1
                   Stack(Push(0))
                   Stack(Push(0))
                   Stack(Push(1))
                   Access(PredicateData)
                   Stack(Push(1))
                   Pred(Eq)
-                constraint 1
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                --- State Reads ---
             }
 
             predicate ::C {
-                --- Constraints ---
-                constraint 0
+                --- Nodes ---
+                node 0
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
+                node 1
                   Stack(Push(0))
                   Stack(Push(0))
                   Stack(Push(1))
                   Access(PredicateData)
                   Stack(Push(2))
                   Pred(Eq)
-                constraint 1
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                --- State Reads ---
             }
 
         "#]],

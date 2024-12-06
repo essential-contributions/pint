@@ -15,8 +15,12 @@ fn this_address() {
         ),
         expect_test::expect![[r#"
             predicate ::test {
-                --- Constraints ---
-                constraint 0
+                --- Nodes ---
+                node 0
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
+                node 1
                   Stack(Push(0))
                   Stack(Push(0))
                   Stack(Push(4))
@@ -24,11 +28,6 @@ fn this_address() {
                   Access(ThisAddress)
                   Stack(Push(4))
                   Pred(EqRange)
-                constraint 1
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                --- State Reads ---
             }
 
         "#]],
@@ -50,8 +49,12 @@ fn this_contract_address() {
         ),
         expect_test::expect![[r#"
             predicate ::test {
-                --- Constraints ---
-                constraint 0
+                --- Nodes ---
+                node 0
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
+                node 1
                   Stack(Push(0))
                   Stack(Push(0))
                   Stack(Push(4))
@@ -59,11 +62,6 @@ fn this_contract_address() {
                   Access(ThisContractAddress)
                   Stack(Push(4))
                   Pred(EqRange)
-                constraint 1
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                --- State Reads ---
             }
 
         "#]],
@@ -85,8 +83,12 @@ fn sha256() {
         ),
         expect_test::expect![[r#"
             predicate ::test {
-                --- Constraints ---
-                constraint 0
+                --- Nodes ---
+                node 0
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
+                node 1
                   Stack(Push(0))
                   Stack(Push(0))
                   Stack(Push(4))
@@ -98,11 +100,6 @@ fn sha256() {
                   Crypto(Sha256)
                   Stack(Push(4))
                   Pred(EqRange)
-                constraint 1
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                --- State Reads ---
             }
 
         "#]],
@@ -121,8 +118,12 @@ fn sha256() {
         ),
         expect_test::expect![[r#"
             predicate ::test {
-                --- Constraints ---
-                constraint 0
+                --- Nodes ---
+                node 0
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
+                node 1
                   Stack(Push(1))
                   Stack(Push(0))
                   Stack(Push(4))
@@ -137,11 +138,6 @@ fn sha256() {
                   Crypto(Sha256)
                   Stack(Push(4))
                   Pred(EqRange)
-                constraint 1
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                --- State Reads ---
             }
 
         "#]],
@@ -160,8 +156,12 @@ fn sha256() {
         ),
         expect_test::expect![[r#"
             predicate ::test {
-                --- Constraints ---
-                constraint 0
+                --- Nodes ---
+                node 0
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
+                node 1
                   Stack(Push(2))
                   Stack(Push(0))
                   Stack(Push(4))
@@ -183,11 +183,6 @@ fn sha256() {
                   Crypto(Sha256)
                   Stack(Push(4))
                   Pred(EqRange)
-                constraint 1
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                --- State Reads ---
             }
 
         "#]],
@@ -206,8 +201,12 @@ fn sha256() {
         ),
         expect_test::expect![[r#"
             predicate ::test {
-                --- Constraints ---
-                constraint 0
+                --- Nodes ---
+                node 0
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
+                node 1
                   Stack(Push(1))
                   Stack(Push(0))
                   Stack(Push(4))
@@ -222,11 +221,6 @@ fn sha256() {
                   Crypto(Sha256)
                   Stack(Push(4))
                   Pred(EqRange)
-                constraint 1
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                --- State Reads ---
             }
 
         "#]],
@@ -245,8 +239,12 @@ fn sha256() {
         ),
         expect_test::expect![[r#"
             predicate ::test {
-                --- Constraints ---
-                constraint 0
+                --- Nodes ---
+                node 0
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
+                node 1
                   Stack(Push(3))
                   Stack(Push(0))
                   Stack(Push(4))
@@ -272,11 +270,6 @@ fn sha256() {
                   Crypto(Sha256)
                   Stack(Push(4))
                   Pred(EqRange)
-                constraint 1
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                --- State Reads ---
             }
 
         "#]],
@@ -295,8 +288,12 @@ fn sha256() {
         ),
         expect_test::expect![[r#"
             predicate ::test {
-                --- Constraints ---
-                constraint 0
+                --- Nodes ---
+                node 0
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
+                node 1
                   Stack(Push(1))
                   Stack(Push(0))
                   Stack(Push(4))
@@ -311,11 +308,6 @@ fn sha256() {
                   Crypto(Sha256)
                   Stack(Push(4))
                   Pred(EqRange)
-                constraint 1
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                --- State Reads ---
             }
 
         "#]],
@@ -334,8 +326,12 @@ fn sha256() {
         ),
         expect_test::expect![[r#"
             predicate ::test {
-                --- Constraints ---
-                constraint 0
+                --- Nodes ---
+                node 0
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
+                node 1
                   Stack(Push(1))
                   Stack(Push(0))
                   Stack(Push(4))
@@ -354,11 +350,6 @@ fn sha256() {
                   Crypto(Sha256)
                   Stack(Push(4))
                   Pred(EqRange)
-                constraint 1
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                --- State Reads ---
             }
 
         "#]],
@@ -377,8 +368,12 @@ fn sha256() {
         ),
         expect_test::expect![[r#"
             predicate ::test {
-                --- Constraints ---
-                constraint 0
+                --- Nodes ---
+                node 0
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
+                node 1
                   Stack(Push(0))
                   Stack(Push(0))
                   Stack(Push(4))
@@ -397,11 +392,6 @@ fn sha256() {
                   Crypto(Sha256)
                   Stack(Push(4))
                   Pred(EqRange)
-                constraint 1
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                --- State Reads ---
             }
 
         "#]],
@@ -424,23 +414,12 @@ fn verify_ed25519() {
         ),
         expect_test::expect![[r#"
             predicate ::test {
-                --- Constraints ---
-                constraint 0
-                  Stack(Push(3))
+                --- Nodes ---
+                node 0
+                  Access(MutKeys)
                   Stack(Push(0))
-                  Stack(Push(8))
-                  Access(PredicateData)
-                  Stack(Push(0))
-                  Stack(Push(0))
-                  Stack(Push(4))
-                  Access(PredicateData)
-                  Stack(Push(1))
-                  Stack(Push(0))
-                  Stack(Push(4))
-                  Access(PredicateData)
-                  Stack(Push(8))
-                  Pred(EqRange)
-                constraint 1
+                  Pred(EqSet)
+                node 1
                   Stack(Push(4))
                   Stack(Push(0))
                   Stack(Push(1))
@@ -457,11 +436,21 @@ fn verify_ed25519() {
                   Access(PredicateData)
                   Crypto(VerifyEd25519)
                   Pred(Eq)
-                constraint 2
-                  Access(MutKeys)
+                node 2
+                  Stack(Push(3))
                   Stack(Push(0))
-                  Pred(EqSet)
-                --- State Reads ---
+                  Stack(Push(8))
+                  Access(PredicateData)
+                  Stack(Push(0))
+                  Stack(Push(0))
+                  Stack(Push(4))
+                  Access(PredicateData)
+                  Stack(Push(1))
+                  Stack(Push(0))
+                  Stack(Push(4))
+                  Access(PredicateData)
+                  Stack(Push(8))
+                  Pred(EqRange)
             }
 
         "#]],
@@ -489,34 +478,12 @@ fn verify_ed25519() {
         ),
         expect_test::expect![[r#"
             predicate ::test {
-                --- Constraints ---
-                constraint 0
+                --- Nodes ---
+                node 0
+                  Access(MutKeys)
                   Stack(Push(0))
-                  Stack(Push(0))
-                  Stack(Push(4))
-                  Access(PredicateData)
-                  Stack(Push(1))
-                  Stack(Push(2))
-                  Stack(Push(1))
-                  Stack(Push(3))
-                  Stack(Push(4))
-                  Pred(EqRange)
-                constraint 1
-                  Stack(Push(4))
-                  Stack(Push(0))
-                  Stack(Push(8))
-                  Access(PredicateData)
-                  Stack(Push(1))
-                  Stack(Push(0))
-                  Stack(Push(4))
-                  Access(PredicateData)
-                  Stack(Push(2))
-                  Stack(Push(0))
-                  Stack(Push(4))
-                  Access(PredicateData)
-                  Stack(Push(8))
-                  Pred(EqRange)
-                constraint 2
+                  Pred(EqSet)
+                node 1
                   Stack(Push(5))
                   Stack(Push(0))
                   Stack(Push(1))
@@ -536,11 +503,32 @@ fn verify_ed25519() {
                   Access(PredicateData)
                   Crypto(VerifyEd25519)
                   Pred(Eq)
-                constraint 3
-                  Access(MutKeys)
+                node 2
+                  Stack(Push(4))
                   Stack(Push(0))
-                  Pred(EqSet)
-                --- State Reads ---
+                  Stack(Push(8))
+                  Access(PredicateData)
+                  Stack(Push(1))
+                  Stack(Push(0))
+                  Stack(Push(4))
+                  Access(PredicateData)
+                  Stack(Push(2))
+                  Stack(Push(0))
+                  Stack(Push(4))
+                  Access(PredicateData)
+                  Stack(Push(8))
+                  Pred(EqRange)
+                node 3
+                  Stack(Push(0))
+                  Stack(Push(0))
+                  Stack(Push(4))
+                  Access(PredicateData)
+                  Stack(Push(1))
+                  Stack(Push(2))
+                  Stack(Push(1))
+                  Stack(Push(3))
+                  Stack(Push(4))
+                  Pred(EqRange)
             }
 
         "#]],
@@ -569,24 +557,12 @@ fn recover_secp256k1() {
         ),
         expect_test::expect![[r#"
             predicate ::test {
-                --- Constraints ---
-                constraint 0
-                  Stack(Push(3))
+                --- Nodes ---
+                node 0
+                  Access(MutKeys)
                   Stack(Push(0))
-                  Stack(Push(9))
-                  Access(PredicateData)
-                  Stack(Push(1))
-                  Stack(Push(0))
-                  Stack(Push(4))
-                  Access(PredicateData)
-                  Stack(Push(2))
-                  Stack(Push(0))
-                  Stack(Push(4))
-                  Access(PredicateData)
-                  Stack(Push(69))
-                  Stack(Push(9))
-                  Pred(EqRange)
-                constraint 1
+                  Pred(EqSet)
+                node 1
                   Stack(Push(4))
                   Stack(Push(0))
                   Stack(Push(5))
@@ -602,11 +578,22 @@ fn recover_secp256k1() {
                   Crypto(RecoverSecp256k1)
                   Stack(Push(5))
                   Pred(EqRange)
-                constraint 2
-                  Access(MutKeys)
+                node 2
+                  Stack(Push(3))
                   Stack(Push(0))
-                  Pred(EqSet)
-                --- State Reads ---
+                  Stack(Push(9))
+                  Access(PredicateData)
+                  Stack(Push(1))
+                  Stack(Push(0))
+                  Stack(Push(4))
+                  Access(PredicateData)
+                  Stack(Push(2))
+                  Stack(Push(0))
+                  Stack(Push(4))
+                  Access(PredicateData)
+                  Stack(Push(69))
+                  Stack(Push(9))
+                  Pred(EqRange)
             }
 
         "#]],

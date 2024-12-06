@@ -1,10 +1,11 @@
 use crate::{
+    asm_gen::ComputeNode,
     error::{ErrorEmitted, Handler},
     expr::{
         BinaryOp, Expr, ExternalIntrinsic, Immediate, InternalIntrinsic, IntrinsicKind,
         TupleAccess, UnaryOp,
     },
-    predicate::{Contract, ExprKey, Predicate, Variable},
+    predicate::{Contract, ExprKey, Predicate},
     span::empty_span,
     types::Type,
 };
@@ -70,158 +71,139 @@ impl<'a> AsmBuilder<'a> {
 
     /// Generates assembly for a given a non-leaf node. These nodes need to prepare data for their
     /// children
-    pub(super) fn compile_non_leaf_node(
+    pub(super) fn compile_compute_node(
         &mut self,
         handler: &Handler,
-        node_inputs: &[(&Variable, &Reads)],
-        expr: &ExprKey,
+        node: &ComputeNode,
+        parents: &[ComputeNode],
         contract: &Contract,
         pred: &Predicate,
     ) -> Result<Asm, ErrorEmitted> {
+        let expr = node.expr();
+        let mut asm = Vec::new();
+
         // Produce a map from input variables to this nodes to their indices in the concatinated
         // memory. Also compute the total amount of memory used so far.
-        let mut total_memory_indices = node_inputs.iter().try_fold(0, |base, (var, reads)| {
-            self.variables_to_memory_indices
-                .insert((var.name.clone(), **reads), base);
-            let size = var.expr.get_ty(contract).size(handler, contract)?;
-            Ok(base + 1 + size)
+        let mut total_memory_indices = parents.iter().try_fold(0, |base, node| match node {
+            ComputeNode::NonLeaf { var, reads, .. } => {
+                self.variables_to_memory_indices
+                    .insert((var.name.clone(), *reads), base);
+                let size = var.expr.get_ty(contract).size(handler, contract)?;
+                Ok(base + 1 + size)
+            }
+            ComputeNode::Leaf { .. } => Ok(base),
         })?;
 
-        let mut asm = Vec::new();
+        if node.is_leaf() {
+            self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
+        } else {
+            // Allocates a new block of memory of size `size`. Returns the index pointing to the
+            // allocated memory.
+            let mut allocate = |size: usize| -> usize {
+                asm.push(Stack::Push(size as i64).into());
+                asm.push(Memory::Alloc.into());
+                asm.push(Stack::Pop.into());
+                total_memory_indices += size;
+                total_memory_indices - size
+            };
 
-        // Allocates a new block of memory of size `size`. Returns the index pointing to the
-        // allocated memory.
-        let mut allocate = |size: usize| -> usize {
-            asm.push(Stack::Push(size as i64).into());
-            asm.push(Memory::Alloc.into());
-            asm.push(Stack::Pop.into());
-            total_memory_indices += size;
-            total_memory_indices - size
-        };
+            let expr_ty = expr.get_ty(contract);
+            let expr_size = expr_ty.size(handler, contract)?;
 
-        let expr_ty = expr.get_ty(contract);
-        let expr_size = expr_ty.size(handler, contract)?;
-
-        // Allocate a block of memory for the data to be returned and keep track of the memory
-        // index where the data is stored.
-        let result_idx = allocate(
-            1 // first store the size of the data 
-            + expr_size, // then store the data itself
-        );
-
-        // Collect all storage accesses used in the variable initializer, and allocate enough
-        // slots for all of them. We do this ahead of time so that we know exactly how many slots
-        // are allocated. Due to short-circuting, this also means that some allocations may not be
-        // used, but this is okay for now.
-        let storage_accesses = expr.collect_storage_accesses(contract);
-        for access in &storage_accesses {
-            // This is how many slots this storage access requires
-            let access_ty = access.get_ty(contract);
-            let expr_size = access_ty.size(handler, contract)?;
-            let num_keys_to_read = access_ty.storage_slots(handler, contract)?;
-
-            // Now, allocate
-            let mem_idx = allocate(
-                num_keys_to_read * 2 // for each key, start with the data address then its length 
-                + expr_size, // then lay out the data read from each key sequentially
+            // Allocate a block of memory for the data to be returned and keep track of the memory
+            // index where the data is stored.
+            let result_idx = allocate(
+                1 // first store the size of the data 
+                + expr_size, // then store the data itself
             );
 
-            // Keep track of the local indices of the newly allocated slots
-            self.storage_access_to_memory_indices
-                .insert(*access, mem_idx);
-        }
+            // Collect all storage accesses used in the variable initializer, and allocate enough
+            // slots for all of them. We do this ahead of time so that we know exactly how many slots
+            // are allocated. Due to short-circuting, this also means that some allocations may not be
+            // used, but this is okay for now.
+            let storage_accesses = expr.collect_storage_accesses(contract);
+            for access in &storage_accesses {
+                // This is how many slots this storage access requires
+                let access_ty = access.get_ty(contract);
+                let expr_size = access_ty.size(handler, contract)?;
+                let num_keys_to_read = access_ty.storage_slots(handler, contract)?;
 
-        // This is the location where the returned data will be stored
-        asm.push(Stack::Push((result_idx + 1) as i64).into());
+                // Now, allocate
+                let mem_idx = allocate(
+                    num_keys_to_read * 2 // for each key, start with the data address then its length 
+                    + expr_size, // then lay out the data read from each key sequentially
+                );
 
-        // Now compile the initializing expression
-        if let Some(storage_access_mem_idx) =
-            self.compile_expr_pointer_deref(handler, &mut asm, expr, contract, pred)?
-        {
-            // The returned data lives in memory and is the result of a storage access.
-            // First, load the data from memory
-            asm.push(Stack::Push(storage_access_mem_idx as i64).into());
-            asm.push(Stack::Push(expr_size as i64).into());
+                // Keep track of the local indices of the newly allocated slots
+                self.storage_access_to_memory_indices
+                    .insert(*access, mem_idx);
+            }
+
+            // This is the location where the returned data will be stored. The `+1` is to skip the
+            // location for the data length which will be filled later
+            asm.push(Stack::Push((result_idx + 1) as i64).into());
+
+            // Now compile the initializing expression
+            if let Some(storage_access_mem_idx) =
+                self.compile_expr_pointer_deref(handler, &mut asm, &expr, contract, pred)?
+            {
+                // The returned data lives in memory and is the result of a storage access.
+                // First, load the data from memory
+                asm.push(Stack::Push(storage_access_mem_idx as i64).into());
+                asm.push(Stack::Push(expr_size as i64).into());
+                asm.push(Memory::LoadRange.into());
+
+                // Now store the data to be returned
+                asm.push(Stack::Push(expr_size as i64).into());
+                asm.push(Memory::StoreRange.into());
+
+                // Also store the length of the data.
+                asm.push(Stack::Push(result_idx as i64).into());
+                asm.push(Stack::Push(0).into());
+                let num_keys_to_read = expr_ty.storage_slots(handler, contract)?;
+                for i in 0..num_keys_to_read {
+                    asm.push(
+                        Stack::Push(
+                            (storage_access_mem_idx - 2 * num_keys_to_read + 2 * i + 1) as i64,
+                        )
+                        .into(),
+                    );
+                    asm.push(Memory::Load.into());
+                    asm.push(Alu::Add.into());
+                }
+                asm.push(Memory::Store.into());
+            } else {
+                // The returned data lives on the stack
+                // Copy it to the memory location reserved for the result
+                asm.push(Stack::Push(expr_size as i64).into());
+                asm.push(Memory::StoreRange.into());
+
+                // Also store the length of the data
+                asm.push(Stack::Push(result_idx as i64).into());
+                asm.push(Stack::Push(expr_size as i64).into());
+                asm.push(Memory::Store.into());
+            }
+
+            // Now, move over the data stored at `result_idx` to index 0 and free up the rest of the
+            // memory.
+
+            // This is where we want to store the final result
+            asm.push(Stack::Push(0).into());
+
+            // Load result from `result_idx` to the stack
+            asm.push(Stack::Push(result_idx as i64).into());
+            asm.push(Stack::Push((expr_size + 1) as i64).into()); // data + its length
             asm.push(Memory::LoadRange.into());
 
-            // Now store the data to be returned
-            asm.push(Stack::Push(expr_size as i64).into());
-            asm.push(Memory::StoreRange.into());
+            // Free everything down to `expr_size + 1`. We know we have at least this much memory due
+            // to the first alloc above
+            asm.push(Stack::Push((expr_size + 1) as i64).into());
+            asm.push(Memory::Free.into());
 
-            // Also store the length of the data.
-            asm.push(Stack::Push(result_idx as i64).into());
-            asm.push(Stack::Push(0).into());
-            let num_keys_to_read = expr_ty.storage_slots(handler, contract)?;
-            for i in 0..num_keys_to_read {
-                asm.push(
-                    Stack::Push((storage_access_mem_idx - 2 * num_keys_to_read + 2 * i + 1) as i64)
-                        .into(),
-                );
-                asm.push(Memory::Load.into());
-                asm.push(Alu::Add.into());
-            }
-            asm.push(Memory::Store.into());
-        } else {
-            // The returned data lives on the stack
-            // Copy it to the memory location reserved for the result
-            asm.push(Stack::Push(expr_size as i64).into());
+            // Now store
+            asm.push(Stack::Push((expr_size + 1) as i64).into());
             asm.push(Memory::StoreRange.into());
-
-            // Also store the length of the data
-            asm.push(Stack::Push(result_idx as i64).into());
-            asm.push(Stack::Push(expr_size as i64).into());
-            asm.push(Memory::Store.into());
         }
-
-        // Now, move over the data stored at `result_idx` to index 0 and free up the rest of the
-        // memory.
-
-        // This is where we want to store the final result
-        asm.push(Stack::Push(0).into());
-
-        // Load result from `result_idx` to the stack
-        asm.push(Stack::Push(result_idx as i64).into());
-        asm.push(Stack::Push((expr_size + 1) as i64).into());
-        asm.push(Memory::LoadRange.into());
-
-        // Free everything down to `expr_size + 1`. We know we have at least this much memory due
-        // to the first alloc above
-        asm.push(Stack::Push((expr_size + 1) as i64).into());
-        asm.push(Memory::Free.into());
-
-        // Now store
-        asm.push(Stack::Push((expr_size + 1) as i64).into());
-        asm.push(Memory::StoreRange.into());
-
-        // Clear out these two maps because they are local per program node
-        self.variables_to_memory_indices.clear();
-        self.storage_access_to_memory_indices.clear();
-
-        Ok(asm)
-    }
-
-    /// Generates assembly for a given constraint and adds the resulting program to `self.
-    pub(super) fn compile_leaf_node(
-        &mut self,
-        handler: &Handler,
-        node_inputs: &[(&Variable, &Reads)],
-        expr: &ExprKey,
-        contract: &Contract,
-        pred: &Predicate,
-    ) -> Result<Asm, ErrorEmitted> {
-        node_inputs.iter().try_fold(0, |base, (var, reads)| {
-            self.variables_to_memory_indices
-                .insert((var.name.clone(), **reads), base);
-            let size = var.expr.get_ty(contract).size(handler, contract)?;
-            Ok(base + 1 + size)
-        })?;
-
-        let mut asm = Vec::new();
-        self.compile_expr(handler, &mut asm, expr, contract, pred)?;
-
-        // Clear out these two maps because they are local per program node
-        self.variables_to_memory_indices.clear();
-        self.storage_access_to_memory_indices.clear();
 
         Ok(asm)
     }

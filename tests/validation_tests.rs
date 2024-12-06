@@ -40,10 +40,6 @@ async fn validation_e2e() -> anyhow::Result<()> {
             if first_line.contains("<disabled>") {
                 continue;
             }
-
-            /*if !first_line.contains("<enabled>") {
-                continue;
-            }*/
         }
 
         println!("Testing {}.", entry.path().display());
@@ -116,9 +112,9 @@ async fn validation_e2e() -> anyhow::Result<()> {
             re.replace_all(&solution_str_from_file, |caps: &regex::Captures| {
                 let predicate_name = &caps[1];
                 let index = compiled_contract
-                    .predicate_metadata
+                    .names
                     .iter()
-                    .position(|(name, _, _)| predicate_name == name)
+                    .position(|name| predicate_name == name)
                     .expect("predicate must exist");
                 format!(
                     "{}",

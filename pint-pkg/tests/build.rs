@@ -114,7 +114,7 @@ predicate test(bob_age: Age) {
         // It should have at least one constraint.
         assert!(
             !predicate.nodes.is_empty(),
-            "built foo should have at least one constraint"
+            "built foo should have at least one compute node"
         );
     });
 }
@@ -197,7 +197,7 @@ predicate test(bob: { age: int }) {
         // It should have at least one constraint.
         assert!(
             !predicate.nodes.is_empty(),
-            "built foo should have at least one constraint"
+            "built foo should have at least one compute node"
         );
     });
 }

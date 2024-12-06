@@ -37,7 +37,7 @@ predicate Test(
 // const ::d = true in [true, false];
 // const ::a = 1 in [1, 2];
 // const ::f = 1 in 3..2;
-// 
+//
 // predicate ::Test(
 //     ::g: bool,
 //     ::h: bool,
@@ -68,7 +68,7 @@ predicate Test(
 // const ::d: bool = true;
 // const ::a: bool = true;
 // const ::f: bool = false;
-// 
+//
 // predicate ::Test(
 //     ::g: bool,
 //     ::h: bool,

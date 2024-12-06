@@ -75,7 +75,7 @@ pub struct BuiltContract {
     pub warnings: pintc::warning::Warnings,
     /// All built predicates.
     pub predicate_metadata: Vec<PredicateMetadata>,
-    /// The salt of this contract.
+    /// The actual contract object
     pub contract: Contract,
     /// The individual programs.
     pub programs: BTreeSet<Program>,
@@ -463,8 +463,8 @@ fn build_pkg(
                 .predicates
                 .clone()
                 .into_iter()
-                .zip(contract.predicate_metadata)
-                .map(|(predicate, (name, _, _))| {
+                .zip(contract.names)
+                .map(|(predicate, name)| {
                     let ca = essential_hash::content_addr(&predicate);
                     BuiltPredicate {
                         ca,
