@@ -1,14 +1,18 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{Expr, ExternalIntrinsic, Immediate, IntrinsicKind},
-    predicate::{ConstraintDecl, Contract, Predicate},
-    span::{empty_span, Span},
+    predicate::{ConstraintDecl, Contract, ExprKey, Predicate, Variable},
+    span::{empty_span, Span, Spanned},
 };
 
 use asm_builder::AsmBuilder;
-use essential_types::{predicate::Predicate as CompiledPredicate, ContentAddress};
+use essential_types::{
+    predicate::{Edge, Node, Predicate as CompiledPredicate, Program, Reads},
+    ContentAddress,
+};
 use fxhash::{FxHashMap, FxHashSet};
-use petgraph::{graph::NodeIndex, Graph};
+use petgraph::{graph::NodeIndex, visit::EdgeRef, Graph};
+use std::collections::BTreeSet;
 
 mod asm_builder;
 mod display;
@@ -18,9 +22,12 @@ mod tests;
 #[derive(Debug, Default, Clone)]
 pub struct CompiledContract {
     pub names: Vec<String>,
-    pub salt: [u8; 32],
-    pub predicates: Vec<CompiledPredicate>,
+    pub contract: essential_types::contract::Contract,
+    pub programs: BTreeSet<Program>,
 }
+
+type CompiledPredicates =
+    FxHashMap<String, (CompiledPredicate, ContentAddress, BTreeSet<Program>, Span)>;
 
 /// Convert a `Contract` into `CompiledContract`
 pub fn compile_contract(
@@ -86,14 +93,13 @@ pub fn compile_contract(
     // This map keeps track of the compiled predicates and their addresses. We will use this later
     // when producing the final compiled contract. It is also useful when compiling predicates that
     // require the addresses of other predicates.
-    let mut compiled_predicates: FxHashMap<String, (CompiledPredicate, ContentAddress, Span)> =
-        FxHashMap::default();
+    let mut compiled_predicates: CompiledPredicates = FxHashMap::default();
 
     // Now compile all predicates in topological order
     for idx in &sorted_nodes {
         let predicate = indices_to_predicates[idx];
 
-        if let Ok(compiled_predicate) = handler
+        if let Ok((compiled_predicate, programs)) = handler
             .scope(|handler| compile_predicate(handler, contract, &compiled_predicates, predicate))
         {
             let compiled_predicate_address = essential_hash::content_addr(&compiled_predicate);
@@ -102,6 +108,7 @@ pub fn compile_contract(
                 (
                     compiled_predicate,
                     compiled_predicate_address,
+                    programs,
                     predicate.span.clone(),
                 ),
             );
@@ -116,7 +123,7 @@ pub fn compile_contract(
     let mut compiled_predicates_vec: Vec<_> = compiled_predicates.iter().collect();
     compiled_predicates_vec.reverse(); // Guarantees the error message refers to the first declaration of the predicate
 
-    for (string, (_, content_address, span)) in &compiled_predicates_vec {
+    for (string, (_, content_address, _, span)) in &compiled_predicates_vec {
         if !unique_addresses.insert(content_address) {
             let original_predicate = original_predicates
                 .get(content_address)
@@ -145,13 +152,17 @@ pub fn compile_contract(
     // Now, produce the two vectors needed for `CompiledContract`: A vector of all the predicate
     // names and a vector of all the compiled predicates. Note that the order here must match the
     // original order in `contract.preds`.
+    let mut combined_programs = BTreeSet::new();
     let (names, predicates) = contract
         .preds
         .iter()
         .map(|(_, pred)| {
             compiled_predicates
                 .remove(&pred.name.name)
-                .map(|(compiled_predicate, _, _)| (pred.name.name.clone(), compiled_predicate))
+                .map(|(compiled_predicate, _, programs, _)| {
+                    combined_programs.extend(programs);
+                    (pred.name.name.clone(), compiled_predicate)
+                })
                 .ok_or_else(|| {
                     handler.emit_internal_err(
                         "predicate must exist in the compiled_predicates map",
@@ -166,9 +177,36 @@ pub fn compile_contract(
     } else {
         Ok(CompiledContract {
             names,
-            salt,
-            predicates,
+            contract: essential_types::contract::Contract { predicates, salt },
+            programs: combined_programs,
         })
+    }
+}
+
+/// This a node in the compute graph. Keeps track of which item it represents (var or expr).
+#[derive(Clone, Debug)]
+enum ComputeNode {
+    NonLeaf { var: Variable, reads: Reads },
+    Leaf { expr: ExprKey },
+}
+
+impl ComputeNode {
+    fn is_leaf(&self) -> bool {
+        matches!(self, ComputeNode::Leaf { .. })
+    }
+
+    fn expr(&self) -> ExprKey {
+        match self {
+            Self::NonLeaf { var, .. } => var.expr,
+            Self::Leaf { expr } => *expr,
+        }
+    }
+
+    fn span(&self, contract: &Contract) -> Span {
+        match self {
+            Self::NonLeaf { var, .. } => var.span.clone(),
+            Self::Leaf { expr } => expr.get(contract).span().clone(),
+        }
     }
 }
 
@@ -177,13 +215,105 @@ pub fn compile_contract(
 pub fn compile_predicate(
     handler: &Handler,
     contract: &Contract,
-    compiled_predicates: &FxHashMap<String, (CompiledPredicate, ContentAddress, Span)>,
+    compiled_predicates: &CompiledPredicates,
     pred: &Predicate,
-) -> Result<CompiledPredicate, ErrorEmitted> {
+) -> Result<(CompiledPredicate, BTreeSet<Program>), ErrorEmitted> {
+    let mut data_flow_graph = Graph::<ComputeNode, ()>::new();
+    let mut vars_to_nodes = FxHashMap::<(String, Reads), NodeIndex>::default();
+
+    // Insert non leaf nodes into the compute graph
+    for (_, variable) in pred.variables() {
+        vars_to_nodes.insert(
+            (variable.name.clone(), Reads::Pre),
+            data_flow_graph.add_node(ComputeNode::NonLeaf {
+                var: variable.clone(),
+                reads: Reads::Pre,
+            }),
+        );
+        vars_to_nodes.insert(
+            (variable.name.clone(), Reads::Post),
+            data_flow_graph.add_node(ComputeNode::NonLeaf {
+                var: variable.clone(),
+                reads: Reads::Post,
+            }),
+        );
+    }
+
+    // Insert edges between non leaf nodes
+    for (_, variable) in pred.variables() {
+        for (var_name, reads) in variable.expr.collect_path_to_var_exprs(contract, pred) {
+            data_flow_graph.add_edge(
+                vars_to_nodes[&(var_name.clone(), reads)],
+                vars_to_nodes[&(variable.name.clone(), Reads::Pre)],
+                (),
+            );
+            data_flow_graph.add_edge(
+                vars_to_nodes[&(var_name.clone(), reads)],
+                vars_to_nodes[&(variable.name.clone(), Reads::Post)],
+                (),
+            );
+        }
+    }
+
+    // Insert leaf nodes and edges to them
+    for ConstraintDecl { expr, .. } in pred.constraints.iter() {
+        let constraint_node = data_flow_graph.add_node(ComputeNode::Leaf { expr: *expr });
+
+        for (var_name, reads) in expr.collect_path_to_var_exprs(contract, pred) {
+            data_flow_graph.add_edge(vars_to_nodes[&(var_name, reads)], constraint_node, ());
+        }
+    }
+
+    // Remove all non-leaf nodes that have no children. That is, these are dead internal nodes that
+    // **are not constraints**. These can be ignored and should not be compiled.
+    data_flow_graph
+        .retain_nodes(|graph, node| graph[node].is_leaf() || graph.edges(node).next().is_some());
+
+    // Detect dependency cycles between nodes.
+    // TODO: move this check to semantic analysis and only emit an internal error here if
+    // the topological sort later fails.
+    let sccs = petgraph::algo::kosaraju_scc(&data_flow_graph);
+    for scc in &sccs {
+        // Bad components are ones with more than 1 node. These contain cycles.
+        if scc.len() > 1 {
+            handler.emit_err(Error::Compile {
+                error: CompileError::VarsDependencyCycle {
+                    spans: scc
+                        .iter()
+                        .map(|idx| data_flow_graph[*idx].span(contract))
+                        .collect(),
+                },
+            });
+        }
+    }
+
+    // Topologically sort the graph
+    let Ok(mut sorted_nodes) = petgraph::algo::toposort(&data_flow_graph, None) else {
+        return Err(handler.emit_internal_err(
+            "dependency cycle detected between program nodes. should have been caught above",
+            empty_span(),
+        ));
+    };
+
+    // Now move all the "sink" nodes (i.e. constraints) to the end. This is important for
+    // correctness of the final compute graph in the `essential_types::predicate::Predicate` object
+    // where its assumed that all the leaf nodes are at the end
+    sorted_nodes = {
+        let (mut non_sinks, sinks): (Vec<_>, Vec<_>) =
+            sorted_nodes.into_iter().partition(|&node| {
+                data_flow_graph
+                    .neighbors_directed(node, petgraph::Outgoing)
+                    .next()
+                    .is_some()
+            });
+        non_sinks.extend(sinks);
+        non_sinks
+    };
+
     let no_span_predicates: FxHashMap<String, (CompiledPredicate, ContentAddress)> =
         compiled_predicates
             .iter()
-            .map(|(k, (compiled_predicate, content_address, _span))| {
+            .map(|(k, (compiled_predicate, content_address, _, _span))| {
                 (
                     k.clone(),
                     (compiled_predicate.clone(), content_address.clone()),
@@ -191,37 +321,80 @@ pub fn compile_predicate(
             })
             .collect();
 
-    let mut builder = AsmBuilder::new(&no_span_predicates);
+    // Final compiled predicate which we will slowly build
+    let mut compiled_predicate = CompiledPredicate {
+        nodes: vec![],
+        edges: vec![],
+    };
 
-    // Compile all variable declarations into variable programs
-    for (_, variable) in pred.variables() {
-        builder.compile_variable(handler, variable, contract, pred)?;
-    }
+    let mut edge_start = 0;
+    let mut programs = BTreeSet::new();
 
-    // Compile all constraint declarations into constraint programs
-    for ConstraintDecl {
-        expr: constraint, ..
-    } in &pred.constraints
-    {
-        builder.compile_constraint(handler, constraint, contract, pred)?;
+    for node in &sorted_nodes {
+        let mut builder = AsmBuilder::new(&no_span_predicates);
+        // Collect all the parents of this node and sort them according to their order in
+        // `sorted_nodes`
+        let mut parents = data_flow_graph
+            .neighbors_directed(*node, petgraph::Direction::Incoming)
+            .collect::<Vec<_>>();
+        parents.sort_by_key(|node| sorted_nodes.iter().position(|&n| n == *node));
+
+        // Produce a list of the inputs to this node from its parents
+        let parents = parents
+            .iter()
+            .map(|node| data_flow_graph[*node].clone())
+            .collect::<Vec<_>>();
+
+        // Compile each node separately while keeping in mind which `parents` it has.
+        let asm = builder.compile_compute_node(
+            handler,
+            &data_flow_graph[*node],
+            &parents,
+            contract,
+            pred,
+        )?;
+
+        let address = essential_hash::content_addr(&Program(
+            essential_asm::to_bytes(asm.iter().copied()).collect(),
+        ));
+
+        programs.insert(Program(
+            essential_asm::to_bytes(asm.iter().copied()).collect(),
+        ));
+
+        // Now push a node into the final `compiled_predicate`
+        match &data_flow_graph[*node] {
+            ComputeNode::Leaf { .. } => {
+                compiled_predicate.nodes.push(Node {
+                    program_address: address,
+                    edge_start: Edge::MAX,
+                    // Constraints don't access state directly yet, so default to `Reads::Pre` here
+                    // for now
+                    reads: Reads::Pre,
+                });
+            }
+            ComputeNode::NonLeaf { reads, .. } => {
+                compiled_predicate.nodes.push(Node {
+                    program_address: address,
+                    edge_start,
+                    reads: *reads,
+                });
+
+                // Handle the edges out of this node
+                for edge in data_flow_graph.edges(*node) {
+                    let to = edge.target();
+                    compiled_predicate
+                        .edges
+                        .push(sorted_nodes.iter().position(|n| *n == to).unwrap() as u16);
+                }
+                edge_start += data_flow_graph.edges(*node).count() as u16;
+            }
+        }
     }
 
     if handler.has_errors() {
         return Err(handler.cancel());
     }
 
-    Ok(CompiledPredicate {
-        state_read: builder
-            .state_programs
-            .iter()
-            .map(|state_programs| state_asm::to_bytes(state_programs.iter().copied()).collect())
-            .collect(),
-        constraints: builder
-            .constraint_programs
-            .iter()
-            .map(|constraint_programs| {
-                constraint_asm::to_bytes(constraint_programs.iter().copied()).collect()
-            })
-            .collect(),
-    })
+    Ok((compiled_predicate, programs))
 }

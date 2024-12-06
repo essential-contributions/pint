@@ -1,11 +1,11 @@
 {
-  "data": [
+  "solutions": [
     {
       "predicate_to_solve": {
-        "contract": "330DC247B7FA691BAFA941802746A7AC9B1055D92D8DB9BC52C56550801C1272",
-        "predicate": "B0658D25FA02965260FFE0DA616A0259E8580D9E05420A46835AEEC3B1B2A701"
+        "contract": "<>",
+        "predicate": "<::Simple>"
       },
-      "decision_variables": [
+      "predicate_data": [
         [42],
         [69],
         [0],
@@ -29,10 +29,10 @@
     },
     {
       "predicate_to_solve": {
-        "contract": "330DC247B7FA691BAFA941802746A7AC9B1055D92D8DB9BC52C56550801C1272",
-        "predicate": "D40185838803AB6CF672C5C01D70A93F47666990443F39A151CD244CB0B81F07"
+        "contract": "<>",
+        "predicate": "<::Foo>"
       },
-      "decision_variables": [
+      "predicate_data": [
         [0],
         [58],
         [31],
@@ -46,10 +46,10 @@
     },
     {
       "predicate_to_solve": {
-        "contract": "330DC247B7FA691BAFA941802746A7AC9B1055D92D8DB9BC52C56550801C1272",
-        "predicate": "9C765AEC92FC1F9D6F712ED04AFBC00AB67FD549EBA12878610D05C86F549350"
+        "contract": "<>",
+        "predicate": "<::Bar>"
       },
-      "decision_variables": [
+      "predicate_data": [
         [1],
         [158],
         [131],

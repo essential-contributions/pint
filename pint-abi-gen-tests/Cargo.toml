@@ -22,6 +22,7 @@ pint-abi = { workspace = true }
 [dev-dependencies]
 essential-check = { workspace = true }
 essential-hash = { workspace = true }
+essential-vm = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }

@@ -1,10 +1,13 @@
 use super::{Contract, PredKey, Predicate};
 use crate::{
-    expr::{Expr, ExternalIntrinsic, InternalIntrinsic, IntrinsicKind, MatchBranch, MatchElse},
+    expr::{
+        Expr, ExternalIntrinsic, InternalIntrinsic, IntrinsicKind, MatchBranch, MatchElse, UnaryOp,
+    },
     predicate::Immediate,
     span::empty_span,
     types::{PrimitiveKind, Type},
 };
+use essential_types::predicate::Reads;
 use fxhash::FxHashSet;
 use std::collections::HashSet;
 
@@ -409,6 +412,171 @@ impl ExprKey {
         }
 
         storage_accesses
+    }
+
+    /// Given an expression, collect all accesses to local variables including pre and post state.
+    /// For example: given the expression `x + y == z' + 1`, this method should return an
+    /// `FxHashSet` that contains:
+    /// - `("x", Reads::Pre)`
+    /// - `("y", Reads::Pre)`
+    /// - `("z", Reads::Post)`
+    ///
+    pub fn collect_path_to_var_exprs(
+        &self,
+        contract: &Contract,
+        pred: &Predicate,
+    ) -> FxHashSet<(String, Reads)> {
+        let mut path_to_var_exprs = FxHashSet::default();
+
+        if let Some(expr) = self.try_get(contract) {
+            match expr {
+                Expr::Array { elements, .. } => {
+                    elements.iter().for_each(|e| {
+                        path_to_var_exprs.extend(e.collect_path_to_var_exprs(contract, pred));
+                    });
+                }
+
+                Expr::Tuple { fields, .. } => {
+                    fields.iter().for_each(|(_, f)| {
+                        path_to_var_exprs.extend(f.collect_path_to_var_exprs(contract, pred));
+                    });
+                }
+
+                Expr::UnionVariant { value, .. } => {
+                    if let Some(value) = value {
+                        path_to_var_exprs.extend(value.collect_path_to_var_exprs(contract, pred));
+                    }
+                }
+
+                Expr::Path(path, _) => {
+                    // collect paths to variables
+                    if pred.variables().any(|(_, var)| &var.name == path) {
+                        path_to_var_exprs.insert((path.clone(), Reads::Pre));
+                    }
+                }
+
+                Expr::ExternalStorageAccess { address, .. } => {
+                    path_to_var_exprs.extend(address.collect_path_to_var_exprs(contract, pred))
+                }
+
+                Expr::UnaryOp { op, expr, .. } => {
+                    if *op == UnaryOp::NextState {
+                        // collect "next state" paths to variables
+                        if let Expr::Path(path, _) = expr.get(contract) {
+                            if pred.variables().any(|(_, var)| &var.name == path) {
+                                path_to_var_exprs.insert((path.to_owned(), Reads::Post));
+                            }
+                        }
+                    } else {
+                        path_to_var_exprs.extend(expr.collect_path_to_var_exprs(contract, pred));
+                    }
+                }
+
+                Expr::BinaryOp { lhs, rhs, .. } => {
+                    path_to_var_exprs.extend(lhs.collect_path_to_var_exprs(contract, pred));
+                    path_to_var_exprs.extend(rhs.collect_path_to_var_exprs(contract, pred));
+                }
+
+                Expr::IntrinsicCall { args, .. } => {
+                    args.iter().for_each(|arg| {
+                        path_to_var_exprs.extend(arg.collect_path_to_var_exprs(contract, pred));
+                    });
+                }
+
+                Expr::ExternalPredicateCall {
+                    c_addr,
+                    p_addr,
+                    args,
+                    ..
+                } => {
+                    path_to_var_exprs.extend(c_addr.collect_path_to_var_exprs(contract, pred));
+                    path_to_var_exprs.extend(p_addr.collect_path_to_var_exprs(contract, pred));
+                    args.iter().for_each(|arg| {
+                        path_to_var_exprs.extend(arg.collect_path_to_var_exprs(contract, pred));
+                    });
+                }
+
+                Expr::LocalPredicateCall { args, .. } => {
+                    args.iter().for_each(|arg| {
+                        path_to_var_exprs.extend(arg.collect_path_to_var_exprs(contract, pred));
+                    });
+                }
+
+                Expr::Select {
+                    condition,
+                    then_expr,
+                    else_expr,
+                    ..
+                } => {
+                    path_to_var_exprs.extend(condition.collect_path_to_var_exprs(contract, pred));
+                    path_to_var_exprs.extend(then_expr.collect_path_to_var_exprs(contract, pred));
+                    path_to_var_exprs.extend(else_expr.collect_path_to_var_exprs(contract, pred));
+                }
+
+                Expr::Index {
+                    expr: expr_inner, ..
+                } => {
+                    path_to_var_exprs.extend(expr_inner.collect_path_to_var_exprs(contract, pred));
+                }
+
+                Expr::TupleFieldAccess { tuple, .. } => {
+                    path_to_var_exprs.extend(tuple.collect_path_to_var_exprs(contract, pred));
+                }
+
+                Expr::Cast { value, .. } => {
+                    path_to_var_exprs.extend(value.collect_path_to_var_exprs(contract, pred));
+                }
+
+                Expr::In {
+                    value, collection, ..
+                } => {
+                    path_to_var_exprs.extend(value.collect_path_to_var_exprs(contract, pred));
+                    path_to_var_exprs.extend(collection.collect_path_to_var_exprs(contract, pred));
+                }
+
+                Expr::Range { lb, ub, .. } => {
+                    path_to_var_exprs.extend(lb.collect_path_to_var_exprs(contract, pred));
+                    path_to_var_exprs.extend(ub.collect_path_to_var_exprs(contract, pred));
+                }
+
+                Expr::Generator {
+                    gen_ranges,
+                    conditions,
+                    body,
+                    ..
+                } => {
+                    gen_ranges.iter().for_each(|(_, range)| {
+                        path_to_var_exprs.extend(range.collect_path_to_var_exprs(contract, pred));
+                    });
+                    conditions.iter().for_each(|condition| {
+                        path_to_var_exprs
+                            .extend(condition.collect_path_to_var_exprs(contract, pred));
+                    });
+                    path_to_var_exprs.extend(body.collect_path_to_var_exprs(contract, pred));
+                }
+
+                Expr::Map { range, body, .. } => {
+                    path_to_var_exprs.extend(range.collect_path_to_var_exprs(contract, pred));
+                    path_to_var_exprs.extend(body.collect_path_to_var_exprs(contract, pred));
+                }
+
+                Expr::UnionTag { union_expr, .. } => {
+                    path_to_var_exprs.extend(union_expr.collect_path_to_var_exprs(contract, pred));
+                }
+
+                Expr::UnionValue { union_expr, .. } => {
+                    path_to_var_exprs.extend(union_expr.collect_path_to_var_exprs(contract, pred));
+                }
+
+                Expr::LocalStorageAccess { .. }
+                | Expr::Error(_)
+                | Expr::Immediate { .. }
+                | Expr::MacroCall { .. }
+                | Expr::Match { .. } => {}
+            }
+        }
+
+        path_to_var_exprs
     }
 
     pub fn is_storage_access(&self, contract: &Contract) -> bool {

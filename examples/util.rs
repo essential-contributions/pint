@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
 use essential_check::{
-    state_read_vm::StateRead,
-    types::{solution::Solution, ContentAddress, Key, Word},
+    types::{solution::SolutionSet, ContentAddress, Key, Word},
+    vm::StateRead,
 };
 use std::{
     collections::BTreeMap,
@@ -82,11 +82,11 @@ impl State {
     }
 
     /// Apply all mutations proposed by the given solution.
-    pub fn apply_mutations(&mut self, solution: &Solution) {
-        for data in &solution.data {
-            for mutation in data.state_mutations.iter() {
+    pub fn apply_mutations(&mut self, solution_set: &SolutionSet) {
+        for solution in &solution_set.solutions {
+            for mutation in solution.state_mutations.iter() {
                 self.set(
-                    data.predicate_to_solve.contract.clone(),
+                    solution.predicate_to_solve.contract.clone(),
                     &mutation.key,
                     mutation.value.clone(),
                 );

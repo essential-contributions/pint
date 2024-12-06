@@ -6,12 +6,14 @@ use crate::{
 };
 use clap::builder::styling::Style;
 use essential_types::{
-    contract::Contract, predicate::Predicate as CompiledPredicate, ContentAddress,
+    contract::Contract,
+    predicate::{Predicate as CompiledPredicate, Program},
+    ContentAddress,
 };
 use pint_abi_types::ContractABI;
 use pintc::asm_gen::compile_contract;
 use std::{
-    collections::HashMap,
+    collections::{BTreeSet, HashMap},
     path::{Path, PathBuf},
 };
 use thiserror::Error;
@@ -73,8 +75,10 @@ pub struct BuiltContract {
     pub warnings: pintc::warning::Warnings,
     /// All built predicates.
     pub predicate_metadata: Vec<PredicateMetadata>,
-    /// The salt of this contract.
+    /// The actual contract object
     pub contract: Contract,
+    /// The individual programs.
+    pub programs: BTreeSet<Program>,
     /// The content address of the contract.
     pub ca: ContentAddress,
     /// The entry-point into the temp library submodules used to provide the CAs.
@@ -241,7 +245,8 @@ impl BuiltPkg {
             Self::Library(_) => (),
             Self::Contract(built) => {
                 // Write the contract.
-                let contract_string = serde_json::to_string_pretty(&built.contract)?;
+                let contract_string =
+                    serde_json::to_string_pretty(&(&built.contract, &built.programs))?;
                 let contract_path = path.join(name).with_extension("json");
                 std::fs::write(contract_path, contract_string)?;
 
@@ -454,7 +459,9 @@ fn build_pkg(
 
             // Collect the predicates alongside their content addresses.
             let predicates: Vec<_> = contract
+                .contract
                 .predicates
+                .clone()
                 .into_iter()
                 .zip(contract.names)
                 .map(|(predicate, name)| {
@@ -470,7 +477,7 @@ fn build_pkg(
             // The CA of the contract.
             let ca = essential_hash::contract_addr::from_predicate_addrs(
                 predicates.iter().map(|predicate| predicate.ca.clone()),
-                &contract.salt,
+                &contract.contract.salt,
             );
 
             // Generate a temp lib for providing the contract and predicate CAs to dependents.
@@ -482,25 +489,17 @@ fn build_pkg(
                 }
             };
 
-            let (predicate_metadata, predicates) = predicates
+            let predicate_metadata = predicates
                 .into_iter()
-                .map(
-                    |BuiltPredicate {
-                         ca,
-                         name,
-                         predicate,
-                     }| (PredicateMetadata { ca, name }, predicate),
-                )
-                .unzip();
+                .map(|BuiltPredicate { ca, name, .. }| PredicateMetadata { ca, name })
+                .collect::<Vec<_>>();
 
             let contract = BuiltContract {
                 warnings: pintc::warning::Warnings(handler.consume().1),
                 ca,
                 predicate_metadata,
-                contract: Contract {
-                    predicates,
-                    salt: contract.salt,
-                },
+                contract: contract.contract,
+                programs: contract.programs,
                 lib_entry_point,
                 abi,
                 optimized,

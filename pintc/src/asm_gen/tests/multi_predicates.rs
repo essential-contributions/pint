@@ -26,72 +26,69 @@ fn check_order() {
         ),
         expect_test::expect![[r#"
             predicate ::A {
-                --- Constraints ---
-                constraint 0
-                  Stack(Push(1))
-                  Stack(Push(0))
-                  Stack(Push(0))
-                  Stack(Push(1))
-                  Access(DecisionVar)
-                  Access(ThisContractAddress)
-                  Stack(Push(-7172445384416157795))
-                  Stack(Push(8030251082724392970))
-                  Stack(Push(-5296280123301877640))
-                  Stack(Push(6993252154795660112))
-                  Stack(Push(80))
-                  Crypto(Sha256)
-                  Access(PredicateExists)
-                constraint 1
-                  Stack(Push(1))
-                  Stack(Push(0))
-                  Stack(Push(0))
-                  Stack(Push(1))
-                  Access(DecisionVar)
-                  Access(ThisContractAddress)
-                  Stack(Push(-3487102877995749633))
-                  Stack(Push(2456710878984127610))
-                  Stack(Push(-4612594924742728332))
-                  Stack(Push(6890225921685255628))
-                  Stack(Push(80))
-                  Crypto(Sha256)
-                  Access(PredicateExists)
-                constraint 2
+                --- Nodes ---
+                node 0
                   Access(MutKeys)
                   Stack(Push(0))
                   Pred(EqSet)
-                --- State Reads ---
+                node 1
+                  Stack(Push(1))
+                  Stack(Push(0))
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Access(PredicateData)
+                  Access(ThisContractAddress)
+                  Stack(Push(-3992282013715905135))
+                  Stack(Push(-3163611186605046901))
+                  Stack(Push(3263825038635098201))
+                  Stack(Push(569080937786746125))
+                  Stack(Push(80))
+                  Crypto(Sha256)
+                  Access(PredicateExists)
+                node 2
+                  Stack(Push(1))
+                  Stack(Push(0))
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Access(PredicateData)
+                  Access(ThisContractAddress)
+                  Stack(Push(1097050218124307716))
+                  Stack(Push(-689786681852912457))
+                  Stack(Push(-6083956818317571560))
+                  Stack(Push(4139034240085840423))
+                  Stack(Push(80))
+                  Crypto(Sha256)
+                  Access(PredicateExists)
             }
 
             predicate ::B {
-                --- Constraints ---
-                constraint 0
-                  Stack(Push(0))
-                  Stack(Push(0))
-                  Stack(Push(1))
-                  Access(DecisionVar)
-                  Stack(Push(1))
-                  Pred(Eq)
-                constraint 1
+                --- Nodes ---
+                node 0
                   Access(MutKeys)
                   Stack(Push(0))
                   Pred(EqSet)
-                --- State Reads ---
+                node 1
+                  Stack(Push(0))
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Access(PredicateData)
+                  Stack(Push(1))
+                  Pred(Eq)
             }
 
             predicate ::C {
-                --- Constraints ---
-                constraint 0
-                  Stack(Push(0))
-                  Stack(Push(0))
-                  Stack(Push(1))
-                  Access(DecisionVar)
-                  Stack(Push(2))
-                  Pred(Eq)
-                constraint 1
+                --- Nodes ---
+                node 0
                   Access(MutKeys)
                   Stack(Push(0))
                   Pred(EqSet)
-                --- State Reads ---
+                node 1
+                  Stack(Push(0))
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Access(PredicateData)
+                  Stack(Push(2))
+                  Pred(Eq)
             }
 
         "#]],

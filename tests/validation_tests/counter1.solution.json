@@ -1,11 +1,11 @@
 {
-  "data": [
+  "solutions": [
     {
       "predicate_to_solve": {
-        "contract": "6D05CB94739FFB92CA96750EBF262A82C3ED8F05262DD26B503D732F0B74777E",
-        "predicate": "6FAFAAAF6F5BD707ACF17EB46B2AFEA4A20FBCB79974A52B809F6071647AE212"
+        "contract": "<>",
+        "predicate": "<::Increment>"
       },
-      "decision_variables": [[69]],
+      "predicate_data": [[69]],
       "state_mutations": [
         {
           "key": [0],
