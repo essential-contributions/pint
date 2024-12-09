@@ -1107,7 +1107,6 @@ impl<'a> AsmBuilder<'a> {
         }
 
         // Grab the fields of the tuple
-        let Type::Tuple { ref fields, .. } = tuple.get_ty(contract) else {
         println!("after compiling pointer");
         println!("key for tuple expr is: {:#?}", tuple);
         println!("tuple expr is: {}", contract.with_ctrct(tuple));
@@ -1126,8 +1125,18 @@ impl<'a> AsmBuilder<'a> {
         // looks to me like everything is proper but the `tuple key` is wrong. Instead of being the tuple, it is the next state unary op
         // this is the nested `tuple` expr inside of the `tuplefieldaccess`. Which is incorrectly a unary next state. It should either be the tuple itself.
         // or maybe we should be preserving the next state op and then diving in deeper
+
+        // check it's a prime op
+        let mut unwrapped_tuple = tuple;
+        if let Expr::UnaryOp { op, expr, .. } = tuple.get(contract) {
+            if let UnaryOp::NextState = op {
+                unwrapped_tuple = expr;
+            }
+        }
+
+        let Type::Tuple { ref fields, .. } = unwrapped_tuple.get_ty(contract) else {
             return Err(
-                handler.emit_internal_err("type must exist and be a tuple type", empty_span())
+                handler.emit_internal_err("type must exist and be a tuple type -ian", empty_span())
             );
         };
 
