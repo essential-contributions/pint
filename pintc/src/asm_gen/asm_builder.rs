@@ -349,13 +349,6 @@ impl<'a> AsmBuilder<'a> {
             }
         }
 
-        println!(
-            "expr in asm_builder:\n{}\n{:#?}\n{:#?}\n",
-            contract.with_ctrct(expr),
-            expr.get(contract),
-            expr.get_ty(contract)
-        );
-
         match expr.get(contract) {
             Expr::Immediate { value, .. } => {
                 compile_immediate(handler, asm, value)?;
@@ -451,7 +444,6 @@ impl<'a> AsmBuilder<'a> {
         reads: Reads,
         pred: &Predicate,
     ) -> Result<Location, ErrorEmitted> {
-        println!("compiling path");
         if let Some((loc, global_idx)) =
             self.morphism_scopes
                 .iter()
@@ -515,7 +507,6 @@ impl<'a> AsmBuilder<'a> {
         contract: &Contract,
         pred: &Predicate,
     ) -> Result<Location, ErrorEmitted> {
-        println!("compiling unary");
         match op {
             UnaryOp::Not => {
                 self.compile_expr(handler, asm, expr, contract, pred)?;
@@ -1090,13 +1081,6 @@ impl<'a> AsmBuilder<'a> {
         contract: &Contract,
         pred: &Predicate,
     ) -> Result<Location, ErrorEmitted> {
-        println!("compiling tuple field access");
-
-        println!("key for tuple expr is: {:#?}", tuple);
-        println!("tuple expr is: {}", contract.with_ctrct(tuple));
-        println!("type of tuple expr is: {:#?}", tuple.get_ty(contract));
-        // is type int before compiling the expr pointer -> rightfully so because it is a unary next state
-
         let location = self.compile_expr_pointer(handler, asm, tuple, contract, pred)?;
 
         if let Location::Value | Location::Storage(_) = location {
@@ -1107,36 +1091,9 @@ impl<'a> AsmBuilder<'a> {
         }
 
         // Grab the fields of the tuple
-        println!("after compiling pointer");
-        println!("key for tuple expr is: {:#?}", tuple);
-        println!("tuple expr is: {}", contract.with_ctrct(tuple));
-        println!("type of tuple expr is: {:#?}", tuple.get_ty(contract)); // currently int instead of {int, int}
-
-        // the above is accessing the op, not the tuple associated with the op??
-        // key for tuple expr is: ExprKey(
-        //     4v1,
-        // )
-        // tuple expr is: ::t'
-        // type of tuple expr is: Primitive {
-        //     kind: Int,
-        //     span: "test.pnt":18..21,
-        // }
-        // does this mean that we're accessing incorrectly here, or does it mean that we didn't properly create the tuple during transform.rs?
-        // looks to me like everything is proper but the `tuple key` is wrong. Instead of being the tuple, it is the next state unary op
-        // this is the nested `tuple` expr inside of the `tuplefieldaccess`. Which is incorrectly a unary next state. It should either be the tuple itself.
-        // or maybe we should be preserving the next state op and then diving in deeper
-
-        // check it's a prime op
-        let mut unwrapped_tuple = tuple;
-        if let Expr::UnaryOp { op, expr, .. } = tuple.get(contract) {
-            if let UnaryOp::NextState = op {
-                unwrapped_tuple = expr;
-            }
-        }
-
-        let Type::Tuple { ref fields, .. } = unwrapped_tuple.get_ty(contract) else {
+        let Type::Tuple { ref fields, .. } = tuple.get_ty(contract) else {
             return Err(
-                handler.emit_internal_err("type must exist and be a tuple type -ian", empty_span())
+                handler.emit_internal_err("type must exist and be a tuple type", empty_span())
             );
         };
 
