@@ -957,6 +957,12 @@ pub(super) fn coalesce_prime_ops(contract: &mut Contract) {
             })
             .collect();
 
+        println!("work_list: {:#?}", &work_list);
+        for (key_1, key_2) in &work_list {
+            println!("key_1: {}", contract.with_ctrct(key_1));
+            println!("key_2: {}", contract.with_ctrct(key_2));
+        }
+
         // We want to merge any ops which are applied to other ops.  And we want to push ops on index
         // or field access expressions up to the array or tuple that they're indexing.  In turn that
         // could create new prime ops applied to prime ops or indices/accesses.
@@ -971,7 +977,35 @@ pub(super) fn coalesce_prime_ops(contract: &mut Contract) {
             old_key: ExprKey,
             new_key: ExprKey,
         ) {
+            println!("replacing");
             contract.replace_exprs(Some(pred_key), old_key, new_key);
+
+            for (ref op_key, ref arg_key) in &mut *work_list {
+                println!(
+                    "old_key: {}\n{:#?}\n{:#?}\n",
+                    contract.with_ctrct(old_key),
+                    old_key.get_ty(contract),
+                    old_key
+                );
+                println!(
+                    "new_key: {}\n{:#?}\n{:#?}\n",
+                    contract.with_ctrct(new_key),
+                    new_key.get_ty(contract),
+                    new_key
+                );
+                println!(
+                    "op_key: {}\n{:#?}\n{:#?}\n",
+                    contract.with_ctrct(op_key),
+                    op_key.get_ty(contract),
+                    op_key
+                );
+                println!(
+                    "arg_key: {}\n{:#?}\n{:#?}\n",
+                    contract.with_ctrct(arg_key),
+                    arg_key.get_ty(contract),
+                    arg_key
+                );
+            }
 
             for (ref mut op_key, ref mut arg_key) in work_list {
                 if *op_key == old_key {
@@ -1074,8 +1108,18 @@ pub(super) fn coalesce_prime_ops(contract: &mut Contract) {
                 Coalescence::LowerAccess(accessed_key) => {
                     // E.g., a.x' -> a'.x.
 
+                    println!(
+                        "accessed coalescence key: {}\n {:#?}",
+                        contract.with_ctrct(accessed_key),
+                        accessed_key
+                    );
+                    println!(
+                        "accessed coalescence key type: {:#?}",
+                        accessed_key.get_ty(contract)
+                    );
+
                     // Update any reference to the prime op to instead be to the access expression.
-                    replace_exprs(contract, pred_key, &mut work_list, op_key, arg_key);
+                    replace_exprs(contract, pred_key, &mut work_list, op_key, arg_key); // i think this is working properly. It just modifies the worklist and we already use replace_exprs for the contract everywhere and it works
 
                     // Update the prime op to refer to the accessed expression.  Also update the list
                     // to reflect the same.
@@ -1089,6 +1133,32 @@ pub(super) fn coalesce_prime_ops(contract: &mut Contract) {
                     *old_arg_key = accessed_key;
                     work_list.push((op_key, accessed_key));
 
+                    println!("updated_work_list: {:#?}", &work_list);
+                    for (key_1, key_2) in &work_list {
+                        println!("key_1: {}", contract.with_ctrct(key_1));
+                        println!(
+                            "key_2: {}\n{:#?}\n",
+                            contract.with_ctrct(key_2),
+                            key_2.get_ty(contract)
+                        );
+                    }
+
+                    // correct in the work_list to here, maybe double check type of key_2? it is correct
+
+                    let Expr::TupleFieldAccess {
+                        tuple: old_accessed_key_copy,
+                        ..
+                    } = arg_key.get(contract)
+                    else {
+                        unreachable!("arg_key must be to an Expr::TupleFieldAccess")
+                    };
+                    println!(
+                        "old_accessed_key_copy used in TupleFieldAccess: {}\n{:#?}\n{:#?}",
+                        contract.with_ctrct(old_accessed_key_copy),
+                        old_accessed_key_copy.get_ty(contract),
+                        old_accessed_key_copy,
+                    );
+
                     // Update the access expression to refer to the prime op.
                     let Expr::TupleFieldAccess {
                         tuple: old_accessed_key,
@@ -1098,7 +1168,20 @@ pub(super) fn coalesce_prime_ops(contract: &mut Contract) {
                         unreachable!("arg_key must be to an Expr::TupleFieldAccess")
                     };
 
-                    *old_accessed_key = op_key;
+                    // old_accessed_key type is correct.
+                    // op_key is failing us
+
+                    *old_accessed_key = op_key; // issue occurs here. It is of type int when it should be {int, int}. Maybe a red herring? Op_key may not be a problem at this point in the analysis.
+                                                // op_key matches the key that is the issue later in asm_gen
+
+                    println!(
+                        "new op key: {}\n{:#?}\n{:#?}\n----",
+                        contract.with_ctrct(op_key),
+                        op_key,
+                        op_key.get_ty(contract)
+                    );
+
+                    // seems intentional that we add the op_key in the place of the tuple field access. So I think we should just dig deeper in the asm_builder.
                 }
             }
         }

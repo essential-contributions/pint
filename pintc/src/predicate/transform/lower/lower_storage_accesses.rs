@@ -47,10 +47,19 @@ fn lower_storage_accesses_in_predicate(
         })
         .unwrap_or_default();
 
+    // println!("variable_exprs: {:#?}", variable_exprs);
+    // println!("variable_expr: {:#?}", variable_exprs[0].get(contract));
+    // println!(
+    //     "variable_expr_ty: {:#?}",
+    //     variable_exprs[0].get_ty(contract)
+    // );
+
     let storage_accesses: FxHashSet<_> = variable_exprs
         .iter()
         .flat_map(|expr| expr.collect_storage_accesses(contract))
         .collect();
+
+    // println!("storage_accesses: {:#?}", storage_accesses);
 
     let mut keys_set_field_types = vec![];
     let mut keys_set_fields = vec![];
@@ -58,6 +67,8 @@ fn lower_storage_accesses_in_predicate(
 
     for expr in storage_accesses {
         let expr_ty = expr.get_ty(contract).clone();
+        // println!("expr_ty: {:#?}", expr_ty);
+
         let (addr, mutable, key) = get_base_storage_key(handler, &expr, contract)?;
 
         // Type of this key is a tuple of all the elements of this key
@@ -101,7 +112,12 @@ fn lower_storage_accesses_in_predicate(
             },
             expr_ty.clone(),
         );
-        contract.replace_exprs(Some(pred_key), expr, storage_get_intrinsic);
+        contract.replace_exprs(Some(pred_key), expr, storage_get_intrinsic); // prob issue here?
+
+        // println!("replaced_expr: {:#?}", expr.get(contract));
+        // println!("replaced_expr_ty: {:#?}", expr.get_ty(contract));
+
+        // still proper here...
 
         // Now, if this key is mutable, then collect it along with the _next_ few keys. The number
         // of the keys to collect here is equal to the number of stoage slots that `expr_ty`
