@@ -262,6 +262,7 @@ pub(crate) fn duplicate_variable_elimination(contract: &mut Contract) {
 }
 
 // todo - ian - documentation
+// todo - refacter / clean up and be consistent with names
 pub(crate) fn duplicate_constraint_elimination(contract: &mut Contract) {
     // recognize when we have a duplicate
     println!("Looking for duplicate constraints");
@@ -285,7 +286,7 @@ pub(crate) fn duplicate_constraint_elimination(contract: &mut Contract) {
                 // I don't think it's that unsafe. Though I don't know for sure
                 // in my mind, we're using the same display trait for both expr keys, so no matter the changes, it will
                 // output the same result
-                for constraint in remaining_constraints.into_iter() {
+                for (i, constraint) in remaining_constraints.into_iter().enumerate() {
                     if contract.with_ctrct(constraint.expr).to_string()
                         == contract.with_ctrct(original_constraint.expr).to_string()
                     {
@@ -293,7 +294,7 @@ pub(crate) fn duplicate_constraint_elimination(contract: &mut Contract) {
                             "dupe constraint found: {}",
                             contract.with_ctrct(constraint.expr)
                         );
-                        duplicate_constraints.push(index);
+                        duplicate_constraints.push(i);
                     }
                 }
             }
@@ -303,6 +304,10 @@ pub(crate) fn duplicate_constraint_elimination(contract: &mut Contract) {
                 // Remove duplicate constraints in reverse to avoid removing the wrong indices from
                 // shifting elements. This assumes duplicate_constraints is sorted, which it is based
                 // on how it is collected above
+                println!(
+                    "duplicate constraints found at index {:#?}",
+                    duplicate_constraints
+                );
                 duplicate_constraints.iter().rev().for_each(|i| {
                     pred.constraints.remove(*i);
                 });
