@@ -3,7 +3,7 @@ use fxhash::{FxHashMap, FxHashSet};
 use crate::{
     error::Handler,
     expr::{evaluate::Evaluator, Expr, Immediate},
-    predicate::{ConstraintDecl, Contract, ExprKey, VariableKey},
+    predicate::{ConstraintDecl, Contract, ExprKey, Variable, VariableKey},
     span::empty_span,
     warning::Warning,
 };
@@ -16,7 +16,142 @@ pub(crate) fn dead_code_elimination(handler: &Handler, contract: &mut Contract) 
     dead_variable_elimination(contract);
     dead_constraint_elimination(handler, contract);
     dead_select_elimination(contract);
+    duplicate_variable_elimination(contract);
 }
+
+// todo - ian - roll into dead_variable_elimination after testing
+// todo - ian - make names for vars more consistent. Ex. refer to keys as keys everywhere, vars, exprs, no mixing
+pub(crate) fn duplicate_variable_elimination(contract: &mut Contract) {
+    // recognize when we have a duplicate
+    // println!("contract: {:#?}", contract);
+    for pred_key in contract.preds.keys().collect::<Vec<_>>() {
+        let pred_variables = contract
+            .preds
+            .get(pred_key)
+            .expect("pred guaranteed to exist")
+            .variables()
+            .collect::<Vec<_>>();
+
+        // for loop for now, use filter in the future if possible
+        // need to be able to visit every variable with another to tell if it is a duplicate
+        // could also try a hashset... nevermind it wouldn't be able to tell if the expr is the same or not
+        let mut dupe_variable_decls: Vec<(VariableKey, VariableKey)> = vec![]; // (original_key, dupe_key)
+        for index in 0..pred_variables.len() - 1 {
+            // todo - ian - understand when to stop the search, at some point there won't be any originals left and the checks will be redundant
+            // could keep track of indexes, but may be more overhead than it's worth
+            // could just skip it the index if it's already in the dupe_variable_decls list
+            let original_var = if dupe_variable_decls
+                .iter()
+                .any(|(original_var_key, _)| original_var_key == &pred_variables[index].0)
+            {
+                println!("don't want to check this, we already know it's a duplicate");
+                continue;
+            } else {
+                &pred_variables[index]
+            };
+            let remaining_vars = &pred_variables[index + 1..pred_variables.len()];
+
+            println!("original_var: {:#?}", original_var);
+            println!("remaining_vars: {:#?}", remaining_vars);
+
+            // check for duplicate var exprs
+            for (key, var) in remaining_vars.into_iter() {
+                println!(
+                    "original_var_expr: {}\n{:#?}",
+                    contract.with_ctrct(original_var.1.expr),
+                    original_var.1.expr.get(contract)
+                );
+                println!(
+                    "remaining_vars: {}\n{:#?}",
+                    contract.with_ctrct(var.expr),
+                    var.expr.get(contract)
+                );
+
+                // @mohammad is this an appropriate way to check if they're equal?
+                // The alternative would be to traverse through all the expressions and nested expressions, gather the end of each branch, then compare that the values are the same
+                // The complication is that all the expr keys are different, we can only reliably tell that the exprs are the same by checking the final values at the end of each branch
+                if contract.with_ctrct(var.expr).to_string()
+                    == contract.with_ctrct(original_var.1.expr).to_string()
+                {
+                    println!("dupe found boi");
+                    dupe_variable_decls.push((original_var.0, *key));
+                }
+            }
+
+            println!("-------- \n")
+        }
+
+        // collect all of the duplicate var exprs and duplicate paths to be cleared out
+        let mut dupe_var_exprs: Vec<(ExprKey, ExprKey)> = vec![];
+        let mut dupe_paths: Vec<(ExprKey, ExprKey)> = vec![];
+        if let Some(pred) = contract.preds.get(pred_key) {
+            for (original_var_key, dupe_var_key) in &dupe_variable_decls {
+                let original_expr_key = original_var_key.get(pred).expr;
+                let dupe_expr_key = dupe_var_key.get(pred).expr;
+                dupe_var_exprs.push((original_expr_key, dupe_expr_key));
+
+                let original_path_expr = contract
+                    .exprs(pred_key)
+                    .find(|expr| {
+                        if let Expr::Path(name, _) = expr.get(contract) {
+                            *name == original_var_key.get(pred).name
+                        } else {
+                            false
+                        }
+                    })
+                    .expect("original path is guaranteed to exist");
+
+                contract.exprs(pred_key).for_each(|expr| {
+                    if let Expr::Path(name, _) = expr.get(contract) {
+                        if *name == dupe_var_key.get(pred).name {
+                            dupe_paths.push((original_path_expr, expr))
+                        }
+                    }
+                });
+            }
+        }
+
+        // replace all uses of the duplicate var exprs and paths with the originals
+        for (original_expr_key, dupe_expr_key) in dupe_var_exprs {
+            println!(
+                "Replacing {} with {}",
+                contract.with_ctrct(dupe_expr_key),
+                contract.with_ctrct(original_expr_key)
+            );
+            contract.replace_exprs(Some(pred_key), dupe_expr_key, original_expr_key);
+        }
+
+        // replace all uses of the duplicate var exprs and paths with the originals
+        for (original_expr_key, dupe_expr_key) in dupe_paths {
+            println!(
+                "Replacing {} with {}",
+                contract.with_ctrct(dupe_expr_key),
+                contract.with_ctrct(original_expr_key)
+            );
+            contract.replace_exprs(Some(pred_key), dupe_expr_key, original_expr_key);
+        }
+
+        // remove duplicate variables
+        if let Some(pred) = contract.preds.get_mut(pred_key) {
+            for (_, dupe_var_key) in dupe_variable_decls {
+                pred.variables.remove(dupe_var_key);
+            }
+        }
+
+        // println!("contract: {:#?}", contract);
+    }
+}
+
+// todo - ian - roll into dead_constraint_elimination after testing
+// pub(crate) fn duplicate_constraint_elimination(contract: &mut Contract) {
+//     // recognize when we have a duplicate
+//     // println!("contract: {:#?}", contract);
+//     for pred_key in contract.preds.keys().collect()::<Vec<_>>() {
+
+//     }
+
+//     // just remove the constraint
+// }
 
 /// Remove all unused variables in their respective predicates.
 pub(crate) fn dead_variable_elimination(contract: &mut Contract) {
