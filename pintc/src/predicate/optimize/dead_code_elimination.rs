@@ -177,7 +177,7 @@ pub(crate) fn duplicate_variable_elimination(contract: &mut Contract) {
                 .iter()
                 .any(|(original_var_key, _)| original_var_key == &pred_variables[index].0)
             {
-                println!("don't want to check this, we already know it's a duplicate");
+                // println!("don't want to check this, we already know it's a duplicate");
                 continue;
             } else {
                 &pred_variables[index]
@@ -192,12 +192,12 @@ pub(crate) fn duplicate_variable_elimination(contract: &mut Contract) {
                 if contract.with_ctrct(var.expr).to_string()
                     == contract.with_ctrct(original_var.1.expr).to_string()
                 {
-                    println!("dupe found boi");
+                    // println!("dupe found boi");
                     dupe_variable_decls.push((original_var.0, *key));
                 }
             }
 
-            println!("-------- \n")
+            // println!("-------- \n")
         }
 
         // collect all of the duplicate var exprs and duplicate paths to be cleared out
@@ -232,21 +232,21 @@ pub(crate) fn duplicate_variable_elimination(contract: &mut Contract) {
 
         // replace all uses of the duplicate var exprs and paths with the originals
         for (original_expr_key, dupe_expr_key) in dupe_var_exprs {
-            println!(
-                "Replacing {} with {}",
-                contract.with_ctrct(dupe_expr_key),
-                contract.with_ctrct(original_expr_key)
-            );
+            // println!(
+            //     "Replacing {} with {}",
+            //     contract.with_ctrct(dupe_expr_key),
+            //     contract.with_ctrct(original_expr_key)
+            // );
             contract.replace_exprs(Some(pred_key), dupe_expr_key, original_expr_key);
         }
 
         // replace all uses of the duplicate var exprs and paths with the originals
         for (original_expr_key, dupe_expr_key) in dupe_paths {
-            println!(
-                "Replacing {} with {}",
-                contract.with_ctrct(dupe_expr_key),
-                contract.with_ctrct(original_expr_key)
-            );
+            // println!(
+            //     "Replacing {} with {}",
+            //     contract.with_ctrct(dupe_expr_key),
+            //     contract.with_ctrct(original_expr_key)
+            // );
             contract.replace_exprs(Some(pred_key), dupe_expr_key, original_expr_key);
         }
 
@@ -265,53 +265,73 @@ pub(crate) fn duplicate_variable_elimination(contract: &mut Contract) {
 // todo - refacter / clean up and be consistent with names
 pub(crate) fn duplicate_constraint_elimination(contract: &mut Contract) {
     // recognize when we have a duplicate
-    println!("Looking for duplicate constraints");
+    // println!("Looking for duplicate constraints");
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         if let Some(pred) = contract.preds.get(pred_key) {
             // find all duplicate constraints
             let mut duplicate_constraints: Vec<usize> = vec![];
+            pred.constraints.iter().for_each(|constraint| {
+                println!("all constraints: {}", contract.with_ctrct(constraint.expr));
+            });
+
             for index in 0..pred.constraints.len() - 1 {
                 if duplicate_constraints.contains(&index) {
-                    println!("we've already looked at this constraint");
+                    // println!("we've already looked at this constraint");
                     continue;
                 }
 
                 let original_constraint = &pred.constraints[index];
                 let remaining_constraints = &pred.constraints[index + 1..pred.constraints.len()];
-                println!("original_constraint: {:#?}", original_constraint);
-                println!("remaining_constraints: {:#?}", remaining_constraints);
-                println!("------");
+                // println!("original_constraint: {:#?}", original_constraint);
+                // println!("remaining_constraints: {:#?}", remaining_constraints);
+                // println!("------");
 
                 // @mohammad, once again just doing a string comparison here
                 // I don't think it's that unsafe. Though I don't know for sure
                 // in my mind, we're using the same display trait for both expr keys, so no matter the changes, it will
                 // output the same result
+                // this method fails to see that the x + 1 and 1 + x are the same expression. i.e. order matters
+                // do we start with this then expand later?
                 for (i, constraint) in remaining_constraints.into_iter().enumerate() {
                     if contract.with_ctrct(constraint.expr).to_string()
                         == contract.with_ctrct(original_constraint.expr).to_string()
                     {
                         println!(
-                            "dupe constraint found: {}",
-                            contract.with_ctrct(constraint.expr)
+                            "dupe constraint found: {} at index: {}",
+                            contract.with_ctrct(constraint.expr),
+                            index + i + 1
                         );
-                        duplicate_constraints.push(i);
+                        duplicate_constraints.push(index + i + 1);
                     }
                 }
             }
 
             // retain only original constraints
+            duplicate_constraints.iter().rev().for_each(|i| {
+                println!(
+                    "removing constraint: {} at index: {}",
+                    contract.with_ctrct(pred.constraints[*i].expr),
+                    i
+                );
+            });
+
             if let Some(pred) = contract.preds.get_mut(pred_key) {
                 // Remove duplicate constraints in reverse to avoid removing the wrong indices from
                 // shifting elements. This assumes duplicate_constraints is sorted, which it is based
                 // on how it is collected above
-                println!(
-                    "duplicate constraints found at index {:#?}",
-                    duplicate_constraints
-                );
                 duplicate_constraints.iter().rev().for_each(|i| {
                     pred.constraints.remove(*i);
                 });
             }
+        }
+
+        if let Some(pred) = contract.preds.get(pred_key) {
+            pred.constraints.iter().for_each(|constraint| {
+                println!(
+                    "final constraints: {}",
+                    contract.with_ctrct(constraint.expr)
+                );
+            });
         }
     }
 }
