@@ -1105,7 +1105,7 @@ impl<'a> AsmBuilder<'a> {
         // Grab the fields of the tuple
         let Type::Tuple { ref fields, .. } = tuple_expr.get_ty(contract) else {
             return Err(handler
-                .emit_internal_err("type must exist and be a tuple type - ian", empty_span()));
+                .emit_internal_err("type must exist and be a tuple type", empty_span()));
         };
 
         // The field index is based on the type definition
