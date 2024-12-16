@@ -166,33 +166,26 @@ pub(crate) fn duplicate_variable_elimination(contract: &mut Contract) {
 
         // for loop for now, use filter in the future if possible
         // need to be able to visit every variable with another to tell if it is a duplicate
-        // could also try a hashset... nevermind it wouldn't be able to tell if the expr is the same or not
-        let mut dupe_variable_decls: Vec<(VariableKey, VariableKey)> = vec![]; // (original_key, dupe_key)
-        if pred_variables.len() > 0 {
-            for index in 0..pred_variables.len() - 1 {
-                // todo - ian - understand when to stop the search, at some point there won't be any originals left and the checks will be redundant
-                // could keep track of indexes, but may be more overhead than it's worth
-                // could just skip it the index if it's already in the dupe_variable_decls list
-                let original_var = if dupe_variable_decls
-                    .iter()
-                    .any(|(original_var_key, _)| original_var_key == &pred_variables[index].0)
-                {
-                    continue;
-                } else {
-                    &pred_variables[index]
-                };
-                let remaining_vars = &pred_variables[index + 1..pred_variables.len()];
+        let mut dupe_var_decls: Vec<(VariableKey, VariableKey)> = vec![]; // (original_key, dupe_key)
+        for (i, (var_key, var)) in pred_variables.iter().enumerate() {
+            // avoid double checking any variable that has already been marked as a duplicate
+            if dupe_var_decls
+                .iter()
+                .any(|(origina_var_key, dupe_var_key)| {
+                    origina_var_key == var_key || dupe_var_key == var_key
+                })
+            {
+                continue;
+            };
 
-                // check for duplicate var exprs
-                for (key, var) in remaining_vars.into_iter() {
-                    // @mohammad is this an appropriate way to check if they're equal?
-                    // The alternative would be to traverse through all the expressions and nested expressions, gather the end of each branch, then compare that the values are the same
-                    // The complication is that all the expr keys are different, we can only reliably tell that the exprs are the same by checking the final values at the end of each branch
-                    if contract.with_ctrct(var.expr).to_string()
-                        == contract.with_ctrct(original_var.1.expr).to_string()
-                    {
-                        dupe_variable_decls.push((original_var.0, *key));
-                    }
+            for (subsequent_var_key, subsequent_var) in pred_variables.iter().skip(i + 1) {
+                // @mohammad is this an appropriate way to check if they're equal?
+                // The alternative would be to traverse through all the expressions and nested expressions, gather the end of each branch, then compare that the values are the same
+                // The complication is that all the expr keys are different, we can only reliably tell that the exprs are the same by checking the final values at the end of each branch
+                if contract.with_ctrct(subsequent_var.expr).to_string()
+                    == contract.with_ctrct(var.expr).to_string()
+                {
+                    dupe_var_decls.push((*var_key, *subsequent_var_key));
                 }
             }
         }
@@ -201,7 +194,7 @@ pub(crate) fn duplicate_variable_elimination(contract: &mut Contract) {
         let mut dupe_var_exprs: Vec<(ExprKey, ExprKey)> = vec![];
         let mut dupe_paths: Vec<(ExprKey, ExprKey)> = vec![];
         if let Some(pred) = contract.preds.get(pred_key) {
-            for (original_var_key, dupe_var_key) in &dupe_variable_decls {
+            for (original_var_key, dupe_var_key) in &dupe_var_decls {
                 let original_expr_key = original_var_key.get(pred).expr;
                 let dupe_expr_key = dupe_var_key.get(pred).expr;
                 dupe_var_exprs.push((original_expr_key, dupe_expr_key));
@@ -227,19 +220,19 @@ pub(crate) fn duplicate_variable_elimination(contract: &mut Contract) {
             }
         }
 
-        // replace all uses of the duplicate var exprs and paths with the originals
+        // replace all uses of the duplicate var exprs with the originals
         for (original_expr_key, dupe_expr_key) in dupe_var_exprs {
             contract.replace_exprs(Some(pred_key), dupe_expr_key, original_expr_key);
         }
 
-        // replace all uses of the duplicate var exprs and paths with the originals
+        // replace all uses of the duplicate var paths with the originals
         for (original_expr_key, dupe_expr_key) in dupe_paths {
             contract.replace_exprs(Some(pred_key), dupe_expr_key, original_expr_key);
         }
 
-        // remove duplicate variables
+        // remove all duplicate variables
         if let Some(pred) = contract.preds.get_mut(pred_key) {
-            for (_, dupe_var_key) in dupe_variable_decls {
+            for (_, dupe_var_key) in dupe_var_decls {
                 pred.variables.remove(dupe_var_key);
             }
         }
@@ -252,23 +245,22 @@ pub(crate) fn duplicate_constraint_elimination(contract: &mut Contract) {
         if let Some(pred) = contract.preds.get(pred_key) {
             let mut duplicate_constraints: Vec<usize> = vec![];
 
-            for (index, original_constraint) in pred.constraints.iter().enumerate() {
-                if duplicate_constraints.contains(&index) {
+            for (i, constraint) in pred.constraints.iter().enumerate() {
+                if duplicate_constraints.contains(&i) {
                     continue;
                 }
 
-                let subsequent_constraints = &pred.constraints[index + 1..];
-                for (i, constraint) in subsequent_constraints.into_iter().enumerate() {
+                for (j, subsequent_constraint) in pred.constraints.iter().skip(i + 1).enumerate() {
                     // @mohammad, once again just doing a string comparison here
                     // I don't think it's that unsafe. Though I don't know for sure
                     // in my mind, we're using the same display trait for both expr keys, so no matter the changes, it will
                     // output the same result
                     // this method fails to see that the x + 1 and 1 + x are the same expression. i.e. order matters
                     // do we start with this then expand later?
-                    if contract.with_ctrct(constraint.expr).to_string()
-                        == contract.with_ctrct(original_constraint.expr).to_string()
+                    if contract.with_ctrct(subsequent_constraint.expr).to_string()
+                        == contract.with_ctrct(constraint.expr).to_string()
                     {
-                        duplicate_constraints.push(index + i + 1);
+                        duplicate_constraints.push(i + j + 1);
                     }
                 }
             }
