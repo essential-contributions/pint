@@ -1,0 +1,159 @@
+predicate foo(x: int, y: { int, int }, z: int[3]) {
+    let a = x + 1;
+    let b = x + 1;
+    let c = x + 1;
+    let d = b - 1;
+    let e = b - 1;
+    let f = a * b;
+    let g = a * b;
+    let h = d / e;
+    let i = d / e;
+    let j = y.0 + i;
+    let k = y.0 + i;
+    let l = y.1 - x;
+    let m = y.1 - x;
+    let n = z[0] / z[1];
+    let o = z[0] / z[1];
+    let p = z[2] * 4;
+    let q = z[2] * 4;
+    
+    constraint a == 1;
+    constraint b == 2;
+    constraint c == 3;
+    constraint d == 4;
+    constraint e == 5;
+    constraint f == 6;
+    constraint g == 7;
+    constraint h == 8;
+    constraint i == 9;
+    constraint j == 1;
+    constraint k == 2;
+    constraint l == 3;
+    constraint m == 4;
+    constraint n == 5;
+    constraint o == 6;
+    constraint p == 7;
+    constraint q == 8;
+}
+
+// parsed <<<
+// predicate ::foo(
+//     ::x: int,
+//     ::y: {int, int},
+//     ::z: int[3],
+// ) {
+//     let ::a = (::x + 1);
+//     let ::b = (::x + 1);
+//     let ::c = (::x + 1);
+//     let ::d = (::b - 1);
+//     let ::e = (::b - 1);
+//     let ::f = (::a * ::b);
+//     let ::g = (::a * ::b);
+//     let ::h = (::d / ::e);
+//     let ::i = (::d / ::e);
+//     let ::j = (::y.0 + ::i);
+//     let ::k = (::y.0 + ::i);
+//     let ::l = (::y.1 - ::x);
+//     let ::m = (::y.1 - ::x);
+//     let ::n = (::z[0] / ::z[1]);
+//     let ::o = (::z[0] / ::z[1]);
+//     let ::p = (::z[2] * 4);
+//     let ::q = (::z[2] * 4);
+//     constraint (::a == 1);
+//     constraint (::b == 2);
+//     constraint (::c == 3);
+//     constraint (::d == 4);
+//     constraint (::e == 5);
+//     constraint (::f == 6);
+//     constraint (::g == 7);
+//     constraint (::h == 8);
+//     constraint (::i == 9);
+//     constraint (::j == 1);
+//     constraint (::k == 2);
+//     constraint (::l == 3);
+//     constraint (::m == 4);
+//     constraint (::n == 5);
+//     constraint (::o == 6);
+//     constraint (::p == 7);
+//     constraint (::q == 8);
+// }
+// >>>
+
+// flattened <<<
+// predicate ::foo(
+//     ::x: int,
+//     ::y: {int, int},
+//     ::z: int[3],
+// ) {
+//     let ::a: int = (::x + 1);
+//     let ::b: int = (::x + 1);
+//     let ::c: int = (::x + 1);
+//     let ::d: int = (::b - 1);
+//     let ::e: int = (::b - 1);
+//     let ::f: int = (::a * ::b);
+//     let ::g: int = (::a * ::b);
+//     let ::h: int = (::d / ::e);
+//     let ::i: int = (::d / ::e);
+//     let ::j: int = (::y.0 + ::i);
+//     let ::k: int = (::y.0 + ::i);
+//     let ::l: int = (::y.1 - ::x);
+//     let ::m: int = (::y.1 - ::x);
+//     let ::n: int = (::z[0] / ::z[1]);
+//     let ::o: int = (::z[0] / ::z[1]);
+//     let ::p: int = (::z[2] * 4);
+//     let ::q: int = (::z[2] * 4);
+//     constraint (::a == 1);
+//     constraint (::b == 2);
+//     constraint (::c == 3);
+//     constraint (::d == 4);
+//     constraint (::e == 5);
+//     constraint (::f == 6);
+//     constraint (::g == 7);
+//     constraint (::h == 8);
+//     constraint (::i == 9);
+//     constraint (::j == 1);
+//     constraint (::k == 2);
+//     constraint (::l == 3);
+//     constraint (::m == 4);
+//     constraint (::n == 5);
+//     constraint (::o == 6);
+//     constraint (::p == 7);
+//     constraint (::q == 8);
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>
+
+// optimized <<<
+// predicate ::foo(
+//     ::x: int,
+//     ::y: {int, int},
+//     ::z: int[3],
+// ) {
+//     let ::a: int = (::x + 1);
+//     let ::d: int = (::a - 1);
+//     let ::f: int = (::a * ::a);
+//     let ::h: int = (::d / ::d);
+//     let ::j: int = (::y.0 + ::h);
+//     let ::l: int = (::y.1 - ::x);
+//     let ::n: int = (::z[0] / ::z[1]);
+//     let ::p: int = (::z[2] * 4);
+//     constraint (::a == 1);
+//     constraint (::a == 2);
+//     constraint (::a == 3);
+//     constraint (::d == 4);
+//     constraint (::d == 5);
+//     constraint (::f == 6);
+//     constraint (::f == 7);
+//     constraint (::h == 8);
+//     constraint (::h == 9);
+//     constraint (::j == 1);
+//     constraint (::j == 2);
+//     constraint (::l == 3);
+//     constraint (::l == 4);
+//     constraint (::n == 5);
+//     constraint (::n == 6);
+//     constraint (::p == 7);
+//     constraint (::p == 8);
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>

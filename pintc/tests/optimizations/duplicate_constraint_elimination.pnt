@@ -1,0 +1,134 @@
+predicate foo(x: int, y: { int, int }, z: int[3]) {
+    let a = x + 1;
+    let b = x - 1;
+    let c = a * b;
+    let d = c / b;
+    let e = y.0 + d;
+    let f = y.1 - x;
+    let g = z[0] / z[1];
+    let h = z[2] * 4;
+    
+    constraint a == 1;
+    constraint a == 1;
+    constraint b < 0;
+    constraint b < 0;
+    constraint c > 2;
+    constraint c > 2;
+    constraint d + 1 == 0;
+    constraint d + 1 == 0;
+    constraint e == 2;
+    constraint e == 2;
+    constraint f > e;
+    constraint f > e;
+    constraint g + h - f == 0;
+    constraint g + h - f == 0;    
+
+    // duplicate constraints because variable decls are duplicates
+    let i = x + 1;
+    let j = x - 1;
+    let k = a * b;
+
+    constraint i == 1;
+    constraint j < 0;
+    constraint k > 2;
+}
+
+// parsed <<<
+// predicate ::foo(
+//     ::x: int,
+//     ::y: {int, int},
+//     ::z: int[3],
+// ) {
+//     let ::a = (::x + 1);
+//     let ::b = (::x - 1);
+//     let ::c = (::a * ::b);
+//     let ::d = (::c / ::b);
+//     let ::e = (::y.0 + ::d);
+//     let ::f = (::y.1 - ::x);
+//     let ::g = (::z[0] / ::z[1]);
+//     let ::h = (::z[2] * 4);
+//     let ::i = (::x + 1);
+//     let ::j = (::x - 1);
+//     let ::k = (::a * ::b);
+//     constraint (::a == 1);
+//     constraint (::a == 1);
+//     constraint (::b < 0);
+//     constraint (::b < 0);
+//     constraint (::c > 2);
+//     constraint (::c > 2);
+//     constraint ((::d + 1) == 0);
+//     constraint ((::d + 1) == 0);
+//     constraint (::e == 2);
+//     constraint (::e == 2);
+//     constraint (::f > ::e);
+//     constraint (::f > ::e);
+//     constraint (((::g + ::h) - ::f) == 0);
+//     constraint (((::g + ::h) - ::f) == 0);
+//     constraint (::i == 1);
+//     constraint (::j < 0);
+//     constraint (::k > 2);
+// }
+// >>>
+
+// flattened <<<
+// predicate ::foo(
+//     ::x: int,
+//     ::y: {int, int},
+//     ::z: int[3],
+// ) {
+//     let ::a: int = (::x + 1);
+//     let ::b: int = (::x - 1);
+//     let ::c: int = (::a * ::b);
+//     let ::d: int = (::c / ::b);
+//     let ::e: int = (::y.0 + ::d);
+//     let ::f: int = (::y.1 - ::x);
+//     let ::g: int = (::z[0] / ::z[1]);
+//     let ::h: int = (::z[2] * 4);
+//     let ::i: int = (::x + 1);
+//     let ::j: int = (::x - 1);
+//     let ::k: int = (::a * ::b);
+//     constraint (::a == 1);
+//     constraint (::a == 1);
+//     constraint (::b < 0);
+//     constraint (::b < 0);
+//     constraint (::c > 2);
+//     constraint (::c > 2);
+//     constraint ((::d + 1) == 0);
+//     constraint ((::d + 1) == 0);
+//     constraint (::e == 2);
+//     constraint (::e == 2);
+//     constraint (::f > ::e);
+//     constraint (::f > ::e);
+//     constraint (((::g + ::h) - ::f) == 0);
+//     constraint (((::g + ::h) - ::f) == 0);
+//     constraint (::i == 1);
+//     constraint (::j < 0);
+//     constraint (::k > 2);
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>
+
+// optimized <<<
+// predicate ::foo(
+//     ::x: int,
+//     ::y: {int, int},
+//     ::z: int[3],
+// ) {
+//     let ::a: int = (::x + 1);
+//     let ::b: int = (::x - 1);
+//     let ::c: int = (::a * ::b);
+//     let ::d: int = (::c / ::b);
+//     let ::e: int = (::y.0 + ::d);
+//     let ::f: int = (::y.1 - ::x);
+//     let ::g: int = (::z[0] / ::z[1]);
+//     let ::h: int = (::z[2] * 4);
+//     constraint (::a == 1);
+//     constraint (::b < 0);
+//     constraint (::c > 2);
+//     constraint ((::d + 1) == 0);
+//     constraint (::e == 2);
+//     constraint (::f > ::e);
+//     constraint (((::g + ::h) - ::f) == 0);
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>
