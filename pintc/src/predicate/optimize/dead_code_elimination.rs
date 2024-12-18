@@ -14,13 +14,13 @@ use crate::{
 /// If an error occurs, the specific optimization process is aborted to ensure the contract remains
 /// functional.
 pub(crate) fn dead_code_elimination(handler: &Handler, contract: &mut Contract) {
+    // todo - ian - if we don't run dead variable elim, then we panic on accessing a path. Need to make these passes completely independent
     dead_variable_elimination(contract);
     dead_constraint_elimination(handler, contract);
     dead_select_elimination(contract);
-    // @mohammad - I originally thought removing dupes should be rolled into their respective dead code elim functions.
-    // I no longer think that. I think there is enough unique logic with the duplicate removals that it's better to keep it separate
+
     duplicate_variable_elimination(contract);
-    duplicate_constraint_elimination(contract);
+    // duplicate_constraint_elimination(contract);
 }
 
 /// Remove all unused variables in their respective predicates.
@@ -153,8 +153,17 @@ pub(crate) fn dead_select_elimination(contract: &mut Contract) {
     }
 }
 
-// todo - ian - documentation
-// todo - ian - make names for vars more consistent. Ex. refer to keys as keys everywhere, vars, exprs, no mixing
+/// Replace all uses of, and remove all duplicate Variable declarations
+///
+/// Any variable declaration that contains an equivalent expression is removed, regardless of span
+///
+/// Ex.
+/// let a = x + 1;
+/// let b = x + 1;
+/// let d = b + 1;
+/// becomes
+/// let a = x + 1;
+/// let d = a + 1;
 pub(crate) fn duplicate_variable_elimination(contract: &mut Contract) {
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         let pred_variables = contract
@@ -164,27 +173,39 @@ pub(crate) fn duplicate_variable_elimination(contract: &mut Contract) {
             .variables()
             .collect::<Vec<_>>();
 
-        // for loop for now, use filter in the future if possible
-        // need to be able to visit every variable with another to tell if it is a duplicate
         let mut dupe_var_decls: Vec<(VariableKey, VariableKey)> = vec![]; // (original_key, dupe_key)
         for (i, (var_key, var)) in pred_variables.iter().enumerate() {
             // avoid double checking any variable that has already been marked as a duplicate
             if dupe_var_decls
                 .iter()
-                .any(|(origina_var_key, dupe_var_key)| {
-                    origina_var_key == var_key || dupe_var_key == var_key
+                .any(|(original_var_key, dupe_var_key)| {
+                    original_var_key == var_key || dupe_var_key == var_key
                 })
             {
                 continue;
             };
 
             for (subsequent_var_key, subsequent_var) in pred_variables.iter().skip(i + 1) {
-                // @mohammad is this an appropriate way to check if they're equal?
-                // The alternative would be to traverse through all the expressions and nested expressions, gather the end of each branch, then compare that the values are the same
-                // The complication is that all the expr keys are different, we can only reliably tell that the exprs are the same by checking the final values at the end of each branch
-                if contract.with_ctrct(subsequent_var.expr).to_string()
-                    == contract.with_ctrct(var.expr).to_string()
+                if let Some(pred) = contract.preds.get(pred_key) {
+                    if !var_key
+                        .get_ty(pred)
+                        .eq(contract, subsequent_var_key.get_ty(pred))
+                    {
+                        // println!("var key is not the same type as subsequent var key");
+                        continue;
+                    }
+                }
+
+                if var
+                    .expr
+                    .get(contract)
+                    .eq(contract, &subsequent_var.expr.get(&contract))
                 {
+                    println!(
+                        "{} is a dupe of {}",
+                        contract.with_ctrct(subsequent_var.expr),
+                        contract.with_ctrct(var.expr),
+                    );
                     dupe_var_decls.push((*var_key, *subsequent_var_key));
                 }
             }
@@ -251,14 +272,10 @@ pub(crate) fn duplicate_constraint_elimination(contract: &mut Contract) {
                 }
 
                 for (j, subsequent_constraint) in pred.constraints.iter().skip(i + 1).enumerate() {
-                    // @mohammad, once again just doing a string comparison here
-                    // I don't think it's that unsafe. Though I don't know for sure
-                    // in my mind, we're using the same display trait for both expr keys, so no matter the changes, it will
-                    // output the same result
-                    // this method fails to see that the x + 1 and 1 + x are the same expression. i.e. order matters
-                    // do we start with this then expand later?
-                    if contract.with_ctrct(subsequent_constraint.expr).to_string()
-                        == contract.with_ctrct(constraint.expr).to_string()
+                    if constraint
+                        .expr
+                        .get(contract)
+                        .eq(contract, &subsequent_constraint.expr.get(&contract))
                     {
                         duplicate_constraints.push(i + j + 1);
                     }
