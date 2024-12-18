@@ -436,7 +436,21 @@ impl Expr {
                     ..
                 },
             ) => {
-                todo!()
+                if lhs_path != rhs_path {
+                    return false;
+                } else {
+                    match (lhs_value, rhs_value) {
+                        (Some(lhs_value), Some(rhs_value)) => {
+                            return lhs_value
+                                .get(contract)
+                                .eq(contract, rhs_value.get(contract))
+                        }
+
+                        (None, None) => return true,
+
+                        _ => return false,
+                    }
+                }
             }
 
             (Expr::Path(lhs_path, ..), Expr::Path(rhs_path, ..)) => lhs_path == rhs_path,
@@ -452,7 +466,7 @@ impl Expr {
                     mutable: rhs_mutable,
                     ..
                 },
-            ) => todo!(),
+            ) => lhs_name == rhs_name && lhs_mutable == rhs_mutable,
 
             (
                 Expr::ExternalStorageAccess {
@@ -467,7 +481,13 @@ impl Expr {
                     name: rhs_name,
                     ..
                 },
-            ) => todo!(),
+            ) => {
+                lhs_interface == rhs_interface
+                    && lhs_address
+                        .get(contract)
+                        .eq(contract, rhs_address.get(contract))
+                    && lhs_name == rhs_name
+            }
 
             (
                 Expr::UnaryOp {
@@ -480,7 +500,7 @@ impl Expr {
                     expr: rhs_expr,
                     ..
                 },
-            ) => todo!(),
+            ) => lhs_op == rhs_op && lhs_expr.get(contract).eq(contract, rhs_expr.get(contract)),
 
             (
                 Expr::BinaryOp {
@@ -553,7 +573,34 @@ impl Expr {
                     ..
                 },
             ) => {
-                todo!()
+                if lhs_args.len() != rhs_args.len() {
+                    return false;
+                }
+
+                for (i, lhs_arg) in lhs_args.iter().enumerate() {
+                    if !lhs_arg
+                        .get(contract)
+                        .eq(contract, rhs_args[i].get(contract))
+                    {
+                        return false;
+                    }
+                }
+
+                match (lhs_kind, rhs_kind) {
+                    (
+                        (IntrinsicKind::External(lhs_kind), _),
+                        (IntrinsicKind::External(rhs_kind), _),
+                    ) => lhs_kind == rhs_kind,
+
+                    (
+                        (IntrinsicKind::Internal(lhs_kind), _),
+                        (IntrinsicKind::Internal(rhs_kind), _),
+                    ) => lhs_kind == rhs_kind,
+
+                    ((IntrinsicKind::Error, _), (IntrinsicKind::Error, _)) => true,
+
+                    _ => false,
+                }
             }
 
             (
@@ -567,8 +614,26 @@ impl Expr {
                     args: rhs_args,
                     ..
                 },
-            ) => todo!(),
+            ) => {
+                if lhs_predicate != rhs_predicate {
+                    return false;
+                }
 
+                if lhs_args.len() != rhs_args.len() {
+                    return false;
+                }
+
+                for (i, lhs_arg) in lhs_args.iter().enumerate() {
+                    if !lhs_arg
+                        .get(contract)
+                        .eq(contract, rhs_args[i].get(contract))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
             (
                 Expr::ExternalPredicateCall {
                     interface: lhs_interface,
@@ -586,7 +651,34 @@ impl Expr {
                     args: rhs_args,
                     ..
                 },
-            ) => todo!(),
+            ) => {
+                if !(lhs_interface == rhs_interface
+                    && lhs_c_addr
+                        .get(contract)
+                        .eq(contract, rhs_c_addr.get(contract))
+                    && lhs_predicate == rhs_predicate
+                    && lhs_p_addr
+                        .get(contract)
+                        .eq(contract, rhs_p_addr.get(contract)))
+                {
+                    return false;
+                }
+
+                if lhs_args.len() != rhs_args.len() {
+                    return false;
+                }
+
+                for (i, lhs_arg) in lhs_args.iter().enumerate() {
+                    if !lhs_arg
+                        .get(contract)
+                        .eq(contract, rhs_args[i].get(contract))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
 
             (
                 Expr::Select {
@@ -601,7 +693,17 @@ impl Expr {
                     else_expr: rhs_else_expr,
                     ..
                 },
-            ) => todo!(),
+            ) => {
+                lhs_condition
+                    .get(contract)
+                    .eq(contract, rhs_condition.get(contract))
+                    && lhs_then_expr
+                        .get(contract)
+                        .eq(contract, rhs_then_expr.get(contract))
+                    && lhs_else_expr
+                        .get(contract)
+                        .eq(contract, rhs_else_expr.get(contract))
+            }
 
             (
                 Expr::Match {
@@ -616,7 +718,103 @@ impl Expr {
                     else_branch: rhs_else_branch,
                     ..
                 },
-            ) => todo!(),
+            ) => {
+                if !lhs_match_expr
+                    .get(contract)
+                    .eq(contract, rhs_match_expr.get(contract))
+                {
+                    return false;
+                }
+
+                if lhs_match_branches.len() != rhs_match_branches.len() {
+                    return false;
+                }
+
+                for (i, lhs_match_branch) in lhs_match_branches.iter().enumerate() {
+                    let (
+                        MatchBranch {
+                            name: lhs_name,
+                            binding: lhs_binding,
+                            constraints: lhs_constraints,
+                            expr: lhs_expr,
+                            ..
+                        },
+                        MatchBranch {
+                            name: rhs_name,
+                            binding: rhs_binding,
+                            constraints: rhs_constraints,
+                            expr: rhs_expr,
+                            ..
+                        },
+                    ) = (lhs_match_branch, rhs_match_branches[i].clone());
+
+                    if *lhs_name != rhs_name {
+                        return false;
+                    }
+
+                    if let (
+                        Some(Ident {
+                            name: lhs_name,
+                            hygienic: lhs_hygienic,
+                            ..
+                        }),
+                        Some(Ident {
+                            name: rhs_name,
+                            hygienic: rhs_hygienic,
+                            ..
+                        }),
+                    ) = (lhs_binding, rhs_binding)
+                    {
+                        if *lhs_name != rhs_name || *lhs_hygienic != rhs_hygienic {
+                            return false;
+                        }
+                    };
+
+                    if lhs_constraints.len() != rhs_constraints.len() {
+                        return false;
+                    }
+
+                    for (j, lhs_constraint) in lhs_constraints.iter().enumerate() {
+                        if !lhs_constraint
+                            .get(contract)
+                            .eq(contract, rhs_constraints[j].get(contract))
+                        {
+                            return false;
+                        }
+                    }
+
+                    if !lhs_expr.get(contract).eq(contract, rhs_expr.get(contract)) {
+                        return false;
+                    }
+                }
+
+                if let (
+                    Some(MatchElse {
+                        constraints: lhs_constraints,
+                        expr: lhs_expr,
+                    }),
+                    Some(MatchElse {
+                        constraints: rhs_constraints,
+                        expr: rhs_expr,
+                    }),
+                ) = (lhs_else_branch, rhs_else_branch)
+                {
+                    if lhs_constraints.len() != rhs_constraints.len() {
+                        return false;
+                    }
+
+                    for (i, lhs_constraint) in lhs_constraints.iter().enumerate() {
+                        if !lhs_constraint
+                            .get(contract)
+                            .eq(contract, rhs_constraints[i].get(contract))
+                        {
+                            return false;
+                        }
+                    }
+                }
+
+                return true;
+            }
 
             (
                 Expr::Index {
@@ -629,7 +827,12 @@ impl Expr {
                     index: rhs_index,
                     ..
                 },
-            ) => todo!(),
+            ) => {
+                lhs_expr.get(contract).eq(contract, rhs_expr.get(contract))
+                    && lhs_index
+                        .get(contract)
+                        .eq(contract, rhs_index.get(contract))
+            }
 
             (
                 Expr::TupleFieldAccess {
@@ -642,7 +845,28 @@ impl Expr {
                     field: rhs_field,
                     ..
                 },
-            ) => todo!(),
+            ) => {
+                if !lhs_tuple
+                    .get(contract)
+                    .eq(contract, rhs_tuple.get(contract))
+                {
+                    return false;
+                }
+
+                match (lhs_field, rhs_field) {
+                    (TupleAccess::Error, TupleAccess::Error) => return true,
+
+                    (TupleAccess::Index(lhs_index), TupleAccess::Index(rhs_index)) => {
+                        lhs_index == rhs_index
+                    }
+
+                    (TupleAccess::Name(lhs_name), TupleAccess::Name(rhs_name)) => {
+                        lhs_name == rhs_name
+                    }
+
+                    _ => return false,
+                }
+            }
 
             (
                 Expr::Cast {
@@ -655,7 +879,12 @@ impl Expr {
                     ty: rhs_ty,
                     ..
                 },
-            ) => todo!(),
+            ) => {
+                lhs_value
+                    .get(contract)
+                    .eq(contract, rhs_value.get(contract))
+                    && lhs_ty.eq(contract, rhs_ty)
+            }
 
             (
                 Expr::In {
@@ -668,7 +897,14 @@ impl Expr {
                     collection: rhs_collection,
                     ..
                 },
-            ) => todo!(),
+            ) => {
+                lhs_value
+                    .get(contract)
+                    .eq(contract, rhs_value.get(contract))
+                    && lhs_collection
+                        .get(contract)
+                        .eq(contract, rhs_collection.get(contract))
+            }
 
             (
                 Expr::Range {
@@ -681,7 +917,10 @@ impl Expr {
                     ub: rhs_ub,
                     ..
                 },
-            ) => todo!(),
+            ) => {
+                lhs_lb.get(contract).eq(contract, rhs_lb.get(contract))
+                    && lhs_ub.get(contract).eq(contract, rhs_ub.get(contract))
+            }
 
             (
                 Expr::Generator {
@@ -698,7 +937,45 @@ impl Expr {
                     body: rhs_body,
                     ..
                 },
-            ) => todo!(),
+            ) => {
+                if lhs_kind != rhs_kind {
+                    return false;
+                }
+
+                if rhs_gen_ranges.len() != lhs_gen_ranges.len() {
+                    return false;
+                }
+
+                for (i, (lhs_ident, lhs_gen_range)) in lhs_gen_ranges.iter().enumerate() {
+                    let (rhs_ident, rhs_gen_range) = &rhs_gen_ranges[i];
+
+                    if lhs_ident != rhs_ident {
+                        return false;
+                    }
+
+                    if !lhs_gen_range
+                        .get(contract)
+                        .eq(contract, rhs_gen_range.get(contract))
+                    {
+                        return false;
+                    }
+                }
+
+                if lhs_conditions.len() != rhs_conditions.len() {
+                    return false;
+                }
+
+                for (i, lhs_condition) in lhs_conditions.iter().enumerate() {
+                    if !lhs_condition
+                        .get(contract)
+                        .eq(contract, rhs_conditions[i].get(contract))
+                    {
+                        return false;
+                    }
+                }
+
+                return lhs_body == rhs_body;
+            }
 
             (
                 Expr::Map {
@@ -713,7 +990,13 @@ impl Expr {
                     body: rhs_body,
                     ..
                 },
-            ) => todo!(),
+            ) => {
+                lhs_param == rhs_param
+                    && lhs_range
+                        .get(contract)
+                        .eq(contract, rhs_range.get(contract))
+                    && lhs_body.get(contract).eq(contract, rhs_body.get(contract))
+            }
 
             (
                 Expr::UnionTag {
@@ -724,7 +1007,9 @@ impl Expr {
                     union_expr: rhs_union_expr,
                     ..
                 },
-            ) => todo!(),
+            ) => lhs_union_expr
+                .get(contract)
+                .eq(contract, rhs_union_expr.get(contract)),
 
             (
                 Expr::UnionValue {
@@ -737,7 +1022,12 @@ impl Expr {
                     variant_ty: rhs_variant_ty,
                     ..
                 },
-            ) => todo!(),
+            ) => {
+                lhs_union_expr
+                    .get(contract)
+                    .eq(contract, rhs_union_expr.get(contract))
+                    && lhs_variant_ty.eq(contract, rhs_variant_ty)
+            }
 
             _ => false,
         }
