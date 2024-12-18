@@ -359,8 +359,6 @@ impl Expr {
     pub fn eq(&self, contract: &Contract, other: &Self) -> bool {
         // println!("inside eq, {:#?} against {:#?}", self, other);
         match (self, other) {
-            (Expr::Error(_), Expr::Error(_)) => todo!(), // do we handle errors? I don't think we should...
-
             (
                 Expr::Immediate {
                     value: lhs_value, ..
@@ -368,11 +366,7 @@ impl Expr {
                 Expr::Immediate {
                     value: rhs_value, ..
                 },
-            ) => {
-                // println!("checking immediates");
-                // println!("lhs_value == rhs_value: {}", lhs_value == rhs_value);
-                lhs_value == rhs_value
-            }
+            ) => lhs_value == rhs_value,
 
             (
                 Expr::Array {
@@ -385,7 +379,24 @@ impl Expr {
                     range_expr: rhs_range_expr,
                     ..
                 },
-            ) => todo!(),
+            ) => {
+                if lhs_elements.len() != rhs_elements.len() {
+                    return false;
+                }
+
+                for (i, lhs_element) in lhs_elements.iter().enumerate() {
+                    if !lhs_element
+                        .get(contract)
+                        .eq(contract, rhs_elements[i].get(contract))
+                    {
+                        return false;
+                    }
+                }
+
+                return lhs_range_expr
+                    .get(contract)
+                    .eq(contract, rhs_range_expr.get(contract));
+            }
 
             (
                 Expr::Tuple {
@@ -394,7 +405,24 @@ impl Expr {
                 Expr::Tuple {
                     fields: rhs_fields, ..
                 },
-            ) => todo!(),
+            ) => {
+                if lhs_fields.len() != rhs_fields.len() {
+                    return false;
+                }
+
+                for (i, (lhs_ident, lhs_field)) in lhs_fields.iter().enumerate() {
+                    let (rhs_ident, rhs_field) = &rhs_fields[i];
+                    if !lhs_field
+                        .get(contract)
+                        .eq(contract, rhs_field.get(contract))
+                    {
+                        return false;
+                    } else if lhs_ident != rhs_ident {
+                        return false;
+                    }
+                }
+                return true;
+            }
 
             (
                 Expr::UnionVariant {
@@ -411,11 +439,7 @@ impl Expr {
                 todo!()
             }
 
-            (Expr::Path(lhs_path, ..), Expr::Path(rhs_path, ..)) => {
-                // println!("checking paths");
-                // println!("lhs_path == rhs_path: {}", lhs_path == rhs_path);
-                lhs_path == rhs_path
-            }
+            (Expr::Path(lhs_path, ..), Expr::Path(rhs_path, ..)) => lhs_path == rhs_path,
 
             (
                 Expr::LocalStorageAccess {
@@ -478,28 +502,19 @@ impl Expr {
                 | BinaryOp::NotEqual
                 | BinaryOp::LogicalAnd
                 | BinaryOp::LogicalOr => {
-                    // println!("checking binary ops");
-                    // println!("lhs_op == rhs_op: {}", lhs_op == rhs_op);
-                    // println!(
-                    //     "lhs_lhs.eq(rhs_lhs): {}",
-                    //     lhs_lhs.get(contract).eq(contract, rhs_lhs.get(contract))
-                    // );
-                    // println!(
-                    //     "lhs_rhs.eq(rhs_rhs): {}",
-                    //     lhs_rhs.get(contract).eq(contract, rhs_rhs.get(contract))
-                    // );
-                    let is_op_same = lhs_op == rhs_op;
-                    let is_lhs_same = lhs_lhs.get(contract).eq(contract, rhs_lhs.get(contract));
-                    if is_lhs_same {
-                        return is_op_same
-                            && is_lhs_same
+                    let is_op_eq = lhs_op == rhs_op;
+                    let is_lhs_eq = lhs_lhs.get(contract).eq(contract, rhs_lhs.get(contract));
+                    if is_lhs_eq {
+                        return is_op_eq
+                            && is_lhs_eq
                             && lhs_rhs.get(contract).eq(contract, rhs_rhs.get(contract));
                     } else {
-                        return is_op_same
+                        return is_op_eq
                             && lhs_lhs.get(contract).eq(contract, rhs_rhs.get(contract))
                             && lhs_rhs.get(contract).eq(contract, rhs_lhs.get(contract));
                     }
                 }
+
                 BinaryOp::Sub
                 | BinaryOp::Div
                 | BinaryOp::Mod
