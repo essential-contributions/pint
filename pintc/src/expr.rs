@@ -355,6 +355,23 @@ impl Expr {
         matches!(self, Expr::Immediate { .. })
     }
 
+    pub fn is_storage_access(&self) -> bool {
+        matches!(
+            self,
+            Expr::LocalStorageAccess { .. }
+                | Expr::ExternalStorageAccess { .. }
+                | Expr::IntrinsicCall {
+                    kind: (
+                        IntrinsicKind::Internal(
+                            InternalIntrinsic::StorageGet | InternalIntrinsic::StorageGetExtern
+                        ),
+                        _
+                    ),
+                    ..
+                }
+        )
+    }
+
     pub fn replace_ref<F: FnMut(&mut ExprKey)>(&mut self, mut replace: F) {
         match self {
             Expr::Immediate { .. } => {}
