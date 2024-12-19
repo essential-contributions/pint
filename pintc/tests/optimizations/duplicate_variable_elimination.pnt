@@ -1,159 +1,628 @@
-predicate foo(x: int, y: { int, int }, z: int[3]) {
+storage {
+    x1: int,
+    x2: int[],
+    x3: int[],
+}
+
+interface Foo {
+    storage {
+        x2: int[],
+        x3: int[],
+    }
+}
+
+
+predicate Test(w: int, x: int, y: bool, z: bool) {
+    // binary ops
     let a = x + 1;
-    let b = x + 1;
-    let c = x + 1;
-    let d = b - 1;
-    let e = b - 1;
-    let f = a * b;
-    let g = a * b;
-    let h = d / e;
-    let i = d / e;
-    let j = y.0 + i;
-    let k = y.0 + i;
-    let l = y.1 - x;
-    let m = y.1 - x;
-    let n = z[0] / z[1];
-    let o = z[0] / z[1];
-    let p = z[2] * 4;
-    let q = z[2] * 4;
-    
-    constraint a == 1;
-    constraint b == 2;
-    constraint c == 3;
-    constraint d == 4;
-    constraint e == 5;
-    constraint f == 6;
-    constraint g == 7;
-    constraint h == 8;
-    constraint i == 9;
-    constraint j == 1;
-    constraint k == 2;
-    constraint l == 3;
-    constraint m == 4;
-    constraint n == 5;
-    constraint o == 6;
-    constraint p == 7;
-    constraint q == 8;
+    let b = 1 + x;
+
+    let c = 1 * x;
+    let d = x * 1;
+
+    let f = 1 == x;
+    let g = x == 1;
+
+    let h = x != 1;
+    let i = 1 != x;
+
+    let j = y && z;
+    let k = z && y;
+
+    let l = y || z;
+    let m = z || y;
+
+    let n = 1 - x;
+    let o = 1 - x;
+    let p = x - 1; // should not be removed
+
+    let q = 1 / x;
+    let r = 1 / x;
+    let s = x / 1; // should not be removed
+
+    let t = 2 % x;
+    let u = 2 % x;
+    let v = x % 2; // should not be removed
+
+    let a1 = 1 <= x;
+    let b1 = 1 <= x;
+    let c1 = x <= 1; // should not be removed
+
+    let d1 = 1 < x;
+    let e1 = 1 < x;
+    let f1 = x < 1; // should not be removed
+
+    let g1 = 1 >= x;
+    let h1 = 1 >= x;
+    let i1 = x >= 1; // should not be removed
+
+    let j1 = 1 > x;
+    let k1 = 1 > x;
+    let l1 = x > 1; // should not be removed
+
+    // arrays
+    let m1 = [1, x];
+    let n1 = [1, x];
+    let o1 = [x, 1]; // should not be removed
+
+    // tuples
+    let p1 = { 1 , x };
+    let q1 = { 1 , x };
+    let r1 = { x , 1 }; // should not be removed
+
+    // local storage access
+    let s1 = storage::x1;
+    let t1 = storage::x1;
+    let u1 = storage::x1 + 1; // should not be removed
+
+    // unary ops
+    let v1 = -x;
+    let a2 = -x;
+    let b2 = -w; // should not be removed
+
+    let c2 = !y;
+    let d2 = !y;
+    let e2 = !z; // should not be removed
+
+    let f2 = s1';
+    let g2 = s1';
+    let h2 = u1'; // should not be removed
+
+    // tuple field accesses
+    let i2 = p1.0;
+    let j2 = p1.0;
+    let k2 = r1.0; // should not be removed
+
+    // casts
+    let l2 = y as int;
+    let m2 = y as int;
+    let n2 = z as int; // should not be removed
+
+    // intrinsic calls
+    let o2 = __vec_len(storage::x2);
+    let p2 = __vec_len(storage::x2);
+    let q2 = __vec_len(storage::x3); // should not be removed
+
+    let r2 = __vec_len(
+                    Foo@[0x0000000000000000000000000000000000000000000000000000000000000000]::storage::x2
+                );
+    let s2 = __vec_len(
+                    Foo@[0x0000000000000000000000000000000000000000000000000000000000000000]::storage::x2
+                );
+    let t2 = __vec_len(
+                    Foo@[0x0000000000000000000000000000000000000000000000000000000000000000]::storage::x3
+                ); // should not be removed
+
+    // union variants
+
+    // external storage access
+
+    // macro calls
+
+    // local predicate calls
+
+    // external predicate calls
+
+    // matches
+
+    // indexes
+
+    // ins
+
+    // ranges
+
+    // generators
+
+    // maps
+
+    // union tags
+
+    // union values
+
+    constraint a == 0;
+    constraint b == 0;
+    constraint c == 0;
+    constraint d == 0;
+    constraint f == (1 > x);
+    constraint g == (1 > x);
+    constraint h == (1 > x);
+    constraint i == (1 > x);
+    constraint j == (1 > x);
+    constraint k == (1 > x);
+    constraint l == (1 > x);
+    constraint m == (1 > x);
+    constraint n == 0;
+    constraint o == 0;
+    constraint p == 0;
+    constraint q == 0;
+    constraint r == 0;
+    constraint s == 0;
+    constraint t == 0;
+    constraint u == 0;
+    constraint v == 0;
+    constraint a1 == (1 > x);
+    constraint b1 == (1 > x);
+    constraint c1 == (1 > x);
+    constraint d1 == (1 > x);
+    constraint e1 == (1 > x);
+    constraint f1 == (1 > x);
+    constraint g1 == (1 > x);
+    constraint h1 == (1 > x);
+    constraint i1 == (1 > x);
+    constraint j1 == (1 > x);
+    constraint k1 == (1 > x);
+    constraint l1 == (1 > x);
+    constraint m1 == [1, 1];
+    constraint n1 == [1, 1];
+    constraint o1 == [1, 1];
+    constraint p1 == { 1, 1 };
+    constraint q1 == { 1, 1 };
+    constraint r1 == { 1, 1 };
+    constraint s1 == 1;
+    constraint t1 == 1;
+    constraint u1 == 1;
+    constraint v1 == -1;
+    constraint a2 == -1;
+    constraint b2 == -1;
+    constraint c2 == (1 > x);
+    constraint d2 == (1 > x);
+    constraint e2 == (1 > x);
+    constraint f2 == 1;
+    constraint g2 == 1;
+    constraint h2 == 1;
+    constraint i2 == 0;
+    constraint j2 == 0;
+    constraint k2 == 0;
+    constraint l2 == 0;
+    constraint m2 == 0;
+    constraint n2 == 0;
+    constraint o2 == 0;
+    constraint p2 == 0;
+    constraint q2 == 0;
+    constraint r2 == 0;
+    constraint s2 == 0;
+    constraint t2 == 0;
 }
 
 // parsed <<<
-// predicate ::foo(
+// storage {
+//     x1: int,
+//     x2: int[],
+//     x3: int[],
+// }
+// interface ::Foo {
+//     storage {
+//         x2: int[],
+//         x3: int[],
+//     }
+// }
+//
+// predicate ::Test(
+//     ::w: int,
 //     ::x: int,
-//     ::y: {int, int},
-//     ::z: int[3],
+//     ::y: bool,
+//     ::z: bool,
 // ) {
 //     let ::a = (::x + 1);
-//     let ::b = (::x + 1);
-//     let ::c = (::x + 1);
-//     let ::d = (::b - 1);
-//     let ::e = (::b - 1);
-//     let ::f = (::a * ::b);
-//     let ::g = (::a * ::b);
-//     let ::h = (::d / ::e);
-//     let ::i = (::d / ::e);
-//     let ::j = (::y.0 + ::i);
-//     let ::k = (::y.0 + ::i);
-//     let ::l = (::y.1 - ::x);
-//     let ::m = (::y.1 - ::x);
-//     let ::n = (::z[0] / ::z[1]);
-//     let ::o = (::z[0] / ::z[1]);
-//     let ::p = (::z[2] * 4);
-//     let ::q = (::z[2] * 4);
-//     constraint (::a == 1);
-//     constraint (::b == 2);
-//     constraint (::c == 3);
-//     constraint (::d == 4);
-//     constraint (::e == 5);
-//     constraint (::f == 6);
-//     constraint (::g == 7);
-//     constraint (::h == 8);
-//     constraint (::i == 9);
-//     constraint (::j == 1);
-//     constraint (::k == 2);
-//     constraint (::l == 3);
-//     constraint (::m == 4);
-//     constraint (::n == 5);
-//     constraint (::o == 6);
-//     constraint (::p == 7);
-//     constraint (::q == 8);
+//     let ::b = (1 + ::x);
+//     let ::c = (1 * ::x);
+//     let ::d = (::x * 1);
+//     let ::f = (1 == ::x);
+//     let ::g = (::x == 1);
+//     let ::h = (::x != 1);
+//     let ::i = (1 != ::x);
+//     let ::j = (::y && ::z);
+//     let ::k = (::z && ::y);
+//     let ::l = (::y || ::z);
+//     let ::m = (::z || ::y);
+//     let ::n = (1 - ::x);
+//     let ::o = (1 - ::x);
+//     let ::p = (::x - 1);
+//     let ::q = (1 / ::x);
+//     let ::r = (1 / ::x);
+//     let ::s = (::x / 1);
+//     let ::t = (2 % ::x);
+//     let ::u = (2 % ::x);
+//     let ::v = (::x % 2);
+//     let ::a1 = (1 <= ::x);
+//     let ::b1 = (1 <= ::x);
+//     let ::c1 = (::x <= 1);
+//     let ::d1 = (1 < ::x);
+//     let ::e1 = (1 < ::x);
+//     let ::f1 = (::x < 1);
+//     let ::g1 = (1 >= ::x);
+//     let ::h1 = (1 >= ::x);
+//     let ::i1 = (::x >= 1);
+//     let ::j1 = (1 > ::x);
+//     let ::k1 = (1 > ::x);
+//     let ::l1 = (::x > 1);
+//     let ::m1 = [1, ::x];
+//     let ::n1 = [1, ::x];
+//     let ::o1 = [::x, 1];
+//     let ::p1 = {1, ::x};
+//     let ::q1 = {1, ::x};
+//     let ::r1 = {::x, 1};
+//     let ::s1 = storage::x1;
+//     let ::t1 = storage::x1;
+//     let ::u1 = (storage::x1 + 1);
+//     let ::v1 = -::x;
+//     let ::a2 = -::x;
+//     let ::b2 = -::w;
+//     let ::c2 = !::y;
+//     let ::d2 = !::y;
+//     let ::e2 = !::z;
+//     let ::f2 = ::s1';
+//     let ::g2 = ::s1';
+//     let ::h2 = ::u1';
+//     let ::i2 = ::p1.0;
+//     let ::j2 = ::p1.0;
+//     let ::k2 = ::r1.0;
+//     let ::l2 = ::y as int;
+//     let ::m2 = ::y as int;
+//     let ::n2 = ::z as int;
+//     let ::o2 = __vec_len(storage::x2);
+//     let ::p2 = __vec_len(storage::x2);
+//     let ::q2 = __vec_len(storage::x3);
+//     let ::r2 = __vec_len(::Foo@[0x0000000000000000000000000000000000000000000000000000000000000000]::storage::x2);
+//     let ::s2 = __vec_len(::Foo@[0x0000000000000000000000000000000000000000000000000000000000000000]::storage::x2);
+//     let ::t2 = __vec_len(::Foo@[0x0000000000000000000000000000000000000000000000000000000000000000]::storage::x3);
+//     constraint (::a == 0);
+//     constraint (::b == 0);
+//     constraint (::c == 0);
+//     constraint (::d == 0);
+//     constraint (::f == (1 > ::x));
+//     constraint (::g == (1 > ::x));
+//     constraint (::h == (1 > ::x));
+//     constraint (::i == (1 > ::x));
+//     constraint (::j == (1 > ::x));
+//     constraint (::k == (1 > ::x));
+//     constraint (::l == (1 > ::x));
+//     constraint (::m == (1 > ::x));
+//     constraint (::n == 0);
+//     constraint (::o == 0);
+//     constraint (::p == 0);
+//     constraint (::q == 0);
+//     constraint (::r == 0);
+//     constraint (::s == 0);
+//     constraint (::t == 0);
+//     constraint (::u == 0);
+//     constraint (::v == 0);
+//     constraint (::a1 == (1 > ::x));
+//     constraint (::b1 == (1 > ::x));
+//     constraint (::c1 == (1 > ::x));
+//     constraint (::d1 == (1 > ::x));
+//     constraint (::e1 == (1 > ::x));
+//     constraint (::f1 == (1 > ::x));
+//     constraint (::g1 == (1 > ::x));
+//     constraint (::h1 == (1 > ::x));
+//     constraint (::i1 == (1 > ::x));
+//     constraint (::j1 == (1 > ::x));
+//     constraint (::k1 == (1 > ::x));
+//     constraint (::l1 == (1 > ::x));
+//     constraint (::m1 == [1, 1]);
+//     constraint (::n1 == [1, 1]);
+//     constraint (::o1 == [1, 1]);
+//     constraint (::p1 == {1, 1});
+//     constraint (::q1 == {1, 1});
+//     constraint (::r1 == {1, 1});
+//     constraint (::s1 == 1);
+//     constraint (::t1 == 1);
+//     constraint (::u1 == 1);
+//     constraint (::v1 == -1);
+//     constraint (::a2 == -1);
+//     constraint (::b2 == -1);
+//     constraint (::c2 == (1 > ::x));
+//     constraint (::d2 == (1 > ::x));
+//     constraint (::e2 == (1 > ::x));
+//     constraint (::f2 == 1);
+//     constraint (::g2 == 1);
+//     constraint (::h2 == 1);
+//     constraint (::i2 == 0);
+//     constraint (::j2 == 0);
+//     constraint (::k2 == 0);
+//     constraint (::l2 == 0);
+//     constraint (::m2 == 0);
+//     constraint (::n2 == 0);
+//     constraint (::o2 == 0);
+//     constraint (::p2 == 0);
+//     constraint (::q2 == 0);
+//     constraint (::r2 == 0);
+//     constraint (::s2 == 0);
+//     constraint (::t2 == 0);
 // }
 // >>>
 
 // flattened <<<
-// predicate ::foo(
+// storage {
+//     x1: int,
+//     x2: int[],
+//     x3: int[],
+// }
+// interface ::Foo {
+//     storage {
+//         x2: int[],
+//         x3: int[],
+//     }
+// }
+//
+// predicate ::Test(
+//     ::w: int,
 //     ::x: int,
-//     ::y: {int, int},
-//     ::z: int[3],
+//     ::y: bool,
+//     ::z: bool,
 // ) {
 //     let ::a: int = (::x + 1);
-//     let ::b: int = (::x + 1);
-//     let ::c: int = (::x + 1);
-//     let ::d: int = (::b - 1);
-//     let ::e: int = (::b - 1);
-//     let ::f: int = (::a * ::b);
-//     let ::g: int = (::a * ::b);
-//     let ::h: int = (::d / ::e);
-//     let ::i: int = (::d / ::e);
-//     let ::j: int = (::y.0 + ::i);
-//     let ::k: int = (::y.0 + ::i);
-//     let ::l: int = (::y.1 - ::x);
-//     let ::m: int = (::y.1 - ::x);
-//     let ::n: int = (::z[0] / ::z[1]);
-//     let ::o: int = (::z[0] / ::z[1]);
-//     let ::p: int = (::z[2] * 4);
-//     let ::q: int = (::z[2] * 4);
-//     constraint (::a == 1);
-//     constraint (::b == 2);
-//     constraint (::c == 3);
-//     constraint (::d == 4);
-//     constraint (::e == 5);
-//     constraint (::f == 6);
-//     constraint (::g == 7);
-//     constraint (::h == 8);
-//     constraint (::i == 9);
-//     constraint (::j == 1);
-//     constraint (::k == 2);
-//     constraint (::l == 3);
-//     constraint (::m == 4);
-//     constraint (::n == 5);
-//     constraint (::o == 6);
-//     constraint (::p == 7);
-//     constraint (::q == 8);
+//     let ::b: int = (1 + ::x);
+//     let ::c: int = (1 * ::x);
+//     let ::d: int = (::x * 1);
+//     let ::f: bool = (1 == ::x);
+//     let ::g: bool = (::x == 1);
+//     let ::h: bool = (::x != 1);
+//     let ::i: bool = (1 != ::x);
+//     let ::j: bool = (::y && ::z);
+//     let ::k: bool = (::z && ::y);
+//     let ::l: bool = (::y || ::z);
+//     let ::m: bool = (::z || ::y);
+//     let ::n: int = (1 - ::x);
+//     let ::o: int = (1 - ::x);
+//     let ::p: int = (::x - 1);
+//     let ::q: int = (1 / ::x);
+//     let ::r: int = (1 / ::x);
+//     let ::s: int = (::x / 1);
+//     let ::t: int = (2 % ::x);
+//     let ::u: int = (2 % ::x);
+//     let ::v: int = (::x % 2);
+//     let ::a1: bool = (1 <= ::x);
+//     let ::b1: bool = (1 <= ::x);
+//     let ::c1: bool = (::x <= 1);
+//     let ::d1: bool = (1 < ::x);
+//     let ::e1: bool = (1 < ::x);
+//     let ::f1: bool = (::x < 1);
+//     let ::g1: bool = (1 >= ::x);
+//     let ::h1: bool = (1 >= ::x);
+//     let ::i1: bool = (::x >= 1);
+//     let ::j1: bool = (1 > ::x);
+//     let ::k1: bool = (1 > ::x);
+//     let ::l1: bool = (::x > 1);
+//     let ::m1: int[2] = [1, ::x];
+//     let ::n1: int[2] = [1, ::x];
+//     let ::o1: int[2] = [::x, 1];
+//     let ::p1: {int, int} = {1, ::x};
+//     let ::q1: {int, int} = {1, ::x};
+//     let ::r1: {int, int} = {::x, 1};
+//     let ::s1: int = __storage_get({0});
+//     let ::t1: int = __storage_get({0});
+//     let ::u1: int = (__storage_get({0}) + 1);
+//     let ::v1: int = -::x;
+//     let ::a2: int = -::x;
+//     let ::b2: int = -::w;
+//     let ::c2: bool = !::y;
+//     let ::d2: bool = !::y;
+//     let ::e2: bool = !::z;
+//     let ::f2: int = ::s1';
+//     let ::g2: int = ::s1';
+//     let ::h2: int = ::u1';
+//     let ::i2: int = ::p1.0;
+//     let ::j2: int = ::p1.0;
+//     let ::k2: int = ::r1.0;
+//     let ::l2: int = ::y;
+//     let ::m2: int = ::y;
+//     let ::n2: int = ::z;
+//     let ::o2: int = __storage_get({1});
+//     let ::p2: int = __storage_get({1});
+//     let ::q2: int = __storage_get({2});
+//     let ::r2: int = __storage_get_extern(0x0000000000000000000000000000000000000000000000000000000000000000, {0});
+//     let ::s2: int = __storage_get_extern(0x0000000000000000000000000000000000000000000000000000000000000000, {0});
+//     let ::t2: int = __storage_get_extern(0x0000000000000000000000000000000000000000000000000000000000000000, {1});
+//     constraint (::a == 0);
+//     constraint (::b == 0);
+//     constraint (::c == 0);
+//     constraint (::d == 0);
+//     constraint (::f == (1 > ::x));
+//     constraint (::g == (1 > ::x));
+//     constraint (::h == (1 > ::x));
+//     constraint (::i == (1 > ::x));
+//     constraint (::j == (1 > ::x));
+//     constraint (::k == (1 > ::x));
+//     constraint (::l == (1 > ::x));
+//     constraint (::m == (1 > ::x));
+//     constraint (::n == 0);
+//     constraint (::o == 0);
+//     constraint (::p == 0);
+//     constraint (::q == 0);
+//     constraint (::r == 0);
+//     constraint (::s == 0);
+//     constraint (::t == 0);
+//     constraint (::u == 0);
+//     constraint (::v == 0);
+//     constraint (::a1 == (1 > ::x));
+//     constraint (::b1 == (1 > ::x));
+//     constraint (::c1 == (1 > ::x));
+//     constraint (::d1 == (1 > ::x));
+//     constraint (::e1 == (1 > ::x));
+//     constraint (::f1 == (1 > ::x));
+//     constraint (::g1 == (1 > ::x));
+//     constraint (::h1 == (1 > ::x));
+//     constraint (::i1 == (1 > ::x));
+//     constraint (::j1 == (1 > ::x));
+//     constraint (::k1 == (1 > ::x));
+//     constraint (::l1 == (1 > ::x));
+//     constraint (::m1 == [1, 1]);
+//     constraint (::n1 == [1, 1]);
+//     constraint (::o1 == [1, 1]);
+//     constraint (::p1 == {1, 1});
+//     constraint (::q1 == {1, 1});
+//     constraint (::r1 == {1, 1});
+//     constraint (::s1 == 1);
+//     constraint (::t1 == 1);
+//     constraint (::u1 == 1);
+//     constraint (::v1 == -1);
+//     constraint (::a2 == -1);
+//     constraint (::b2 == -1);
+//     constraint (::c2 == (1 > ::x));
+//     constraint (::d2 == (1 > ::x));
+//     constraint (::e2 == (1 > ::x));
+//     constraint (::f2 == 1);
+//     constraint (::g2 == 1);
+//     constraint (::h2 == 1);
+//     constraint (::i2 == 0);
+//     constraint (::j2 == 0);
+//     constraint (::k2 == 0);
+//     constraint (::l2 == 0);
+//     constraint (::m2 == 0);
+//     constraint (::n2 == 0);
+//     constraint (::o2 == 0);
+//     constraint (::p2 == 0);
+//     constraint (::q2 == 0);
+//     constraint (::r2 == 0);
+//     constraint (::s2 == 0);
+//     constraint (::t2 == 0);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
 
 // optimized <<<
-// predicate ::foo(
+// storage {
+//     x1: int,
+//     x2: int[],
+//     x3: int[],
+// }
+// interface ::Foo {
+//     storage {
+//         x2: int[],
+//         x3: int[],
+//     }
+// }
+//
+// predicate ::Test(
+//     ::w: int,
 //     ::x: int,
-//     ::y: {int, int},
-//     ::z: int[3],
+//     ::y: bool,
+//     ::z: bool,
 // ) {
 //     let ::a: int = (::x + 1);
-//     let ::d: int = (::a - 1);
-//     let ::f: int = (::a * ::a);
-//     let ::h: int = (::d / ::d);
-//     let ::j: int = (::y.0 + ::h);
-//     let ::l: int = (::y.1 - ::x);
-//     let ::n: int = (::z[0] / ::z[1]);
-//     let ::p: int = (::z[2] * 4);
-//     constraint (::a == 1);
-//     constraint (::a == 2);
-//     constraint (::a == 3);
-//     constraint (::d == 4);
-//     constraint (::d == 5);
-//     constraint (::f == 6);
-//     constraint (::f == 7);
-//     constraint (::h == 8);
-//     constraint (::h == 9);
-//     constraint (::j == 1);
-//     constraint (::j == 2);
-//     constraint (::l == 3);
-//     constraint (::l == 4);
-//     constraint (::n == 5);
-//     constraint (::n == 6);
-//     constraint (::p == 7);
-//     constraint (::p == 8);
+//     let ::c: int = (1 * ::x);
+//     let ::f: bool = (1 == ::x);
+//     let ::h: bool = (::x != 1);
+//     let ::j: bool = (::y && ::z);
+//     let ::l: bool = (::y || ::z);
+//     let ::n: int = (1 - ::x);
+//     let ::p: int = (::x - 1);
+//     let ::q: int = (1 / ::x);
+//     let ::s: int = ::x;
+//     let ::t: int = (2 % ::x);
+//     let ::v: int = (::x % 2);
+//     let ::a1: bool = (1 <= ::x);
+//     let ::c1: bool = (::x <= 1);
+//     let ::d1: bool = (1 < ::x);
+//     let ::f1: bool = (::x < 1);
+//     let ::g1: bool = (1 >= ::x);
+//     let ::i1: bool = (::x >= 1);
+//     let ::j1: bool = (1 > ::x);
+//     let ::l1: bool = (::x > 1);
+//     let ::m1: int[2] = [1, ::x];
+//     let ::o1: int[2] = [::x, 1];
+//     let ::p1: {int, int} = {1, ::x};
+//     let ::r1: {int, int} = {::x, 1};
+//     let ::s1: int = __storage_get({0});
+//     let ::u1: int = (__storage_get({0}) + 1);
+//     let ::v1: int = -::x;
+//     let ::b2: int = -::w;
+//     let ::c2: bool = !::y;
+//     let ::e2: bool = !::z;
+//     let ::f2: int = ::s1';
+//     let ::h2: int = ::u1';
+//     let ::i2: int = ::p1.0;
+//     let ::k2: int = ::r1.0;
+//     let ::l2: int = ::y;
+//     let ::n2: int = ::z;
+//     let ::o2: int = __storage_get({1});
+//     let ::q2: int = __storage_get({2});
+//     let ::r2: int = __storage_get_extern(0x0000000000000000000000000000000000000000000000000000000000000000, {0});
+//     let ::t2: int = __storage_get_extern(0x0000000000000000000000000000000000000000000000000000000000000000, {1});
+//     constraint (::a == 0);
+//     constraint (::a == 0);
+//     constraint (::c == 0);
+//     constraint (::c == 0);
+//     constraint (::f == (1 > ::x));
+//     constraint (::f == (1 > ::x));
+//     constraint (::h == (1 > ::x));
+//     constraint (::h == (1 > ::x));
+//     constraint (::j == (1 > ::x));
+//     constraint (::j == (1 > ::x));
+//     constraint (::l == (1 > ::x));
+//     constraint (::l == (1 > ::x));
+//     constraint (::n == 0);
+//     constraint (::n == 0);
+//     constraint (::p == 0);
+//     constraint (::q == 0);
+//     constraint (::q == 0);
+//     constraint (::s == 0);
+//     constraint (::t == 0);
+//     constraint (::t == 0);
+//     constraint (::v == 0);
+//     constraint (::a1 == (1 > ::x));
+//     constraint (::a1 == (1 > ::x));
+//     constraint (::c1 == (1 > ::x));
+//     constraint (::d1 == (1 > ::x));
+//     constraint (::d1 == (1 > ::x));
+//     constraint (::f1 == (1 > ::x));
+//     constraint (::g1 == (1 > ::x));
+//     constraint (::g1 == (1 > ::x));
+//     constraint (::i1 == (1 > ::x));
+//     constraint (::j1 == (1 > ::x));
+//     constraint (::j1 == (1 > ::x));
+//     constraint (::l1 == (1 > ::x));
+//     constraint (::m1 == [1, 1]);
+//     constraint (::m1 == [1, 1]);
+//     constraint (::o1 == [1, 1]);
+//     constraint (::p1 == {1, 1});
+//     constraint (::p1 == {1, 1});
+//     constraint (::r1 == {1, 1});
+//     constraint (::s1 == 1);
+//     constraint (::s1 == 1);
+//     constraint (::u1 == 1);
+//     constraint (::v1 == -1);
+//     constraint (::v1 == -1);
+//     constraint (::b2 == -1);
+//     constraint (::c2 == (1 > ::x));
+//     constraint (::c2 == (1 > ::x));
+//     constraint (::e2 == (1 > ::x));
+//     constraint (::f2 == 1);
+//     constraint (::f2 == 1);
+//     constraint (::h2 == 1);
+//     constraint (::i2 == 0);
+//     constraint (::i2 == 0);
+//     constraint (::k2 == 0);
+//     constraint (::l2 == 0);
+//     constraint (::l2 == 0);
+//     constraint (::n2 == 0);
+//     constraint (::o2 == 0);
+//     constraint (::o2 == 0);
+//     constraint (::q2 == 0);
+//     constraint (::r2 == 0);
+//     constraint (::r2 == 0);
+//     constraint (::t2 == 0);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
