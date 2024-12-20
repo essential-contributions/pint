@@ -97,17 +97,17 @@ predicate Foo() {
 // predicate ::Foo(
 // ) {
 //     let ::addr: b256 = 0x0000000000000000000000000000000000000000000000000000000000000000;
-//     let ::v0_0: int = __storage_get({0, 0});
-//     let ::v0_1: int = __storage_get({0, 1});
-//     let ::v1_1: bool = __storage_get({1, 1});
-//     let ::v2_2: b256 = __storage_get({2, 2});
-//     let ::u0_0: int = __storage_get_extern(::addr, {0, 0});
-//     let ::u0_1: int = __storage_get_extern(::addr, {0, 1});
-//     let ::u1_1: bool = __storage_get_extern(::addr, {1, 1});
-//     let ::u2_2: b256 = __storage_get_extern(::addr, {2, 2});
-//     let __v0_len: int = __storage_get({0});
-//     let __v1_len: int = __storage_get({1});
-//     let __v2_len: int = __storage_get({2});
+//     let ::v0_0: int = __pre_state({0, 0});
+//     let ::v0_1: int = __pre_state({0, 1});
+//     let ::v1_1: bool = __pre_state({1, 1});
+//     let ::v2_2: b256 = __pre_state({2, 2});
+//     let ::u0_0: int = __pre_state_extern(::addr, {0, 0});
+//     let ::u0_1: int = __pre_state_extern(::addr, {0, 1});
+//     let ::u1_1: bool = __pre_state_extern(::addr, {1, 1});
+//     let ::u2_2: b256 = __pre_state_extern(::addr, {2, 2});
+//     let __v0_len: int = __pre_state({0});
+//     let __v1_len: int = __pre_state({1});
+//     let __v2_len: int = __pre_state({2});
 //     constraint (::v0_0 == 0);
 //     constraint (::v0_1 == 0);
 //     constraint (::v0_0' == 1);

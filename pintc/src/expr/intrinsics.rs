@@ -139,11 +139,17 @@ pub enum InternalIntrinsic {
     // Returns the set of mutable keys in a solution
     MutKeys,
 
-    // Reads from a local storage key.
-    StorageGet,
+    // Reads local pre state.
+    PreState,
 
-    // Reads from an external storage key.
-    StorageGetExtern,
+    // Reads external pre state.
+    PreStateExtern,
+
+    // Reads local post state.
+    PostState,
+
+    // Reads external post state.
+    PostStateExtern,
 }
 
 impl Display for InternalIntrinsic {
@@ -151,8 +157,10 @@ impl Display for InternalIntrinsic {
         match self {
             Self::EqSet => write!(f, "__eq_set"),
             Self::MutKeys => write!(f, "__mut_keys"),
-            Self::StorageGet => write!(f, "__storage_get"),
-            Self::StorageGetExtern => write!(f, "__storage_get_extern"),
+            Self::PreState => write!(f, "__pre_state"),
+            Self::PreStateExtern => write!(f, "__pre_state_extern"),
+            Self::PostState => write!(f, "__post_state"),
+            Self::PostStateExtern => write!(f, "__post_state_extern"),
         }
     }
 }
@@ -165,10 +173,17 @@ impl InternalIntrinsic {
                 any(), // rhs - should be "set" if and when we have sets
             ],
             Self::MutKeys => vec![],
-            Self::StorageGet => vec![
+            Self::PreState => vec![
                 any(), // storage key
             ],
-            Self::StorageGetExtern => vec![
+            Self::PreStateExtern => vec![
+                b256(), // external contract address
+                any(),  // storage key
+            ],
+            Self::PostState => vec![
+                any(), // storage key
+            ],
+            Self::PostStateExtern => vec![
                 b256(), // external contract address
                 any(),  // storage key
             ],
@@ -179,8 +194,10 @@ impl InternalIntrinsic {
         match self {
             Self::EqSet => bool(),
             Self::MutKeys => any(), // should be "set" if and when we have sets.
-            Self::StorageGet => any(),
-            Self::StorageGetExtern => any(),
+            Self::PreState => any(),
+            Self::PreStateExtern => any(),
+            Self::PostState => any(),
+            Self::PostStateExtern => any(),
         }
     }
 }
