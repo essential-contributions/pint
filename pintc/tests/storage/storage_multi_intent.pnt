@@ -131,16 +131,16 @@ predicate Bar(
 //     ::and: bool,
 //     ::sum: int,
 // ) {
-//     let ::i0: int = __storage_get({0});
-//     let ::i1: int = __storage_get({0});
-//     let ::b0: bool = __storage_get({1});
-//     let ::b1: bool = __storage_get({1});
-//     let ::map_1_access_1: int = __storage_get({2, 7});
-//     let ::map_1_access_2: int = __storage_get({2, ::x});
-//     let ::map_2_access_1: bool = __storage_get({3, 0x1111111111111111111111111111111111111111111111111111111111111111});
-//     let ::map_2_access_2: bool = __storage_get({3, ::address});
-//     let ::map_3_access_1: b256 = __storage_get({4, 42, 69});
-//     let ::map_3_access_2: b256 = __storage_get({4, 42, 69});
+//     let ::i0: int = __pre_state({0});
+//     let ::i1: int = __pre_state({0});
+//     let ::b0: bool = __pre_state({1});
+//     let ::b1: bool = __pre_state({1});
+//     let ::map_1_access_1: int = __pre_state({2, 7});
+//     let ::map_1_access_2: int = __pre_state({2, ::x});
+//     let ::map_2_access_1: bool = __pre_state({3, 0x1111111111111111111111111111111111111111111111111111111111111111});
+//     let ::map_2_access_2: bool = __pre_state({3, ::address});
+//     let ::map_3_access_1: b256 = __pre_state({4, 42, 69});
+//     let ::map_3_access_2: b256 = __pre_state({4, 42, 69});
 //     constraint (::x == 5);
 //     constraint (::address == 0x2222222222222222222222222222222222222222222222222222222222222222);
 //     constraint (::and == ((::b1 && ::map_2_access_1) && ::map_2_access_2));
@@ -154,16 +154,16 @@ predicate Bar(
 //     ::and: bool,
 //     ::sum: int,
 // ) {
-//     let ::i0: int = __storage_get({0});
-//     let ::i1: int = __storage_get({0});
-//     let ::b0: bool = __storage_get({1});
-//     let ::b1: bool = __storage_get({1});
-//     let ::map_1_access_1: int = __storage_get({2, 7});
-//     let ::map_1_access_2: int = __storage_get({2, ::x});
-//     let ::map_2_access_1: bool = __storage_get({3, 0x1111111111111111111111111111111111111111111111111111111111111111});
-//     let ::map_2_access_2: bool = __storage_get({3, ::address});
-//     let ::map_3_access_1: b256 = __storage_get({4, 42, 69});
-//     let ::map_3_access_2: b256 = __storage_get({4, 42, 69});
+//     let ::i0: int = __pre_state({0});
+//     let ::i1: int = __pre_state({0});
+//     let ::b0: bool = __pre_state({1});
+//     let ::b1: bool = __pre_state({1});
+//     let ::map_1_access_1: int = __pre_state({2, 7});
+//     let ::map_1_access_2: int = __pre_state({2, ::x});
+//     let ::map_2_access_1: bool = __pre_state({3, 0x1111111111111111111111111111111111111111111111111111111111111111});
+//     let ::map_2_access_2: bool = __pre_state({3, ::address});
+//     let ::map_3_access_1: b256 = __pre_state({4, 42, 69});
+//     let ::map_3_access_2: b256 = __pre_state({4, 42, 69});
 //     constraint (::x == 5);
 //     constraint (::address == 0x2222222222222222222222222222222222222222222222222222222222222222);
 //     constraint (::and == ((::b1 && ::map_2_access_1) && ::map_2_access_2));

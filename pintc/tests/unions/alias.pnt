@@ -51,12 +51,12 @@ predicate Test() {
 //
 // predicate ::Test(
 // ) {
-//     let ::a1: bool = __storage_get({0, ::MyUnion::a(true)});
-//     let ::a2: bool = __storage_get({0, ::MyUnion::c(42)});
-//     let ::a3: bool = __storage_get({0, ::MyUnion::x});
-//     let ::a4: bool = __storage_get({0, ::MyUnion::x});
-//     let ::a5: bool = __storage_get({0, ::MyUnion::x});
-//     let ::a6: bool = __storage_get({0, ::MyUnion::a(false)});
+//     let ::a1: bool = __pre_state({0, ::MyUnion::a(true)});
+//     let ::a2: bool = __pre_state({0, ::MyUnion::c(42)});
+//     let ::a3: bool = __pre_state({0, ::MyUnion::x});
+//     let ::a4: bool = __pre_state({0, ::MyUnion::x});
+//     let ::a5: bool = __pre_state({0, ::MyUnion::x});
+//     let ::a6: bool = __pre_state({0, ::MyUnion::a(false)});
 //     constraint (::a1 == ::a2);
 //     constraint (::a3 == ::a4);
 //     constraint (::a5 == ::a6);

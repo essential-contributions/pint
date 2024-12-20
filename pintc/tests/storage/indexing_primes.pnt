@@ -92,11 +92,11 @@ predicate test() {
 //
 // predicate ::test(
 // ) {
-//     let ::a: int = __storage_get({0});
-//     let ::b: int[2] = __storage_get({1, 0});
-//     let ::c: {int, int} = __storage_get({2, 0});
-//     let ::d: {int[2], int[2]} = __storage_get({3, 0});
-//     let ::e: {int, int}[2] = __storage_get({4, 0});
+//     let ::a: int = __pre_state({0});
+//     let ::b: int[2] = __pre_state({1, 0});
+//     let ::c: {int, int} = __pre_state({2, 0});
+//     let ::d: {int[2], int[2]} = __pre_state({3, 0});
+//     let ::e: {int, int}[2] = __pre_state({4, 0});
 //     constraint (::a' > ::a);
 //     constraint (::a' > ::a);
 //     constraint (::a' > ::a);

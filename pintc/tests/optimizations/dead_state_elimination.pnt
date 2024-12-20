@@ -87,20 +87,20 @@ predicate Test(f: int, g: int, h: bool) {
 //     ::g: int,
 //     ::h: bool,
 // ) {
-//     let ::a: int = __storage_get({0});
-//     let ::b: int = __storage_get({0});
-//     let ::c: int[2] = __storage_get({1, 0});
-//     let ::d: {int, int} = __storage_get({2, 0});
-//     let ::d_0: int = __storage_get({2, (0 + 0)});
-//     let ::e_0: bool = __storage_get({3, 0});
-//     let ::e_1: bool = __storage_get({3, 1});
-//     let ::x1: int = __storage_get({0});
-//     let ::x2: int[2] = __storage_get({1, 0});
-//     let ::x3: {int, int} = __storage_get({2, 0});
-//     let ::x4: int = __storage_get({2, (0 + 0)});
-//     let ::x5: bool = __storage_get({3, 0});
-//     let ::x6: bool = __storage_get({3, 1});
-//     let ::z: int = __storage_get({0});
+//     let ::a: int = __pre_state({0});
+//     let ::b: int = __pre_state({0});
+//     let ::c: int[2] = __pre_state({1, 0});
+//     let ::d: {int, int} = __pre_state({2, 0});
+//     let ::d_0: int = __pre_state({2, (0 + 0)});
+//     let ::e_0: bool = __pre_state({3, 0});
+//     let ::e_1: bool = __pre_state({3, 1});
+//     let ::x1: int = __pre_state({0});
+//     let ::x2: int[2] = __pre_state({1, 0});
+//     let ::x3: {int, int} = __pre_state({2, 0});
+//     let ::x4: int = __pre_state({2, (0 + 0)});
+//     let ::x5: bool = __pre_state({3, 0});
+//     let ::x6: bool = __pre_state({3, 1});
+//     let ::z: int = __pre_state({0});
 //     constraint (::a' >= (::a + 42));
 //     constraint (((__size_of(::b) == 0) && (::b' == 1)) || (::b' == (::b + 1)));
 //     constraint (::c'[0] == 42);
@@ -124,13 +124,13 @@ predicate Test(f: int, g: int, h: bool) {
 //     ::g: int,
 //     ::h: bool,
 // ) {
-//     let ::a: int = __storage_get({0});
-//     let ::b: int = __storage_get({0});
-//     let ::c: int[2] = __storage_get({1, 0});
-//     let ::d: {int, int} = __storage_get({2, 0});
-//     let ::d_0: int = __storage_get({2, 0});
-//     let ::e_0: bool = __storage_get({3, 0});
-//     let ::e_1: bool = __storage_get({3, 1});
+//     let ::a: int = __pre_state({0});
+//     let ::b: int = __pre_state({0});
+//     let ::c: int[2] = __pre_state({1, 0});
+//     let ::d: {int, int} = __pre_state({2, 0});
+//     let ::d_0: int = __pre_state({2, 0});
+//     let ::e_0: bool = __pre_state({3, 0});
+//     let ::e_1: bool = __pre_state({3, 1});
 //     constraint (::a' >= (::a + 42));
 //     constraint (((__size_of(::b) == 0) && (::b' == 1)) || (::b' == (::b + 1)));
 //     constraint (::c'[0] == 42);

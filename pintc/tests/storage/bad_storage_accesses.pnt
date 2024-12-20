@@ -96,50 +96,5 @@ predicate Test(
 // >>>
 
 // typecheck_failure <<<
-// invalid position for accessing storage
-// @538..548: storage cannot be accessed in this position
-// storage can only be accessed in the initializer of a `let` declaration
-// invalid position for accessing storage
-// @246..258: storage cannot be accessed in this position
-// storage can only be accessed in the initializer of a `let` declaration
-// invalid position for accessing storage
-// @619..631: storage cannot be accessed in this position
-// storage can only be accessed in the initializer of a `let` declaration
-// invalid position for accessing storage
-// @480..510: storage cannot be accessed in this position
-// storage can only be accessed in the initializer of a `let` declaration
-// invalid position for accessing storage
-// @889..900: storage cannot be accessed in this position
-// storage can only be accessed in the initializer of a `let` declaration
-// invalid position for accessing storage
-// @708..720: storage cannot be accessed in this position
-// storage can only be accessed in the initializer of a `let` declaration
-// invalid position for accessing storage
-// @289..301: storage cannot be accessed in this position
-// storage can only be accessed in the initializer of a `let` declaration
-// invalid position for accessing storage
-// @581..593: storage cannot be accessed in this position
-// storage can only be accessed in the initializer of a `let` declaration
-// invalid position for accessing storage
-// @870..881: storage cannot be accessed in this position
-// storage can only be accessed in the initializer of a `let` declaration
-// invalid position for accessing storage
-// @447..462: storage cannot be accessed in this position
-// storage can only be accessed in the initializer of a `let` declaration
-// invalid position for accessing storage
-// @792..804: storage cannot be accessed in this position
-// storage can only be accessed in the initializer of a `let` declaration
-// invalid position for accessing storage
-// @316..328: storage cannot be accessed in this position
-// storage can only be accessed in the initializer of a `let` declaration
-// invalid position for accessing storage
-// @670..682: storage cannot be accessed in this position
-// storage can only be accessed in the initializer of a `let` declaration
-// invalid position for accessing storage
-// @175..187: storage cannot be accessed in this position
-// storage can only be accessed in the initializer of a `let` declaration
-// invalid position for accessing storage
-// @93..105: storage cannot be accessed in this position
-// storage can only be accessed in the initializer of a `let` declaration
 // compiler internal error: unexpected expression during compile-time evaluation
 // >>>

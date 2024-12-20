@@ -26,7 +26,10 @@ pub struct AsmBuilder<'a> {
     var_to_mem_idx: fxhash::FxHashMap<(String, Reads), i64>,
 
     // A map from storage access expressions to their memory indices.
-    expr_to_mem_idx: fxhash::FxHashMap<ExprKey, i64>,
+    storage_expr_to_mem_idx: fxhash::FxHashMap<ExprKey, i64>,
+
+    // A map from pre-computed expressions to their memory indices.
+    precomputed_expr_to_mem_idx: fxhash::FxHashMap<ExprKey, i64>,
 
     // The current size of global memory in words.
     // - Used by loops but postponed until we implement the program graphs.
@@ -63,7 +66,8 @@ impl<'a> AsmBuilder<'a> {
         Self {
             compiled_predicates,
             var_to_mem_idx: fxhash::FxHashMap::default(),
-            expr_to_mem_idx: fxhash::FxHashMap::default(),
+            precomputed_expr_to_mem_idx: fxhash::FxHashMap::default(),
+            storage_expr_to_mem_idx: fxhash::FxHashMap::default(),
             //global_mem_size: 0,
             morphism_scopes: Default::default(),
         }
@@ -86,15 +90,40 @@ impl<'a> AsmBuilder<'a> {
         // Produce a map from input variables to this nodes to their indices in the concatinated
         // memory. Also compute the total amount of memory used so far.
         let mut total_memory_size = parents.iter().try_fold(0i64, |base, node| match node {
-            ComputeNode::NonLeaf { var, reads, .. } => {
+            ComputeNode::Var { var, reads, .. } => {
                 self.var_to_mem_idx.insert((var.name.clone(), *reads), base);
                 let size = var.expr.get_ty(contract).size(handler, contract)?;
                 Ok(base + 1 + size as i64)
             }
-            ComputeNode::Leaf { .. } => Ok(base),
+            ComputeNode::Constraint { .. } => Ok(base),
+            ComputeNode::Expr { expr, .. } => {
+                self.precomputed_expr_to_mem_idx.insert(*expr, base);
+                let size = expr.get_ty(contract).size(handler, contract)?;
+                Ok(base + 1 + size as i64)
+            }
         })?;
 
         let mut asm = Vec::new();
+
+        // First, collect all storage accesses used in the node expression, and allocate enough
+        // memory for all of them. We do this ahead of time so that we know exactly how the size of
+        // memory allocated. Due to short-circuting, this also means that some allocations may not
+        // be used, but this is okay for now.
+        for access in &expr.collect_storage_accesses(contract) {
+            let num_keys = access.get_ty(contract).storage_keys(handler, contract)? as i64;
+            let access_size = access.get_ty(contract).size(handler, contract)? as i64;
+            let alloc_size = 2 * num_keys // for each key, add the data address then its length
+                + access_size; // then lay out the data read from each key, sequentiallly
+
+            asm.extend([PUSH(alloc_size), ALOC, POP]);
+
+            // Keep track of the mem index for this access
+            self.storage_expr_to_mem_idx
+                .insert(*access, total_memory_size);
+
+            total_memory_size += alloc_size;
+        }
+
         if node.is_leaf() {
             self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
         } else {
@@ -103,35 +132,17 @@ impl<'a> AsmBuilder<'a> {
             // data and the rest is padding up to expr_size.
             let result_size = 1 + expr_size;
 
-            // Collect all storage accesses used in the node expression, and allocate enough memory
-            // for all of them. We do this ahead of time so that we know exactly how the size of
-            // memory allocated. Due to short-circuting, this also means that some allocations may
-            // not be used, but this is okay for now.
-            for access in &expr.collect_storage_accesses(contract) {
-                let num_keys = access.get_ty(contract).storage_keys(handler, contract)? as i64;
-                let access_size = access.get_ty(contract).size(handler, contract)? as i64;
-                let alloc_size = 2 * num_keys // for each key, start with the data address then its length
-                    + access_size; // then lay out the data read from each key, sequentiallly,
-
-                asm.extend([PUSH(alloc_size), ALOC, POP]);
-
-                // Keep track of the mem index for this access
-                self.expr_to_mem_idx.insert(*access, total_memory_size);
-
-                total_memory_size += alloc_size;
-            }
-
             // Allocate enough memory for the returned data, if needed
             if total_memory_size < result_size {
                 asm.extend([PUSH(result_size - total_memory_size), ALOC, POP]);
                 total_memory_size = result_size;
             }
 
-            if expr.get(contract).is_storage_access() {
+            if expr.is_storage_access(contract) {
                 // If `expr` is a storage access, we have to handle it separately because the
                 // returned data might have length < expr_size
                 let num_keys = expr_ty.storage_keys(handler, contract)? as i64;
-                let access_mem_idx = self.expr_to_mem_idx[&expr];
+                let access_mem_idx = self.storage_expr_to_mem_idx[&expr];
 
                 asm.push(PUSH(1)); // mem idx where the data will be stored
                 self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
@@ -187,6 +198,13 @@ impl<'a> AsmBuilder<'a> {
         let old_asm_len = asm.len();
         let expr_ty = expr.get_ty(contract);
         let expr_size = expr_ty.size(handler, contract)? as i64;
+
+        // For precomputed expressions, just load the value from memory
+        if let Some(mem_idx) = self.precomputed_expr_to_mem_idx.get(expr) {
+            asm.extend([PUSH(*mem_idx + 1), PUSH(expr_size), LODR]);
+            return Ok(asm.len() - old_asm_len);
+        }
+
         match self.compile_expr_pointer(handler, asm, expr, contract, pred)? {
             Location::PredicateData => {
                 asm.extend([PUSH(expr_size), DATA]);
@@ -198,7 +216,7 @@ impl<'a> AsmBuilder<'a> {
 
             Location::Storage(is_extern) => {
                 let num_keys = expr_ty.storage_keys(handler, contract)? as i64;
-                let access_mem_idx = self.expr_to_mem_idx[expr];
+                let access_mem_idx = self.storage_expr_to_mem_idx[expr];
 
                 // Read the storage keys into memory
                 asm.extend([
@@ -685,7 +703,7 @@ impl<'a> AsmBuilder<'a> {
                         let num_keys =
                             args[0].get_ty(contract).storage_keys(handler, contract)? as i64;
 
-                        let access_mem_idx = self.expr_to_mem_idx[&args[0]];
+                        let access_mem_idx = self.storage_expr_to_mem_idx[&args[0]];
 
                         // Read the storage keys into memory
                         asm.extend([
@@ -799,8 +817,12 @@ impl<'a> AsmBuilder<'a> {
                 asm.push(MKEYS);
                 Ok(Location::Value)
             }
-            InternalIntrinsic::StorageGet => Ok(Location::Storage(false)),
-            InternalIntrinsic::StorageGetExtern => Ok(Location::Storage(true)),
+            InternalIntrinsic::PreState | InternalIntrinsic::PostState => {
+                Ok(Location::Storage(false))
+            }
+            InternalIntrinsic::PreStateExtern | InternalIntrinsic::PostStateExtern => {
+                Ok(Location::Storage(true))
+            }
         }
     }
 
@@ -1159,7 +1181,7 @@ impl<'a> AsmBuilder<'a> {
 
         // (len out-sz) Allocate space for the new array, and store the pointer in the global
         // section (at the bottom of the stack).
-        asm.push(Temporary::Alloc.into());
+        asm.push(Exprorary::Alloc.into());
         let mapped_ary_global_idx = self.get_global_idx() as i64;
         asm.push(Stack::Push(mapped_ary_global_idx).into());
         asm.push(Stack::Swap.into());
@@ -1221,10 +1243,10 @@ impl<'a> AsmBuilder<'a> {
             Location::Value => {
                 // (ptr result) Just write the result from the stack to the heap.
                 if out_el_size == 1 {
-                    asm.push(Temporary::Store.into());
+                    asm.push(Exprorary::Store.into());
                 } else {
                     asm.push(Stack::Push(out_el_size as i64).into());
-                    asm.push(Temporary::StoreRange.into());
+                    asm.push(Exprorary::StoreRange.into());
                 }
             }
             Location::Heap => todo!(),
