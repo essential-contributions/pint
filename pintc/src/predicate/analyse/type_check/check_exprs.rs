@@ -414,6 +414,10 @@ impl Contract {
                     }
                 }
 
+                Some(Expr::LocalStorageAccess { .. } | Expr::ExternalStorageAccess { .. }) => {
+                    Ok(())
+                }
+
                 // We recurse in three cases:
                 // - a'' is equivalent to a'.
                 // - a[x]' is equivalent to a'[x].

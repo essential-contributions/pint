@@ -51,9 +51,9 @@ predicate test() {
 //
 // predicate ::test(
 // ) {
-//     let ::x: int = __storage_get({0, true});
-//     let ::y: int = __storage_get({1, false});
-//     let ::z: b256 = __storage_get({2, false});
+//     let ::x: int = __pre_state({0, true});
+//     let ::y: int = __pre_state({1, false});
+//     let ::z: b256 = __pre_state({2, false});
 //     constraint (::x == 11);
 //     constraint (::y' < 22);
 //     constraint (::z != 0x3333333333333333333333333333333333333333333333333333333333333333);

@@ -59,8 +59,8 @@ predicate test() {
 //
 // predicate ::test(
 // ) {
-//     let ::x: int = __storage_get({0});
-//     let ::z: {int, int, int} = __storage_get({1, 0});
+//     let ::x: int = __pre_state({0});
+//     let ::z: {int, int, int} = __pre_state({1, 0});
 //     constraint false;
 //     constraint false;
 //     constraint (__size_of(::x) == 0);

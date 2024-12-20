@@ -100,10 +100,10 @@ predicate test(
 //     ::v: int,
 //     ::a: int[5],
 // ) {
-//     let ::x: int = __storage_get({0});
-//     let ::y: int = __storage_get({1});
-//     let ::z: int = __storage_get({2});
-//     let ::external: int = __storage_get_extern(0x44E1AA05940F0A9C02572FCFFC641FA7B3A8F036F07C5B87F17D276E0957CF89, {0});
+//     let ::x: int = __pre_state({0});
+//     let ::y: int = __pre_state({1});
+//     let ::z: int = __pre_state({2});
+//     let ::external: int = __pre_state_extern(0x44E1AA05940F0A9C02572FCFFC641FA7B3A8F036F07C5B87F17D276E0957CF89, {0});
 //     constraint (::e_old == ::external);
 //     constraint (::e_new == ::external');
 //     constraint (::w == (::x + 99));
