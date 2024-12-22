@@ -28,10 +28,6 @@ pub struct AsmBuilder<'a> {
     // A map from storage access expressions to their memory indices.
     expr_to_mem_idx: fxhash::FxHashMap<ExprKey, i64>,
 
-    // The current size of global memory in words.
-    // - Used by loops but postponed until we implement the program graphs.
-    //global_mem_size: usize,
-
     // The location and index for resolveing the path to iterators used within the current
     // morphisms.
     morphism_scopes: Vec<(String, (Location, usize))>,
@@ -40,19 +36,18 @@ pub struct AsmBuilder<'a> {
 type Asm = Vec<essential_asm::Op>;
 
 /// "Location" of an expression:
-/// 1. `PredicateData` expressions refer to expressions that require the `PredicateData` opcode.
-/// 2. `Memory` expressions refer to expressions that are stored in memory and should be ready
-///    using `Load` or `LoadRange`.
-/// 3. `Storage` expressions refer to expressions that are storage keys and need to be read from
-///    using `KeyRange` or `KeyRangeExtern`. The `bool` is `true` if the storage access is external
-///    (i.e. requires `KeyRangeExtern`) and `false` otherwise.
-/// 5. `Value` expressions are just raw values such as immediates or the outputs of binary ops.
+/// 1. `PredicateData` expressions require the `PredicateData` opcode.
+/// 2. `Memory` expressions are stored in memory with the address at the top of the stack and
+///    should be read using `Load` or `LoadRange`.
+/// 3. `Storage` expressions are storage keys and need to be read using `KeyRange` or if the bool
+///    param is true `KeyRangeExtern`.
+/// 4. `Stack` expressions are at the top of the stack.
 #[derive(Debug)]
 enum Location {
     PredicateData,
     Memory,
     Storage(bool),
-    Value,
+    Stack,
 }
 
 impl<'a> AsmBuilder<'a> {
@@ -64,7 +59,6 @@ impl<'a> AsmBuilder<'a> {
             compiled_predicates,
             var_to_mem_idx: fxhash::FxHashMap::default(),
             expr_to_mem_idx: fxhash::FxHashMap::default(),
-            //global_mem_size: 0,
             morphism_scopes: Default::default(),
         }
     }
@@ -211,7 +205,7 @@ impl<'a> AsmBuilder<'a> {
                 ]);
             }
 
-            Location::Value => {}
+            Location::Stack => {}
         }
         Ok(asm.len() - old_asm_len)
     }
@@ -292,19 +286,19 @@ impl<'a> AsmBuilder<'a> {
         match expr.get(contract) {
             Expr::Immediate { value, .. } => {
                 compile_immediate(handler, asm, value)?;
-                Ok(Location::Value)
+                Ok(Location::Stack)
             }
             Expr::Array { elements, .. } => {
                 for element in elements {
                     self.compile_expr(handler, asm, element, contract, pred)?;
                 }
-                Ok(Location::Value)
+                Ok(Location::Stack)
             }
             Expr::Tuple { fields, .. } => {
                 for (_, field) in fields {
                     self.compile_expr(handler, asm, field, contract, pred)?;
                 }
-                Ok(Location::Value)
+                Ok(Location::Stack)
             }
             Expr::Path(path, _) => self.compile_path(handler, asm, path, Reads::Pre, pred),
             Expr::UnionVariant { path, value, .. } => {
@@ -407,7 +401,7 @@ impl<'a> AsmBuilder<'a> {
 
                 Location::Memory => todo!(),
                 Location::Storage(_) => todo!(),
-                Location::Value => todo!(),
+                Location::Stack => todo!(),
             }
         } else if let Some((param_index, _)) = pred
             .params
@@ -446,7 +440,7 @@ impl<'a> AsmBuilder<'a> {
             UnaryOp::Not => {
                 self.compile_expr(handler, asm, expr, contract, pred)?;
                 asm.push(NOT);
-                Ok(Location::Value)
+                Ok(Location::Stack)
             }
             UnaryOp::NextState => {
                 if let Expr::Path(path, _) = expr.get(contract) {
@@ -464,7 +458,7 @@ impl<'a> AsmBuilder<'a> {
                 asm.push(PUSH(0));
                 self.compile_expr(handler, asm, expr, contract, pred)?;
                 asm.push(SUB);
-                Ok(Location::Value)
+                Ok(Location::Stack)
             }
             UnaryOp::Error => {
                 Err(handler.emit_internal_err("unexpected Unary::Error", empty_span()))
@@ -570,7 +564,7 @@ impl<'a> AsmBuilder<'a> {
                 asm.insert(rhs_position + 3, POP);
             }
         }
-        Ok(Location::Value)
+        Ok(Location::Stack)
     }
 
     fn compile_intrinsic_call(
@@ -707,7 +701,7 @@ impl<'a> AsmBuilder<'a> {
                             asm.extend([PUSH(access_mem_idx + 1), LOD]);
                         }
                     }
-                    Location::PredicateData | Location::Value => {
+                    Location::PredicateData | Location::Stack => {
                         // These "locations" can just rely on the knwon size of the type since they
                         // can't be `nil`.
                         asm.push(PUSH(
@@ -766,7 +760,7 @@ impl<'a> AsmBuilder<'a> {
             }
         }
 
-        Ok(Location::Value)
+        Ok(Location::Stack)
     }
 
     fn compile_internal_intrinsic_call(
@@ -793,11 +787,11 @@ impl<'a> AsmBuilder<'a> {
         match kind {
             InternalIntrinsic::EqSet => {
                 asm.push(EQST);
-                Ok(Location::Value)
+                Ok(Location::Stack)
             }
             InternalIntrinsic::MutKeys => {
                 asm.push(MKEYS);
-                Ok(Location::Value)
+                Ok(Location::Stack)
             }
             InternalIntrinsic::StorageGet => Ok(Location::Storage(false)),
             InternalIntrinsic::StorageGetExtern => Ok(Location::Storage(true)),
@@ -843,7 +837,7 @@ impl<'a> AsmBuilder<'a> {
 
         asm.extend([PUSH(data_to_hash_size as i64), SHA2, PEX]);
 
-        Ok(Location::Value)
+        Ok(Location::Stack)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -876,7 +870,7 @@ impl<'a> AsmBuilder<'a> {
 
         asm.extend([PUSH(data_to_hash_size as i64), SHA2, PEX]);
 
-        Ok(Location::Value)
+        Ok(Location::Stack)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -928,7 +922,7 @@ impl<'a> AsmBuilder<'a> {
                 asm.push(SLTR);
             }
         }
-        Ok(Location::Value)
+        Ok(Location::Stack)
     }
 
     fn compile_index(
@@ -942,7 +936,7 @@ impl<'a> AsmBuilder<'a> {
     ) -> Result<Location, ErrorEmitted> {
         let location = self.compile_expr_pointer(handler, asm, expr, contract, pred)?;
 
-        if let Location::Value | Location::Storage(_) = location {
+        if let Location::Stack | Location::Storage(_) = location {
             return Err(handler.emit_internal_err(
                 "unexpected index operator for `Location::Value` and `Location::Storage`",
                 empty_span(),
@@ -977,7 +971,7 @@ impl<'a> AsmBuilder<'a> {
     ) -> Result<Location, ErrorEmitted> {
         let location = self.compile_expr_pointer(handler, asm, tuple, contract, pred)?;
 
-        if let Location::Value | Location::Storage(_) = location {
+        if let Location::Stack | Location::Storage(_) = location {
             return Err(handler.emit_internal_err(
                 "unexpected tuple access for `Location::Value` and `Location::Storage`",
                 empty_span(),
@@ -1084,7 +1078,7 @@ impl<'a> AsmBuilder<'a> {
             actual_value_size += 1;
         }
 
-        Ok(Location::Value)
+        Ok(Location::Stack)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -1102,12 +1096,12 @@ impl<'a> AsmBuilder<'a> {
             Location::PredicateData => asm.extend([PUSH(1), DATA]),
 
             // Are these supported?
-            Location::Memory | Location::Storage { .. } | Location::Value => {
+            Location::Memory | Location::Storage { .. } | Location::Stack => {
                 unimplemented!("support union matches in non- predicate data?")
             }
         }
 
-        Ok(Location::Value)
+        Ok(Location::Stack)
     }
 
     fn compile_union_get_value(
@@ -1126,7 +1120,7 @@ impl<'a> AsmBuilder<'a> {
                 Ok(location)
             }
 
-            Location::Value | Location::Storage { .. } => {
+            Location::Stack | Location::Storage { .. } => {
                 unimplemented!("union value or unions in storage")
             }
         }
