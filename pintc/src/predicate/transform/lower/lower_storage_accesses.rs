@@ -1,9 +1,11 @@
 use crate::{
     error::{ErrorEmitted, Handler},
-    expr::{BinaryOp, Expr, ExternalIntrinsic, InternalIntrinsic, IntrinsicKind, TupleAccess},
+    expr::{
+        BinaryOp, Expr, ExternalIntrinsic, InternalIntrinsic, IntrinsicKind, TupleAccess, UnaryOp,
+    },
     predicate::{ConstraintDecl, Contract, ExprKey, PredKey},
     span::empty_span,
-    types::{PrimitiveKind, Type},
+    types::{int, r#bool, Type},
 };
 use fxhash::FxHashSet;
 
@@ -27,30 +29,21 @@ fn lower_storage_accesses_in_predicate(
     contract: &mut Contract,
     pred_key: PredKey,
 ) -> Result<(), ErrorEmitted> {
-    let int_ty = Type::Primitive {
-        kind: PrimitiveKind::Int,
-        span: empty_span(),
-    };
-
-    let bool_ty = Type::Primitive {
-        kind: PrimitiveKind::Bool,
-        span: empty_span(),
-    };
-
-    let variable_exprs = contract
+    let storage_accesses: FxHashSet<_> = contract
         .preds
         .get(pred_key)
         .map(|pred| {
             pred.variables()
                 .map(|(_, variable)| variable.expr)
-                .collect::<Vec<_>>()
+                .chain(
+                    pred.constraints
+                        .iter()
+                        .map(|ConstraintDecl { expr, .. }| *expr),
+                )
+                .flat_map(|expr| expr.collect_storage_accesses(contract))
+                .collect::<FxHashSet<_>>()
         })
         .unwrap_or_default();
-
-    let storage_accesses: FxHashSet<_> = variable_exprs
-        .iter()
-        .flat_map(|expr| expr.collect_storage_accesses(contract))
-        .collect();
 
     let mut keys_set_field_types = vec![];
     let mut keys_set_fields = vec![];
@@ -58,7 +51,7 @@ fn lower_storage_accesses_in_predicate(
 
     for expr in storage_accesses {
         let expr_ty = expr.get_ty(contract).clone();
-        let (addr, mutable, key) = get_base_storage_key(handler, &expr, contract)?;
+        let (addr, mutable, next_state, key) = get_base_storage_key(handler, &expr, contract)?;
 
         // Type of this key is a tuple of all the elements of this key
         let key_ty = Type::Tuple {
@@ -80,10 +73,30 @@ fn lower_storage_accesses_in_predicate(
 
         // This is the storage intrinsic we're lowering the storage access to
         let storage_get_intrinsic = contract.exprs.insert(
-            if let Some(addr) = addr {
+            if !next_state {
+                if let Some(addr) = addr {
+                    Expr::IntrinsicCall {
+                        kind: (
+                            IntrinsicKind::Internal(InternalIntrinsic::PreStateExtern),
+                            empty_span(),
+                        ),
+                        args: vec![addr, key_expr],
+                        span: empty_span(),
+                    }
+                } else {
+                    Expr::IntrinsicCall {
+                        kind: (
+                            IntrinsicKind::Internal(InternalIntrinsic::PreState),
+                            empty_span(),
+                        ),
+                        args: vec![key_expr],
+                        span: empty_span(),
+                    }
+                }
+            } else if let Some(addr) = addr {
                 Expr::IntrinsicCall {
                     kind: (
-                        IntrinsicKind::Internal(InternalIntrinsic::StorageGetExtern),
+                        IntrinsicKind::Internal(InternalIntrinsic::PostStateExtern),
                         empty_span(),
                     ),
                     args: vec![addr, key_expr],
@@ -92,7 +105,7 @@ fn lower_storage_accesses_in_predicate(
             } else {
                 Expr::IntrinsicCall {
                     kind: (
-                        IntrinsicKind::Internal(InternalIntrinsic::StorageGet),
+                        IntrinsicKind::Internal(InternalIntrinsic::PostState),
                         empty_span(),
                     ),
                     args: vec![key_expr],
@@ -114,7 +127,7 @@ fn lower_storage_accesses_in_predicate(
             keys_set_fields.push((None, key_expr));
 
             // Push the key size and `Type::Int`
-            keys_set_field_types.push((None, int_ty.clone()));
+            keys_set_field_types.push((None, int()));
             let key_size = key_ty.size(handler, contract)?;
             keys_set_fields.push((None, contract.exprs.insert_int(key_size as i64)));
 
@@ -141,7 +154,7 @@ fn lower_storage_accesses_in_predicate(
                             rhs: idx,
                             span: empty_span(),
                         },
-                        int_ty.clone(),
+                        int(),
                     );
                     *last = add;
 
@@ -159,7 +172,7 @@ fn lower_storage_accesses_in_predicate(
                     keys_set_fields.push((None, next_key_expr));
 
                     // Push the next key size and `Type::Int`
-                    keys_set_field_types.push((None, int_ty.clone()));
+                    keys_set_field_types.push((None, int()));
                     let key_size = next_key_ty.size(handler, contract)?;
                     keys_set_fields.push((None, contract.exprs.insert_int(key_size as i64)));
 
@@ -170,7 +183,7 @@ fn lower_storage_accesses_in_predicate(
         }
     }
 
-    keys_set_field_types.push((None, int_ty.clone()));
+    keys_set_field_types.push((None, int()));
     keys_set_fields.push((None, contract.exprs.insert_int(keys_set_size as i64)));
 
     let keys_set_ty = Type::Tuple {
@@ -217,7 +230,7 @@ fn lower_storage_accesses_in_predicate(
             args: vec![mut_keys_intrinsic, key_set_expr],
             span: empty_span(),
         },
-        bool_ty,
+        r#bool(),
     );
 
     // Finally, insert the `__eq_set` expression above in a new constraint
@@ -234,20 +247,23 @@ fn lower_storage_accesses_in_predicate(
 /// Given a predicate in a contract and an `ExprKey`, produce the following:
 /// 1. An optional external predicate address, if `ExprKey` is an external storage access.
 /// 2. A `bool` indicating whether the key is mutable (i.e. should belong to the set of mutable
-///    keys)
+///    keys).
+/// 3. A `bool` indicating whether the access is a post-state access.
 /// 3. The key as a vector of `ExprKey`.
 fn get_base_storage_key(
     handler: &Handler,
     expr: &ExprKey,
     contract: &mut Contract,
-) -> Result<(Option<ExprKey>, bool, Vec<ExprKey>), ErrorEmitted> {
-    let int_ty = Type::Primitive {
-        kind: PrimitiveKind::Int,
-        span: empty_span(),
-    };
-
+) -> Result<(Option<ExprKey>, bool, bool, Vec<ExprKey>), ErrorEmitted> {
     let expr_ty = expr.get_ty(contract).clone();
     match &expr.get(contract).clone() {
+        Expr::UnaryOp {
+            op: UnaryOp::NextState,
+            expr,
+            ..
+        } => get_base_storage_key(handler, expr, contract)
+            .map(|(addr, mutable, _, key)| (addr, mutable, true /* post-state */, key)),
+
         Expr::IntrinsicCall { kind, args, .. } => {
             if let (IntrinsicKind::External(ExternalIntrinsic::VecLen), _) = kind {
                 assert_eq!(args.len(), 1);
@@ -294,6 +310,7 @@ fn get_base_storage_key(
             Ok((
                 None, // local storage
                 *mutable,
+                false, // pre-state
                 if storage_var.ty.is_any_primitive()
                     || storage_var.ty.is_union()
                     || storage_var.ty.is_map()
@@ -324,7 +341,8 @@ fn get_base_storage_key(
                 Some(*address), // interface instance address
                 // mutability is not relevant for external accesses. External keys are
                 // constrained by their own contracts.
-                false,
+                false, // non-mutable (not owned by this contract)
+                false, // pre-state
                 if storage_var.ty.is_any_primitive()
                     || storage_var.ty.is_union()
                     || storage_var.ty.is_map()
@@ -342,7 +360,8 @@ fn get_base_storage_key(
 
         Expr::Index { expr, index, .. } => {
             let inner_expr_ty = expr.get_ty(contract).clone();
-            let (addr, mutable, mut key) = get_base_storage_key(handler, expr, contract)?;
+            let (addr, mutable, next_state, mut key) =
+                get_base_storage_key(handler, expr, contract)?;
             if inner_expr_ty.is_map() || inner_expr_ty.is_vector() {
                 // next key element is the index itself
                 key.push(*index);
@@ -370,7 +389,7 @@ fn get_base_storage_key(
                             rhs: el_size,
                             span: empty_span(),
                         },
-                        int_ty.clone(),
+                        int(),
                     );
                     let add = contract.exprs.insert(
                         Expr::BinaryOp {
@@ -379,16 +398,17 @@ fn get_base_storage_key(
                             rhs: mul,
                             span: empty_span(),
                         },
-                        int_ty.clone(),
+                        int(),
                     );
                     *last = add;
                 }
             }
-            Ok((addr, mutable, key))
+            Ok((addr, mutable, next_state, key))
         }
 
         Expr::TupleFieldAccess { tuple, field, .. } => {
-            let (addr, mutable, mut key) = get_base_storage_key(handler, tuple, contract)?;
+            let (addr, mutable, next_state, mut key) =
+                get_base_storage_key(handler, tuple, contract)?;
 
             // Grab the fields of the tuple
             let Type::Tuple { ref fields, .. } = tuple.get_ty(contract) else {
@@ -430,11 +450,11 @@ fn get_base_storage_key(
                         rhs: offset,
                         span: empty_span(),
                     },
-                    int_ty.clone(),
+                    int(),
                 );
                 *last = add;
             }
-            Ok((addr, mutable, key))
+            Ok((addr, mutable, next_state, key))
         }
 
         _ => Err(handler.emit_internal_err(

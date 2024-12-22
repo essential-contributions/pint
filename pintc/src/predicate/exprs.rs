@@ -156,7 +156,10 @@ impl ExprKey {
                 matches!(
                     kind.0,
                     IntrinsicKind::Internal(
-                        InternalIntrinsic::StorageGet | InternalIntrinsic::StorageGetExtern
+                        InternalIntrinsic::PreState
+                            | InternalIntrinsic::PostState
+                            | InternalIntrinsic::PreStateExtern
+                            | InternalIntrinsic::PostStateExtern
                     ) | IntrinsicKind::External(ExternalIntrinsic::VecLen)
                 ) || args.iter().any(|arg| arg.can_panic(contract, pred))
             }
@@ -287,6 +290,18 @@ impl ExprKey {
                     storage_accesses.insert(*self);
                 }
 
+                Expr::UnaryOp {
+                    op: UnaryOp::NextState,
+                    expr,
+                    ..
+                } => {
+                    if expr.is_storage_access(contract) {
+                        storage_accesses.insert(*self);
+                    } else {
+                        storage_accesses.extend(expr.collect_storage_accesses(contract));
+                    }
+                }
+
                 Expr::UnaryOp { expr, .. } => {
                     storage_accesses.extend(expr.collect_storage_accesses(contract));
                 }
@@ -300,7 +315,10 @@ impl ExprKey {
                     if let (
                         IntrinsicKind::External(ExternalIntrinsic::VecLen)
                         | IntrinsicKind::Internal(
-                            InternalIntrinsic::StorageGet | InternalIntrinsic::StorageGetExtern,
+                            InternalIntrinsic::PostState
+                            | InternalIntrinsic::PreState
+                            | InternalIntrinsic::PostStateExtern
+                            | InternalIntrinsic::PreStateExtern,
                         ),
                         _,
                     ) = kind
@@ -579,13 +597,16 @@ impl ExprKey {
         path_to_var_exprs
     }
 
+    pub fn is_storage_access_intrinsic(&self, contract: &Contract) -> bool {
+        self.get(contract).is_storage_access_intrinsic()
+    }
+
+    pub fn is_post_storage_access_intrinsic(&self, contract: &Contract) -> bool {
+        self.get(contract).is_post_storage_access_intrinsic()
+    }
+
     pub fn is_storage_access(&self, contract: &Contract) -> bool {
-        match self.get(contract) {
-            Expr::LocalStorageAccess { .. } | Expr::ExternalStorageAccess { .. } => true,
-            Expr::TupleFieldAccess { tuple, .. } => tuple.is_storage_access(contract),
-            Expr::Index { expr, .. } => expr.is_storage_access(contract),
-            _ => false,
-        }
+        self.get(contract).is_storage_access(contract)
     }
 }
 

@@ -162,14 +162,14 @@ predicate foo() {
 //
 // predicate ::foo(
 // ) {
-//     let ::t: {int, int} = __storage_get({0, 0});
-//     let ::t1: {int, {int, int}} = __storage_get({1, 0});
-//     let ::u: {bool, bool} = __storage_get({2, 0});
-//     let ::u1: {bool, {bool, bool}} = __storage_get({3, 0});
-//     let ::v: {b256, b256} = __storage_get({4, 0});
-//     let ::v1: {b256, {b256, b256}} = __storage_get({5, 0});
-//     let ::w: {int[2], int[2]} = __storage_get({6, 0});
-//     let ::w1: {int[2], {int[2], int[2]}} = __storage_get({7, 0});
+//     let ::t: {int, int} = __pre_state({0, 0});
+//     let ::t1: {int, {int, int}} = __pre_state({1, 0});
+//     let ::u: {bool, bool} = __pre_state({2, 0});
+//     let ::u1: {bool, {bool, bool}} = __pre_state({3, 0});
+//     let ::v: {b256, b256} = __pre_state({4, 0});
+//     let ::v1: {b256, {b256, b256}} = __pre_state({5, 0});
+//     let ::w: {int[2], int[2]} = __pre_state({6, 0});
+//     let ::w1: {int[2], {int[2], int[2]}} = __pre_state({7, 0});
 //     constraint (::t'.0 == 0);
 //     constraint (::t'.1 == 0);
 //     constraint (::t'.0 == 0);
