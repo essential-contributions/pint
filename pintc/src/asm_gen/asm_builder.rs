@@ -6,7 +6,7 @@ use crate::{
         TupleAccess, UnaryOp,
     },
     predicate::{Contract, ExprKey, Predicate},
-    span::empty_span,
+    span::{empty_span, Spanned},
     types::Type,
 };
 use essential_asm::short::*;
@@ -28,9 +28,8 @@ pub struct AsmBuilder<'a> {
     // A map from storage access expressions to their memory indices.
     expr_to_mem_idx: fxhash::FxHashMap<ExprKey, i64>,
 
-    // The location and index for resolveing the path to iterators used within the current
-    // morphisms.
-    morphism_scopes: Vec<(String, (Location, usize))>,
+    // Name of the parameter to the current morphism body, along with its location and size.
+    morphism_param: Option<(String, Location, usize)>,
 }
 
 type Asm = Vec<essential_asm::Op>;
@@ -59,7 +58,7 @@ impl<'a> AsmBuilder<'a> {
             compiled_predicates,
             var_to_mem_idx: fxhash::FxHashMap::default(),
             expr_to_mem_idx: fxhash::FxHashMap::default(),
-            morphism_scopes: Default::default(),
+            morphism_param: Default::default(),
         }
     }
 
@@ -152,10 +151,16 @@ impl<'a> AsmBuilder<'a> {
                     STO,
                 ]);
 
+                // Reserve scratch space at the bottom of the stack.  Currently used by morphisms.
+                asm.extend([PUSH(2), RES]);
+
                 // Store the actual data
                 asm.push(PUSH(1)); // mem idx where the data will be stored
                 self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
                 asm.extend([PUSH(expr_size), STOR]);
+
+                // Free the scratch. (Need an 'unreserve' opcode?)
+                asm.extend([POP, POP]);
             }
 
             // If needed, free everything down to `expr_size + 1`. We know we have at least this
@@ -344,14 +349,9 @@ impl<'a> AsmBuilder<'a> {
             Expr::UnionValue { union_expr, .. } => {
                 self.compile_union_get_value(handler, asm, union_expr, contract, pred)
             }
-            Expr::Map { span, .. } => {
-                // self.compile_loop_map(handler, asm, &param.name, range, body, contract, pred),
-                Err(handler.emit_internal_err(
-                    "ASM gen for loops is a work in progress, pending the change to the \
-                    program graph structure",
-                    span.clone(),
-                ))
-            }
+            Expr::Map {
+                param, range, body, ..
+            } => self.compile_loop_map(handler, asm, &param.name, range, body, contract, pred),
             Expr::Error(_)
             | Expr::LocalStorageAccess { .. }
             | Expr::ExternalStorageAccess { .. }
@@ -378,25 +378,29 @@ impl<'a> AsmBuilder<'a> {
         reads: Reads,
         pred: &Predicate,
     ) -> Result<Location, ErrorEmitted> {
-        if let Some((loc, global_idx)) =
-            self.morphism_scopes
-                .iter()
-                .rev()
-                .find_map(|(param_name, loc)| {
-                    (param_name == path || path.starts_with("::") && param_name == &path[2..])
-                        .then_some(loc)
-                })
+        if let Some((loc, sz)) = self
+            .morphism_param
+            .as_ref()
+            .and_then(|(param_name, loc, sz)| {
+                (param_name == path || path.starts_with("::") && param_name == &path[2..])
+                    .then_some((loc, sz))
+            })
         {
             // This path is to a morphism parameter.  We need to put the array entry onto the stack
             // using the current repeat count as an index.
             match loc {
                 Location::PredicateData => {
+                    // The data slot index and the value size are stored at the very bottom of the
+                    // stack in scratch space.
                     asm.extend([
-                        PUSH(*global_idx as i64), // global_idx refers to predicate parameter index
-                        LOD,
-                        PUSH(0), // Placeholder. Might as well do it here too
+                        PUSH(0),
+                        LODS, // Slot idx.
+                        PUSH(*sz as i64),
+                        REPC,
+                        MUL,  // Element size multiplied by the repeat counter.
+                        DATA, // Read from predicate data.
                     ]);
-                    Ok(Location::PredicateData)
+                    Ok(Location::Stack)
                 }
 
                 Location::Memory => todo!(),
@@ -1081,7 +1085,6 @@ impl<'a> AsmBuilder<'a> {
         Ok(Location::Stack)
     }
 
-    #[allow(clippy::too_many_arguments)]
     fn compile_union_tag_is(
         &mut self,
         handler: &Handler,
@@ -1126,13 +1129,6 @@ impl<'a> AsmBuilder<'a> {
         }
     }
 
-    /*  This is the initial attempt at ASM gen for map which we've decided to postpone until we
-     *  have the program graph refactor done.
-     *
-     *  The pre-graph model doesn't really allow global values (efficiently) which the loops
-     *  require -- to store where iterator can be found during the map and also where the mapped
-     *  array is located once done -- but the graph model supports it pretty much explicitly.
-
     fn compile_loop_map(
         &mut self,
         handler: &Handler,
@@ -1143,106 +1139,62 @@ impl<'a> AsmBuilder<'a> {
         contract: &Contract,
         pred: &Predicate,
     ) -> Result<Location, ErrorEmitted> {
-
-
         let range_ty = range_key.get_ty(contract);
-        if !range_ty.is_array() {
+
+        let Some(in_el_ty) = range_ty.get_array_el_type() else {
             todo!("Implement map expressions for non-array ranges.")
-        }
+        };
+        let in_el_size = in_el_ty.size(handler, contract)?;
 
-        let body_ty = body_key.get_ty(contract);
-        let out_el_size = body_ty.size(handler, contract)?;
-
-        // ( ) Get number of entries for both arrays and dupe it.
-        self.compile_array_num_entries(handler, asm, range_ty, contract)?;
-        asm.push(Stack::Dup.into());
-
-        // (len len) Determine the size of the mapped array.
-        if out_el_size > 1 {
-            asm.push(Stack::Push(out_el_size as i64).into());
-            asm.push(Alu::Mul.into());
-        }
-
-        // (len out-sz) Allocate space for the new array, and store the pointer in the global
-        // section (at the bottom of the stack).
-        asm.push(Temporary::Alloc.into());
-        let mapped_ary_global_idx = self.get_global_idx() as i64;
-        asm.push(Stack::Push(mapped_ary_global_idx).into());
-        asm.push(Stack::Swap.into());
-        asm.push(Stack::Store.into());
-
-        // (len) Get the location of the input array.
-        let in_ary_global_idx = self.get_global_idx();
+        // Get the location of the input array.
         let in_ary_location = self.compile_expr_pointer(handler, asm, range_key, contract, pred)?;
         match in_ary_location {
-            Location::PredicateData | Location::Memory => {
-                // (len loc 0) Currently when compiling these there's a slot index and a zero pushed to
-                // the stack.  We don't need the zero.  XXX: Fix this.
-                asm.push(Stack::Pop.into());
-
-                // (len loc) We need to store the slot index in the global area so it can be resolved
+            Location::PredicateData => {
+                // When compiling these there's a slot index and a zero (index) pushed to the
+                // stack. We need to store the slot index in the global area so it can be resolved
                 // by the iterator.
-                asm.push(Stack::Push(mapped_ary_global_idx).into());
-                asm.push(Stack::Swap.into());
-                asm.push(Stack::Store.into());
+                asm.extend([
+                    POP,     // We don't need the index.
+                    PUSH(0), // Scratch address at top of stack.
+                    SWAP,
+                    STOS,
+                ]);
             }
 
-            Location::Storage(_) => todo!(),
-            Location::Value => todo!(),
-            Location::Heap => todo!(),
+            Location::Memory => todo!("map morphism input array is in memory"),
+            Location::Storage(_) => todo!("map morphism input array is in storage"),
+            Location::Stack => todo!("map morphism input array is on stack"),
         }
 
-        // (len) Depending on which type of location the array lives we need to bind the
+        // Depending on which type of location the array lives we need to bind the
         // iterator.  The slot index is stored in the global area.
-        self.morphism_scopes
-            .push((param_name.clone(), (in_ary_location, in_ary_global_idx)));
+        self.morphism_param = Some((param_name.clone(), in_ary_location, in_el_size));
 
-        // (len) Start the loop, counting up.
-        asm.push(Stack::Push(1).into());
-        asm.push(Stack::Repeat.into());
+        // Put the array length onto the stack.
+        self.compile_array_num_entries(handler, asm, range_ty, contract)?;
 
-        // () Load the offset from the global area.
-        asm.push(Stack::Push(mapped_ary_global_idx).into());
-        asm.push(Stack::Load.into());
+        // Start the loop, counting up.
+        asm.extend([
+            PUSH(1), // 1 == 0..len
+            REP,
+        ]);
 
-        // (idx) Multiply the index by the result size.
-        if out_el_size > 1 {
-            asm.push(Stack::Push(out_el_size as i64).into());
-            asm.push(Alu::Mul.into())
-        }
-
-        // (idx*sz) Then multiply by the repeat count to get the array entry index.
-        asm.push(Access::RepeatCounter.into());
-        asm.push(Alu::Mul.into());
-
-        // (idx*sz*repc) Compile the loop body.
+        // Compile the loop body.
         let body_result_location =
             self.compile_expr_pointer(handler, asm, body_key, contract, pred)?;
 
         match body_result_location {
-            Location::PredicateData => todo!(),
-            Location::Memory => todo!(),
-            Location::Storage(_) => todo!(),
+            Location::PredicateData => todo!("Copy morphism body result from pred data to stack"),
+            Location::Memory => todo!("Copy morphism body result from memory to stack"),
+            Location::Storage(_) => todo!("Copy morphism body result from storage to stack"),
 
-            Location::Value => {
-                // (ptr result) Just write the result from the stack to the heap.
-                if out_el_size == 1 {
-                    asm.push(Temporary::Store.into());
-                } else {
-                    asm.push(Stack::Push(out_el_size as i64).into());
-                    asm.push(Temporary::StoreRange.into());
-                }
-            }
-            Location::Heap => todo!(),
+            Location::Stack => {} // Leave it.
         }
 
         // Finish the loop.
-        asm.push(Stack::RepeatEnd.into());
+        asm.push(REPE);
 
-        // Return the mapped array.
-        asm.push(Stack::Push(mapped_ary_global_idx).into());
-        asm.push(Stack::Load.into());
-        Ok(Location::Heap)
+        Ok(Location::Stack)
     }
 
     fn compile_array_num_entries(
@@ -1273,15 +1225,8 @@ impl<'a> AsmBuilder<'a> {
             ));
         };
 
-        asm.push(Stack::Push(array_size).into());
+        asm.push(PUSH(array_size));
 
         Ok(())
     }
-
-    fn get_global_idx(&mut self) -> usize {
-        let idx = self.global_mem_size;
-        self.global_mem_size += 1;
-        idx
-    }
-    */
 }

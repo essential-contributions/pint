@@ -3479,94 +3479,40 @@ predicate test(k: int, l: outer, m: outer) {
     );
 }
 
-// Disabled until we implement program graphs and then do ASM gen for maps.
-//
-// #[test]
-// fn map_fixed_a() {
-//     check(
-//         &compile(
-//             r#"
-// predicate test(ary: int[10]) {
-//     let evens: int[10] = map x in ary {
-//         x % 2 == 1 ? x + 1 : x
-//     };
-// }
-// "#,
-//         )
-//         .to_string(),
-//         expect_test::expect![[r#"
-//             predicate ::test {
-//                 --- Constraints ---
-//                 constraint 0
-//                   Access(MutKeys)
-//                   Stack(Push(0))
-//                   Pred(EqSet)
-//                 --- State Reads ---
-//             }
-//
-//         "#]],
-//     );
-// }
-//
-// #[test]
-// fn map_fixed_b() {
-//     check(
-//         &compile(
-//             r#"
-// predicate test(ary: int[10]) {
-//     let evens: int[10] = map x in ary {
-//         x % 2 == 1 ? x + 1 : x
-//     };
-//
-//     constraint evens[4] + evens[0] == 10;
-// }
-// "#,
-//         )
-//         .to_string(),
-//         expect_test::expect![[r#"
-//         "#]],
-//     );
-// }
-//
-// #[test]
-// fn map_fixed_c() {
-//     check(
-//         &compile(
-//             r#"
-// predicate test(ary: int[10]) {
-//     let zero_map: bool[10] = map y in ary { y == 0 };
-// }
-// "#,
-//         )
-//         .to_string(),
-//         expect_test::expect![[r#"
-//             predicate ::test {
-//                 --- Constraints ---
-//                 constraint 0
-//                   Access(MutKeys)
-//                   Stack(Push(0))
-//                   Pred(EqSet)
-//                 --- State Reads ---
-//             }
-//
-//         "#]],
-//     );
-// }
-//
-// #[test]
-// fn map_fixed_d() {
-//     check(
-//         &compile(
-//             r#"
-// predicate test(ary: int[10]) {
-//     let zero_map: bool[10] = map y in ary { y == 0 };
-//
-//     constraint !zero_map[3] && zero_map[7];
-// }
-// "#,
-//         )
-//         .to_string(),
-//         expect_test::expect![[r#"
-//         "#]],
-//     );
-// }
+#[test]
+fn map_fixed_a() {
+    check(
+        &compile(
+            r#"
+predicate test(ary: int[10]) {
+    let evens: int[10] = map x in ary {
+        x % 2 == 1 ? x + 1 : x
+    };
+
+    constraint evens[4] + evens[0] == 10;
+}
+"#,
+        )
+        .to_string(),
+        expect_test::expect![[r#"
+        "#]],
+    );
+}
+
+#[test]
+fn map_fixed_b() {
+    check(
+        &compile(
+            r#"
+predicate test(ary: int[10]) {
+    let zero_map: bool[10] = map y in ary { y == 0 };
+
+    constraint !zero_map[3] && zero_map[7];
+}
+"#,
+        )
+        .to_string(),
+        expect_test::expect![[r#"
+        "#]],
+    );
+}
