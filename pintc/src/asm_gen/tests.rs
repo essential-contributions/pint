@@ -316,15 +316,14 @@ fn select() {
                   Stack(Push(0))
                   Stack(Push(1))
                   Access(PredicateData)
-                  Stack(Push(7))
+                  Stack(Push(6))
                   Stack(Push(0))
                   Memory(Load)
                   Stack(Push(0))
                   Pred(Eq)
                   TotalControlFlow(JumpForwardIf)
                   Stack(Push(1))
-                  Stack(Push(1))
-                  Memory(LoadRange)
+                  Memory(Load)
                   Stack(Push(2))
                   Stack(Push(1))
                   TotalControlFlow(JumpForwardIf)
@@ -806,11 +805,9 @@ fn next_state() {
                   Pred(Eq)
                 node 4
                   Stack(Push(1))
-                  Stack(Push(1))
-                  Memory(LoadRange)
+                  Memory(Load)
                   Stack(Push(3))
-                  Stack(Push(1))
-                  Memory(LoadRange)
+                  Memory(Load)
                   Alu(Sub)
                   Stack(Push(5))
                   Pred(Eq)
@@ -972,20 +969,17 @@ predicate Simple() {
                   Pred(EqSet)
                 node 4
                   Stack(Push(1))
-                  Stack(Push(1))
-                  Memory(LoadRange)
+                  Memory(Load)
                   Stack(Push(44))
                   Pred(Eq)
                 node 5
                   Stack(Push(1))
-                  Stack(Push(1))
-                  Memory(LoadRange)
+                  Memory(Load)
                   Stack(Push(42))
                   Pred(Eq)
                 node 6
                   Stack(Push(1))
-                  Stack(Push(1))
-                  Memory(LoadRange)
+                  Memory(Load)
                   Stack(Push(98))
                   Pred(Eq)
             }
@@ -1477,14 +1471,12 @@ predicate Foo() {
                   Pred(EqSet)
                 node 12
                   Stack(Push(1))
-                  Stack(Push(1))
-                  Memory(LoadRange)
+                  Memory(Load)
                   Stack(Push(0))
                   Pred(Eq)
                 node 13
                   Stack(Push(1))
-                  Stack(Push(1))
-                  Memory(LoadRange)
+                  Memory(Load)
                   Stack(Push(0))
                   Pred(Eq)
                 node 14
@@ -1511,14 +1503,12 @@ predicate Foo() {
                   Pred(EqRange)
                 node 16
                   Stack(Push(1))
-                  Stack(Push(1))
-                  Memory(LoadRange)
+                  Memory(Load)
                   Stack(Push(0))
                   Pred(Eq)
                 node 17
                   Stack(Push(1))
-                  Stack(Push(1))
-                  Memory(LoadRange)
+                  Memory(Load)
                   Stack(Push(0))
                   Pred(Eq)
                 node 18
@@ -1545,8 +1535,7 @@ predicate Foo() {
                   Pred(EqRange)
                 node 20
                   Stack(Push(1))
-                  Stack(Push(1))
-                  Memory(LoadRange)
+                  Memory(Load)
                   Stack(Push(0))
                   Pred(Eq)
                 node 21
@@ -1710,14 +1699,12 @@ predicate Foo() {
                   Pred(EqSet)
                 node 5
                   Stack(Push(1))
-                  Stack(Push(1))
-                  Memory(LoadRange)
+                  Memory(Load)
                   Stack(Push(0))
                   Pred(Eq)
                 node 6
                   Stack(Push(1))
-                  Stack(Push(1))
-                  Memory(LoadRange)
+                  Memory(Load)
                   Stack(Push(0))
                   Pred(Eq)
                 node 7
@@ -2110,14 +2097,12 @@ predicate Bar() {
                   Pred(EqSet)
                 node 12
                   Stack(Push(1))
-                  Stack(Push(1))
-                  Memory(LoadRange)
+                  Memory(Load)
                   Stack(Push(0))
                   Pred(Eq)
                 node 13
                   Stack(Push(1))
-                  Stack(Push(1))
-                  Memory(LoadRange)
+                  Memory(Load)
                   Stack(Push(0))
                   Pred(Eq)
                 node 14
@@ -2144,14 +2129,12 @@ predicate Bar() {
                   Pred(EqRange)
                 node 16
                   Stack(Push(1))
-                  Stack(Push(1))
-                  Memory(LoadRange)
+                  Memory(Load)
                   Stack(Push(0))
                   Pred(Eq)
                 node 17
                   Stack(Push(1))
-                  Stack(Push(1))
-                  Memory(LoadRange)
+                  Memory(Load)
                   Stack(Push(0))
                   Pred(Eq)
                 node 18
@@ -2178,8 +2161,7 @@ predicate Bar() {
                   Pred(EqRange)
                 node 20
                   Stack(Push(1))
-                  Stack(Push(1))
-                  Memory(LoadRange)
+                  Memory(Load)
                   Stack(Push(0))
                   Pred(Eq)
                 node 21
@@ -2332,8 +2314,7 @@ predicate Foo() {
                   Pred(EqSet)
                 node 4
                   Stack(Push(1))
-                  Stack(Push(1))
-                  Memory(LoadRange)
+                  Memory(Load)
                   Stack(Push(0))
                   Pred(Eq)
                 node 5
@@ -2446,8 +2427,7 @@ predicate Foo() {
                   Pred(EqSet)
                 node 3
                   Stack(Push(1))
-                  Stack(Push(1))
-                  Memory(LoadRange)
+                  Memory(Load)
                   Stack(Push(0))
                   Pred(Eq)
                 node 4
@@ -2671,8 +2651,7 @@ predicate Bar() {
                   Pred(EqSet)
                 node 6
                   Stack(Push(1))
-                  Stack(Push(1))
-                  Memory(LoadRange)
+                  Memory(Load)
                   Stack(Push(0))
                   Pred(Eq)
                 node 7
@@ -2686,8 +2665,7 @@ predicate Bar() {
                   Pred(EqRange)
                 node 8
                   Stack(Push(1))
-                  Stack(Push(1))
-                  Memory(LoadRange)
+                  Memory(Load)
                   Stack(Push(0))
                   Pred(Eq)
                 node 9
@@ -2800,8 +2778,7 @@ predicate Simple() {
                   Pred(EqSet)
                 node 3
                   Stack(Push(1))
-                  Stack(Push(1))
-                  Memory(LoadRange)
+                  Memory(Load)
                   Stack(Push(42))
                   Pred(Eq)
                 node 4
@@ -3020,18 +2997,15 @@ predicate Foo() {
                   Pred(EqSet)
                 node 7
                   Stack(Push(1))
-                  Stack(Push(1))
-                  Memory(LoadRange)
+                  Memory(Load)
                   Stack(Push(3))
-                  Stack(Push(1))
-                  Memory(LoadRange)
+                  Memory(Load)
                   Alu(Sub)
                   Stack(Push(3))
                   Pred(Eq)
                 node 8
                   Stack(Push(1))
-                  Stack(Push(1))
-                  Memory(LoadRange)
+                  Memory(Load)
                   Stack(Push(0))
                   Pred(Eq)
                 node 9
@@ -3046,11 +3020,9 @@ predicate Foo() {
                   Pred(EqRange)
                 node 10
                   Stack(Push(1))
-                  Stack(Push(1))
-                  Memory(LoadRange)
+                  Memory(Load)
                   Stack(Push(3))
-                  Stack(Push(1))
-                  Memory(LoadRange)
+                  Memory(Load)
                   Alu(Sub)
                   Stack(Push(1))
                   Pred(Eq)
@@ -3562,15 +3534,13 @@ predicate test(ary: int[10]) {
                   Stack(Push(1))
                   Alu(Mul)
                   Alu(Add)
-                  Stack(Push(1))
-                  Memory(LoadRange)
+                  Memory(Load)
                   Stack(Push(1))
                   Stack(Push(0))
                   Stack(Push(1))
                   Alu(Mul)
                   Alu(Add)
-                  Stack(Push(1))
-                  Memory(LoadRange)
+                  Memory(Load)
                   Alu(Add)
                   Stack(Push(10))
                   Pred(Eq)
@@ -3636,14 +3606,13 @@ predicate test(ary: int[10]) {
                   Pred(EqSet)
                 node 2
                   Stack(Push(0))
-                  Stack(Push(9))
+                  Stack(Push(8))
                   Stack(Push(1))
                   Stack(Push(3))
                   Stack(Push(1))
                   Alu(Mul)
                   Alu(Add)
-                  Stack(Push(1))
-                  Memory(LoadRange)
+                  Memory(Load)
                   Pred(Not)
                   Pred(Not)
                   TotalControlFlow(JumpForwardIf)
@@ -3653,8 +3622,101 @@ predicate test(ary: int[10]) {
                   Stack(Push(1))
                   Alu(Mul)
                   Alu(Add)
+                  Memory(Load)
+            }
+
+        "#]],
+    );
+}
+
+#[test]
+fn map_fixed_c() {
+    check(
+        &compile(
+            r#"
+predicate test() {
+    let ary = [5, 4, 3, 2, 1];
+    let dbls = map x in ary { x + x };
+    constraint dbls[1] == 8;
+}
+"#,
+        )
+        .to_string(),
+        expect_test::expect![[r#"
+            predicate ::test {
+                --- Nodes ---
+                node 0
+                  Stack(Push(6))
+                  Memory(Alloc)
+                  Stack(Pop)
+                  Stack(Push(0))
+                  Stack(Push(5))
+                  Memory(Store)
+                  Stack(Push(2))
+                  Stack(Reserve)
                   Stack(Push(1))
-                  Memory(LoadRange)
+                  Stack(Push(5))
+                  Stack(Push(4))
+                  Stack(Push(3))
+                  Stack(Push(2))
+                  Stack(Push(1))
+                  Stack(Push(5))
+                  Stack(Dup)
+                  Memory(Alloc)
+                  Stack(Dup)
+                  Stack(Push(0))
+                  Stack(Swap)
+                  Stack(Store)
+                  Stack(Swap)
+                  Stack(Dup)
+                  Stack(Push(1))
+                  Stack(Swap)
+                  Stack(Store)
+                  Stack(Push(1))
+                  Stack(Repeat)
+                  Stack(Push(1))
+                  Stack(Load)
+                  Stack(DupFrom)
+                  Stack(RepeatEnd)
+                  Stack(Push(5))
+                  Memory(StoreRange)
+                  Stack(Push(5))
+                  Stack(Push(1))
+                  Stack(Repeat)
+                  Stack(Pop)
+                  Stack(RepeatEnd)
+                  Stack(Push(5))
+                  Stack(Push(1))
+                  Stack(Repeat)
+                  Stack(Push(0))
+                  Stack(Load)
+                  Access(RepeatCounter)
+                  Alu(Add)
+                  Memory(Load)
+                  Stack(Push(0))
+                  Stack(Load)
+                  Access(RepeatCounter)
+                  Alu(Add)
+                  Memory(Load)
+                  Alu(Add)
+                  Stack(RepeatEnd)
+                  Stack(Push(5))
+                  Memory(StoreRange)
+                  Stack(Pop)
+                  Stack(Pop)
+                node 1
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
+                node 2
+                  Stack(Push(1))
+                  Stack(Push(1))
+                  Stack(Push(1))
+                  Alu(Mul)
+                  Alu(Add)
+                  Memory(Load)
+                  Stack(Push(8))
+                  Pred(Eq)
             }
 
         "#]],
