@@ -1,0 +1,7 @@
+predicate test(ary: int[5]) {
+    let evens = map x in ary {
+        x % 2 == 1 ? x + 1 : x
+    };
+
+    constraint evens[0] + evens[1] == 10;
+}
