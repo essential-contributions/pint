@@ -217,7 +217,11 @@ impl<'a> AsmBuilder<'a> {
                 }
 
                 Location::Memory => {
-                    asm.extend([PUSH(expr_size), LODR]);
+                    if expr_size == 1 {
+                        asm.push(LOD);
+                    } else {
+                        asm.extend([PUSH(expr_size), LODR]);
+                    }
                 }
 
                 Location::Storage(is_extern) => {
@@ -416,11 +420,11 @@ impl<'a> AsmBuilder<'a> {
             // using the current repeat count as an index.
             match loc {
                 Location::PredicateData => {
-                    // The DATA op requires [slot idx size]. The data slot index and the value size
-                    // are stored at the very bottom of the stack in scratch space.
+                    // The DATA op requires [slot idx size]. The data slot index is stored at the
+                    // very bottom of the stack in scratch space.
                     asm.extend([
                         PUSH(0),
-                        LODS, // Slot idx.
+                        LODS, // Get the slot idx.
                         PUSH(*sz as i64),
                         DUP,
                         REPC,
@@ -428,10 +432,29 @@ impl<'a> AsmBuilder<'a> {
                         SWAP,
                         DATA, // Read from predicate data.
                     ]);
+
                     Ok(Location::Stack)
                 }
 
-                Location::Memory => todo!(),
+                Location::Memory => {
+                    // The index to the base of the array is stored at the very bottom of the stack
+                    // in scratch space.
+                    asm.extend([
+                        PUSH(0),
+                        LODS, // Get the index to the array base.
+                    ]);
+
+                    // If the size of the element is 1 then the ASM is simpler.
+                    if *sz == 1 {
+                        asm.extend([REPC, ADD]);
+                    } else {
+                        // Need to multiply the repeat counter by the size and add to the base.
+                        asm.extend([PUSH(*sz as i64), REPC, MUL, ADD]);
+                    }
+
+                    Ok(Location::Memory)
+                }
+
                 Location::Storage(_) => todo!(),
                 Location::Stack => todo!(),
             }
@@ -1168,7 +1191,8 @@ impl<'a> AsmBuilder<'a> {
         let in_el_size = in_el_ty.size(handler, contract)?;
 
         // Get the location of the input array.
-        let in_ary_location = self.compile_expr_pointer(handler, asm, range_key, contract, pred)?;
+        let mut in_ary_location =
+            self.compile_expr_pointer(handler, asm, range_key, contract, pred)?;
         match in_ary_location {
             Location::PredicateData => {
                 // When compiling these there's a slot index and a zero (index) pushed to the
@@ -1184,7 +1208,68 @@ impl<'a> AsmBuilder<'a> {
 
             Location::Memory => todo!("map morphism input array is in memory"),
             Location::Storage(_) => todo!("map morphism input array is in storage"),
-            Location::Stack => todo!("map morphism input array is on stack"),
+
+            Location::Stack => {
+                // We need to take the input array off the stack and into a new heap buffer.  Put
+                // the array length onto the stack and dupe it, one for the allocation and one for
+                // the copy later.
+                // [ ary-items ]
+                self.compile_array_num_entries(handler, asm, range_ty, contract)?;
+                asm.push(DUP);
+
+                // Scale the buffer size if need be.
+                // [ ary-items sz sz ]
+                if in_el_size > 1 {
+                    asm.extend([PUSH(in_el_size as i64), MUL]);
+                }
+
+                // Allocate the buffer and store the 'pointer' in the global area so it can be
+                // resolved by the iterator.
+                asm.extend([
+                    ALOC,
+                    DUP,     // Keep a copy also for copying the array.
+                    PUSH(0), // Scratch address at bottom of stack.
+                    SWAP,
+                    STOS,
+                ]);
+
+                // We currently have the buffer 'pointer' at the top of the stack, then the size
+                // and then the array items.
+                //
+                // Unfortunately, at this stage, `STOR` needs the destination pointer *before* the
+                // values.
+                //
+                // So as a hack we need to copy the values up the stack above the pointer, stash
+                // them in the heap, then remove the originals from the stack.  There isn't an
+                // opcode to do this so we need to copy the items one at a time.
+
+                asm.extend([
+                    SWAP,    // Swap length and pointer.
+                    DUP,     // Dupe the length to use as our DUPF offset arg.
+                    PUSH(1), // Scratch space near bottom of stack.
+                    SWAP,
+                    STOS,    // Save the offset.
+                    PUSH(1), // 1 == 0..len
+                    REP,
+                    PUSH(1), // Offset address in scratch.
+                    LODS,    // Load the offset.
+                    DUPF,    // Duplicate the array value.
+                    REPE,    // Go for all values.
+                ]);
+
+                // So now at the top of the stack is a copy of the values, then the heap buffer
+                // pointer, then the original values.  Get the length again and store the values in
+                // the buffer.
+                self.compile_array_num_entries(handler, asm, range_ty, contract)?;
+                asm.push(STOR);
+
+                // Now we need to pop all the original values off the stack.
+                self.compile_array_num_entries(handler, asm, range_ty, contract)?;
+                asm.extend([PUSH(1), REP, POP, REPE]);
+
+                // We've moved the location of the array.
+                in_ary_location = Location::Memory;
+            }
         }
 
         // Depending on which type of location the array lives we need to bind the

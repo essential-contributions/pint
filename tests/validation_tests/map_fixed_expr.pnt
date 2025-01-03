@@ -1,0 +1,7 @@
+predicate test() {
+    let ary = [5, 4, 3, 2, 1];
+
+    let dbls = map x in ary { x + x };
+
+    constraint dbls[1] == 8;
+}
