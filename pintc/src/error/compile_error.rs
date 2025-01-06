@@ -115,7 +115,7 @@ pub enum CompileError {
     StorageSymbolNotFound { name: String, span: Span },
     #[error("cannot find storage variable `{name}`")]
     MissingStorageBlock { name: String, span: Span },
-    #[error("`next state` access must be bound to a variable")]
+    #[error("`next state` access must be bound to a variable or to a storage access")]
     InvalidNextStateAccess { span: Span },
     #[error("cannot find interface declaration `{name}`")]
     MissingInterface { name: String, span: Span },
@@ -684,7 +684,9 @@ impl ReportableError for CompileError {
 
             InvalidNextStateAccess { span } => {
                 vec![ErrorLabel {
-                    message: "`next state` access must be bound to a variable".to_string(),
+                    message:
+                        "`next state` access must be bound to a variable or to a storage access"
+                            .to_string(),
                     span: span.clone(),
                     color: Color::Red,
                 }]

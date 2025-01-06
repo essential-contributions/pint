@@ -202,34 +202,33 @@ impl<'a> AsmBuilder<'a> {
         // For precomputed expressions, just load the value from memory
         if let Some(mem_idx) = self.precomputed_expr_to_mem_idx.get(expr) {
             asm.extend([PUSH(*mem_idx + 1), PUSH(expr_size), LODR]);
-            return Ok(asm.len() - old_asm_len);
-        }
+        } else {
+            match self.compile_expr_pointer(handler, asm, expr, contract, pred)? {
+                Location::PredicateData => {
+                    asm.extend([PUSH(expr_size), DATA]);
+                }
 
-        match self.compile_expr_pointer(handler, asm, expr, contract, pred)? {
-            Location::PredicateData => {
-                asm.extend([PUSH(expr_size), DATA]);
+                Location::Memory => {
+                    asm.extend([PUSH(expr_size), LODR]);
+                }
+
+                Location::Storage(is_extern) => {
+                    let num_keys = expr_ty.storage_keys(handler, contract)? as i64;
+                    let access_mem_idx = self.storage_expr_to_mem_idx[expr];
+
+                    // Read the storage keys into memory
+                    asm.extend([
+                        PUSH(num_keys),
+                        PUSH(access_mem_idx), // mem idx for the output of KREX or KRNG
+                        if is_extern { KREX } else { KRNG },
+                        PUSH(access_mem_idx + num_keys * 2), // where the actual data lives
+                        PUSH(expr_size),
+                        LODR,
+                    ]);
+                }
+
+                Location::Value => {}
             }
-
-            Location::Memory => {
-                asm.extend([PUSH(expr_size), LODR]);
-            }
-
-            Location::Storage(is_extern) => {
-                let num_keys = expr_ty.storage_keys(handler, contract)? as i64;
-                let access_mem_idx = self.storage_expr_to_mem_idx[expr];
-
-                // Read the storage keys into memory
-                asm.extend([
-                    PUSH(num_keys),
-                    PUSH(access_mem_idx), // mem idx for the output of KREX or KRNG
-                    if is_extern { KREX } else { KRNG },
-                    PUSH(access_mem_idx + num_keys * 2), // where the actual data lives
-                    PUSH(expr_size),
-                    LODR,
-                ]);
-            }
-
-            Location::Value => {}
         }
         Ok(asm.len() - old_asm_len)
     }
@@ -1181,7 +1180,7 @@ impl<'a> AsmBuilder<'a> {
 
         // (len out-sz) Allocate space for the new array, and store the pointer in the global
         // section (at the bottom of the stack).
-        asm.push(Exprorary::Alloc.into());
+        asm.push(Temporary::Alloc.into());
         let mapped_ary_global_idx = self.get_global_idx() as i64;
         asm.push(Stack::Push(mapped_ary_global_idx).into());
         asm.push(Stack::Swap.into());
@@ -1243,10 +1242,10 @@ impl<'a> AsmBuilder<'a> {
             Location::Value => {
                 // (ptr result) Just write the result from the stack to the heap.
                 if out_el_size == 1 {
-                    asm.push(Exprorary::Store.into());
+                    asm.push(Temporary::Store.into());
                 } else {
                     asm.push(Stack::Push(out_el_size as i64).into());
-                    asm.push(Exprorary::StoreRange.into());
+                    asm.push(Temporary::StoreRange.into());
                 }
             }
             Location::Heap => todo!(),

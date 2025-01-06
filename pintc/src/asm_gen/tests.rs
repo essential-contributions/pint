@@ -8,6 +8,7 @@ use std::io::Write;
 mod external_calls;
 mod intrinsics;
 mod multi_predicates;
+mod storage_accesses;
 
 #[cfg(test)]
 pub(super) fn check(actual: &str, expect: expect_test::Expect) {

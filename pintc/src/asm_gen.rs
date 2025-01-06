@@ -187,7 +187,7 @@ pub fn compile_contract(
 /// types of nodes:
 /// 1. `Var` nodes represent local variables. They are internal nodes (non-leaves).
 /// 2. `Constraint` nodes represent constraints. They are leaves.
-/// 3. `Expr` nodes represent specific expressions that are "pulled" out as their own nodes.
+/// 3. `Expr` nodes represent specific expressions that asm gen decided to use a separate node for.
 ///
 #[derive(Clone, Debug)]
 enum ComputeNode {
@@ -274,12 +274,10 @@ pub fn compile_predicate(
             .into_iter()
             .partition::<Vec<_>, _>(|access| access.is_post_storage_access_intrinsic(contract));
 
-        // 1. If all storage accesses are pre-accesses, then just add a constraint node that reads
-        //    `Pre`.
-        // 2. If all storage accesses are post-accesses, then just add a constraint node that reads
-        //    `Post`.
-        // 3. If the storage accesses are mixed, then add a constraint node that reads `Pre`, and
-        //    "pull out" post accesses into their own nodes
+        // 1. If all accesses are pre-accesses, then just add a constraint node that reads `Pre`.
+        // 2. If all accesses are post-accesses, then just add a constraint node that reads `Post`.
+        // 3. If the accesses are mixed, then add a constraint node that reads `Pre`, and "pull
+        //    out" post accesses into their own nodes
         //
         let constraint_node = data_flow_graph.add_node(ComputeNode::Constraint {
             expr: *expr,
