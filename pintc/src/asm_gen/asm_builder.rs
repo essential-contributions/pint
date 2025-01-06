@@ -455,6 +455,8 @@ impl<'a> AsmBuilder<'a> {
                     Ok(Location::Memory)
                 }
 
+                // NOTE: These are unreachable for now.  Maps over storage or stack will always be over a
+                // copy in a memory buffer.
                 Location::Storage(_) => todo!(),
                 Location::Stack => todo!(),
             }
@@ -1193,6 +1195,7 @@ impl<'a> AsmBuilder<'a> {
         // Get the location of the input array.
         let mut in_ary_location =
             self.compile_expr_pointer(handler, asm, range_key, contract, pred)?;
+
         match in_ary_location {
             Location::PredicateData => {
                 // When compiling these there's a slot index and a zero (index) pushed to the
@@ -1200,14 +1203,33 @@ impl<'a> AsmBuilder<'a> {
                 // by the iterator.
                 asm.extend([
                     POP,     // We don't need the index.
-                    PUSH(0), // Scratch address at top of stack.
+                    PUSH(0), // Scratch address at bottom of stack.
                     SWAP,
                     STOS,
                 ]);
             }
 
-            Location::Memory => todo!("map morphism input array is in memory"),
-            Location::Storage(_) => todo!("map morphism input array is in storage"),
+            Location::Memory => {
+                // Just store the array address at the scratch space at bottom of stack.
+                asm.extend([PUSH(0), SWAP, STOS]);
+            }
+
+            Location::Storage(is_extern) => {
+                let num_keys = range_ty.storage_keys(handler, contract)? as i64;
+                let access_mem_idx = self.storage_expr_to_mem_idx[range_key];
+
+                asm.extend([
+                    PUSH(num_keys),
+                    PUSH(access_mem_idx),
+                    if is_extern { KREX } else { KRNG }, // Read the keys and values.
+                    PUSH(0),
+                    PUSH(access_mem_idx + num_keys * 2), // Offset to values.
+                    STOS, // Store address in scratch space at bottom of stack.
+                ]);
+
+                // We've moved the location of the array.
+                in_ary_location = Location::Memory;
+            }
 
             Location::Stack => {
                 // We need to take the input array off the stack and into a new heap buffer.  Put

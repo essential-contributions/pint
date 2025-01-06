@@ -3723,3 +3723,206 @@ predicate test() {
         "#]],
     );
 }
+
+#[test]
+fn map_fixed_d() {
+    check(
+        &compile(
+            r#"
+storage {
+    ary: int[3],
+}
+
+predicate test() {
+    let a = storage::ary;
+    let b = map x in a { x * x };
+
+    constraint b[0] + b[1] == b[2];
+}
+"#,
+        )
+        .to_string(),
+        expect_test::expect![[r#"
+            predicate ::test {
+                --- Nodes ---
+                node 0
+                  Stack(Push(9))
+                  Memory(Alloc)
+                  Stack(Pop)
+                  Stack(Push(1))
+                  Stack(Push(0))
+                  Stack(Push(0))
+                  Stack(Push(2))
+                  Stack(Push(3))
+                  Stack(Push(0))
+                  StateRead(KeyRange)
+                  Stack(Push(6))
+                  Stack(Push(3))
+                  Memory(LoadRange)
+                  Stack(Push(0))
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Memory(Load)
+                  Alu(Add)
+                  Stack(Push(3))
+                  Memory(Load)
+                  Alu(Add)
+                  Stack(Push(5))
+                  Memory(Load)
+                  Alu(Add)
+                  Memory(Store)
+                  Stack(Push(3))
+                  Memory(StoreRange)
+                  Stack(Push(4))
+                  Memory(Free)
+                node 1
+                  Stack(Push(0))
+                  Stack(Push(3))
+                  Memory(Store)
+                  Stack(Push(2))
+                  Stack(Reserve)
+                  Stack(Push(1))
+                  Stack(Push(1))
+                  Stack(Push(0))
+                  Stack(Swap)
+                  Stack(Store)
+                  Stack(Push(3))
+                  Stack(Push(1))
+                  Stack(Repeat)
+                  Stack(Push(0))
+                  Stack(Load)
+                  Access(RepeatCounter)
+                  Alu(Add)
+                  Memory(Load)
+                  Stack(Push(0))
+                  Stack(Load)
+                  Access(RepeatCounter)
+                  Alu(Add)
+                  Memory(Load)
+                  Alu(Mul)
+                  Stack(RepeatEnd)
+                  Stack(Push(3))
+                  Memory(StoreRange)
+                  Stack(Pop)
+                  Stack(Pop)
+                node 2 (leaf)
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
+                node 3 (leaf)
+                  Stack(Push(1))
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Alu(Mul)
+                  Alu(Add)
+                  Memory(Load)
+                  Stack(Push(1))
+                  Stack(Push(1))
+                  Stack(Push(1))
+                  Alu(Mul)
+                  Alu(Add)
+                  Memory(Load)
+                  Alu(Add)
+                  Stack(Push(1))
+                  Stack(Push(2))
+                  Stack(Push(1))
+                  Alu(Mul)
+                  Alu(Add)
+                  Memory(Load)
+                  Pred(Eq)
+            }
+
+        "#]],
+    );
+}
+
+#[test]
+fn map_fixed_e() {
+    check(
+        &compile(
+            r#"
+storage {
+    ary: int[3],
+}
+
+predicate test() {
+    let a = map x in storage::ary { x * x };
+
+    constraint a[0] + a[1] == a[2];
+}
+"#,
+        )
+        .to_string(),
+        expect_test::expect![[r#"
+            predicate ::test {
+                --- Nodes ---
+                node 0
+                  Stack(Push(9))
+                  Memory(Alloc)
+                  Stack(Pop)
+                  Stack(Push(0))
+                  Stack(Push(3))
+                  Memory(Store)
+                  Stack(Push(2))
+                  Stack(Reserve)
+                  Stack(Push(1))
+                  Stack(Push(0))
+                  Stack(Push(0))
+                  Stack(Push(2))
+                  Stack(Push(3))
+                  Stack(Push(0))
+                  StateRead(KeyRange)
+                  Stack(Push(0))
+                  Stack(Push(6))
+                  Stack(Store)
+                  Stack(Push(3))
+                  Stack(Push(1))
+                  Stack(Repeat)
+                  Stack(Push(0))
+                  Stack(Load)
+                  Access(RepeatCounter)
+                  Alu(Add)
+                  Memory(Load)
+                  Stack(Push(0))
+                  Stack(Load)
+                  Access(RepeatCounter)
+                  Alu(Add)
+                  Memory(Load)
+                  Alu(Mul)
+                  Stack(RepeatEnd)
+                  Stack(Push(3))
+                  Memory(StoreRange)
+                  Stack(Pop)
+                  Stack(Pop)
+                  Stack(Push(4))
+                  Memory(Free)
+                node 1 (leaf)
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
+                node 2 (leaf)
+                  Stack(Push(1))
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Alu(Mul)
+                  Alu(Add)
+                  Memory(Load)
+                  Stack(Push(1))
+                  Stack(Push(1))
+                  Stack(Push(1))
+                  Alu(Mul)
+                  Alu(Add)
+                  Memory(Load)
+                  Alu(Add)
+                  Stack(Push(1))
+                  Stack(Push(2))
+                  Stack(Push(1))
+                  Alu(Mul)
+                  Alu(Add)
+                  Memory(Load)
+                  Pred(Eq)
+            }
+
+        "#]],
+    );
+}
