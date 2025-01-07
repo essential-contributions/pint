@@ -1,0 +1,29 @@
+storage {
+    a: { int, bool[3], { int, { b256, int}[3] }},
+}
+
+const B = 0x0000000000000001000000000000000100000000000000010000000000000001;
+
+predicate test() {
+    let a = mut storage::a;
+
+    constraint a.1[1]' == true;
+    constraint a.1'[1]' == true;
+    constraint a'.1[1]' == true;
+    constraint a.1'[1] == true;
+
+    constraint a.2.0' == 1;
+    constraint a.2'.0' == 1;
+    constraint a'.2.0' == 1;
+ 
+    constraint a.2.1[0]' == { B, 3 };
+    constraint a.2.1'[0]' == { B, 3 };
+    constraint a.2'.1[0]' == { B, 3 };
+    constraint a'.2'.1[0]' == { B, 3 };
+    constraint a.2'.1[0] == { B, 3 };
+
+    constraint a.2.1[0].1' == 3;
+    constraint a.2'.1'[0]'.1' == 3;
+    constraint a.2.1'[0].1 == 3;
+    constraint a.2'.1[0].1 == 3;
+}

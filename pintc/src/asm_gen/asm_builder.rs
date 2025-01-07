@@ -984,20 +984,8 @@ impl<'a> AsmBuilder<'a> {
             ));
         }
 
-        // check it's a prime op
-        let tuple_expr = if let Expr::UnaryOp {
-            op: UnaryOp::NextState,
-            expr,
-            ..
-        } = tuple.get(contract)
-        {
-            expr
-        } else {
-            tuple
-        };
-
         // Grab the fields of the tuple
-        let Type::Tuple { ref fields, .. } = tuple_expr.get_ty(contract) else {
+        let Type::Tuple { ref fields, .. } = tuple.get_ty(contract) else {
             return Err(
                 handler.emit_internal_err("type must exist and be a tuple type", empty_span())
             );

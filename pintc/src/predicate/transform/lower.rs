@@ -1057,6 +1057,12 @@ pub(super) fn coalesce_prime_ops(contract: &mut Contract) {
                     };
 
                     *arg_key_ref = indexed_key;
+
+                    // Now update the type of the next state operator from the type of `a[i]` to the
+                    // type of `a`, since we're changing the placement of the operator from being
+                    // applied to `a[i]` to being applied to `a`.
+                    *op_key.get_ty_mut(contract) = indexed_key.get_ty(contract).clone();
+
                     work_list.push((op_key, indexed_key));
 
                     // Update the index expression to refer to the prime op.
@@ -1087,6 +1093,12 @@ pub(super) fn coalesce_prime_ops(contract: &mut Contract) {
                     };
 
                     *old_arg_key = accessed_key;
+
+                    // Now update the type of the next state operator from the type of `a.x` to the
+                    // type of `a`, since we're changing the placement of the operator from being
+                    // applied to `a.x` to being applied to `a`.
+                    *op_key.get_ty_mut(contract) = accessed_key.get_ty(contract).clone();
+
                     work_list.push((op_key, accessed_key));
 
                     // Update the access expression to refer to the prime op.
