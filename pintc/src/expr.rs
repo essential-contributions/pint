@@ -356,8 +356,9 @@ impl Expr {
     }
 
     #[allow(unused_variables)] // todo - ian - remove
+                               // todo - ian - document?
+                               // todo - ian - handle macro calls
     pub fn eq(&self, contract: &Contract, other: &Self) -> bool {
-        // println!("inside eq, {:#?} against {:#?}", self, other);
         match (self, other) {
             (
                 Expr::Immediate {
@@ -559,7 +560,12 @@ impl Expr {
                     path: rhs_path,
                     ..
                 },
-            ) => todo!(),
+            ) => {
+                todo!() // @mohammad, need help here please
+                        // if lhs_path != rhs_path {
+                        //     return false;
+                        // }
+            }
 
             (
                 Expr::IntrinsicCall {

@@ -125,16 +125,15 @@ predicate Test(f: int, g: int, h: bool) {
 //     ::h: bool,
 // ) {
 //     let ::a: int = __storage_get({0});
-//     let ::b: int = __storage_get({0});
 //     let ::c: int[2] = __storage_get({1, 0});
 //     let ::d: {int, int} = __storage_get({2, 0});
 //     let ::d_0: int = __storage_get({2, 0});
 //     let ::e_0: bool = __storage_get({3, 0});
 //     let ::e_1: bool = __storage_get({3, 1});
 //     constraint (::a' >= (::a + 42));
-//     constraint (((__size_of(::b) == 0) && (::b' == 1)) || (::b' == (::b + 1)));
+//     constraint (((__size_of(::a) == 0) && (::a' == 1)) || (::a' == (::a + 1)));
 //     constraint (::c'[0] == 42);
-//     constraint (::f == (::b + ::c[0]));
+//     constraint (::f == (::a + ::c[0]));
 //     constraint (::g == (::d.1 + ::d_0));
 //     constraint (::h == (::e_1 == ::e_0));
 //     constraint __eq_set(__mut_keys(), {{1, 0}, 2, {1, 1}, 2, {0}, 1, 8});

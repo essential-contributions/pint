@@ -1,18 +1,29 @@
+union Coin = Penny | Dime | Quarter;
+union Fruit = Apples(int) | Oranges(int);
+
 storage {
     x1: int,
     x2: int[],
     x3: int[],
+    x_map: ( { int, int } => { int, int } ),
 }
 
 interface Foo {
     storage {
         x2: int[],
         x3: int[],
+        x4: int,
+        x5: int,
     }
+
+    predicate FooTest(foo_x: int, foo_y: bool);
 }
 
+predicate LocalTest(local_x: int, local_y: bool) {}
 
-predicate Test(w: int, x: int, y: bool, z: bool) {
+predicate Test(w: int, x: int, y: bool, z: bool, w2: Coin, x2: Coin) {
+    let addr0 = 0x0000000000000000000000000000000000000000000000000000000000000000;
+
     // binary ops
     let a = x + 1;
     let b = 1 + x;
@@ -103,118 +114,197 @@ predicate Test(w: int, x: int, y: bool, z: bool) {
     let p2 = __vec_len(storage::x2);
     let q2 = __vec_len(storage::x3); // should not be removed
 
-    let r2 = __vec_len(
-                    Foo@[0x0000000000000000000000000000000000000000000000000000000000000000]::storage::x2
-                );
-    let s2 = __vec_len(
-                    Foo@[0x0000000000000000000000000000000000000000000000000000000000000000]::storage::x2
-                );
-    let t2 = __vec_len(
-                    Foo@[0x0000000000000000000000000000000000000000000000000000000000000000]::storage::x3
-                ); // should not be removed
-
+    let r2 = __vec_len(Foo@[addr0]::storage::x2);
+    let s2 = __vec_len(Foo@[addr0]::storage::x2);
+    let t2 = __vec_len(Foo@[addr0]::storage::x3); // should not be removed
+    
     // union variants
-
-    // external storage access
-
-    // macro calls
-
-    // local predicate calls
-
-    // external predicate calls
-
-    // matches
-
-    // indexes
-
-    // ins
-
-    // ranges
-
-    // generators
+    let u2 = w2;
+    let v2 = w2;
+    let a3 = x2; // should not be removed
 
     // maps
+    let b3 = storage::x_map[{42, 69}].1;
+    let c3 = storage::x_map[{42, 69}].1;
+    let d3 = storage::x_map[{69, 42}].0; // should not be removed
 
-    // union tags
+    // external storage access
+    let e3 = Foo@[addr0]::storage::x4;
+    let f3 = Foo@[addr0]::storage::x4;
+    let g3 = Foo@[addr0]::storage::x5; // should not be removed
+
+    // external predicate calls - @mohammad why do we have a second address here? Is it because Foo would be the contract address and footest would be the address of the predicate in the contract?
+    let h3 = Foo@[addr0]::FooTest@[addr0](x, y);
+    let i3 = Foo@[addr0]::FooTest@[addr0](x, y);
+    let j3 = Foo@[addr0]::FooTest@[addr0](x, z); // should not be removed
+
+    // local predicate calls
+    let k3 = LocalTest@[](x, y);
+    let l3 = LocalTest@[](x, y);
+    let m3 = LocalTest@[](x, z); // should not be removed
+
+    // matches and union tags
+    let n3 = match w2 {
+        Coin::Penny => 1,
+        Coin::Dime => 10,
+        Coin::Quarter => 25,
+    };
+    let o3 = match w2 {
+        Coin::Penny => 1,
+        Coin::Dime => 10,
+        Coin::Quarter => 25,
+    };
+    let p3 = match x2 {
+        Coin::Penny => 22,
+        Coin::Dime => 23,
+        Coin::Quarter => 24,
+    }; // should not be removed
+
+    // indexes
+    let q3 = storage::x2[w];
+    let r3 = storage::x2[w];
+    let s3 = storage::x2[x]; // should not be removed
+
+    // ins
+    let t3 = w in [1, 2];
+    let u3 = w in [1, 2];
+    let v3 = x in [1, 2]; // should not be removed
+
+    // ranges - @mohammad, there's no way to assign a variable as a range right? This should test it properly, because the only inequity in the 'in' statement is the range
+    let a4 = w in 1..2;
+    let b4 = w in 1..2;
+    let c4 = w in 2..3; // should not be removed
 
     // union values
+    let d4 = Fruit::Apples(w);
+    let e4 = Fruit::Apples(w);
+    let f4 = Fruit::Apples(x); // should not be removed
+
+    // generators - @mohammad, we can't have a variable represent a generator, only a constraint right?
+
+    // macro calls - uhhhh @mohammad, help please. Also, won't macros be gone by the time the optimizer runs?
 
     constraint a == 0;
-    constraint b == 0;
-    constraint c == 0;
-    constraint d == 0;
+    constraint b == 1;
+    constraint c == 2;
+    constraint d == 3;
     constraint f == (1 > x);
-    constraint g == (1 > x);
-    constraint h == (1 > x);
-    constraint i == (1 > x);
-    constraint j == (1 > x);
-    constraint k == (1 > x);
-    constraint l == (1 > x);
-    constraint m == (1 > x);
-    constraint n == 0;
-    constraint o == 0;
-    constraint p == 0;
-    constraint q == 0;
-    constraint r == 0;
-    constraint s == 0;
-    constraint t == 0;
-    constraint u == 0;
-    constraint v == 0;
-    constraint a1 == (1 > x);
-    constraint b1 == (1 > x);
-    constraint c1 == (1 > x);
-    constraint d1 == (1 > x);
-    constraint e1 == (1 > x);
-    constraint f1 == (1 > x);
-    constraint g1 == (1 > x);
-    constraint h1 == (1 > x);
-    constraint i1 == (1 > x);
-    constraint j1 == (1 > x);
-    constraint k1 == (1 > x);
-    constraint l1 == (1 > x);
+    constraint g == (2 > x);
+    constraint h == (3 > x);
+    constraint i == (4 > x);
+    constraint j == (5 > x);
+    constraint k == (6 > x);
+    constraint l == (7 > x);
+    constraint m == (8 > x);
+    constraint n == 4;
+    constraint o == 5;
+    constraint p == 6;
+    constraint q == 7;
+    constraint r == 8;
+    constraint s == 9;
+    constraint t == 10;
+    constraint u == 11;
+    constraint v == 12;
+    constraint a1 == (9 > x);
+    constraint b1 == (10 > x);
+    constraint c1 == (11 > x);
+    constraint d1 == (12 > x);
+    constraint e1 == (13 > x);
+    constraint f1 == (14 > x);
+    constraint g1 == (15 > x);
+    constraint h1 == (16 > x);
+    constraint i1 == (17 > x);
+    constraint j1 == (18 > x);
+    constraint k1 == (19 > x);
+    constraint l1 == (20 > x);
     constraint m1 == [1, 1];
-    constraint n1 == [1, 1];
-    constraint o1 == [1, 1];
+    constraint n1 == [1, 2];
+    constraint o1 == [1, 3];
     constraint p1 == { 1, 1 };
-    constraint q1 == { 1, 1 };
-    constraint r1 == { 1, 1 };
-    constraint s1 == 1;
-    constraint t1 == 1;
-    constraint u1 == 1;
+    constraint q1 == { 1, 2 };
+    constraint r1 == { 1, 3 };
+    constraint s1 == 13;
+    constraint t1 == 14;
+    constraint u1 == 15;
     constraint v1 == -1;
-    constraint a2 == -1;
-    constraint b2 == -1;
-    constraint c2 == (1 > x);
-    constraint d2 == (1 > x);
-    constraint e2 == (1 > x);
-    constraint f2 == 1;
-    constraint g2 == 1;
-    constraint h2 == 1;
-    constraint i2 == 0;
-    constraint j2 == 0;
-    constraint k2 == 0;
-    constraint l2 == 0;
-    constraint m2 == 0;
-    constraint n2 == 0;
-    constraint o2 == 0;
-    constraint p2 == 0;
-    constraint q2 == 0;
-    constraint r2 == 0;
-    constraint s2 == 0;
-    constraint t2 == 0;
+    constraint a2 == -2;
+    constraint b2 == -3;
+    constraint c2 == (21 > x);
+    constraint d2 == (22 > x);
+    constraint e2 == (23 > x);
+    constraint f2 == 16;
+    constraint g2 == 17;
+    constraint h2 == 18;
+    constraint i2 == 19;
+    constraint j2 == 20;
+    constraint k2 == 21;
+    constraint l2 == 22;
+    constraint m2 == 23;
+    constraint n2 == 24;
+    constraint o2 == 25;
+    constraint p2 == 26;
+    constraint q2 == 27;
+    constraint r2 == 28;
+    constraint s2 == 29;
+    constraint t2 == 30;
+    constraint u2 == Coin::Penny;
+    constraint v2 == Coin::Dime;
+    constraint a3 == Coin::Quarter;
+    constraint b3' == 31;
+    constraint c3' == 32;
+    constraint d3' == 33;
+    constraint e3 == 34;
+    constraint f3 == 35;
+    constraint g3 == 36;
+    constraint h3 == Foo@[addr0]::FooTest@[addr0](0, false);
+    constraint i3 == Foo@[addr0]::FooTest@[addr0](1, false);
+    constraint j3 == Foo@[addr0]::FooTest@[addr0](2, false);
+    constraint k3 == LocalTest@[](3, false);
+    constraint l3 == LocalTest@[](4, false);
+    constraint m3 == LocalTest@[](5, false);
+    constraint n3 == 37;
+    constraint o3 == 38;
+    constraint p3 == 39;
+    constraint q3 == 40;
+    constraint r3 == 41;
+    constraint s3 == 42;
+    constraint t3 == y;
+    constraint u3 == z;
+    constraint v3 == y;
+    constraint a4 == z;
+    constraint b4 == y;
+    constraint c4 == z;
+    constraint d4 == Fruit::Apples(0);
+    constraint e4 == Fruit::Apples(1);
+    constraint f4 == Fruit::Apples(2);
 }
 
 // parsed <<<
+// union ::Coin = Penny | Dime | Quarter;
+// union ::Fruit = Apples(int) | Oranges(int);
 // storage {
 //     x1: int,
 //     x2: int[],
 //     x3: int[],
+//     x_map: ( {int, int} => {int, int} ),
 // }
 // interface ::Foo {
 //     storage {
 //         x2: int[],
 //         x3: int[],
+//         x4: int,
+//         x5: int,
 //     }
+//     predicate FooTest (
+//         foo_x: int,
+//         foo_y: bool,
+//     );
+// }
+//
+// predicate ::LocalTest(
+//     ::local_x: int,
+//     ::local_y: bool,
+// ) {
 // }
 //
 // predicate ::Test(
@@ -222,7 +312,10 @@ predicate Test(w: int, x: int, y: bool, z: bool) {
 //     ::x: int,
 //     ::y: bool,
 //     ::z: bool,
+//     ::w2: ::Coin,
+//     ::x2: ::Coin,
 // ) {
+//     let ::addr0 = 0x0000000000000000000000000000000000000000000000000000000000000000;
 //     let ::a = (::x + 1);
 //     let ::b = (1 + ::x);
 //     let ::c = (1 * ::x);
@@ -283,86 +376,162 @@ predicate Test(w: int, x: int, y: bool, z: bool) {
 //     let ::o2 = __vec_len(storage::x2);
 //     let ::p2 = __vec_len(storage::x2);
 //     let ::q2 = __vec_len(storage::x3);
-//     let ::r2 = __vec_len(::Foo@[0x0000000000000000000000000000000000000000000000000000000000000000]::storage::x2);
-//     let ::s2 = __vec_len(::Foo@[0x0000000000000000000000000000000000000000000000000000000000000000]::storage::x2);
-//     let ::t2 = __vec_len(::Foo@[0x0000000000000000000000000000000000000000000000000000000000000000]::storage::x3);
+//     let ::r2 = __vec_len(::Foo@[::addr0]::storage::x2);
+//     let ::s2 = __vec_len(::Foo@[::addr0]::storage::x2);
+//     let ::t2 = __vec_len(::Foo@[::addr0]::storage::x3);
+//     let ::u2 = ::w2;
+//     let ::v2 = ::w2;
+//     let ::a3 = ::x2;
+//     let ::b3 = storage::x_map[{42, 69}].1;
+//     let ::c3 = storage::x_map[{42, 69}].1;
+//     let ::d3 = storage::x_map[{69, 42}].0;
+//     let ::e3 = ::Foo@[::addr0]::storage::x4;
+//     let ::f3 = ::Foo@[::addr0]::storage::x4;
+//     let ::g3 = ::Foo@[::addr0]::storage::x5;
+//     let ::h3 = ::Foo@[::addr0]::FooTest@[::addr0](::x, ::y);
+//     let ::i3 = ::Foo@[::addr0]::FooTest@[::addr0](::x, ::y);
+//     let ::j3 = ::Foo@[::addr0]::FooTest@[::addr0](::x, ::z);
+//     let ::k3 = ::LocalTest@[](::x, ::y);
+//     let ::l3 = ::LocalTest@[](::x, ::y);
+//     let ::m3 = ::LocalTest@[](::x, ::z);
+//     let ::n3 = match ::w2 { ::Coin::Penny => 1, ::Coin::Dime => 10, ::Coin::Quarter => 25 };
+//     let ::o3 = match ::w2 { ::Coin::Penny => 1, ::Coin::Dime => 10, ::Coin::Quarter => 25 };
+//     let ::p3 = match ::x2 { ::Coin::Penny => 22, ::Coin::Dime => 23, ::Coin::Quarter => 24 };
+//     let ::q3 = storage::x2[::w];
+//     let ::r3 = storage::x2[::w];
+//     let ::s3 = storage::x2[::x];
+//     let ::t3 = ::w in [1, 2];
+//     let ::u3 = ::w in [1, 2];
+//     let ::v3 = ::x in [1, 2];
+//     let ::a4 = ::w in 1..2;
+//     let ::b4 = ::w in 1..2;
+//     let ::c4 = ::w in 2..3;
+//     let ::d4 = ::Fruit::Apples(::w);
+//     let ::e4 = ::Fruit::Apples(::w);
+//     let ::f4 = ::Fruit::Apples(::x);
 //     constraint (::a == 0);
-//     constraint (::b == 0);
-//     constraint (::c == 0);
-//     constraint (::d == 0);
+//     constraint (::b == 1);
+//     constraint (::c == 2);
+//     constraint (::d == 3);
 //     constraint (::f == (1 > ::x));
-//     constraint (::g == (1 > ::x));
-//     constraint (::h == (1 > ::x));
-//     constraint (::i == (1 > ::x));
-//     constraint (::j == (1 > ::x));
-//     constraint (::k == (1 > ::x));
-//     constraint (::l == (1 > ::x));
-//     constraint (::m == (1 > ::x));
-//     constraint (::n == 0);
-//     constraint (::o == 0);
-//     constraint (::p == 0);
-//     constraint (::q == 0);
-//     constraint (::r == 0);
-//     constraint (::s == 0);
-//     constraint (::t == 0);
-//     constraint (::u == 0);
-//     constraint (::v == 0);
-//     constraint (::a1 == (1 > ::x));
-//     constraint (::b1 == (1 > ::x));
-//     constraint (::c1 == (1 > ::x));
-//     constraint (::d1 == (1 > ::x));
-//     constraint (::e1 == (1 > ::x));
-//     constraint (::f1 == (1 > ::x));
-//     constraint (::g1 == (1 > ::x));
-//     constraint (::h1 == (1 > ::x));
-//     constraint (::i1 == (1 > ::x));
-//     constraint (::j1 == (1 > ::x));
-//     constraint (::k1 == (1 > ::x));
-//     constraint (::l1 == (1 > ::x));
+//     constraint (::g == (2 > ::x));
+//     constraint (::h == (3 > ::x));
+//     constraint (::i == (4 > ::x));
+//     constraint (::j == (5 > ::x));
+//     constraint (::k == (6 > ::x));
+//     constraint (::l == (7 > ::x));
+//     constraint (::m == (8 > ::x));
+//     constraint (::n == 4);
+//     constraint (::o == 5);
+//     constraint (::p == 6);
+//     constraint (::q == 7);
+//     constraint (::r == 8);
+//     constraint (::s == 9);
+//     constraint (::t == 10);
+//     constraint (::u == 11);
+//     constraint (::v == 12);
+//     constraint (::a1 == (9 > ::x));
+//     constraint (::b1 == (10 > ::x));
+//     constraint (::c1 == (11 > ::x));
+//     constraint (::d1 == (12 > ::x));
+//     constraint (::e1 == (13 > ::x));
+//     constraint (::f1 == (14 > ::x));
+//     constraint (::g1 == (15 > ::x));
+//     constraint (::h1 == (16 > ::x));
+//     constraint (::i1 == (17 > ::x));
+//     constraint (::j1 == (18 > ::x));
+//     constraint (::k1 == (19 > ::x));
+//     constraint (::l1 == (20 > ::x));
 //     constraint (::m1 == [1, 1]);
-//     constraint (::n1 == [1, 1]);
-//     constraint (::o1 == [1, 1]);
+//     constraint (::n1 == [1, 2]);
+//     constraint (::o1 == [1, 3]);
 //     constraint (::p1 == {1, 1});
-//     constraint (::q1 == {1, 1});
-//     constraint (::r1 == {1, 1});
-//     constraint (::s1 == 1);
-//     constraint (::t1 == 1);
-//     constraint (::u1 == 1);
+//     constraint (::q1 == {1, 2});
+//     constraint (::r1 == {1, 3});
+//     constraint (::s1 == 13);
+//     constraint (::t1 == 14);
+//     constraint (::u1 == 15);
 //     constraint (::v1 == -1);
-//     constraint (::a2 == -1);
-//     constraint (::b2 == -1);
-//     constraint (::c2 == (1 > ::x));
-//     constraint (::d2 == (1 > ::x));
-//     constraint (::e2 == (1 > ::x));
-//     constraint (::f2 == 1);
-//     constraint (::g2 == 1);
-//     constraint (::h2 == 1);
-//     constraint (::i2 == 0);
-//     constraint (::j2 == 0);
-//     constraint (::k2 == 0);
-//     constraint (::l2 == 0);
-//     constraint (::m2 == 0);
-//     constraint (::n2 == 0);
-//     constraint (::o2 == 0);
-//     constraint (::p2 == 0);
-//     constraint (::q2 == 0);
-//     constraint (::r2 == 0);
-//     constraint (::s2 == 0);
-//     constraint (::t2 == 0);
+//     constraint (::a2 == -2);
+//     constraint (::b2 == -3);
+//     constraint (::c2 == (21 > ::x));
+//     constraint (::d2 == (22 > ::x));
+//     constraint (::e2 == (23 > ::x));
+//     constraint (::f2 == 16);
+//     constraint (::g2 == 17);
+//     constraint (::h2 == 18);
+//     constraint (::i2 == 19);
+//     constraint (::j2 == 20);
+//     constraint (::k2 == 21);
+//     constraint (::l2 == 22);
+//     constraint (::m2 == 23);
+//     constraint (::n2 == 24);
+//     constraint (::o2 == 25);
+//     constraint (::p2 == 26);
+//     constraint (::q2 == 27);
+//     constraint (::r2 == 28);
+//     constraint (::s2 == 29);
+//     constraint (::t2 == 30);
+//     constraint (::u2 == ::Coin::Penny);
+//     constraint (::v2 == ::Coin::Dime);
+//     constraint (::a3 == ::Coin::Quarter);
+//     constraint (::b3' == 31);
+//     constraint (::c3' == 32);
+//     constraint (::d3' == 33);
+//     constraint (::e3 == 34);
+//     constraint (::f3 == 35);
+//     constraint (::g3 == 36);
+//     constraint (::h3 == ::Foo@[::addr0]::FooTest@[::addr0](0, false));
+//     constraint (::i3 == ::Foo@[::addr0]::FooTest@[::addr0](1, false));
+//     constraint (::j3 == ::Foo@[::addr0]::FooTest@[::addr0](2, false));
+//     constraint (::k3 == ::LocalTest@[](3, false));
+//     constraint (::l3 == ::LocalTest@[](4, false));
+//     constraint (::m3 == ::LocalTest@[](5, false));
+//     constraint (::n3 == 37);
+//     constraint (::o3 == 38);
+//     constraint (::p3 == 39);
+//     constraint (::q3 == 40);
+//     constraint (::r3 == 41);
+//     constraint (::s3 == 42);
+//     constraint (::t3 == ::y);
+//     constraint (::u3 == ::z);
+//     constraint (::v3 == ::y);
+//     constraint (::a4 == ::z);
+//     constraint (::b4 == ::y);
+//     constraint (::c4 == ::z);
+//     constraint (::d4 == ::Fruit::Apples(0));
+//     constraint (::e4 == ::Fruit::Apples(1));
+//     constraint (::f4 == ::Fruit::Apples(2));
 // }
 // >>>
 
 // flattened <<<
+// union ::Coin = Penny | Dime | Quarter;
+// union ::Fruit = Apples(int) | Oranges(int);
 // storage {
 //     x1: int,
 //     x2: int[],
 //     x3: int[],
+//     x_map: ( {int, int} => {int, int} ),
 // }
 // interface ::Foo {
 //     storage {
 //         x2: int[],
 //         x3: int[],
+//         x4: int,
+//         x5: int,
 //     }
+//     predicate FooTest (
+//         foo_x: int,
+//         foo_y: bool,
+//     );
+// }
+//
+// predicate ::LocalTest(
+//     ::local_x: int,
+//     ::local_y: bool,
+// ) {
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 //
 // predicate ::Test(
@@ -370,7 +539,10 @@ predicate Test(w: int, x: int, y: bool, z: bool) {
 //     ::x: int,
 //     ::y: bool,
 //     ::z: bool,
+//     ::w2: ::Coin,
+//     ::x2: ::Coin,
 // ) {
+//     let ::addr0: b256 = 0x0000000000000000000000000000000000000000000000000000000000000000;
 //     let ::a: int = (::x + 1);
 //     let ::b: int = (1 + ::x);
 //     let ::c: int = (1 * ::x);
@@ -431,87 +603,167 @@ predicate Test(w: int, x: int, y: bool, z: bool) {
 //     let ::o2: int = __storage_get({1});
 //     let ::p2: int = __storage_get({1});
 //     let ::q2: int = __storage_get({2});
-//     let ::r2: int = __storage_get_extern(0x0000000000000000000000000000000000000000000000000000000000000000, {0});
-//     let ::s2: int = __storage_get_extern(0x0000000000000000000000000000000000000000000000000000000000000000, {0});
-//     let ::t2: int = __storage_get_extern(0x0000000000000000000000000000000000000000000000000000000000000000, {1});
+//     let ::r2: int = __storage_get_extern(::addr0, {0});
+//     let ::s2: int = __storage_get_extern(::addr0, {0});
+//     let ::t2: int = __storage_get_extern(::addr0, {1});
+//     let ::u2: ::Coin = ::w2;
+//     let ::v2: ::Coin = ::w2;
+//     let ::a3: ::Coin = ::x2;
+//     let ::b3: int = __storage_get({3, {42, 69}, (0 + 1)});
+//     let ::c3: int = __storage_get({3, {42, 69}, (0 + 1)});
+//     let ::d3: int = __storage_get({3, {69, 42}, (0 + 0)});
+//     let ::e3: int = __storage_get_extern(::addr0, {2});
+//     let ::f3: int = __storage_get_extern(::addr0, {2});
+//     let ::g3: int = __storage_get_extern(::addr0, {3});
+//     let ::h3: bool = ::Foo@[::addr0]::FooTest@[::addr0](::x, ::y);
+//     let ::i3: bool = ::Foo@[::addr0]::FooTest@[::addr0](::x, ::y);
+//     let ::j3: bool = ::Foo@[::addr0]::FooTest@[::addr0](::x, ::z);
+//     let ::k3: bool = ::LocalTest@[](::x, ::y);
+//     let ::l3: bool = ::LocalTest@[](::x, ::y);
+//     let ::m3: bool = ::LocalTest@[](::x, ::z);
+//     let ::n3: int = ((UnTag(::w2) == 0) ? 1 : ((UnTag(::w2) == 1) ? 10 : 25));
+//     let ::o3: int = ((UnTag(::w2) == 0) ? 1 : ((UnTag(::w2) == 1) ? 10 : 25));
+//     let ::p3: int = ((UnTag(::x2) == 0) ? 22 : ((UnTag(::x2) == 1) ? 23 : 24));
+//     let ::q3: int = __storage_get({1, ::w});
+//     let ::r3: int = __storage_get({1, ::w});
+//     let ::s3: int = __storage_get({1, ::x});
+//     let ::t3: bool = ((::w == 1) || (::w == 2));
+//     let ::u3: bool = ((::w == 1) || (::w == 2));
+//     let ::v3: bool = ((::x == 1) || (::x == 2));
+//     let ::a4: bool = ((::w >= 1) && (::w <= 2));
+//     let ::b4: bool = ((::w >= 1) && (::w <= 2));
+//     let ::c4: bool = ((::w >= 2) && (::w <= 3));
+//     let ::d4: ::Fruit = ::Fruit::Apples(::w);
+//     let ::e4: ::Fruit = ::Fruit::Apples(::w);
+//     let ::f4: ::Fruit = ::Fruit::Apples(::x);
+//     let __x2_len: int = __storage_get({1});
 //     constraint (::a == 0);
-//     constraint (::b == 0);
-//     constraint (::c == 0);
-//     constraint (::d == 0);
+//     constraint (::b == 1);
+//     constraint (::c == 2);
+//     constraint (::d == 3);
 //     constraint (::f == (1 > ::x));
-//     constraint (::g == (1 > ::x));
-//     constraint (::h == (1 > ::x));
-//     constraint (::i == (1 > ::x));
-//     constraint (::j == (1 > ::x));
-//     constraint (::k == (1 > ::x));
-//     constraint (::l == (1 > ::x));
-//     constraint (::m == (1 > ::x));
-//     constraint (::n == 0);
-//     constraint (::o == 0);
-//     constraint (::p == 0);
-//     constraint (::q == 0);
-//     constraint (::r == 0);
-//     constraint (::s == 0);
-//     constraint (::t == 0);
-//     constraint (::u == 0);
-//     constraint (::v == 0);
-//     constraint (::a1 == (1 > ::x));
-//     constraint (::b1 == (1 > ::x));
-//     constraint (::c1 == (1 > ::x));
-//     constraint (::d1 == (1 > ::x));
-//     constraint (::e1 == (1 > ::x));
-//     constraint (::f1 == (1 > ::x));
-//     constraint (::g1 == (1 > ::x));
-//     constraint (::h1 == (1 > ::x));
-//     constraint (::i1 == (1 > ::x));
-//     constraint (::j1 == (1 > ::x));
-//     constraint (::k1 == (1 > ::x));
-//     constraint (::l1 == (1 > ::x));
+//     constraint (::g == (2 > ::x));
+//     constraint (::h == (3 > ::x));
+//     constraint (::i == (4 > ::x));
+//     constraint (::j == (5 > ::x));
+//     constraint (::k == (6 > ::x));
+//     constraint (::l == (7 > ::x));
+//     constraint (::m == (8 > ::x));
+//     constraint (::n == 4);
+//     constraint (::o == 5);
+//     constraint (::p == 6);
+//     constraint (::q == 7);
+//     constraint (::r == 8);
+//     constraint (::s == 9);
+//     constraint (::t == 10);
+//     constraint (::u == 11);
+//     constraint (::v == 12);
+//     constraint (::a1 == (9 > ::x));
+//     constraint (::b1 == (10 > ::x));
+//     constraint (::c1 == (11 > ::x));
+//     constraint (::d1 == (12 > ::x));
+//     constraint (::e1 == (13 > ::x));
+//     constraint (::f1 == (14 > ::x));
+//     constraint (::g1 == (15 > ::x));
+//     constraint (::h1 == (16 > ::x));
+//     constraint (::i1 == (17 > ::x));
+//     constraint (::j1 == (18 > ::x));
+//     constraint (::k1 == (19 > ::x));
+//     constraint (::l1 == (20 > ::x));
 //     constraint (::m1 == [1, 1]);
-//     constraint (::n1 == [1, 1]);
-//     constraint (::o1 == [1, 1]);
+//     constraint (::n1 == [1, 2]);
+//     constraint (::o1 == [1, 3]);
 //     constraint (::p1 == {1, 1});
-//     constraint (::q1 == {1, 1});
-//     constraint (::r1 == {1, 1});
-//     constraint (::s1 == 1);
-//     constraint (::t1 == 1);
-//     constraint (::u1 == 1);
+//     constraint (::q1 == {1, 2});
+//     constraint (::r1 == {1, 3});
+//     constraint (::s1 == 13);
+//     constraint (::t1 == 14);
+//     constraint (::u1 == 15);
 //     constraint (::v1 == -1);
-//     constraint (::a2 == -1);
-//     constraint (::b2 == -1);
-//     constraint (::c2 == (1 > ::x));
-//     constraint (::d2 == (1 > ::x));
-//     constraint (::e2 == (1 > ::x));
-//     constraint (::f2 == 1);
-//     constraint (::g2 == 1);
-//     constraint (::h2 == 1);
-//     constraint (::i2 == 0);
-//     constraint (::j2 == 0);
-//     constraint (::k2 == 0);
-//     constraint (::l2 == 0);
-//     constraint (::m2 == 0);
-//     constraint (::n2 == 0);
-//     constraint (::o2 == 0);
-//     constraint (::p2 == 0);
-//     constraint (::q2 == 0);
-//     constraint (::r2 == 0);
-//     constraint (::s2 == 0);
-//     constraint (::t2 == 0);
+//     constraint (::a2 == -2);
+//     constraint (::b2 == -3);
+//     constraint (::c2 == (21 > ::x));
+//     constraint (::d2 == (22 > ::x));
+//     constraint (::e2 == (23 > ::x));
+//     constraint (::f2 == 16);
+//     constraint (::g2 == 17);
+//     constraint (::h2 == 18);
+//     constraint (::i2 == 19);
+//     constraint (::j2 == 20);
+//     constraint (::k2 == 21);
+//     constraint (::l2 == 22);
+//     constraint (::m2 == 23);
+//     constraint (::n2 == 24);
+//     constraint (::o2 == 25);
+//     constraint (::p2 == 26);
+//     constraint (::q2 == 27);
+//     constraint (::r2 == 28);
+//     constraint (::s2 == 29);
+//     constraint (::t2 == 30);
+//     constraint (::u2 == ::Coin::Penny);
+//     constraint (::v2 == ::Coin::Dime);
+//     constraint (::a3 == ::Coin::Quarter);
+//     constraint (::b3' == 31);
+//     constraint (::c3' == 32);
+//     constraint (::d3' == 33);
+//     constraint (::e3 == 34);
+//     constraint (::f3 == 35);
+//     constraint (::g3 == 36);
+//     constraint (::h3 == ::Foo@[::addr0]::FooTest@[::addr0](0, false));
+//     constraint (::i3 == ::Foo@[::addr0]::FooTest@[::addr0](1, false));
+//     constraint (::j3 == ::Foo@[::addr0]::FooTest@[::addr0](2, false));
+//     constraint (::k3 == ::LocalTest@[](3, false));
+//     constraint (::l3 == ::LocalTest@[](4, false));
+//     constraint (::m3 == ::LocalTest@[](5, false));
+//     constraint (::n3 == 37);
+//     constraint (::o3 == 38);
+//     constraint (::p3 == 39);
+//     constraint (::q3 == 40);
+//     constraint (::r3 == 41);
+//     constraint (::s3 == 42);
+//     constraint (::t3 == ::y);
+//     constraint (::u3 == ::z);
+//     constraint (::v3 == ::y);
+//     constraint (::a4 == ::z);
+//     constraint (::b4 == ::y);
+//     constraint (::c4 == ::z);
+//     constraint (::d4 == ::Fruit::Apples(0));
+//     constraint (::e4 == ::Fruit::Apples(1));
+//     constraint (::f4 == ::Fruit::Apples(2));
+//     constraint (::x < __x2_len);
+//     constraint (::w < __x2_len);
+//     constraint (::w < __x2_len);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
 
 // optimized <<<
+// union ::Coin = Penny | Dime | Quarter;
+// union ::Fruit = Apples(int) | Oranges(int);
 // storage {
 //     x1: int,
 //     x2: int[],
 //     x3: int[],
+//     x_map: ( {int, int} => {int, int} ),
 // }
 // interface ::Foo {
 //     storage {
 //         x2: int[],
 //         x3: int[],
+//         x4: int,
+//         x5: int,
 //     }
+//     predicate FooTest (
+//         foo_x: int,
+//         foo_y: bool,
+//     );
+// }
+//
+// predicate ::LocalTest(
+//     ::local_x: int,
+//     ::local_y: bool,
+// ) {
+//     constraint __eq_set(__mut_keys(), {0});
 // }
 //
 // predicate ::Test(
@@ -519,6 +771,8 @@ predicate Test(w: int, x: int, y: bool, z: bool) {
 //     ::x: int,
 //     ::y: bool,
 //     ::z: bool,
+//     ::w2: ::Coin,
+//     ::x2: ::Coin,
 // ) {
 //     let ::a: int = (::x + 1);
 //     let ::c: int = (1 * ::x);
@@ -560,69 +814,121 @@ predicate Test(w: int, x: int, y: bool, z: bool) {
 //     let ::q2: int = __storage_get({2});
 //     let ::r2: int = __storage_get_extern(0x0000000000000000000000000000000000000000000000000000000000000000, {0});
 //     let ::t2: int = __storage_get_extern(0x0000000000000000000000000000000000000000000000000000000000000000, {1});
+//     let ::u2: ::Coin = ::w2;
+//     let ::a3: ::Coin = ::x2;
+//     let ::b3: int = __storage_get({3, {42, 69}, 1});
+//     let ::d3: int = __storage_get({3, {69, 42}, 0});
+//     let ::e3: int = __storage_get_extern(0x0000000000000000000000000000000000000000000000000000000000000000, {2});
+//     let ::g3: int = __storage_get_extern(0x0000000000000000000000000000000000000000000000000000000000000000, {3});
+//     let ::h3: bool = ::Foo@[0x0000000000000000000000000000000000000000000000000000000000000000]::FooTest@[0x0000000000000000000000000000000000000000000000000000000000000000](::x, ::y);
+//     let ::j3: bool = ::Foo@[0x0000000000000000000000000000000000000000000000000000000000000000]::FooTest@[0x0000000000000000000000000000000000000000000000000000000000000000](::x, ::z);
+//     let ::k3: bool = ::LocalTest@[](::x, ::y);
+//     let ::m3: bool = ::LocalTest@[](::x, ::z);
+//     let ::n3: int = ((UnTag(::w2) == 0) ? 1 : ((UnTag(::w2) == 1) ? 10 : 25));
+//     let ::p3: int = ((UnTag(::x2) == 0) ? 22 : ((UnTag(::x2) == 1) ? 23 : 24));
+//     let ::q3: int = __storage_get({1, ::w});
+//     let ::s3: int = __storage_get({1, ::x});
+//     let ::t3: bool = ((::w == 1) || (::w == 2));
+//     let ::v3: bool = ((::x == 1) || (::x == 2));
+//     let ::a4: bool = ((::w >= 1) && (::w <= 2));
+//     let ::c4: bool = ((::w >= 2) && (::w <= 3));
+//     let ::d4: ::Fruit = ::Fruit::Apples(::w);
+//     let ::f4: ::Fruit = ::Fruit::Apples(::x);
 //     constraint (::a == 0);
-//     constraint (::a == 0);
-//     constraint (::c == 0);
-//     constraint (::c == 0);
+//     constraint (::a == 1);
+//     constraint (::c == 2);
+//     constraint (::c == 3);
 //     constraint (::f == (1 > ::x));
-//     constraint (::f == (1 > ::x));
-//     constraint (::h == (1 > ::x));
-//     constraint (::h == (1 > ::x));
-//     constraint (::j == (1 > ::x));
-//     constraint (::j == (1 > ::x));
-//     constraint (::l == (1 > ::x));
-//     constraint (::l == (1 > ::x));
-//     constraint (::n == 0);
-//     constraint (::n == 0);
-//     constraint (::p == 0);
-//     constraint (::q == 0);
-//     constraint (::q == 0);
-//     constraint (::s == 0);
-//     constraint (::t == 0);
-//     constraint (::t == 0);
-//     constraint (::v == 0);
-//     constraint (::a1 == (1 > ::x));
-//     constraint (::a1 == (1 > ::x));
-//     constraint (::c1 == (1 > ::x));
-//     constraint (::d1 == (1 > ::x));
-//     constraint (::d1 == (1 > ::x));
-//     constraint (::f1 == (1 > ::x));
-//     constraint (::g1 == (1 > ::x));
-//     constraint (::g1 == (1 > ::x));
-//     constraint (::i1 == (1 > ::x));
-//     constraint (::j1 == (1 > ::x));
-//     constraint (::j1 == (1 > ::x));
-//     constraint (::l1 == (1 > ::x));
+//     constraint (::f == (2 > ::x));
+//     constraint (::h == (3 > ::x));
+//     constraint (::h == (4 > ::x));
+//     constraint (::j == (5 > ::x));
+//     constraint (::j == (6 > ::x));
+//     constraint (::l == (7 > ::x));
+//     constraint (::l == (8 > ::x));
+//     constraint (::n == 4);
+//     constraint (::n == 5);
+//     constraint (::p == 6);
+//     constraint (::q == 7);
+//     constraint (::q == 8);
+//     constraint (::s == 9);
+//     constraint (::t == 10);
+//     constraint (::t == 11);
+//     constraint (::v == 12);
+//     constraint (::a1 == (9 > ::x));
+//     constraint (::a1 == (10 > ::x));
+//     constraint (::c1 == (11 > ::x));
+//     constraint (::d1 == (12 > ::x));
+//     constraint (::d1 == (13 > ::x));
+//     constraint (::f1 == (14 > ::x));
+//     constraint (::g1 == (15 > ::x));
+//     constraint (::g1 == (16 > ::x));
+//     constraint (::i1 == (17 > ::x));
+//     constraint (::j1 == (18 > ::x));
+//     constraint (::j1 == (19 > ::x));
+//     constraint (::l1 == (20 > ::x));
 //     constraint (::m1 == [1, 1]);
-//     constraint (::m1 == [1, 1]);
-//     constraint (::o1 == [1, 1]);
+//     constraint (::m1 == [1, 2]);
+//     constraint (::o1 == [1, 3]);
 //     constraint (::p1 == {1, 1});
-//     constraint (::p1 == {1, 1});
-//     constraint (::r1 == {1, 1});
-//     constraint (::s1 == 1);
-//     constraint (::s1 == 1);
-//     constraint (::u1 == 1);
+//     constraint (::p1 == {1, 2});
+//     constraint (::r1 == {1, 3});
+//     constraint (::s1 == 13);
+//     constraint (::s1 == 14);
+//     constraint (::u1 == 15);
 //     constraint (::v1 == -1);
-//     constraint (::v1 == -1);
-//     constraint (::b2 == -1);
-//     constraint (::c2 == (1 > ::x));
-//     constraint (::c2 == (1 > ::x));
-//     constraint (::e2 == (1 > ::x));
-//     constraint (::f2 == 1);
-//     constraint (::f2 == 1);
-//     constraint (::h2 == 1);
-//     constraint (::i2 == 0);
-//     constraint (::i2 == 0);
-//     constraint (::k2 == 0);
-//     constraint (::l2 == 0);
-//     constraint (::l2 == 0);
-//     constraint (::n2 == 0);
-//     constraint (::o2 == 0);
-//     constraint (::o2 == 0);
-//     constraint (::q2 == 0);
-//     constraint (::r2 == 0);
-//     constraint (::r2 == 0);
-//     constraint (::t2 == 0);
+//     constraint (::v1 == -2);
+//     constraint (::b2 == -3);
+//     constraint (::c2 == (21 > ::x));
+//     constraint (::c2 == (22 > ::x));
+//     constraint (::e2 == (23 > ::x));
+//     constraint (::f2 == 16);
+//     constraint (::f2 == 17);
+//     constraint (::h2 == 18);
+//     constraint (::i2 == 19);
+//     constraint (::i2 == 20);
+//     constraint (::k2 == 21);
+//     constraint (::l2 == 22);
+//     constraint (::l2 == 23);
+//     constraint (::n2 == 24);
+//     constraint (::o2 == 25);
+//     constraint (::o2 == 26);
+//     constraint (::q2 == 27);
+//     constraint (::r2 == 28);
+//     constraint (::r2 == 29);
+//     constraint (::t2 == 30);
+//     constraint (::u2 == ::Coin::Penny);
+//     constraint (::u2 == ::Coin::Dime);
+//     constraint (::a3 == ::Coin::Quarter);
+//     constraint (::b3' == 31);
+//     constraint (::b3' == 32);
+//     constraint (::d3' == 33);
+//     constraint (::e3 == 34);
+//     constraint (::e3 == 35);
+//     constraint (::g3 == 36);
+//     constraint (::h3 == ::Foo@[0x0000000000000000000000000000000000000000000000000000000000000000]::FooTest@[0x0000000000000000000000000000000000000000000000000000000000000000](0, false));
+//     constraint (::h3 == ::Foo@[0x0000000000000000000000000000000000000000000000000000000000000000]::FooTest@[0x0000000000000000000000000000000000000000000000000000000000000000](1, false));
+//     constraint (::j3 == ::Foo@[0x0000000000000000000000000000000000000000000000000000000000000000]::FooTest@[0x0000000000000000000000000000000000000000000000000000000000000000](2, false));
+//     constraint (::k3 == ::LocalTest@[](3, false));
+//     constraint (::k3 == ::LocalTest@[](4, false));
+//     constraint (::m3 == ::LocalTest@[](5, false));
+//     constraint (::n3 == 37);
+//     constraint (::n3 == 38);
+//     constraint (::p3 == 39);
+//     constraint (::q3 == 40);
+//     constraint (::q3 == 41);
+//     constraint (::s3 == 42);
+//     constraint (::t3 == ::y);
+//     constraint (::t3 == ::z);
+//     constraint (::v3 == ::y);
+//     constraint (::a4 == ::z);
+//     constraint (::a4 == ::y);
+//     constraint (::c4 == ::z);
+//     constraint (::d4 == ::Fruit::Apples(0));
+//     constraint (::d4 == ::Fruit::Apples(1));
+//     constraint (::f4 == ::Fruit::Apples(2));
+//     constraint (::x < ::o2);
+//     constraint (::w < ::o2);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

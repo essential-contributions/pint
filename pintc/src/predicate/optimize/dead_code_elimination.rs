@@ -20,7 +20,7 @@ pub(crate) fn dead_code_elimination(handler: &Handler, contract: &mut Contract) 
     dead_select_elimination(contract);
 
     duplicate_variable_elimination(contract);
-    // duplicate_constraint_elimination(contract);
+    duplicate_constraint_elimination(contract);
 }
 
 /// Remove all unused variables in their respective predicates.
@@ -191,7 +191,6 @@ pub(crate) fn duplicate_variable_elimination(contract: &mut Contract) {
                         .get_ty(pred)
                         .eq(contract, subsequent_var_key.get_ty(pred))
                     {
-                        // println!("var key is not the same type as subsequent var key");
                         continue;
                     }
                 }
@@ -201,11 +200,6 @@ pub(crate) fn duplicate_variable_elimination(contract: &mut Contract) {
                     .get(contract)
                     .eq(contract, &subsequent_var.expr.get(&contract))
                 {
-                    println!(
-                        "{} is a dupe of {}",
-                        contract.with_ctrct(subsequent_var.expr),
-                        contract.with_ctrct(var.expr),
-                    );
                     dupe_var_decls.push((*var_key, *subsequent_var_key));
                 }
             }

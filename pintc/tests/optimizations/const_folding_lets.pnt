@@ -142,7 +142,6 @@ predicate Foo(x: int, y: bool) {
 //     constraint (::x == -2);
 //     constraint (::y == false);
 //     constraint (::y == true);
-//     constraint (::y == true);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
