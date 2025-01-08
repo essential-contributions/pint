@@ -254,7 +254,17 @@ pub(crate) fn duplicate_variable_elimination(contract: &mut Contract) {
     }
 }
 
-/// Remove all duplicate Constraints in their respective predicates.
+/// Removes all duplicate Constraint declarations
+///
+/// Any variable declaration that contains an equivalent expression is removed, regardless of span
+///
+/// Ex.
+/// constraint a == x + 1;
+/// constraint a == x + 1;
+/// constraint a == b + 1;
+/// becomes
+/// constraint a == x + 1;
+/// constraint a == b + 1;
 pub(crate) fn duplicate_constraint_elimination(contract: &mut Contract) {
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         if let Some(pred) = contract.preds.get(pred_key) {

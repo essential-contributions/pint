@@ -9,7 +9,7 @@ use crate::{
     span::empty_span,
     types::Type,
 };
-use essential_asm::{Access, Alu, Crypto, Memory, Op, Pred, Stack, StateRead, TotalControlFlow};
+use essential_asm::short::*;
 use essential_types::{
     predicate::{Predicate as CompiledPredicate, Reads},
     ContentAddress,
@@ -23,10 +23,10 @@ pub struct AsmBuilder<'a> {
     compiled_predicates: &'a fxhash::FxHashMap<String, (CompiledPredicate, ContentAddress)>,
 
     // A map from names of variables to their memory indices.
-    variables_to_memory_indices: fxhash::FxHashMap<(String, Reads), usize>,
+    var_to_mem_idx: fxhash::FxHashMap<(String, Reads), i64>,
 
     // A map from storage access expressions to their memory indices.
-    storage_access_to_memory_indices: fxhash::FxHashMap<ExprKey, usize>,
+    expr_to_mem_idx: fxhash::FxHashMap<ExprKey, i64>,
 
     // The current size of global memory in words.
     // - Used by loops but postponed until we implement the program graphs.
@@ -37,7 +37,7 @@ pub struct AsmBuilder<'a> {
     morphism_scopes: Vec<(String, (Location, usize))>,
 }
 
-type Asm = Vec<Op>;
+type Asm = Vec<essential_asm::Op>;
 
 /// "Location" of an expression:
 /// 1. `PredicateData` expressions refer to expressions that require the `PredicateData` opcode.
@@ -62,8 +62,8 @@ impl<'a> AsmBuilder<'a> {
     ) -> Self {
         Self {
             compiled_predicates,
-            variables_to_memory_indices: fxhash::FxHashMap::default(),
-            storage_access_to_memory_indices: fxhash::FxHashMap::default(),
+            var_to_mem_idx: fxhash::FxHashMap::default(),
+            expr_to_mem_idx: fxhash::FxHashMap::default(),
             //global_mem_size: 0,
             morphism_scopes: Default::default(),
         }
@@ -80,129 +80,95 @@ impl<'a> AsmBuilder<'a> {
         pred: &Predicate,
     ) -> Result<Asm, ErrorEmitted> {
         let expr = node.expr();
-        let mut asm = Vec::new();
+        let expr_ty = expr.get_ty(contract);
+        let expr_size = expr_ty.size(handler, contract)? as i64;
 
         // Produce a map from input variables to this nodes to their indices in the concatinated
         // memory. Also compute the total amount of memory used so far.
-        let mut total_memory_indices = parents.iter().try_fold(0, |base, node| match node {
+        let mut total_memory_size = parents.iter().try_fold(0i64, |base, node| match node {
             ComputeNode::NonLeaf { var, reads, .. } => {
-                self.variables_to_memory_indices
-                    .insert((var.name.clone(), *reads), base);
+                self.var_to_mem_idx.insert((var.name.clone(), *reads), base);
                 let size = var.expr.get_ty(contract).size(handler, contract)?;
-                Ok(base + 1 + size)
+                Ok(base + 1 + size as i64)
             }
             ComputeNode::Leaf { .. } => Ok(base),
         })?;
 
+        let mut asm = Vec::new();
         if node.is_leaf() {
             self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
         } else {
-            // Allocates a new block of memory of size `size`. Returns the index pointing to the
-            // allocated memory.
-            let mut allocate = |size: usize| -> usize {
-                asm.push(Stack::Push(size as i64).into());
-                asm.push(Memory::Alloc.into());
-                asm.push(Stack::Pop.into());
-                total_memory_indices += size;
-                total_memory_indices - size
-            };
+            // This is the size of the returned data. Each non-leaf node returns the length of the
+            // data followed by the data itself. The data length represents the amount of "useful"
+            // data and the rest is padding up to expr_size.
+            let result_size = 1 + expr_size;
 
-            let expr_ty = expr.get_ty(contract);
-            let expr_size = expr_ty.size(handler, contract)?;
+            // Collect all storage accesses used in the node expression, and allocate enough memory
+            // for all of them. We do this ahead of time so that we know exactly how the size of
+            // memory allocated. Due to short-circuting, this also means that some allocations may
+            // not be used, but this is okay for now.
+            for access in &expr.collect_storage_accesses(contract) {
+                let num_keys = access.get_ty(contract).storage_keys(handler, contract)? as i64;
+                let access_size = access.get_ty(contract).size(handler, contract)? as i64;
+                let alloc_size = 2 * num_keys // for each key, start with the data address then its length
+                    + access_size; // then lay out the data read from each key, sequentiallly,
 
-            // Allocate a block of memory for the data to be returned and keep track of the memory
-            // index where the data is stored.
-            let result_idx = allocate(
-                1 // first store the size of the data 
-                + expr_size, // then store the data itself
-            );
+                asm.extend([PUSH(alloc_size), ALOC, POP]);
 
-            // Collect all storage accesses used in the variable initializer, and allocate enough
-            // slots for all of them. We do this ahead of time so that we know exactly how many slots
-            // are allocated. Due to short-circuting, this also means that some allocations may not be
-            // used, but this is okay for now.
-            let storage_accesses = expr.collect_storage_accesses(contract);
-            for access in &storage_accesses {
-                // This is how many slots this storage access requires
-                let access_ty = access.get_ty(contract);
-                let expr_size = access_ty.size(handler, contract)?;
-                let num_keys_to_read = access_ty.storage_slots(handler, contract)?;
+                // Keep track of the mem index for this access
+                self.expr_to_mem_idx.insert(*access, total_memory_size);
 
-                // Now, allocate
-                let mem_idx = allocate(
-                    num_keys_to_read * 2 // for each key, start with the data address then its length 
-                    + expr_size, // then lay out the data read from each key sequentially
-                );
-
-                // Keep track of the local indices of the newly allocated slots
-                self.storage_access_to_memory_indices
-                    .insert(*access, mem_idx);
+                total_memory_size += alloc_size;
             }
 
-            // This is the location where the returned data will be stored. The `+1` is to skip the
-            // location for the data length which will be filled later
-            asm.push(Stack::Push((result_idx + 1) as i64).into());
+            // Allocate enough memory for the returned data, if needed
+            if total_memory_size < result_size {
+                asm.extend([PUSH(result_size - total_memory_size), ALOC, POP]);
+                total_memory_size = result_size;
+            }
 
-            // Now compile the initializing expression
-            if let Some(storage_access_mem_idx) =
-                self.compile_expr_pointer_deref(handler, &mut asm, &expr, contract, pred)?
-            {
-                // The returned data lives in memory and is the result of a storage access.
-                // First, load the data from memory
-                asm.push(Stack::Push(storage_access_mem_idx as i64).into());
-                asm.push(Stack::Push(expr_size as i64).into());
-                asm.push(Memory::LoadRange.into());
+            if expr.get(contract).is_storage_access() {
+                // If `expr` is a storage access, we have to handle it separately because the
+                // returned data might have length < expr_size
+                let num_keys = expr_ty.storage_keys(handler, contract)? as i64;
+                let access_mem_idx = self.expr_to_mem_idx[&expr];
 
-                // Now store the data to be returned
-                asm.push(Stack::Push(expr_size as i64).into());
-                asm.push(Memory::StoreRange.into());
+                asm.push(PUSH(1)); // mem idx where the data will be stored
+                self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
 
-                // Also store the length of the data.
-                asm.push(Stack::Push(result_idx as i64).into());
-                asm.push(Stack::Push(0).into());
-                let num_keys_to_read = expr_ty.storage_slots(handler, contract)?;
-                for i in 0..num_keys_to_read {
-                    asm.push(
-                        Stack::Push(
-                            (storage_access_mem_idx - 2 * num_keys_to_read + 2 * i + 1) as i64,
-                        )
-                        .into(),
+                // First, compute and store the length of the data.
+                asm.push(PUSH(0)); // mem idx where the length will be stored
+                if num_keys > 1 {
+                    asm.push(PUSH(0));
+                    asm.extend(
+                        (0..num_keys).flat_map(|i| [PUSH(access_mem_idx + 2 * i + 1), LOD, ADD]),
                     );
-                    asm.push(Memory::Load.into());
-                    asm.push(Alu::Add.into());
+                } else {
+                    asm.extend([PUSH(access_mem_idx + 1), LOD]);
                 }
-                asm.push(Memory::Store.into());
-            } else {
-                // The returned data lives on the stack
-                // Copy it to the memory location reserved for the result
-                asm.push(Stack::Push(expr_size as i64).into());
-                asm.push(Memory::StoreRange.into());
+                asm.push(STO);
 
-                // Also store the length of the data
-                asm.push(Stack::Push(result_idx as i64).into());
-                asm.push(Stack::Push(expr_size as i64).into());
-                asm.push(Memory::Store.into());
+                // Then, store the actual data.
+                asm.extend([PUSH(expr_size), STOR]);
+            } else {
+                // Store the length of the data
+                asm.extend([
+                    PUSH(0), // mem idx where the length will be stored
+                    PUSH(expr_size),
+                    STO,
+                ]);
+
+                // Store the actual data
+                asm.push(PUSH(1)); // mem idx where the data will be stored
+                self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
+                asm.extend([PUSH(expr_size), STOR]);
             }
 
-            // Now, move over the data stored at `result_idx` to index 0 and free up the rest of the
-            // memory.
-
-            // This is where we want to store the final result
-            asm.push(Stack::Push(0).into());
-
-            // Load result from `result_idx` to the stack
-            asm.push(Stack::Push(result_idx as i64).into());
-            asm.push(Stack::Push((expr_size + 1) as i64).into()); // data + its length
-            asm.push(Memory::LoadRange.into());
-
-            // Free everything down to `expr_size + 1`. We know we have at least this much memory due
-            // to the first alloc above
-            asm.push(Stack::Push((expr_size + 1) as i64).into());
-            asm.push(Memory::Free.into());
-
-            // Now store
-            asm.push(Stack::Push((expr_size + 1) as i64).into());
-            asm.push(Memory::StoreRange.into());
+            // If needed, free everything down to `expr_size + 1`. We know we have at least this
+            // much memory due to the first alloc above
+            if total_memory_size > result_size {
+                asm.extend([PUSH(result_size), FREE]);
+            }
         }
 
         Ok(asm)
@@ -219,63 +185,35 @@ impl<'a> AsmBuilder<'a> {
         pred: &Predicate,
     ) -> Result<usize, ErrorEmitted> {
         let old_asm_len = asm.len();
-
-        if let Some(mem_idx) =
-            self.compile_expr_pointer_deref(handler, asm, expr, contract, pred)?
-        {
-            asm.push(Stack::Push(mem_idx as i64).into());
-            asm.push(Stack::Push(expr.get_ty(contract).size(handler, contract)? as i64).into());
-            asm.push(Memory::LoadRange.into());
-        }
-        Ok(asm.len() - old_asm_len)
-    }
-
-    /// Dereferences a pointer using the appropriate opcode depending on the location of the
-    /// pointer. If the pointer is a "storage" pointer, then the data is read in memory (not pushed
-    /// on the stack) and the index of this memory is returned.
-    fn compile_expr_pointer_deref(
-        &mut self,
-        handler: &Handler,
-        asm: &mut Asm,
-        expr: &ExprKey,
-        contract: &Contract,
-        pred: &Predicate,
-    ) -> Result<Option<usize>, ErrorEmitted> {
         let expr_ty = expr.get_ty(contract);
+        let expr_size = expr_ty.size(handler, contract)? as i64;
         match self.compile_expr_pointer(handler, asm, expr, contract, pred)? {
             Location::PredicateData => {
-                asm.push(Stack::Push(expr_ty.size(handler, contract)? as i64).into()); // len
-                asm.push(Access::PredicateData.into());
-                Ok(None)
+                asm.extend([PUSH(expr_size), DATA]);
             }
 
             Location::Memory => {
-                asm.push(Stack::Push(expr_ty.size(handler, contract)? as i64).into());
-                asm.push(Memory::LoadRange.into());
-                Ok(None)
+                asm.extend([PUSH(expr_size), LODR]);
             }
 
             Location::Storage(is_extern) => {
-                let num_keys_to_read = expr_ty.storage_slots(handler, contract)?;
+                let num_keys = expr_ty.storage_keys(handler, contract)? as i64;
+                let access_mem_idx = self.expr_to_mem_idx[expr];
 
-                // Allocate as many slots as we have keys
-                let base_slot_index = self.storage_access_to_memory_indices[expr];
-
-                // Read the storage keys into the slots, starting with `base_slot_index`
-                asm.push(Stack::Push(num_keys_to_read as i64).into()); // num_keys_to_read
-                asm.push(Stack::Push(base_slot_index as i64).into()); // slot_index
-                asm.push(if is_extern {
-                    StateRead::KeyRangeExtern.into()
-                } else {
-                    StateRead::KeyRange.into()
-                });
-
-                // Storage accesses are read into memory, so return the index of that memory
-                Ok(Some(base_slot_index + num_keys_to_read * 2))
+                // Read the storage keys into memory
+                asm.extend([
+                    PUSH(num_keys),
+                    PUSH(access_mem_idx), // mem idx for the output of KREX or KRNG
+                    if is_extern { KREX } else { KRNG },
+                    PUSH(access_mem_idx + num_keys * 2), // where the actual data lives
+                    PUSH(expr_size),
+                    LODR,
+                ]);
             }
 
-            Location::Value => Ok(None),
+            Location::Value => {}
         }
+        Ok(asm.len() - old_asm_len)
     }
 
     /// Generates assembly for an `ExprKey` as a _pointer_. What this means is that, if the expr
@@ -297,18 +235,20 @@ impl<'a> AsmBuilder<'a> {
         ) -> Result<usize, ErrorEmitted> {
             match imm {
                 Immediate::Int(val) => {
-                    asm.push(Stack::Push(*val).into());
+                    asm.push(PUSH(*val));
                     Ok(1)
                 }
                 Immediate::Bool(val) => {
-                    asm.push(Stack::Push(*val as i64).into());
+                    asm.push(PUSH(*val as i64));
                     Ok(1)
                 }
                 Immediate::B256(val) => {
-                    asm.push(Stack::Push(val[0] as i64).into());
-                    asm.push(Stack::Push(val[1] as i64).into());
-                    asm.push(Stack::Push(val[2] as i64).into());
-                    asm.push(Stack::Push(val[3] as i64).into());
+                    asm.extend([
+                        PUSH(val[0] as i64),
+                        PUSH(val[1] as i64),
+                        PUSH(val[2] as i64),
+                        PUSH(val[3] as i64),
+                    ]);
                     Ok(4)
                 }
                 Immediate::Array(elements) => {
@@ -331,14 +271,14 @@ impl<'a> AsmBuilder<'a> {
                     value,
                     ..
                 } => {
-                    asm.push(Stack::Push(*tag_num).into());
+                    asm.push(PUSH(*tag_num));
 
                     let mut value_size = 0;
                     if let Some(value) = value {
                         value_size = compile_immediate(handler, asm, value)?;
                     }
                     while value_size < *max_size {
-                        asm.push(Stack::Push(0).into());
+                        asm.push(PUSH(0));
                         value_size += 1;
                     }
                     Ok(1 + value_size)
@@ -457,13 +397,11 @@ impl<'a> AsmBuilder<'a> {
             // using the current repeat count as an index.
             match loc {
                 Location::PredicateData => {
-                    // The global_idx refers to the slot idx.
-                    asm.push(Stack::Push(*global_idx as i64).into());
-                    asm.push(Stack::Load.into());
-
-                    // Below we push a placeholder.  Might as well do it here too.
-                    asm.push(Stack::Push(0).into());
-
+                    asm.extend([
+                        PUSH(*global_idx as i64), // global_idx refers to predicate parameter index
+                        LOD,
+                        PUSH(0), // Placeholder. Might as well do it here too
+                    ]);
                     Ok(Location::PredicateData)
                 }
 
@@ -477,16 +415,13 @@ impl<'a> AsmBuilder<'a> {
             .enumerate()
             .find(|(_, param)| &param.name.name == path)
         {
-            asm.push(Stack::Push(param_index as i64).into()); // slot
-            asm.push(Stack::Push(0).into()); // placeholder for index computation
-
-            // predicate parameters are implemented using `PredicateData`
+            asm.extend([
+                PUSH(param_index as i64), // predicate parameter index
+                PUSH(0),                  // placeholder for index computations
+            ]);
             Ok(Location::PredicateData)
         } else if pred.variables().any(|(_, variable)| &variable.name == path) {
-            asm.push(
-                Stack::Push(1 + self.variables_to_memory_indices[&(path.clone(), reads)] as i64)
-                    .into(),
-            );
+            asm.push(PUSH(1 + self.var_to_mem_idx[&(path.clone(), reads)]));
             Ok(Location::Memory)
         } else {
             // Must not have anything else at this point. All other path expressions should have
@@ -510,7 +445,7 @@ impl<'a> AsmBuilder<'a> {
         match op {
             UnaryOp::Not => {
                 self.compile_expr(handler, asm, expr, contract, pred)?;
-                asm.push(Pred::Not.into());
+                asm.push(NOT);
                 Ok(Location::Value)
             }
             UnaryOp::NextState => {
@@ -526,9 +461,9 @@ impl<'a> AsmBuilder<'a> {
             UnaryOp::Neg => {
                 // Push `0` (i.e. `lhs`) before the `expr` (i.e. `rhs`) opcodes. Then subtract
                 // `lhs` - `rhs` to negate the value.
-                asm.push(Op::Stack(Stack::Push(0)));
+                asm.push(PUSH(0));
                 self.compile_expr(handler, asm, expr, contract, pred)?;
-                asm.push(Alu::Sub.into());
+                asm.push(SUB);
                 Ok(Location::Value)
             }
             UnaryOp::Error => {
@@ -552,38 +487,33 @@ impl<'a> AsmBuilder<'a> {
         let rhs_len = self.compile_expr(handler, asm, rhs, contract, pred)?;
 
         match op {
-            BinaryOp::Add => asm.push(Alu::Add.into()),
-            BinaryOp::Sub => asm.push(Alu::Sub.into()),
-            BinaryOp::Mul => asm.push(Alu::Mul.into()),
-            BinaryOp::Div => asm.push(Alu::Div.into()),
-            BinaryOp::Mod => asm.push(Alu::Mod.into()),
+            BinaryOp::Add => asm.push(ADD),
+            BinaryOp::Sub => asm.push(SUB),
+            BinaryOp::Mul => asm.push(MUL),
+            BinaryOp::Div => asm.push(DIV),
+            BinaryOp::Mod => asm.push(MOD),
             BinaryOp::Equal => {
                 let type_size = lhs.get_ty(contract).size(handler, contract)?;
                 if type_size == 1 {
-                    asm.push(Pred::Eq.into());
+                    asm.push(EQ);
                 } else {
-                    asm.push(Stack::Push(type_size as i64).into());
-                    asm.push(Pred::EqRange.into());
+                    asm.extend([PUSH(type_size as i64), EQRA]);
                 }
             }
             BinaryOp::NotEqual => {
                 let type_size = lhs.get_ty(contract).size(handler, contract)?;
                 if type_size == 1 {
-                    asm.push(Pred::Eq.into());
+                    asm.extend([EQ, NOT]);
                 } else {
-                    asm.push(Stack::Push(type_size as i64).into());
-                    asm.push(Pred::EqRange.into());
+                    asm.extend([PUSH(type_size as i64), EQRA, NOT]);
                 }
-                asm.push(Pred::Not.into());
             }
-            BinaryOp::LessThanOrEqual => asm.push(Pred::Lte.into()),
-            BinaryOp::LessThan => asm.push(Pred::Lt.into()),
-            BinaryOp::GreaterThanOrEqual => {
-                asm.push(Pred::Gte.into());
-            }
-            BinaryOp::GreaterThan => asm.push(Pred::Gt.into()),
+            BinaryOp::LessThanOrEqual => asm.push(LTE),
+            BinaryOp::LessThan => asm.push(LT),
+            BinaryOp::GreaterThanOrEqual => asm.push(GTE),
+            BinaryOp::GreaterThan => asm.push(GT),
             BinaryOp::LogicalAnd => {
-                // Short-circuit AND. Using `JumpForwardIf`, converts `x && y` to:
+                // Short-circuit AND. Using `JMPIF`, converts `x && y` to:
                 // if !x { false } else { y }
 
                 // Location right before the `lhs` opcodes
@@ -594,29 +524,26 @@ impl<'a> AsmBuilder<'a> {
 
                 // Push `false` before `lhs` opcodes. This is the result of the `AND` operation if
                 // `lhs` is false.
-                asm.insert(lhs_position, Stack::Push(0).into());
+                asm.insert(lhs_position, PUSH(0));
 
                 // Then push the number of instructions to skip over if the `lhs` is true.  That's
-                // `rhs_len + 2` because we're going to add to add `Pop` later and we want to skip
+                // `rhs_len + 2` because we're going to add to add `POP` later and we want to skip
                 // over that AND all the `rhs` opcodes
-                asm.insert(lhs_position + 1, Stack::Push(rhs_len as i64 + 2).into());
+                asm.insert(lhs_position + 1, PUSH(rhs_len as i64 + 2));
 
                 // Now, invert `lhs` to get the jump condition which is `!lhs`
-                asm.insert(rhs_position + 2, Pred::Not.into());
+                asm.insert(rhs_position + 2, NOT);
 
-                // Then, add the `JumpForwardIf` instruction after the `rhs` opcodes and the two
+                // Then, add the `JMPIF` instruction after the `rhs` opcodes and the two
                 // newly added opcodes. The `lhs` is the condition.
-                asm.insert(
-                    rhs_position + 3,
-                    Op::TotalControlFlow(TotalControlFlow::JumpForwardIf),
-                );
+                asm.insert(rhs_position + 3, JMPIF);
 
-                // Finally, insert a ` Pop`. The point here is that if the jump condition (i.e.
+                // Finally, insert a ` POP`. The point here is that if the jump condition (i.e.
                 // `!lhs`) is false, then we want to remove the `true` we push on the stack above.
-                asm.insert(rhs_position + 4, Stack::Pop.into());
+                asm.insert(rhs_position + 4, POP);
             }
             BinaryOp::LogicalOr => {
-                // Short-circuit OR. Using `JumpForwardIf`, converts `x || y` to:
+                // Short-circuit OR. Using `JMPIF`, converts `x || y` to:
                 // if x { true } else { y }
 
                 // Location right before the `lhs` opcodes
@@ -627,23 +554,20 @@ impl<'a> AsmBuilder<'a> {
 
                 // Push `true` before `lhs` opcodes. This is the result of the `OR` operation if
                 // `lhs` is true.
-                asm.insert(lhs_position, Stack::Push(1).into());
+                asm.insert(lhs_position, PUSH(1));
 
                 // Then push the number of instructions to skip over if the `lhs` is true.  That's
-                // `rhs_len + 2` because we're going to add to add `Pop` later and we want to skip
+                // `rhs_len + 2` because we're going to add to add `POP` later and we want to skip
                 // over that AND all the `rhs` opcodes
-                asm.insert(lhs_position + 1, Stack::Push(rhs_len as i64 + 2).into());
+                asm.insert(lhs_position + 1, PUSH(rhs_len as i64 + 2));
 
-                // Now add the `JumpForwardIf` instruction after the `rhs` opcodes and the two
+                // Now add the `JMPIF` instruction after the `rhs` opcodes and the two
                 // newly added opcodes. The `lhs` is the condition.
-                asm.insert(
-                    rhs_position + 2,
-                    Op::TotalControlFlow(TotalControlFlow::JumpForwardIf),
-                );
+                asm.insert(rhs_position + 2, JMPIF);
 
-                // Then, insert a ` Pop`. The point here is that if the jump condition (i.e. `lhs`)
+                // Then, insert a ` POP`. The point here is that if the jump condition (i.e. `lhs`)
                 // is false, then we want to remove the `true` we push on the stack above.
-                asm.insert(rhs_position + 3, Stack::Pop.into());
+                asm.insert(rhs_position + 3, POP);
             }
         }
         Ok(Location::Value)
@@ -710,7 +634,7 @@ impl<'a> AsmBuilder<'a> {
 
                     for word in essential_types::convert::word_4_from_u8_32(predicate_address.1 .0)
                     {
-                        asm.push(Op::Stack(Stack::Push(word)));
+                        asm.push(PUSH(word));
                     }
                 }
             }
@@ -728,14 +652,10 @@ impl<'a> AsmBuilder<'a> {
                 )? {
                     Location::Memory => {
                         if let Expr::Path(path, _) = args[0].get(contract) {
-                            asm.push(
-                                Stack::Push(
-                                    self.variables_to_memory_indices[&(path.clone(), Reads::Pre)]
-                                        as i64,
-                                )
-                                .into(),
-                            );
-                            asm.push(Memory::Load.into());
+                            asm.extend([
+                                PUSH(self.var_to_mem_idx[&(path.clone(), Reads::Pre)]),
+                                LOD,
+                            ]);
                         } else if let Expr::UnaryOp {
                             op: UnaryOp::NextState,
                             expr,
@@ -743,15 +663,10 @@ impl<'a> AsmBuilder<'a> {
                         } = args[0].get(contract)
                         {
                             if let Expr::Path(path, _) = expr.get(contract) {
-                                asm.push(
-                                    Stack::Push(
-                                        self.variables_to_memory_indices
-                                            [&(path.clone(), Reads::Post)]
-                                            as i64,
-                                    )
-                                    .into(),
-                                );
-                                asm.push(Memory::Load.into());
+                                asm.extend([
+                                    PUSH(self.var_to_mem_idx[&(path.clone(), Reads::Post)]),
+                                    LOD,
+                                ]);
                             } else {
                                 return Err(handler.emit_internal_err(
                                     "unexpected next state op for non-path".to_string(),
@@ -767,50 +682,49 @@ impl<'a> AsmBuilder<'a> {
                     }
                     Location::Storage(is_extern) => {
                         self.compile_expr_pointer(handler, asm, &args[0], contract, pred)?;
-                        let num_keys_to_read =
-                            args[0].get_ty(contract).storage_slots(handler, contract)?;
+                        let num_keys =
+                            args[0].get_ty(contract).storage_keys(handler, contract)? as i64;
 
-                        // Allocate as many slots as we have keys
-                        let base_slot_index = self.storage_access_to_memory_indices[&args[0]];
+                        let access_mem_idx = self.expr_to_mem_idx[&args[0]];
 
-                        // Read the storage keys into the slots, starting with `base_slot_index`
-                        asm.push(Stack::Push(num_keys_to_read as i64).into()); // num_keys_to_read
-                        asm.push(Stack::Push(base_slot_index as i64).into()); // slot_index
-                        asm.push(if is_extern {
-                            StateRead::KeyRangeExtern.into()
-                        } else {
-                            StateRead::KeyRange.into()
-                        });
+                        // Read the storage keys into memory
+                        asm.extend([
+                            PUSH(num_keys),
+                            PUSH(access_mem_idx),
+                            if is_extern { KREX } else { KRNG },
+                        ]);
 
                         // Sum the sizes of all the values read. These are laid out as follows in
                         // memory:
                         // `[a_addr, a_len, b_addr, b_len, a_value, b_value, ...]`
-                        asm.push(Stack::Push(0).into());
-                        for i in 0..num_keys_to_read {
-                            asm.push(Stack::Push((base_slot_index + 2 * i + 1) as i64).into());
-                            asm.push(Memory::Load.into());
-                            asm.push(Alu::Add.into());
+                        if num_keys > 1 {
+                            asm.push(PUSH(0));
+                            asm.extend(
+                                (0..num_keys)
+                                    .flat_map(|i| [PUSH(access_mem_idx + 2 * i + 1), LOD, ADD]),
+                            );
+                        } else {
+                            asm.extend([PUSH(access_mem_idx + 1), LOD]);
                         }
                     }
                     Location::PredicateData | Location::Value => {
                         // These "locations" can just rely on the knwon size of the type since they
                         // can't be `nil`.
-                        asm.push(
-                            Stack::Push(args[0].get_ty(contract).size(handler, contract)? as i64)
-                                .into(),
-                        );
+                        asm.push(PUSH(
+                            args[0].get_ty(contract).size(handler, contract)? as i64
+                        ));
                     }
                 }
             }
 
             ExternalIntrinsic::VerifyEd25519 => {
                 self.compile_expr(handler, asm, &args[0], contract, pred)?;
-                asm.push(Op::Stack(Stack::Push(
+                asm.push(PUSH(
                     8 * args[0].get_ty(contract).size(handler, contract)? as i64,
-                )));
+                ));
                 self.compile_expr(handler, asm, &args[1], contract, pred)?;
                 self.compile_expr(handler, asm, &args[2], contract, pred)?;
-                asm.push(Op::Crypto(Crypto::VerifyEd25519))
+                asm.push(VRFYED)
             }
 
             // All other external intrinsics can be handled generically
@@ -820,28 +734,18 @@ impl<'a> AsmBuilder<'a> {
 
                     // if the type of the arg is `Any`, then follow with its size
                     if kind.args()[i].is_any() {
-                        asm.push(Op::Stack(Stack::Push(
-                            arg.get_ty(contract).size(handler, contract)? as i64,
-                        )));
+                        asm.push(PUSH(arg.get_ty(contract).size(handler, contract)? as i64));
                     }
                 }
 
                 match kind {
-                    ExternalIntrinsic::RecoverSECP256k1 => {
-                        asm.push(Op::Crypto(Crypto::RecoverSecp256k1))
-                    }
+                    ExternalIntrinsic::RecoverSECP256k1 => asm.push(RSECP),
 
-                    ExternalIntrinsic::Sha256 => {
-                        asm.push(Op::Stack(Stack::Push(8))); // placeholder for index
-                        asm.push(Alu::Mul.into());
-                        asm.push(Op::Crypto(Crypto::Sha256))
-                    }
+                    ExternalIntrinsic::Sha256 => asm.extend([PUSH(3), SHL, SHA2]),
 
-                    ExternalIntrinsic::ThisAddress => asm.push(Op::Access(Access::ThisAddress)),
+                    ExternalIntrinsic::ThisAddress => asm.push(THIS),
 
-                    ExternalIntrinsic::ThisContractAddress => {
-                        asm.push(Op::Access(Access::ThisContractAddress))
-                    }
+                    ExternalIntrinsic::ThisContractAddress => asm.push(THISC),
 
                     ExternalIntrinsic::AddressOf
                     | ExternalIntrinsic::SizeOf
@@ -882,19 +786,17 @@ impl<'a> AsmBuilder<'a> {
             // The only exception is set types since they are not very well specified yet. The
             // length of a set currently lives in the set itself.
             if !matches!(kind, InternalIntrinsic::EqSet) && kind.args()[i].is_any() {
-                asm.push(Op::Stack(Stack::Push(
-                    arg.get_ty(contract).size(handler, contract)? as i64,
-                )));
+                asm.push(PUSH(arg.get_ty(contract).size(handler, contract)? as i64));
             }
         }
 
         match kind {
             InternalIntrinsic::EqSet => {
-                asm.push(Op::Pred(Pred::EqSet));
+                asm.push(EQST);
                 Ok(Location::Value)
             }
             InternalIntrinsic::MutKeys => {
-                asm.push(Op::Access(Access::MutKeys));
+                asm.push(MKEYS);
                 Ok(Location::Value)
             }
             InternalIntrinsic::StorageGet => Ok(Location::Storage(false)),
@@ -921,13 +823,13 @@ impl<'a> AsmBuilder<'a> {
         // each arg, and an integer per arg desribing the arg length
         let data_to_hash_size = args.iter().try_fold(64, |acc, arg| {
             let arg_size = arg.get_ty(contract).size(handler, contract)?;
-            asm.push(Op::Stack(Stack::Push(arg_size as i64)));
+            asm.push(PUSH(arg_size as i64));
             self.compile_expr(handler, asm, arg, contract, pred)?;
             Ok(acc + 8 * (1 + arg_size))
         })?;
 
         // This is a local predicate call: use the current contract address here.
-        asm.push(Op::Access(Access::ThisContractAddress));
+        asm.push(THISC);
 
         // This is a local predicate call: use the pre-computed predicate address of the called
         // predicate
@@ -936,12 +838,10 @@ impl<'a> AsmBuilder<'a> {
         };
 
         for word in essential_types::convert::word_4_from_u8_32(predicate_address.1 .0) {
-            asm.push(Op::Stack(Stack::Push(word)));
+            asm.push(PUSH(word));
         }
 
-        asm.push(Op::Stack(Stack::Push(data_to_hash_size as i64)));
-        asm.push(Op::Crypto(Crypto::Sha256));
-        asm.push(Op::Access(Access::PredicateExists));
+        asm.extend([PUSH(data_to_hash_size as i64), SHA2, PEX]);
 
         Ok(Location::Value)
     }
@@ -966,7 +866,7 @@ impl<'a> AsmBuilder<'a> {
         // each arg, and an integer per arg desribing the arg length
         let data_to_hash_size = args.iter().try_fold(64, |acc, arg| {
             let arg_size = arg.get_ty(contract).size(handler, contract)?;
-            asm.push(Op::Stack(Stack::Push(arg_size as i64)));
+            asm.push(PUSH(arg_size as i64));
             self.compile_expr(handler, asm, arg, contract, pred)?;
             Ok(acc + 8 * (1 + arg_size))
         })?;
@@ -974,9 +874,7 @@ impl<'a> AsmBuilder<'a> {
         self.compile_expr(handler, asm, c_addr, contract, pred)?;
         self.compile_expr(handler, asm, p_addr, contract, pred)?;
 
-        asm.push(Op::Stack(Stack::Push(data_to_hash_size as i64)));
-        asm.push(Op::Crypto(Crypto::Sha256));
-        asm.push(Op::Access(Access::PredicateExists));
+        asm.extend([PUSH(data_to_hash_size as i64), SHA2, PEX]);
 
         Ok(Location::Value)
     }
@@ -998,26 +896,24 @@ impl<'a> AsmBuilder<'a> {
             //
             // This jump to 'then' will get updated with the proper distance below.
             let to_then_jump_idx = asm.len();
-            asm.push(Op::Stack(Stack::Push(-1)));
+            asm.push(PUSH(-1));
             self.compile_expr(handler, asm, condition, contract, pred)?;
-            asm.push(Op::TotalControlFlow(TotalControlFlow::JumpForwardIf));
+            asm.push(JMPIF);
 
             // Compile the 'else' selection, update the prior jump.  We need to jump over the size
             // of 'else` plus 3 instructions it uses to jump the 'then'.
             let else_size = self.compile_expr(handler, asm, else_expr, contract, pred)?;
 
-            asm[to_then_jump_idx] = Op::Stack(Stack::Push(else_size as i64 + 4));
+            asm[to_then_jump_idx] = PUSH(else_size as i64 + 4);
 
             // This (unconditional) jump over 'then' will also get updated.
             let to_end_jump_idx = asm.len();
-            asm.push(Op::Stack(Stack::Push(-1)));
-            asm.push(Op::Stack(Stack::Push(1)));
-            asm.push(Op::TotalControlFlow(TotalControlFlow::JumpForwardIf));
+            asm.extend([PUSH(-1), PUSH(1), JMPIF]);
 
             // Compile the 'then' selection, update the prior jump.
             let then_size = self.compile_expr(handler, asm, then_expr, contract, pred)?;
 
-            asm[to_end_jump_idx] = Op::Stack(Stack::Push(then_size as i64 + 1));
+            asm[to_end_jump_idx] = PUSH(then_size as i64 + 1);
         } else {
             // Alternatively, evaluate both options and use ASM `select` to choose one.
             let type_size = then_expr.get_ty(contract).size(handler, contract)?;
@@ -1025,11 +921,11 @@ impl<'a> AsmBuilder<'a> {
             self.compile_expr(handler, asm, then_expr, contract, pred)?;
             if type_size == 1 {
                 self.compile_expr(handler, asm, condition, contract, pred)?;
-                asm.push(Op::Stack(Stack::Select));
+                asm.push(SEL);
             } else {
-                asm.push(Op::Stack(Stack::Push(type_size as i64)));
+                asm.push(PUSH(type_size as i64));
                 self.compile_expr(handler, asm, condition, contract, pred)?;
-                asm.push(Op::Stack(Stack::SelectRange));
+                asm.push(SLTR);
             }
         }
         Ok(Location::Value)
@@ -1065,9 +961,7 @@ impl<'a> AsmBuilder<'a> {
 
         // Multiply the index by the size of `ty` to get the offset, then add the result to the
         // base key
-        asm.push(Stack::Push(ty.size(handler, contract)? as i64).into());
-        asm.push(Alu::Mul.into());
-        asm.push(Alu::Add.into());
+        asm.extend([PUSH(ty.size(handler, contract)? as i64), MUL, ADD]);
 
         Ok(location)
     }
@@ -1090,20 +984,8 @@ impl<'a> AsmBuilder<'a> {
             ));
         }
 
-        // check it's a prime op
-        let tuple_expr = if let Expr::UnaryOp {
-            op: UnaryOp::NextState,
-            expr,
-            ..
-        } = tuple.get(contract)
-        {
-            expr
-        } else {
-            tuple
-        };
-
         // Grab the fields of the tuple
-        let Type::Tuple { ref fields, .. } = tuple_expr.get_ty(contract) else {
+        let Type::Tuple { ref fields, .. } = tuple.get_ty(contract) else {
             return Err(
                 handler.emit_internal_err("type must exist and be a tuple type", empty_span())
             );
@@ -1134,14 +1016,15 @@ impl<'a> AsmBuilder<'a> {
             }
         };
 
-        // Use `Add` to compute the offset from the base key where the full tuple is stored.
-        asm.push(
-            Stack::Push(fields.iter().take(field_idx).try_fold(0, |acc, (_, ty)| {
-                ty.size(handler, contract).map(|slots| acc + slots)
-            })? as i64)
-            .into(),
-        );
-        asm.push(Alu::Add.into());
+        // Use `Add` to compute the offset from the base key where the full tuple is stored, if
+        // necessary.
+        let offset = fields.iter().take(field_idx).try_fold(0, |acc, (_, ty)| {
+            ty.size(handler, contract).map(|slots| acc + slots)
+        })? as i64;
+        if offset > 0 {
+            asm.push(PUSH(offset));
+            asm.push(ADD);
+        }
 
         Ok(location)
     }
@@ -1175,7 +1058,7 @@ impl<'a> AsmBuilder<'a> {
         let mut actual_value_size = 0;
 
         // Push the tag and then compile the value if necessary.
-        asm.push(Stack::Push(tag_num as i64).into());
+        asm.push(PUSH(tag_num as i64));
         if let Some(value_key) = value {
             self.compile_expr(handler, asm, value_key, contract, pred)?;
             actual_value_size = value_key.get_ty(contract).size(handler, contract)?;
@@ -1185,7 +1068,7 @@ impl<'a> AsmBuilder<'a> {
         let union_value_size = union_ty.size(handler, contract)? - 1;
         while union_value_size > actual_value_size {
             // Pad out the value with zeros.
-            asm.push(Stack::Push(0).into());
+            asm.push(PUSH(0));
             actual_value_size += 1;
         }
 
@@ -1204,10 +1087,7 @@ impl<'a> AsmBuilder<'a> {
         // Get the location of the union but read just a single word, as we only want the tag at
         // the front.
         match self.compile_expr_pointer(handler, asm, union_expr_key, contract, pred)? {
-            Location::PredicateData => {
-                asm.push(Stack::Push(1).into()); // len
-                asm.push(Access::PredicateData.into());
-            }
+            Location::PredicateData => asm.extend([PUSH(1), DATA]),
 
             // Are these supported?
             Location::Memory | Location::Storage { .. } | Location::Value => {
@@ -1230,8 +1110,7 @@ impl<'a> AsmBuilder<'a> {
         match location {
             Location::Memory | Location::PredicateData => {
                 // Skip the tag.
-                asm.push(Stack::Push(1).into());
-                asm.push(Alu::Add.into());
+                asm.extend([PUSH(1), ADD]);
                 Ok(location)
             }
 
