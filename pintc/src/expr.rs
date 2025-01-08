@@ -411,9 +411,9 @@ impl Expr {
                     }
                 }
 
-                return lhs_range_expr
+                lhs_range_expr
                     .get(contract)
-                    .eq(contract, rhs_range_expr.get(contract));
+                    .eq(contract, rhs_range_expr.get(contract))
             }
 
             (
@@ -458,11 +458,9 @@ impl Expr {
                     false
                 } else {
                     match (lhs_value, rhs_value) {
-                        (Some(lhs_value), Some(rhs_value)) => {
-                            return lhs_value
-                                .get(contract)
-                                .eq(contract, rhs_value.get(contract))
-                        }
+                        (Some(lhs_value), Some(rhs_value)) => lhs_value
+                            .get(contract)
+                            .eq(contract, rhs_value.get(contract)),
 
                         (None, None) => true,
 
@@ -543,13 +541,13 @@ impl Expr {
                     let is_op_eq = lhs_op == rhs_op;
                     let is_lhs_eq = lhs_lhs.get(contract).eq(contract, rhs_lhs.get(contract));
                     if is_lhs_eq {
-                        return is_op_eq
+                        is_op_eq
                             && is_lhs_eq
-                            && lhs_rhs.get(contract).eq(contract, rhs_rhs.get(contract));
+                            && lhs_rhs.get(contract).eq(contract, rhs_rhs.get(contract))
                     } else {
-                        return is_op_eq
+                        is_op_eq
                             && lhs_lhs.get(contract).eq(contract, rhs_rhs.get(contract))
-                            && lhs_rhs.get(contract).eq(contract, rhs_lhs.get(contract));
+                            && lhs_rhs.get(contract).eq(contract, rhs_lhs.get(contract))
                     }
                 }
 
@@ -560,7 +558,7 @@ impl Expr {
                 | BinaryOp::LessThan
                 | BinaryOp::GreaterThanOrEqual
                 | BinaryOp::GreaterThan => {
-                    return lhs_op == rhs_op
+                    lhs_op == rhs_op
                         && lhs_lhs.get(contract).eq(contract, rhs_lhs.get(contract))
                         && lhs_rhs.get(contract).eq(contract, rhs_rhs.get(contract))
                 }
