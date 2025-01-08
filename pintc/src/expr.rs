@@ -372,9 +372,7 @@ impl Expr {
         )
     }
 
-    #[allow(unused_variables)] // todo - ian - remove
-                               // todo - ian - document?
-                               // todo - ian - handle macro calls
+    // todo - ian - handle macro calls
     pub fn eq(&self, contract: &Contract, other: &Self) -> bool {
         match (self, other) {
             (
@@ -831,6 +829,10 @@ impl Expr {
                         {
                             return false;
                         }
+                    }
+
+                    if !lhs_expr.eq(rhs_expr) {
+                        return false;
                     }
                 }
 

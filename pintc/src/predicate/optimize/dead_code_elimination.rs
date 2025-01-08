@@ -14,7 +14,6 @@ use crate::{
 /// If an error occurs, the specific optimization process is aborted to ensure the contract remains
 /// functional.
 pub(crate) fn dead_code_elimination(handler: &Handler, contract: &mut Contract) {
-    // todo - ian - if we don't run dead variable elim, then we panic on accessing a path. Need to make these passes completely independent
     dead_variable_elimination(contract);
     dead_constraint_elimination(handler, contract);
     dead_select_elimination(contract);
@@ -173,7 +172,12 @@ pub(crate) fn duplicate_variable_elimination(contract: &mut Contract) {
             .variables()
             .collect::<Vec<_>>();
 
-        let mut dupe_var_decls: Vec<(VariableKey, VariableKey)> = vec![]; // (original_key, dupe_key)
+        // gather all variable declarations with identical expressions
+        let mut dupe_var_decls: Vec<(
+            VariableKey, /* original */
+            VariableKey, /* duplicate */
+        )> = vec![];
+
         for (i, (var_key, var)) in pred_variables.iter().enumerate() {
             // avoid double checking any variable that has already been marked as a duplicate
             if dupe_var_decls
@@ -214,24 +218,42 @@ pub(crate) fn duplicate_variable_elimination(contract: &mut Contract) {
                 let dupe_expr_key = dupe_var_key.get(pred).expr;
                 dupe_var_exprs.push((original_expr_key, dupe_expr_key));
 
-                let original_path_expr = contract
-                    .exprs(pred_key)
-                    .find(|expr| {
-                        if let Expr::Path(name, _) = expr.get(contract) {
-                            *name == original_var_key.get(pred).name
-                        } else {
-                            false
-                        }
-                    })
-                    .expect("original path is guaranteed to exist");
-
-                contract.exprs(pred_key).for_each(|expr| {
+                let mut original_path_expr = contract.exprs(pred_key).find(|expr| {
                     if let Expr::Path(name, _) = expr.get(contract) {
-                        if *name == dupe_var_key.get(pred).name {
-                            dupe_paths.push((original_path_expr, expr))
-                        }
+                        *name == original_var_key.get(pred).name
+                    } else {
+                        false
                     }
                 });
+
+                // if the original variable is unused, check if the duplicate is in use and needs to be replaced
+                if original_path_expr.is_none() {
+                    original_path_expr = contract
+                        .exprs(pred_key)
+                        .find(|expr| {
+                            if let Expr::Path(name, _) = expr.get(contract) {
+                                *name == dupe_var_key.get(pred).name
+                            } else {
+                                false
+                            }
+                        })
+                        .map(|_| {
+                            contract.exprs.insert(
+                                Expr::Path(original_var_key.get(pred).name.clone(), empty_span()),
+                                original_var_key.get_ty(pred).clone(),
+                            )
+                        });
+                }
+
+                if let Some(original_path_expr) = original_path_expr {
+                    contract.exprs(pred_key).for_each(|expr| {
+                        if let Expr::Path(name, _) = expr.get(contract) {
+                            if *name == dupe_var_key.get(pred).name {
+                                dupe_paths.push((original_path_expr, expr))
+                            }
+                        }
+                    });
+                }
             }
         }
 
