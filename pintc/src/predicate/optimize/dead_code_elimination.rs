@@ -198,7 +198,7 @@ pub(crate) fn duplicate_variable_elimination(contract: &mut Contract) {
                 if var
                     .expr
                     .get(contract)
-                    .eq(contract, &subsequent_var.expr.get(&contract))
+                    .eq(contract, subsequent_var.expr.get(contract))
                 {
                     dupe_var_decls.push((*var_key, *subsequent_var_key));
                 }
@@ -279,7 +279,7 @@ pub(crate) fn duplicate_constraint_elimination(contract: &mut Contract) {
                     if constraint
                         .expr
                         .get(contract)
-                        .eq(contract, &subsequent_constraint.expr.get(&contract))
+                        .eq(contract, subsequent_constraint.expr.get(contract))
                     {
                         duplicate_constraints.push(i + j + 1);
                     }

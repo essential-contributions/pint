@@ -433,13 +433,13 @@ impl Expr {
                     if !lhs_field
                         .get(contract)
                         .eq(contract, rhs_field.get(contract))
+                        || (lhs_ident != rhs_ident)
                     {
-                        return false;
-                    } else if lhs_ident != rhs_ident {
                         return false;
                     }
                 }
-                return true;
+
+                true
             }
 
             (
@@ -455,7 +455,7 @@ impl Expr {
                 },
             ) => {
                 if lhs_path != rhs_path {
-                    return false;
+                    false
                 } else {
                     match (lhs_value, rhs_value) {
                         (Some(lhs_value), Some(rhs_value)) => {
@@ -464,9 +464,9 @@ impl Expr {
                                 .eq(contract, rhs_value.get(contract))
                         }
 
-                        (None, None) => return true,
+                        (None, None) => true,
 
-                        _ => return false,
+                        _ => false,
                     }
                 }
             }
@@ -655,7 +655,7 @@ impl Expr {
                     }
                 }
 
-                return true;
+                true
             }
             (
                 Expr::ExternalPredicateCall {
@@ -700,7 +700,7 @@ impl Expr {
                     }
                 }
 
-                return true;
+                true
             }
 
             (
@@ -836,7 +836,7 @@ impl Expr {
                     }
                 }
 
-                return true;
+                true
             }
 
             (
@@ -877,7 +877,7 @@ impl Expr {
                 }
 
                 match (lhs_field, rhs_field) {
-                    (TupleAccess::Error, TupleAccess::Error) => return true,
+                    (TupleAccess::Error, TupleAccess::Error) => true,
 
                     (TupleAccess::Index(lhs_index), TupleAccess::Index(rhs_index)) => {
                         lhs_index == rhs_index
@@ -887,7 +887,7 @@ impl Expr {
                         lhs_name == rhs_name
                     }
 
-                    _ => return false,
+                    _ => false,
                 }
             }
 
@@ -997,7 +997,7 @@ impl Expr {
                     }
                 }
 
-                return lhs_body == rhs_body;
+                lhs_body == rhs_body
             }
 
             (
