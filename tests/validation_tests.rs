@@ -18,6 +18,7 @@ use yansi::Paint;
 async fn validation_e2e() -> anyhow::Result<()> {
     let dir: PathBuf = "validation_tests".to_string().into();
     let mut failed_tests = vec![];
+    let re = Regex::new(r"<([^>]+)>").unwrap();
     for entry in read_dir(dir)? {
         let entry = entry?;
 
@@ -107,7 +108,6 @@ async fn validation_e2e() -> anyhow::Result<()> {
             solution_str_from_file.replace("<>", &format!("{}", contract_addr));
 
         // Replace `<PredicateName>` with the address of `PredicateName`
-        let re = Regex::new(r"<([^>]+)>").unwrap();
         let solution_str_from_file =
             re.replace_all(&solution_str_from_file, |caps: &regex::Captures| {
                 let predicate_name = &caps[1];

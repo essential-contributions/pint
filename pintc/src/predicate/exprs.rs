@@ -124,7 +124,7 @@ impl ExprKey {
 
     /// Return whether this expression can panic (typically related to storage).
     pub fn can_panic(&self, contract: &Contract, pred: &Predicate) -> bool {
-        contract.exprs.get(*self).map_or(false, |expr| match expr {
+        contract.exprs.get(*self).is_some_and(|expr| match expr {
             Expr::LocalStorageAccess { .. } | Expr::ExternalStorageAccess { .. } => true,
 
             Expr::Path(path, _) => pred.variables().any(|(_, variable)| &variable.name == path),
