@@ -395,22 +395,15 @@ impl Expr {
                     ..
                 },
             ) => {
-                if lhs_elements.len() != rhs_elements.len() {
-                    return false;
-                }
-
-                for (i, lhs_element) in lhs_elements.iter().enumerate() {
-                    if !lhs_element
+                lhs_elements.len() == rhs_elements.len()
+                    && lhs_elements.iter().enumerate().all(|(i, lhs_element)| {
+                        lhs_element
+                            .get(contract)
+                            .eq(contract, rhs_elements[i].get(contract))
+                    })
+                    && lhs_range_expr
                         .get(contract)
-                        .eq(contract, rhs_elements[i].get(contract))
-                    {
-                        return false;
-                    }
-                }
-
-                lhs_range_expr
-                    .get(contract)
-                    .eq(contract, rhs_range_expr.get(contract))
+                        .eq(contract, rhs_range_expr.get(contract))
             }
 
             (
@@ -421,22 +414,17 @@ impl Expr {
                     fields: rhs_fields, ..
                 },
             ) => {
-                if lhs_fields.len() != rhs_fields.len() {
-                    return false;
-                }
-
-                for (i, (lhs_ident, lhs_field)) in lhs_fields.iter().enumerate() {
-                    let (rhs_ident, rhs_field) = &rhs_fields[i];
-                    if !lhs_field
-                        .get(contract)
-                        .eq(contract, rhs_field.get(contract))
-                        || (lhs_ident != rhs_ident)
-                    {
-                        return false;
-                    }
-                }
-
-                true
+                lhs_fields.len() == rhs_fields.len()
+                    && lhs_fields
+                        .iter()
+                        .enumerate()
+                        .all(|(i, (lhs_ident, lhs_field))| {
+                            let (rhs_ident, rhs_field) = &rhs_fields[i];
+                            lhs_field
+                                .get(contract)
+                                .eq(contract, rhs_field.get(contract))
+                                && lhs_ident == rhs_ident
+                        })
             }
 
             (
@@ -451,10 +439,8 @@ impl Expr {
                     ..
                 },
             ) => {
-                if lhs_path != rhs_path {
-                    false
-                } else {
-                    match (lhs_value, rhs_value) {
+                lhs_path == rhs_path
+                    && match (lhs_value, rhs_value) {
                         (Some(lhs_value), Some(rhs_value)) => lhs_value
                             .get(contract)
                             .eq(contract, rhs_value.get(contract)),
@@ -463,7 +449,6 @@ impl Expr {
 
                         _ => false,
                     }
-                }
             }
 
             (Expr::Path(lhs_path, ..), Expr::Path(rhs_path, ..)) => lhs_path == rhs_path,
@@ -577,34 +562,27 @@ impl Expr {
                     ..
                 },
             ) => {
-                if lhs_args.len() != rhs_args.len() {
-                    return false;
-                }
+                lhs_args.len() == rhs_args.len()
+                    && lhs_args.iter().enumerate().all(|(i, lhs_arg)| {
+                        lhs_arg
+                            .get(contract)
+                            .eq(contract, rhs_args[i].get(contract))
+                    })
+                    && match (lhs_kind, rhs_kind) {
+                        (
+                            (IntrinsicKind::External(lhs_kind), _),
+                            (IntrinsicKind::External(rhs_kind), _),
+                        ) => lhs_kind == rhs_kind,
 
-                for (i, lhs_arg) in lhs_args.iter().enumerate() {
-                    if !lhs_arg
-                        .get(contract)
-                        .eq(contract, rhs_args[i].get(contract))
-                    {
-                        return false;
+                        (
+                            (IntrinsicKind::Internal(lhs_kind), _),
+                            (IntrinsicKind::Internal(rhs_kind), _),
+                        ) => lhs_kind == rhs_kind,
+
+                        ((IntrinsicKind::Error, _), (IntrinsicKind::Error, _)) => true,
+
+                        _ => false,
                     }
-                }
-
-                match (lhs_kind, rhs_kind) {
-                    (
-                        (IntrinsicKind::External(lhs_kind), _),
-                        (IntrinsicKind::External(rhs_kind), _),
-                    ) => lhs_kind == rhs_kind,
-
-                    (
-                        (IntrinsicKind::Internal(lhs_kind), _),
-                        (IntrinsicKind::Internal(rhs_kind), _),
-                    ) => lhs_kind == rhs_kind,
-
-                    ((IntrinsicKind::Error, _), (IntrinsicKind::Error, _)) => true,
-
-                    _ => false,
-                }
             }
 
             (
@@ -619,24 +597,13 @@ impl Expr {
                     ..
                 },
             ) => {
-                if lhs_predicate != rhs_predicate {
-                    return false;
-                }
-
-                if lhs_args.len() != rhs_args.len() {
-                    return false;
-                }
-
-                for (i, lhs_arg) in lhs_args.iter().enumerate() {
-                    if !lhs_arg
-                        .get(contract)
-                        .eq(contract, rhs_args[i].get(contract))
-                    {
-                        return false;
-                    }
-                }
-
-                true
+                lhs_predicate == rhs_predicate
+                    && lhs_args.len() == rhs_args.len()
+                    && lhs_args.iter().enumerate().all(|(i, lhs_arg)| {
+                        lhs_arg
+                            .get(contract)
+                            .eq(contract, rhs_args[i].get(contract))
+                    })
             }
             (
                 Expr::ExternalPredicateCall {
@@ -656,32 +623,20 @@ impl Expr {
                     ..
                 },
             ) => {
-                if !(lhs_interface == rhs_interface
+                lhs_interface == rhs_interface
                     && lhs_c_addr
                         .get(contract)
                         .eq(contract, rhs_c_addr.get(contract))
                     && lhs_predicate == rhs_predicate
                     && lhs_p_addr
                         .get(contract)
-                        .eq(contract, rhs_p_addr.get(contract)))
-                {
-                    return false;
-                }
-
-                if lhs_args.len() != rhs_args.len() {
-                    return false;
-                }
-
-                for (i, lhs_arg) in lhs_args.iter().enumerate() {
-                    if !lhs_arg
-                        .get(contract)
-                        .eq(contract, rhs_args[i].get(contract))
-                    {
-                        return false;
-                    }
-                }
-
-                true
+                        .eq(contract, rhs_p_addr.get(contract))
+                    && lhs_args.len() == rhs_args.len()
+                    && lhs_args.iter().enumerate().all(|(i, lhs_arg)| {
+                        lhs_arg
+                            .get(contract)
+                            .eq(contract, rhs_args[i].get(contract))
+                    })
             }
 
             (
@@ -723,105 +678,85 @@ impl Expr {
                     ..
                 },
             ) => {
-                if !lhs_match_expr
+                lhs_match_expr
                     .get(contract)
                     .eq(contract, rhs_match_expr.get(contract))
-                {
-                    return false;
-                }
+                    && lhs_match_branches.len() != rhs_match_branches.len()
+                    && lhs_match_branches
+                        .iter()
+                        .enumerate()
+                        .all(|(i, lhs_match_branch)| {
+                            let (
+                                MatchBranch {
+                                    name: lhs_name,
+                                    binding: lhs_binding,
+                                    constraints: lhs_constraints,
+                                    expr: lhs_expr,
+                                    ..
+                                },
+                                MatchBranch {
+                                    name: rhs_name,
+                                    binding: rhs_binding,
+                                    constraints: rhs_constraints,
+                                    expr: rhs_expr,
+                                    ..
+                                },
+                            ) = (lhs_match_branch, rhs_match_branches[i].clone());
 
-                if lhs_match_branches.len() != rhs_match_branches.len() {
-                    return false;
-                }
+                            *lhs_name == rhs_name
+                                && match (lhs_binding, rhs_binding) {
+                                    (
+                                        Some(Ident {
+                                            name: lhs_name,
+                                            hygienic: lhs_hygienic,
+                                            ..
+                                        }),
+                                        Some(Ident {
+                                            name: rhs_name,
+                                            hygienic: rhs_hygienic,
+                                            ..
+                                        }),
+                                    ) => *lhs_name == rhs_name && *lhs_hygienic == rhs_hygienic,
 
-                for (i, lhs_match_branch) in lhs_match_branches.iter().enumerate() {
-                    let (
-                        MatchBranch {
-                            name: lhs_name,
-                            binding: lhs_binding,
+                                    (None, None) => true,
+
+                                    _ => false,
+                                }
+                                && lhs_constraints.len() == rhs_constraints.len()
+                                && lhs_constraints
+                                    .iter()
+                                    .enumerate()
+                                    .all(|(j, lhs_constraint)| {
+                                        lhs_constraint
+                                            .get(contract)
+                                            .eq(contract, rhs_constraints[j].get(contract))
+                                    })
+                                && lhs_expr.get(contract).eq(contract, rhs_expr.get(contract))
+                        })
+                    && if let (
+                        Some(MatchElse {
                             constraints: lhs_constraints,
                             expr: lhs_expr,
-                            ..
-                        },
-                        MatchBranch {
-                            name: rhs_name,
-                            binding: rhs_binding,
+                        }),
+                        Some(MatchElse {
                             constraints: rhs_constraints,
                             expr: rhs_expr,
-                            ..
-                        },
-                    ) = (lhs_match_branch, rhs_match_branches[i].clone());
-
-                    if *lhs_name != rhs_name {
-                        return false;
-                    }
-
-                    if let (
-                        Some(Ident {
-                            name: lhs_name,
-                            hygienic: lhs_hygienic,
-                            ..
                         }),
-                        Some(Ident {
-                            name: rhs_name,
-                            hygienic: rhs_hygienic,
-                            ..
-                        }),
-                    ) = (lhs_binding, rhs_binding)
+                    ) = (lhs_else_branch, rhs_else_branch)
                     {
-                        if *lhs_name != rhs_name || *lhs_hygienic != rhs_hygienic {
-                            return false;
-                        }
-                    };
-
-                    if lhs_constraints.len() != rhs_constraints.len() {
-                        return false;
+                        lhs_constraints.len() == rhs_constraints.len()
+                            && lhs_constraints
+                                .iter()
+                                .enumerate()
+                                .all(|(i, lhs_constraint)| {
+                                    lhs_constraint
+                                        .get(contract)
+                                        .eq(contract, rhs_constraints[i].get(contract))
+                                })
+                            && lhs_expr.eq(rhs_expr)
+                    } else {
+                        lhs_else_branch.is_none() && rhs_else_branch.is_none()
                     }
-
-                    for (j, lhs_constraint) in lhs_constraints.iter().enumerate() {
-                        if !lhs_constraint
-                            .get(contract)
-                            .eq(contract, rhs_constraints[j].get(contract))
-                        {
-                            return false;
-                        }
-                    }
-
-                    if !lhs_expr.get(contract).eq(contract, rhs_expr.get(contract)) {
-                        return false;
-                    }
-                }
-
-                if let (
-                    Some(MatchElse {
-                        constraints: lhs_constraints,
-                        expr: lhs_expr,
-                    }),
-                    Some(MatchElse {
-                        constraints: rhs_constraints,
-                        expr: rhs_expr,
-                    }),
-                ) = (lhs_else_branch, rhs_else_branch)
-                {
-                    if lhs_constraints.len() != rhs_constraints.len() {
-                        return false;
-                    }
-
-                    for (i, lhs_constraint) in lhs_constraints.iter().enumerate() {
-                        if !lhs_constraint
-                            .get(contract)
-                            .eq(contract, rhs_constraints[i].get(contract))
-                        {
-                            return false;
-                        }
-                    }
-
-                    if !lhs_expr.eq(rhs_expr) {
-                        return false;
-                    }
-                }
-
-                true
             }
 
             (
@@ -854,26 +789,22 @@ impl Expr {
                     ..
                 },
             ) => {
-                if !lhs_tuple
+                lhs_tuple
                     .get(contract)
                     .eq(contract, rhs_tuple.get(contract))
-                {
-                    return false;
-                }
+                    && match (lhs_field, rhs_field) {
+                        (TupleAccess::Error, TupleAccess::Error) => true,
 
-                match (lhs_field, rhs_field) {
-                    (TupleAccess::Error, TupleAccess::Error) => true,
+                        (TupleAccess::Index(lhs_index), TupleAccess::Index(rhs_index)) => {
+                            lhs_index == rhs_index
+                        }
 
-                    (TupleAccess::Index(lhs_index), TupleAccess::Index(rhs_index)) => {
-                        lhs_index == rhs_index
+                        (TupleAccess::Name(lhs_name), TupleAccess::Name(rhs_name)) => {
+                            lhs_name == rhs_name
+                        }
+
+                        _ => false,
                     }
-
-                    (TupleAccess::Name(lhs_name), TupleAccess::Name(rhs_name)) => {
-                        lhs_name == rhs_name
-                    }
-
-                    _ => false,
-                }
             }
 
             (
@@ -946,43 +877,26 @@ impl Expr {
                     ..
                 },
             ) => {
-                if lhs_kind != rhs_kind {
-                    return false;
-                }
+                lhs_kind == rhs_kind
+                    && rhs_gen_ranges.len() == lhs_gen_ranges.len()
+                    && lhs_gen_ranges
+                        .iter()
+                        .enumerate()
+                        .all(|(i, (lhs_ident, lhs_gen_range))| {
+                            let (rhs_ident, rhs_gen_range) = &rhs_gen_ranges[i];
 
-                if rhs_gen_ranges.len() != lhs_gen_ranges.len() {
-                    return false;
-                }
-
-                for (i, (lhs_ident, lhs_gen_range)) in lhs_gen_ranges.iter().enumerate() {
-                    let (rhs_ident, rhs_gen_range) = &rhs_gen_ranges[i];
-
-                    if lhs_ident != rhs_ident {
-                        return false;
-                    }
-
-                    if !lhs_gen_range
-                        .get(contract)
-                        .eq(contract, rhs_gen_range.get(contract))
-                    {
-                        return false;
-                    }
-                }
-
-                if lhs_conditions.len() != rhs_conditions.len() {
-                    return false;
-                }
-
-                for (i, lhs_condition) in lhs_conditions.iter().enumerate() {
-                    if !lhs_condition
-                        .get(contract)
-                        .eq(contract, rhs_conditions[i].get(contract))
-                    {
-                        return false;
-                    }
-                }
-
-                lhs_body == rhs_body
+                            lhs_ident == rhs_ident
+                                && lhs_gen_range
+                                    .get(contract)
+                                    .eq(contract, rhs_gen_range.get(contract))
+                        })
+                    && lhs_conditions.len() != rhs_conditions.len()
+                    && lhs_conditions.iter().enumerate().all(|(i, lhs_condition)| {
+                        lhs_condition
+                            .get(contract)
+                            .eq(contract, rhs_conditions[i].get(contract))
+                    })
+                    && lhs_body == rhs_body
             }
 
             (
@@ -1037,7 +951,31 @@ impl Expr {
                     && lhs_variant_ty.eq(contract, rhs_variant_ty)
             }
 
-            _ => false,
+            (Expr::Error(..), _)
+            | (Expr::Immediate { .. }, _)
+            | (Expr::Array { .. }, _)
+            | (Expr::Tuple { .. }, _)
+            | (Expr::UnionVariant { .. }, _)
+            | (Expr::Path(..), _)
+            | (Expr::LocalStorageAccess { .. }, _)
+            | (Expr::ExternalStorageAccess { .. }, _)
+            | (Expr::UnaryOp { .. }, _)
+            | (Expr::BinaryOp { .. }, _)
+            | (Expr::MacroCall { .. }, _)
+            | (Expr::IntrinsicCall { .. }, _)
+            | (Expr::LocalPredicateCall { .. }, _)
+            | (Expr::ExternalPredicateCall { .. }, _)
+            | (Expr::Select { .. }, _)
+            | (Expr::Match { .. }, _)
+            | (Expr::Index { .. }, _)
+            | (Expr::TupleFieldAccess { .. }, _)
+            | (Expr::Cast { .. }, _)
+            | (Expr::In { .. }, _)
+            | (Expr::Range { .. }, _)
+            | (Expr::Generator { .. }, _)
+            | (Expr::Map { .. }, _)
+            | (Expr::UnionTag { .. }, _)
+            | (Expr::UnionValue { .. }, _) => false,
         }
     }
 
