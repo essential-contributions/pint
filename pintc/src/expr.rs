@@ -372,7 +372,6 @@ impl Expr {
         )
     }
 
-    // todo - ian - handle macro calls
     pub fn eq(&self, contract: &Contract, other: &Self) -> bool {
         match (self, other) {
             (
