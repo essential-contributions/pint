@@ -405,7 +405,7 @@ fn get_base_storage_key(
                     .position(|(field_name, _)| {
                         field_name
                             .as_ref()
-                            .map_or(false, |name| name.name == ident.name)
+                            .is_some_and(|name| name.name == ident.name)
                     })
                     .expect("field name must exist, this was checked in type checking"),
                 TupleAccess::Error => {

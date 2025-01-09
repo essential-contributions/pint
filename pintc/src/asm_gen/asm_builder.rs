@@ -1000,7 +1000,7 @@ impl<'a> AsmBuilder<'a> {
                 .position(|(field_name, _)| {
                     field_name
                         .as_ref()
-                        .map_or(false, |name| name.name == ident.name)
+                        .is_some_and(|name| name.name == ident.name)
                 })
                 .ok_or_else(|| {
                     handler.emit_internal_err(

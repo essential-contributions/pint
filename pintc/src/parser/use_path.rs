@@ -16,8 +16,7 @@ impl UsePath {
     }
 
     pub fn matches_suffix(&self, suffix: &String) -> bool {
-        self.path.last().is_some_and(|last| last == suffix)
-            || self.alias.as_ref().map_or(false, |alias| alias == suffix)
+        self.path.last().is_some_and(|last| last == suffix) || (self.alias.as_ref() == Some(suffix))
     }
 }
 
