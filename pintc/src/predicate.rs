@@ -759,17 +759,6 @@ impl BlockStatement {
             Self::Match(match_decl) => match_decl.fmt_with_indent(f, contract, pred, indent),
         }
     }
-
-    /// Returns all the constraints in the `BlockStatement`
-    fn get_constraints(&self) -> Vec<&ConstraintDecl> {
-        let mut constraints = Vec::new();
-        match self {
-            BlockStatement::Constraint(constraint) => constraints.push(constraint),
-            BlockStatement::If(if_decl) => constraints.extend(if_decl.get_constraints()),
-            BlockStatement::Match(match_decl) => constraints.extend(match_decl.get_constraints()),
-        }
-        constraints
-    }
 }
 
 struct BlockStatementExprs<'a> {
@@ -842,20 +831,6 @@ impl IfDecl {
             }
         }
         writeln!(f, "{indentation}}}")
-    }
-
-    /// Returns all the constraints in the `IfDecl`
-    fn get_constraints(&self) -> Vec<&ConstraintDecl> {
-        let mut constraints = Vec::new();
-        for block_statement in &self.then_block {
-            constraints.extend(block_statement.get_constraints());
-        }
-        if let Some(else_block) = self.else_block.as_ref() {
-            for block_statement in else_block {
-                constraints.extend(block_statement.get_constraints());
-            }
-        }
-        constraints
     }
 }
 
@@ -937,17 +912,6 @@ impl MatchDecl {
         }
 
         writeln!(f, "{indentation}}}")
-    }
-
-    /// Returns all the constraints in the `MatchDecl`
-    fn get_constraints(&self) -> Vec<&ConstraintDecl> {
-        let mut constraints = Vec::new();
-        for match_branch in &self.match_branches {
-            for block_statement in &match_branch.block {
-                constraints.extend(block_statement.get_constraints());
-            }
-        }
-        constraints
     }
 }
 

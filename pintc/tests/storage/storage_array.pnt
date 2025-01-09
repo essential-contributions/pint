@@ -121,16 +121,16 @@ predicate Bar() {
 // predicate ::Bar(
 // ) {
 //     let ::addr: b256 = 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE;
-//     let ::v: int[3][2] = __storage_get({0, 0});
-//     let ::v1: int[3] = __storage_get({0, (0 + (1 * 3))});
-//     let ::v10: int = __storage_get({0, ((0 + (1 * 3)) + (0 * 1))});
-//     let ::map_to_arrays_69: int[3] = __storage_get({1, 69, 0});
-//     let ::map_to_arrays_69_1: int = __storage_get({1, 69, (0 + (1 * 1))});
-//     let ::foo_v: int[3][2] = __storage_get_extern(::addr, {0, 0});
-//     let ::foo_v1: int[3] = __storage_get_extern(::addr, {0, (0 + (1 * 3))});
-//     let ::foo_v10: int = __storage_get_extern(::addr, {0, ((0 + (1 * 3)) + (0 * 1))});
-//     let ::foo_map_to_arrays_69: int[3] = __storage_get_extern(::addr, {1, 69, 0});
-//     let ::foo_map_to_arrays_69_1: int = __storage_get_extern(::addr, {1, 69, (0 + (1 * 1))});
+//     let ::v: int[3][2] = __pre_state({0, 0});
+//     let ::v1: int[3] = __pre_state({0, (0 + (1 * 3))});
+//     let ::v10: int = __pre_state({0, ((0 + (1 * 3)) + (0 * 1))});
+//     let ::map_to_arrays_69: int[3] = __pre_state({1, 69, 0});
+//     let ::map_to_arrays_69_1: int = __pre_state({1, 69, (0 + (1 * 1))});
+//     let ::foo_v: int[3][2] = __pre_state_extern(::addr, {0, 0});
+//     let ::foo_v1: int[3] = __pre_state_extern(::addr, {0, (0 + (1 * 3))});
+//     let ::foo_v10: int = __pre_state_extern(::addr, {0, ((0 + (1 * 3)) + (0 * 1))});
+//     let ::foo_map_to_arrays_69: int[3] = __pre_state_extern(::addr, {1, 69, 0});
+//     let ::foo_map_to_arrays_69_1: int = __pre_state_extern(::addr, {1, 69, (0 + (1 * 1))});
 //     constraint (::v' == [[42, 43, 44], [52, 53, 54]]);
 //     constraint (::v'[1] == [52, 53, 54]);
 //     constraint (::v'[0][2] == 44);

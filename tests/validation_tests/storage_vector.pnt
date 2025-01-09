@@ -42,6 +42,12 @@ predicate Bar() {
     constraint v0_1' == 43;
     constraint v0_2' == 44;
 
+    constraint __vec_len(mut storage::v0) == nil || __vec_len(mut storage::v0) == 0;
+    // TODO: constraint __vec_len(mut storage::v0') == 3;
+    constraint storage::v0[0]' == 42;
+    constraint storage::v0[1]' == 43;
+    constraint storage::v0[2]' == 44;
+
     // v1 starts with 3 elements and then expands to 5
     let v1_0 = storage::v1[0];
     let v1_1 = storage::v1[1];
@@ -53,6 +59,11 @@ predicate Bar() {
     constraint v1_1 == 14;
     constraint v1_2 == 15;
 
+    constraint __vec_len(mut storage::v1) == 3;
+    constraint storage::v1[0] == 13;
+    constraint storage::v1[1] == 14;
+    constraint storage::v1[2] == 15;
+
     let v1_3 = mut storage::v1[3];
     let v1_4 = mut storage::v1[4];
 
@@ -62,6 +73,13 @@ predicate Bar() {
     constraint v1_2' == 15; // did not change
     constraint v1_3' == 16; // newly added
     constraint v1_4' == 17; // newly added
+
+    // TODO: constraint __vec_len(mut storage::v1') == 5;
+    constraint storage::v1[0]' == 13; // did not change
+    constraint storage::v1[1]' == 14; // did not change
+    constraint storage::v1[2]' == 15; // did not change
+    constraint storage::v1[3]' == 16; // newly added
+    constraint storage::v1[4]' == 17; // newly added
 
     // v2 starts empty
     let v2_0 = mut storage::v2[0];
@@ -75,6 +93,11 @@ predicate Bar() {
     constraint v2_1' == nil;
     constraint v2_2' == 0x0000000000000009000000000000000A000000000000000B000000000000000C;
 
+    constraint __vec_len(mut storage::v2) == nil || __vec_len(mut storage::v2) == 0;
+    // TODO: constraint __vec_len(mut storage::v2') == 3;
+    constraint mut storage::v2[0]' == 0x0000000000000001000000000000000200000000000000030000000000000004;
+    constraint mut storage::v2[1]' == nil;
+    constraint mut storage::v2[2]' == 0x0000000000000009000000000000000A000000000000000B000000000000000C;
 
     // Test external storage vectors
 
@@ -90,6 +113,12 @@ predicate Bar() {
     constraint foo_v0_1' == 43;
     constraint foo_v0_2' == 44;
 
+    constraint __vec_len(Foo@[addr]::storage::v0) == nil || __vec_len(Foo@[addr]::storage::v0) == 0;
+    // TODO: constraint __vec_len(Foo@[addr]::storage::v0') == 3;
+    constraint Foo@[addr]::storage::v0[0]' == 42;
+    constraint Foo@[addr]::storage::v0[1]' == 43;
+    constraint Foo@[addr]::storage::v0[2]' == 44;
+
     // v1 starts with 3 elements and then expands to 5
     let foo_v1_0 = Foo@[addr]::storage::v1[0];
     let foo_v1_1 = Foo@[addr]::storage::v1[1];
@@ -101,6 +130,11 @@ predicate Bar() {
     constraint foo_v1_1 == 14;
     constraint foo_v1_2 == 15;
 
+    constraint  __vec_len(Foo@[addr]::storage::v1) == 3;
+    constraint Foo@[addr]::storage::v1[0] == 13;
+    constraint Foo@[addr]::storage::v1[1] == 14;
+    constraint Foo@[addr]::storage::v1[2] == 15;
+
     let foo_v1_3 = Foo@[addr]::storage::v1[3];
     let foo_v1_4 = Foo@[addr]::storage::v1[4];
 
@@ -110,6 +144,13 @@ predicate Bar() {
     constraint foo_v1_2' == 15; // did not change
     constraint foo_v1_3' == 16; // newly added
     constraint foo_v1_4' == 17; // newly added
+
+    // TODO: constraint  __vec_len(Foo@[addr]::storage::v1') == 5;
+    constraint Foo@[addr]::storage::v1[0]' == 13; // did not change
+    constraint Foo@[addr]::storage::v1[1]' == 14; // did not change
+    constraint Foo@[addr]::storage::v1[2]' == 15; // did not change
+    constraint Foo@[addr]::storage::v1[3]' == 16; // newly added
+    constraint Foo@[addr]::storage::v1[4]' == 17; // newly added
 
     // v2 starts empty
     let foo_v2_0 = Foo@[addr]::storage::v2[0];
@@ -122,4 +163,10 @@ predicate Bar() {
     constraint foo_v2_0' == 0x0000000000000001000000000000000200000000000000030000000000000004;
     constraint foo_v2_1' == nil;
     constraint foo_v2_2' == 0x0000000000000009000000000000000A000000000000000B000000000000000C;
+
+    constraint __vec_len(Foo@[addr]::storage::v2) == nil || __vec_len(Foo@[addr]::storage::v2) == 0;
+    // TODO: constraint __vec_len(Foo@[addr]::storage::v2)' == 3;
+    constraint Foo@[addr]::storage::v2[0]' == 0x0000000000000001000000000000000200000000000000030000000000000004;
+    constraint Foo@[addr]::storage::v2[1]' == nil;
+    constraint Foo@[addr]::storage::v2[2]' == 0x0000000000000009000000000000000A000000000000000B000000000000000C;
 }

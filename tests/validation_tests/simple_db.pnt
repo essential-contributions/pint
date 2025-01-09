@@ -48,4 +48,12 @@ predicate Simple(
     constraint x < y;
     constraint w + u + v == 2206;
     constraint external_1' - external_1 == 1;
+
+    constraint storage::x' - storage::x == 1; // x' == 43
+    constraint storage::y' == storage::y + 4; // y' == 47
+    constraint storage::x' + storage::y' > 89 && storage::x' * storage::y' > 1932;
+    constraint storage::x < storage::y;
+    constraint w + u + v == 2206;
+    constraint Foo@[0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE]::storage::y' 
+             - Foo@[0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE]::storage::y == 1;
 }

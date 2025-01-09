@@ -90,12 +90,12 @@ predicate Foo(x: int, y: bool) {
 //     let ::e: bool = false;
 //     let ::f: int = ((::a + ::b) - ::d.1);
 //     let ::g: int = (::f - ::c[1]);
-//     let ::h: int = (__storage_get({0}) + ::a);
-//     let ::i: int = (__storage_get({0}) * ::b);
-//     let ::j: int = (__storage_get({0}) / ::c[0]);
-//     let ::k: int = (__storage_get({0}) - ::c[1]);
-//     let ::l: int = (__storage_get({0}) + ::d.1);
-//     let ::m: int = (__storage_get({0}) % ::f);
+//     let ::h: int = (__pre_state({0}) + ::a);
+//     let ::i: int = (__pre_state({0}) * ::b);
+//     let ::j: int = (__pre_state({0}) / ::c[0]);
+//     let ::k: int = (__pre_state({0}) - ::c[1]);
+//     let ::l: int = (__pre_state({0}) + ::d.1);
+//     let ::m: int = (__pre_state({0}) % ::f);
 //     constraint (::h > 10);
 //     constraint (::j == 5);
 //     constraint (::i == 1);
@@ -123,12 +123,12 @@ predicate Foo(x: int, y: bool) {
 //     ::x: int,
 //     ::y: bool,
 // ) {
-//     let ::h: int = (__storage_get({0}) + 1);
-//     let ::i: int = (__storage_get({0}) * 20);
-//     let ::j: int = __storage_get({0});
-//     let ::k: int = (__storage_get({0}) - 2);
-//     let ::l: int = (__storage_get({0}) + 5);
-//     let ::m: int = (__storage_get({0}) % 16);
+//     let ::h: int = (__pre_state({0}) + 1);
+//     let ::i: int = (__pre_state({0}) * 20);
+//     let ::j: int = __pre_state({0});
+//     let ::k: int = (__pre_state({0}) - 2);
+//     let ::l: int = (__pre_state({0}) + 5);
+//     let ::m: int = (__pre_state({0}) % 16);
 //     constraint (::h > 10);
 //     constraint (::j == 5);
 //     constraint (::i == 1);
