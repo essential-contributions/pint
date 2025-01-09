@@ -490,7 +490,6 @@ fn binary_ops() {
                 constraint x < y;
                 constraint x >= y;
                 constraint x > y;
-                constraint x > y;
             }
             "#,
             ),
