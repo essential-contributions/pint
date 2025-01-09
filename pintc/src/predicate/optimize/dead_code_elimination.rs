@@ -257,11 +257,6 @@ pub(crate) fn duplicate_variable_elimination(contract: &mut Contract) {
             }
         }
 
-        // replace all uses of the duplicate var exprs with the originals
-        for (original_expr_key, dupe_expr_key) in dupe_var_exprs {
-            contract.replace_exprs(Some(pred_key), dupe_expr_key, original_expr_key);
-        }
-
         // replace all uses of the duplicate var paths with the originals
         for (original_expr_key, dupe_expr_key) in dupe_paths {
             contract.replace_exprs(Some(pred_key), dupe_expr_key, original_expr_key);
