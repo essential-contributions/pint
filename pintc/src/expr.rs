@@ -562,22 +562,8 @@ impl Expr {
                 }
             },
 
-            (
-                Expr::MacroCall {
-                    call: lhs_call,
-                    path: lhs_path,
-                    ..
-                },
-                Expr::MacroCall {
-                    call: rhs_call,
-                    path: rhs_path,
-                    ..
-                },
-            ) => {
-                todo!() // @mohammad, need help here please
-                        // if lhs_path != rhs_path {
-                        //     return false;
-                        // }
+            (Expr::MacroCall { path: lhs_path, .. }, Expr::MacroCall { path: rhs_path, .. }) => {
+                lhs_path == rhs_path
             }
 
             (
