@@ -109,19 +109,28 @@ impl<'a> AsmBuilder<'a> {
         // memory for all of them. We do this ahead of time so that we know exactly how the size of
         // memory allocated. Due to short-circuting, this also means that some allocations may not
         // be used, but this is okay for now.
-        for access in &expr.collect_storage_accesses(contract) {
+        let alloc_size_for_storage_accesses: i64 = expr
+            .collect_storage_accesses(contract)
+            .iter()
+            .try_fold(0, |total_alloc_size, access| {
             let num_keys = access.get_ty(contract).storage_keys(handler, contract)? as i64;
             let access_size = access.get_ty(contract).size(handler, contract)? as i64;
+
             let alloc_size = 2 * num_keys // for each key, add the data address then its length
                 + access_size; // then lay out the data read from each key, sequentiallly
-
-            asm.extend([PUSH(alloc_size), ALOC, POP]);
 
             // Keep track of the mem index for this access
             self.storage_expr_to_mem_idx
                 .insert(*access, total_memory_size);
 
             total_memory_size += alloc_size;
+
+            // Accumulate the allocation size
+            Ok(total_alloc_size + alloc_size)
+        })?;
+
+        if alloc_size_for_storage_accesses > 0 {
+            asm.extend([PUSH(alloc_size_for_storage_accesses), ALOC, POP]);
         }
 
         if node.is_leaf() {
