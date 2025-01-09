@@ -175,7 +175,7 @@ impl Type {
     pub fn is_enumeration_union(&self, contract: &Contract) -> bool {
         check_alias!(self, is_enumeration_union, contract, {
             self.get_union_decl(contract)
-                .map_or(false, |union| union.is_enumeration_union())
+                .is_some_and(|union| union.is_enumeration_union())
         })
     }
 
