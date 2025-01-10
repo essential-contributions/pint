@@ -397,9 +397,9 @@ impl Expr {
             ) => array_eq(
                 contract,
                 lhs_elements,
-                lhs_range_expr,
+                *lhs_range_expr,
                 rhs_elements,
-                rhs_range_expr,
+                *rhs_range_expr,
             ),
 
             (
@@ -455,10 +455,10 @@ impl Expr {
             ) => external_storage_access_eq(
                 contract,
                 lhs_interface,
-                lhs_address,
+                *lhs_address,
                 lhs_name,
                 rhs_interface,
-                rhs_address,
+                *rhs_address,
                 rhs_name,
             ),
 
@@ -473,7 +473,7 @@ impl Expr {
                     expr: rhs_expr,
                     ..
                 },
-            ) => unary_op_eq(contract, lhs_op, lhs_expr, rhs_op, rhs_expr),
+            ) => unary_op_eq(contract, lhs_op, *lhs_expr, rhs_op, *rhs_expr),
 
             (
                 Expr::BinaryOp {
@@ -488,7 +488,9 @@ impl Expr {
                     rhs: rhs_rhs,
                     ..
                 },
-            ) => binary_op_eq(contract, lhs_op, lhs_lhs, lhs_rhs, rhs_op, rhs_lhs, rhs_rhs),
+            ) => binary_op_eq(
+                contract, lhs_op, *lhs_lhs, *lhs_rhs, rhs_op, *rhs_lhs, *rhs_rhs,
+            ),
 
             (Expr::MacroCall { path: lhs_path, .. }, Expr::MacroCall { path: rhs_path, .. }) => {
                 macro_call_eq(lhs_path, rhs_path)
@@ -541,14 +543,14 @@ impl Expr {
             ) => external_predicate_call_eq(
                 contract,
                 lhs_interface,
-                lhs_c_addr,
+                *lhs_c_addr,
                 lhs_predicate,
-                lhs_p_addr,
+                *lhs_p_addr,
                 lhs_args,
                 rhs_interface,
-                rhs_c_addr,
+                *rhs_c_addr,
                 rhs_predicate,
-                rhs_p_addr,
+                *rhs_p_addr,
                 rhs_args,
             ),
 
@@ -567,12 +569,12 @@ impl Expr {
                 },
             ) => select_eq(
                 contract,
-                lhs_condition,
-                lhs_then_expr,
-                lhs_else_expr,
-                rhs_condition,
-                rhs_then_expr,
-                rhs_else_expr,
+                *lhs_condition,
+                *lhs_then_expr,
+                *lhs_else_expr,
+                *rhs_condition,
+                *rhs_then_expr,
+                *rhs_else_expr,
             ),
 
             (
@@ -590,10 +592,10 @@ impl Expr {
                 },
             ) => match_eq(
                 contract,
-                lhs_match_expr,
+                *lhs_match_expr,
                 lhs_match_branches,
                 lhs_else_branch,
-                rhs_match_expr,
+                *rhs_match_expr,
                 rhs_match_branches,
                 rhs_else_branch,
             ),
@@ -609,7 +611,7 @@ impl Expr {
                     index: rhs_index,
                     ..
                 },
-            ) => index_eq(contract, lhs_expr, lhs_index, rhs_expr, rhs_index),
+            ) => index_eq(contract, *lhs_expr, *lhs_index, *rhs_expr, *rhs_index),
 
             (
                 Expr::TupleFieldAccess {
@@ -622,7 +624,7 @@ impl Expr {
                     field: rhs_field,
                     ..
                 },
-            ) => tuple_field_access_eq(contract, lhs_tuple, lhs_field, rhs_tuple, rhs_field),
+            ) => tuple_field_access_eq(contract, *lhs_tuple, lhs_field, *rhs_tuple, rhs_field),
 
             (
                 Expr::Cast {
@@ -635,7 +637,7 @@ impl Expr {
                     ty: rhs_ty,
                     ..
                 },
-            ) => cast_eq(contract, lhs_value, lhs_ty, rhs_value, rhs_ty),
+            ) => cast_eq(contract, *lhs_value, lhs_ty, *rhs_value, rhs_ty),
 
             (
                 Expr::In {
@@ -650,10 +652,10 @@ impl Expr {
                 },
             ) => in_eq(
                 contract,
-                lhs_value,
-                lhs_collection,
-                rhs_value,
-                rhs_collection,
+                *lhs_value,
+                *lhs_collection,
+                *rhs_value,
+                *rhs_collection,
             ),
 
             (
@@ -667,7 +669,7 @@ impl Expr {
                     ub: rhs_ub,
                     ..
                 },
-            ) => range_eq(contract, lhs_lb, lhs_ub, rhs_lb, rhs_ub),
+            ) => range_eq(contract, *lhs_lb, *lhs_ub, *rhs_lb, *rhs_ub),
 
             (
                 Expr::Generator {
@@ -689,11 +691,11 @@ impl Expr {
                 lhs_kind,
                 lhs_gen_ranges,
                 lhs_conditions,
-                lhs_body,
+                *lhs_body,
                 rhs_kind,
                 rhs_gen_ranges,
                 rhs_conditions,
-                rhs_body,
+                *rhs_body,
             ),
 
             (
@@ -710,7 +712,7 @@ impl Expr {
                     ..
                 },
             ) => map_eq(
-                contract, lhs_param, lhs_range, lhs_body, rhs_param, rhs_range, rhs_body,
+                contract, lhs_param, *lhs_range, *lhs_body, rhs_param, *rhs_range, *rhs_body,
             ),
 
             (
@@ -722,7 +724,7 @@ impl Expr {
                     union_expr: rhs_union_expr,
                     ..
                 },
-            ) => union_tag_eq(contract, lhs_union_expr, rhs_union_expr),
+            ) => union_tag_eq(contract, *lhs_union_expr, *rhs_union_expr),
 
             (
                 Expr::UnionValue {
@@ -737,9 +739,9 @@ impl Expr {
                 },
             ) => union_value_eq(
                 contract,
-                lhs_union_expr,
+                *lhs_union_expr,
                 lhs_variant_ty,
-                rhs_union_expr,
+                *rhs_union_expr,
                 rhs_variant_ty,
             ),
 
@@ -902,10 +904,10 @@ pub fn immediate_eq(lhs_value: &Immediate, rhs_value: &Immediate) -> bool {
 
 pub fn array_eq(
     contract: &Contract,
-    lhs_elements: &Vec<ExprKey>,
-    lhs_range_expr: &ExprKey,
-    rhs_elements: &Vec<ExprKey>,
-    rhs_range_expr: &ExprKey,
+    lhs_elements: &[ExprKey],
+    lhs_range_expr: ExprKey,
+    rhs_elements: &[ExprKey],
+    rhs_range_expr: ExprKey,
 ) -> bool {
     lhs_elements.len() == rhs_elements.len()
         && lhs_elements.iter().enumerate().all(|(i, lhs_element)| {
@@ -920,8 +922,8 @@ pub fn array_eq(
 
 pub fn tuple_eq(
     contract: &Contract,
-    lhs_fields: &Vec<(Option<Ident>, ExprKey)>,
-    rhs_fields: &Vec<(Option<Ident>, ExprKey)>,
+    lhs_fields: &[(Option<Ident>, ExprKey)],
+    rhs_fields: &[(Option<Ident>, ExprKey)],
 ) -> bool {
     lhs_fields.len() == rhs_fields.len()
         && lhs_fields
@@ -971,10 +973,10 @@ pub fn local_storage_access_eq(
 pub fn external_storage_access_eq(
     contract: &Contract,
     lhs_interface: &String,
-    lhs_address: &ExprKey,
+    lhs_address: ExprKey,
     lhs_name: &String,
     rhs_interface: &String,
-    rhs_address: &ExprKey,
+    rhs_address: ExprKey,
     rhs_name: &String,
 ) -> bool {
     lhs_interface == rhs_interface
@@ -987,9 +989,9 @@ pub fn external_storage_access_eq(
 pub fn unary_op_eq(
     contract: &Contract,
     lhs_op: &UnaryOp,
-    lhs_expr: &ExprKey,
+    lhs_expr: ExprKey,
     rhs_op: &UnaryOp,
-    rhs_expr: &ExprKey,
+    rhs_expr: ExprKey,
 ) -> bool {
     lhs_op == rhs_op && lhs_expr.get(contract).eq(contract, rhs_expr.get(contract))
 }
@@ -997,11 +999,11 @@ pub fn unary_op_eq(
 pub fn binary_op_eq(
     contract: &Contract,
     lhs_op: &BinaryOp,
-    lhs_lhs: &ExprKey,
-    lhs_rhs: &ExprKey,
+    lhs_lhs: ExprKey,
+    lhs_rhs: ExprKey,
     rhs_op: &BinaryOp,
-    rhs_lhs: &ExprKey,
-    rhs_rhs: &ExprKey,
+    rhs_lhs: ExprKey,
+    rhs_rhs: ExprKey,
 ) -> bool {
     match lhs_op {
         BinaryOp::Add
@@ -1042,9 +1044,9 @@ pub fn macro_call_eq(lhs_path: &String, rhs_path: &String) -> bool {
 pub fn intrinsic_call_eq(
     contract: &Contract,
     lhs_kind: &(IntrinsicKind, Span),
-    lhs_args: &Vec<ExprKey>,
+    lhs_args: &[ExprKey],
     rhs_kind: &(IntrinsicKind, Span),
-    rhs_args: &Vec<ExprKey>,
+    rhs_args: &[ExprKey],
 ) -> bool {
     lhs_args.len() == rhs_args.len()
         && lhs_args.iter().enumerate().all(|(i, lhs_arg)| {
@@ -1070,9 +1072,9 @@ pub fn intrinsic_call_eq(
 pub fn local_predicate_call_eq(
     contract: &Contract,
     lhs_predicate: &String,
-    lhs_args: &Vec<ExprKey>,
+    lhs_args: &[ExprKey],
     rhs_predicate: &String,
-    rhs_args: &Vec<ExprKey>,
+    rhs_args: &[ExprKey],
 ) -> bool {
     lhs_predicate == rhs_predicate
         && lhs_args.len() == rhs_args.len()
@@ -1083,18 +1085,19 @@ pub fn local_predicate_call_eq(
         })
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn external_predicate_call_eq(
     contract: &Contract,
     lhs_interface: &String,
-    lhs_c_addr: &ExprKey,
+    lhs_c_addr: ExprKey,
     lhs_predicate: &String,
-    lhs_p_addr: &ExprKey,
-    lhs_args: &Vec<ExprKey>,
+    lhs_p_addr: ExprKey,
+    lhs_args: &[ExprKey],
     rhs_interface: &String,
-    rhs_c_addr: &ExprKey,
+    rhs_c_addr: ExprKey,
     rhs_predicate: &String,
-    rhs_p_addr: &ExprKey,
-    rhs_args: &Vec<ExprKey>,
+    rhs_p_addr: ExprKey,
+    rhs_args: &[ExprKey],
 ) -> bool {
     lhs_interface == rhs_interface
         && lhs_c_addr
@@ -1114,12 +1117,12 @@ pub fn external_predicate_call_eq(
 
 pub fn select_eq(
     contract: &Contract,
-    lhs_condition: &ExprKey,
-    lhs_then_expr: &ExprKey,
-    lhs_else_expr: &ExprKey,
-    rhs_condition: &ExprKey,
-    rhs_then_expr: &ExprKey,
-    rhs_else_expr: &ExprKey,
+    lhs_condition: ExprKey,
+    lhs_then_expr: ExprKey,
+    lhs_else_expr: ExprKey,
+    rhs_condition: ExprKey,
+    rhs_then_expr: ExprKey,
+    rhs_else_expr: ExprKey,
 ) -> bool {
     lhs_condition
         .get(contract)
@@ -1134,11 +1137,11 @@ pub fn select_eq(
 
 pub fn match_eq(
     contract: &Contract,
-    lhs_match_expr: &ExprKey,
-    lhs_match_branches: &Vec<MatchBranch>,
+    lhs_match_expr: ExprKey,
+    lhs_match_branches: &[MatchBranch],
     lhs_else_branch: &Option<MatchElse>,
-    rhs_match_expr: &ExprKey,
-    rhs_match_branches: &Vec<MatchBranch>,
+    rhs_match_expr: ExprKey,
+    rhs_match_branches: &[MatchBranch],
     rhs_else_branch: &Option<MatchElse>,
 ) -> bool {
     lhs_match_expr
@@ -1224,10 +1227,10 @@ pub fn match_eq(
 
 pub fn index_eq(
     contract: &Contract,
-    lhs_expr: &ExprKey,
-    lhs_index: &ExprKey,
-    rhs_expr: &ExprKey,
-    rhs_index: &ExprKey,
+    lhs_expr: ExprKey,
+    lhs_index: ExprKey,
+    rhs_expr: ExprKey,
+    rhs_index: ExprKey,
 ) -> bool {
     lhs_expr.get(contract).eq(contract, rhs_expr.get(contract))
         && lhs_index
@@ -1237,9 +1240,9 @@ pub fn index_eq(
 
 pub fn tuple_field_access_eq(
     contract: &Contract,
-    lhs_tuple: &ExprKey,
+    lhs_tuple: ExprKey,
     lhs_field: &TupleAccess,
-    rhs_tuple: &ExprKey,
+    rhs_tuple: ExprKey,
     rhs_field: &TupleAccess,
 ) -> bool {
     lhs_tuple
@@ -1260,9 +1263,9 @@ pub fn tuple_field_access_eq(
 
 pub fn cast_eq(
     contract: &Contract,
-    lhs_value: &ExprKey,
+    lhs_value: ExprKey,
     lhs_ty: &Type,
-    rhs_value: &ExprKey,
+    rhs_value: ExprKey,
     rhs_ty: &Type,
 ) -> bool {
     lhs_value
@@ -1273,10 +1276,10 @@ pub fn cast_eq(
 
 pub fn in_eq(
     contract: &Contract,
-    lhs_value: &ExprKey,
-    lhs_collection: &ExprKey,
-    rhs_value: &ExprKey,
-    rhs_collection: &ExprKey,
+    lhs_value: ExprKey,
+    lhs_collection: ExprKey,
+    rhs_value: ExprKey,
+    rhs_collection: ExprKey,
 ) -> bool {
     lhs_value
         .get(contract)
@@ -1288,25 +1291,26 @@ pub fn in_eq(
 
 pub fn range_eq(
     contract: &Contract,
-    lhs_lb: &ExprKey,
-    lhs_ub: &ExprKey,
-    rhs_lb: &ExprKey,
-    rhs_ub: &ExprKey,
+    lhs_lb: ExprKey,
+    lhs_ub: ExprKey,
+    rhs_lb: ExprKey,
+    rhs_ub: ExprKey,
 ) -> bool {
     lhs_lb.get(contract).eq(contract, rhs_lb.get(contract))
         && lhs_ub.get(contract).eq(contract, rhs_ub.get(contract))
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn generator_eq(
     contract: &Contract,
     lhs_kind: &GeneratorKind,
-    lhs_gen_ranges: &Vec<(Ident, ExprKey)>,
-    lhs_conditions: &Vec<ExprKey>,
-    lhs_body: &ExprKey,
+    lhs_gen_ranges: &[(Ident, ExprKey)],
+    lhs_conditions: &[ExprKey],
+    lhs_body: ExprKey,
     rhs_kind: &GeneratorKind,
-    rhs_gen_ranges: &Vec<(Ident, ExprKey)>,
-    rhs_conditions: &Vec<ExprKey>,
-    rhs_body: &ExprKey,
+    rhs_gen_ranges: &[(Ident, ExprKey)],
+    rhs_conditions: &[ExprKey],
+    rhs_body: ExprKey,
 ) -> bool {
     lhs_kind == rhs_kind
         && rhs_gen_ranges.len() == lhs_gen_ranges.len()
@@ -1333,11 +1337,11 @@ pub fn generator_eq(
 pub fn map_eq(
     contract: &Contract,
     lhs_param: &Ident,
-    lhs_range: &ExprKey,
-    lhs_body: &ExprKey,
+    lhs_range: ExprKey,
+    lhs_body: ExprKey,
     rhs_param: &Ident,
-    rhs_range: &ExprKey,
-    rhs_body: &ExprKey,
+    rhs_range: ExprKey,
+    rhs_body: ExprKey,
 ) -> bool {
     lhs_param == rhs_param
         && lhs_range
@@ -1346,11 +1350,7 @@ pub fn map_eq(
         && lhs_body.get(contract).eq(contract, rhs_body.get(contract))
 }
 
-pub fn union_tag_eq(
-    contract: &Contract,
-    lhs_union_expr: &ExprKey,
-    rhs_union_expr: &ExprKey,
-) -> bool {
+pub fn union_tag_eq(contract: &Contract, lhs_union_expr: ExprKey, rhs_union_expr: ExprKey) -> bool {
     lhs_union_expr
         .get(contract)
         .eq(contract, rhs_union_expr.get(contract))
@@ -1358,9 +1358,9 @@ pub fn union_tag_eq(
 
 pub fn union_value_eq(
     contract: &Contract,
-    lhs_union_expr: &ExprKey,
+    lhs_union_expr: ExprKey,
     lhs_variant_ty: &Type,
-    rhs_union_expr: &ExprKey,
+    rhs_union_expr: ExprKey,
     rhs_variant_ty: &Type,
 ) -> bool {
     lhs_union_expr

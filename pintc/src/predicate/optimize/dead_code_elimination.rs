@@ -285,10 +285,10 @@ pub(crate) fn duplicate_variable_elimination(contract: &mut Contract) {
 pub(crate) fn duplicate_constraint_elimination(contract: &mut Contract) {
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         if let Some(pred) = contract.preds.get(pred_key) {
-            let mut duplicate_constraints: Vec<usize> = vec![];
+            let mut redundant_constraint_locs: Vec<usize> = vec![];
 
             for (i, constraint) in pred.constraints.iter().enumerate() {
-                if duplicate_constraints.contains(&i) {
+                if redundant_constraint_locs.contains(&i) {
                     continue;
                 }
 
@@ -298,7 +298,7 @@ pub(crate) fn duplicate_constraint_elimination(contract: &mut Contract) {
                         .get(contract)
                         .eq(contract, subsequent_constraint.expr.get(contract))
                     {
-                        duplicate_constraints.push(i + j + 1);
+                        redundant_constraint_locs.push(i + j + 1);
                     }
                 }
             }
@@ -306,9 +306,13 @@ pub(crate) fn duplicate_constraint_elimination(contract: &mut Contract) {
             if let Some(pred) = contract.preds.get_mut(pred_key) {
                 // Remove duplicate constraints in reverse to avoid removing the wrong indices from
                 // shifting elements.
-                duplicate_constraints.iter().sorted().rev().for_each(|i| {
-                    pred.constraints.remove(*i);
-                });
+                redundant_constraint_locs
+                    .iter()
+                    .sorted()
+                    .rev()
+                    .for_each(|i| {
+                        pred.constraints.remove(*i);
+                    });
             }
         }
     }
