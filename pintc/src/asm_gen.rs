@@ -183,29 +183,37 @@ pub fn compile_contract(
     }
 }
 
-/// This a node in the compute graph. Keeps track of which item it represents (var or expr).
+/// This a node in the compute graph. Keeps track of which item it represents. There are three
+/// types of nodes:
+/// 1. `Var` nodes represent local variables. They are internal nodes (non-leaves).
+/// 2. `Constraint` nodes represent constraints. They are leaves.
+/// 3. `Expr` nodes represent specific expressions that asm gen decided to use a separate node for.
+///
 #[derive(Clone, Debug)]
 enum ComputeNode {
-    NonLeaf { var: Variable, reads: Reads },
-    Leaf { expr: ExprKey },
+    Var { var: Variable, reads: Reads },
+    Constraint { expr: ExprKey, reads: Reads },
+    Expr { expr: ExprKey, reads: Reads },
 }
 
 impl ComputeNode {
     fn is_leaf(&self) -> bool {
-        matches!(self, ComputeNode::Leaf { .. })
+        matches!(self, ComputeNode::Constraint { .. })
     }
 
     fn expr(&self) -> ExprKey {
         match self {
-            Self::NonLeaf { var, .. } => var.expr,
-            Self::Leaf { expr } => *expr,
+            Self::Var { var, .. } => var.expr,
+            Self::Constraint { expr, .. } | Self::Expr { expr, .. } => *expr,
         }
     }
 
     fn span(&self, contract: &Contract) -> Span {
         match self {
-            Self::NonLeaf { var, .. } => var.span.clone(),
-            Self::Leaf { expr } => expr.get(contract).span().clone(),
+            Self::Var { var, .. } => var.span.clone(),
+            Self::Constraint { expr, .. } | Self::Expr { expr, .. } => {
+                expr.get(contract).span().clone()
+            }
         }
     }
 }
@@ -225,14 +233,14 @@ pub fn compile_predicate(
     for (_, variable) in pred.variables() {
         vars_to_nodes.insert(
             (variable.name.clone(), Reads::Pre),
-            data_flow_graph.add_node(ComputeNode::NonLeaf {
+            data_flow_graph.add_node(ComputeNode::Var {
                 var: variable.clone(),
                 reads: Reads::Pre,
             }),
         );
         vars_to_nodes.insert(
             (variable.name.clone(), Reads::Post),
-            data_flow_graph.add_node(ComputeNode::NonLeaf {
+            data_flow_graph.add_node(ComputeNode::Var {
                 var: variable.clone(),
                 reads: Reads::Post,
             }),
@@ -257,7 +265,41 @@ pub fn compile_predicate(
 
     // Insert leaf nodes and edges to them
     for ConstraintDecl { expr, .. } in pred.constraints.iter() {
-        let constraint_node = data_flow_graph.add_node(ComputeNode::Leaf { expr: *expr });
+        // Collect pre accesses and post accesses separately.
+        //
+        // Note that we only expect storage intrinsics at this point. All other storage expressions
+        // should have been lowered by now.
+        let (post_accesses, pre_accesses): (Vec<_>, Vec<_>) = expr
+            .collect_storage_accesses(contract)
+            .into_iter()
+            .partition::<Vec<_>, _>(|access| access.is_post_storage_access_intrinsic(contract));
+
+        // 1. If all accesses are pre-accesses, then just add a constraint node that reads `Pre`.
+        // 2. If all accesses are post-accesses, then just add a constraint node that reads `Post`.
+        // 3. If the accesses are mixed, then add a constraint node that reads `Pre`, and "pull
+        //    out" post accesses into their own nodes
+        //
+        let constraint_node = data_flow_graph.add_node(ComputeNode::Constraint {
+            expr: *expr,
+            reads: if !pre_accesses.is_empty() && post_accesses.is_empty() {
+                Reads::Pre
+            } else if pre_accesses.is_empty() && !post_accesses.is_empty() {
+                Reads::Post
+            } else {
+                Reads::Pre
+            },
+        });
+
+        if !pre_accesses.is_empty() && !post_accesses.is_empty() {
+            for access in post_accesses {
+                // create an `Expr` node for each post access
+                let expr_node = data_flow_graph.add_node(ComputeNode::Expr {
+                    expr: access,
+                    reads: Reads::Post,
+                });
+                data_flow_graph.add_edge(expr_node, constraint_node, ());
+            }
+        }
 
         for (var_name, reads) in expr.collect_path_to_var_exprs(contract, pred) {
             data_flow_graph.add_edge(vars_to_nodes[&(var_name, reads)], constraint_node, ());
@@ -364,16 +406,16 @@ pub fn compile_predicate(
 
         // Now push a node into the final `compiled_predicate`
         match &data_flow_graph[*node] {
-            ComputeNode::Leaf { .. } => {
+            ComputeNode::Constraint { reads, .. } => {
                 compiled_predicate.nodes.push(Node {
                     program_address: address,
                     edge_start: Edge::MAX,
                     // Constraints don't access state directly yet, so default to `Reads::Pre` here
                     // for now
-                    reads: Reads::Pre,
+                    reads: *reads,
                 });
             }
-            ComputeNode::NonLeaf { reads, .. } => {
+            ComputeNode::Var { reads, .. } | ComputeNode::Expr { reads, .. } => {
                 compiled_predicate.nodes.push(Node {
                     program_address: address,
                     edge_start,

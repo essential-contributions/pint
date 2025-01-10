@@ -23,9 +23,6 @@ enum Inference {
 
 impl Contract {
     pub fn type_check(mut self, handler: &Handler) -> Result<Self, ErrorEmitted> {
-        // Ensure that all storage accesses are used legally, i.e., in variable initializers only.
-        let _ = handler.scope(|handler| self.check_storage_accesses(handler));
-
         // Evaluate all the constant decls to ensure they're all immediates. Each Const expr is
         // updated and has its type set.
         handler.scope(|handler| self.evaluate_all_consts(handler))?;

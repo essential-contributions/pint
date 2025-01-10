@@ -34,7 +34,7 @@ predicate test() {
 //
 // predicate ::test(
 // ) {
-//     let ::y: int = __storage_get({0, (0 + (1 * 1))});
+//     let ::y: int = __pre_state({0, (0 + (1 * 1))});
 //     constraint (::y' == 11);
 //     constraint __eq_set(__mut_keys(), {0});
 // }

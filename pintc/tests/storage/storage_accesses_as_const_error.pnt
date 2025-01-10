@@ -1,0 +1,100 @@
+storage {
+    t: { int, int[3] },
+    m: ( int => { int, int, b256 } ),
+    a: ( b256 => int[storage::t.0] ),
+    bb: b256,
+}
+
+interface Foo {
+    storage {
+        a: int[3][storage::t.0],
+    }
+
+    predicate Bar();
+}
+
+type MyType = { int, int[storage::t.0] };
+
+union G = A(int) | B(int[storage::t.0]);
+
+const C = storage::t.1;
+
+predicate Test(
+    x: b256,
+    addr: b256,
+    y: { int, int[3] },
+    b: bool,
+    u: G,
+) {
+    constraint x == storage::m[3].2;
+
+    constraint storage::a[addr][storage::t.0] == 0;
+
+    constraint y == storage::t;
+
+    if b {
+        constraint storage::t.0 == 0;
+        constraint storage::t.1 == 0;
+    } else {
+        constraint storage::t.0 == 1;
+        constraint storage::t.1 == 2;
+    }
+
+    match u {
+        G::A(a) => {
+            constraint storage::t.0 == a;
+        }
+        G::B(b) => {}
+    }
+
+    constraint Foo@[storage::bb]::Bar@[storage::bb]();
+}
+
+// parsed <<<
+// const ::C = storage::t.1;
+// union ::G = A(int) | B(int[storage::t.0]);
+// type ::MyType = {int, int[storage::t.0]};
+// storage {
+//     t: {int, int[3]},
+//     m: ( int => {int, int, b256} ),
+//     a: ( b256 => int[storage::t.0] ),
+//     bb: b256,
+// }
+// interface ::Foo {
+//     storage {
+//         a: int[storage::t.0][3],
+//     }
+//     predicate Bar();
+// }
+//
+// predicate ::Test(
+//     ::x: b256,
+//     ::addr: b256,
+//     ::y: {int, int[3]},
+//     ::b: bool,
+//     ::u: ::G,
+// ) {
+//     constraint (::x == storage::m[3].2);
+//     constraint (storage::a[::addr][storage::t.0] == 0);
+//     constraint (::y == storage::t);
+//     constraint ::Foo@[storage::bb]::Bar@[storage::bb]();
+//     if ::b {
+//         constraint (storage::t.0 == 0)
+//         constraint (storage::t.1 == 0)
+//     } else {
+//         constraint (storage::t.0 == 1)
+//         constraint (storage::t.1 == 2)
+//     }
+//     match ::u {
+//         ::G::A(a) => {
+//             constraint (storage::t.0 == ::a)
+//         }
+//         ::G::B(b) => {
+//         }
+//     }
+// }
+// >>>
+
+// typecheck_failure <<<
+// compiler internal error: unexpected expression during compile-time evaluation
+// >>>

@@ -355,21 +355,47 @@ impl Expr {
         matches!(self, Expr::Immediate { .. })
     }
 
-    pub fn is_storage_access(&self) -> bool {
+    pub fn is_storage_access_intrinsic(&self) -> bool {
         matches!(
             self,
-            Expr::LocalStorageAccess { .. }
-                | Expr::ExternalStorageAccess { .. }
-                | Expr::IntrinsicCall {
-                    kind: (
-                        IntrinsicKind::Internal(
-                            InternalIntrinsic::StorageGet | InternalIntrinsic::StorageGetExtern
-                        ),
-                        _
+            Expr::IntrinsicCall {
+                kind: (
+                    IntrinsicKind::Internal(
+                        InternalIntrinsic::PostState
+                            | InternalIntrinsic::PreState
+                            | InternalIntrinsic::PostStateExtern
+                            | InternalIntrinsic::PreStateExtern
                     ),
-                    ..
-                }
+                    _
+                ),
+                ..
+            }
         )
+    }
+
+    pub fn is_post_storage_access_intrinsic(&self) -> bool {
+        matches!(
+            self,
+            Expr::IntrinsicCall {
+                kind: (
+                    IntrinsicKind::Internal(
+                        InternalIntrinsic::PostState | InternalIntrinsic::PostStateExtern
+                    ),
+                    _
+                ),
+                ..
+            }
+        )
+    }
+
+    pub fn is_storage_access(&self, contract: &Contract) -> bool {
+        self.is_storage_access_intrinsic()
+            || match self {
+                Expr::LocalStorageAccess { .. } | Expr::ExternalStorageAccess { .. } => true,
+                Expr::TupleFieldAccess { tuple, .. } => tuple.is_storage_access(contract),
+                Expr::Index { expr, .. } => expr.is_storage_access(contract),
+                _ => false,
+            }
     }
 
     pub fn eq(&self, contract: &Contract, other: &Self) -> bool {

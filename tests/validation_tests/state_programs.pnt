@@ -35,6 +35,9 @@ predicate Simple(p: int, q: { int, b256[2] }) {
     constraint e2 == 69 * 6; 
     constraint e2' == 14 * 70; 
 
+    constraint @unwrap_or_1(mut storage::t.1; 69) * @unwrap_or_2(mut storage::a[1]; 70) == 69 * 6;
+    constraint @unwrap_or_1(mut storage::t.1'; 69) * @unwrap_or_2(mut storage::a[1]'; 70) == 14 * 70;
+
     let e3 = (true as int + 3) in -5..(3*3 + p); // no storage accesses
     constraint e3;
     constraint e3';

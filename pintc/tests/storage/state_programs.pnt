@@ -74,8 +74,8 @@ predicate Simple(p: int, q: { int, b256[2] }) {
 //     ::p: int,
 //     ::q: {int, b256[2]},
 // ) {
-//     let ::e1: int = (::p / (((-__storage_get({0}) * __storage_get({1})) + __storage_get({2, (0 + 0)})) + __storage_get({3, (0 + (0 * 1))})));
-//     let ::e2: int = (((__size_of(__storage_get({2, (0 + 1)})) == 0) ? 69 : __storage_get({2, (0 + 1)})) * ((__size_of(__storage_get({3, (0 + (1 * 1))})) == 0) ? 70 : __storage_get({3, (0 + (1 * 1))})));
+//     let ::e1: int = (::p / (((-__pre_state({0}) * __pre_state({1})) + __pre_state({2, (0 + 0)})) + __pre_state({3, (0 + (0 * 1))})));
+//     let ::e2: int = (((__size_of(__pre_state({2, (0 + 1)})) == 0) ? 69 : __pre_state({2, (0 + 1)})) * ((__size_of(__pre_state({3, (0 + (1 * 1))})) == 0) ? 70 : __pre_state({3, (0 + (1 * 1))})));
 //     let ::e3: bool = (((true + 3) >= -5) && ((true + 3) <= ((3 * 3) + ::p)));
 //     let ::e4: b256 = ::q.1[1];
 //     constraint (::p == 69);

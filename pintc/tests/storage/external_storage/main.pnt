@@ -159,18 +159,18 @@ predicate Bar() {
 //     let ::addr0: b256 = 0x0000000000000000000000000000000000000000000000000000000000000000;
 //     let ::addr1: b256 = 0x1111111111111111111111111111111111111111111111111111111111111111;
 //     let ::addr2: b256 = 0x2222222222222222222222222222222222222222222222222222222222222222;
-//     let ::internal_x: int = __storage_get({0});
-//     let ::internal_y: bool = __storage_get({1});
-//     let ::internal_map: b256 = __storage_get({2, 3, 4});
-//     let ::external_x_0: int = __storage_get_extern(::addr0, {0});
-//     let ::external_y_0: bool = __storage_get_extern(::addr0, {1});
-//     let ::external_map_0: b256 = __storage_get_extern(::addr0, {2, 3, 4});
-//     let ::external_x_1: int = __storage_get_extern(::addr1, {0});
-//     let ::external_y_1: bool = __storage_get_extern(::addr1, {1});
-//     let ::external_map_1: b256 = __storage_get_extern(::addr1, {2, 3, 4});
-//     let ::external_x_2: int = __storage_get_extern(::addr2, {0});
-//     let ::external_y_2: bool = __storage_get_extern(::addr2, {1});
-//     let ::external_map_2: b256 = __storage_get_extern(::addr2, {2, 3, 4});
+//     let ::internal_x: int = __pre_state({0});
+//     let ::internal_y: bool = __pre_state({1});
+//     let ::internal_map: b256 = __pre_state({2, 3, 4});
+//     let ::external_x_0: int = __pre_state_extern(::addr0, {0});
+//     let ::external_y_0: bool = __pre_state_extern(::addr0, {1});
+//     let ::external_map_0: b256 = __pre_state_extern(::addr0, {2, 3, 4});
+//     let ::external_x_1: int = __pre_state_extern(::addr1, {0});
+//     let ::external_y_1: bool = __pre_state_extern(::addr1, {1});
+//     let ::external_map_1: b256 = __pre_state_extern(::addr1, {2, 3, 4});
+//     let ::external_x_2: int = __pre_state_extern(::addr2, {0});
+//     let ::external_y_2: bool = __pre_state_extern(::addr2, {1});
+//     let ::external_map_2: b256 = __pre_state_extern(::addr2, {2, 3, 4});
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 //
@@ -179,18 +179,18 @@ predicate Bar() {
 //     let ::addr0: b256 = 0x0000000000000000000000000000000000000000000000000000000000000000;
 //     let ::addr1: b256 = 0x1111111111111111111111111111111111111111111111111111111111111111;
 //     let ::addr2: b256 = 0x2222222222222222222222222222222222222222222222222222222222222222;
-//     let ::internal_x: int = __storage_get({0});
-//     let ::internal_y: bool = __storage_get({1});
-//     let ::internal_map: b256 = __storage_get({2, 3, 4});
-//     let ::external_x_0: int = __storage_get_extern(::addr0, {0});
-//     let ::external_y_0: bool = __storage_get_extern(::addr0, {1});
-//     let ::external_map_0: b256 = __storage_get_extern(::addr0, {2, 3, 4});
-//     let ::external_x_1: int = __storage_get_extern(::addr1, {0});
-//     let ::external_y_1: bool = __storage_get_extern(::addr1, {1});
-//     let ::external_map_1: b256 = __storage_get_extern(::addr1, {2, 3, 4});
-//     let ::external_x_2: int = __storage_get_extern(::addr2, {0});
-//     let ::external_y_2: bool = __storage_get_extern(::addr2, {1});
-//     let ::external_map_2: b256 = __storage_get_extern(::addr2, {2, 3, 4});
+//     let ::internal_x: int = __pre_state({0});
+//     let ::internal_y: bool = __pre_state({1});
+//     let ::internal_map: b256 = __pre_state({2, 3, 4});
+//     let ::external_x_0: int = __pre_state_extern(::addr0, {0});
+//     let ::external_y_0: bool = __pre_state_extern(::addr0, {1});
+//     let ::external_map_0: b256 = __pre_state_extern(::addr0, {2, 3, 4});
+//     let ::external_x_1: int = __pre_state_extern(::addr1, {0});
+//     let ::external_y_1: bool = __pre_state_extern(::addr1, {1});
+//     let ::external_map_1: b256 = __pre_state_extern(::addr1, {2, 3, 4});
+//     let ::external_x_2: int = __pre_state_extern(::addr2, {0});
+//     let ::external_y_2: bool = __pre_state_extern(::addr2, {1});
+//     let ::external_map_2: b256 = __pre_state_extern(::addr2, {2, 3, 4});
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
