@@ -30,9 +30,9 @@ essential-types = "0.7"
 essential-vm = "0.9"
 expect-test = "1.4"
 fxhash = "0.2"
-itertools = "0.13"
-logos = "0.14"
-petgraph = "0.6"
+itertools = "0.14"
+logos = "0.15"
+petgraph = "0.7"
 pint-abi = { path = "pint-abi", version = "0.11.0" }
 pint-abi-gen = { path = "pint-abi-gen", version = "0.11.0" }
 pint-abi-types = { path = "pint-abi-types", version = "0.4.0" }
