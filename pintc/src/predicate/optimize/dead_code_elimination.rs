@@ -247,32 +247,30 @@ pub(crate) fn duplicate_variable_elimination(contract: &mut Contract) {
                         original_path_expr,
                         pred,
                     );
-                } else {
-                    if let Some(path_expr) = contract
-                        .exprs(pred_key)
-                        .find(|expr| {
-                            if let Expr::Path(name, _) = expr.get(contract) {
-                                *name == dupe_var_key.get(pred).name
-                            } else {
-                                false
-                            }
-                        })
-                        .map(|_| {
-                            contract.exprs.insert(
-                                Expr::Path(original_var_key.get(pred).name.clone(), empty_span()),
-                                original_var_key.get_ty(pred).clone(),
-                            )
-                        })
-                    {
-                        collect_all_duplicate_paths(
-                            contract,
-                            pred_key,
-                            &mut dupe_paths,
-                            *dupe_var_key,
-                            path_expr,
-                            pred,
-                        );
-                    }
+                } else if let Some(path_expr) = contract
+                    .exprs(pred_key)
+                    .find(|expr| {
+                        if let Expr::Path(name, _) = expr.get(contract) {
+                            *name == dupe_var_key.get(pred).name
+                        } else {
+                            false
+                        }
+                    })
+                    .map(|_| {
+                        contract.exprs.insert(
+                            Expr::Path(original_var_key.get(pred).name.clone(), empty_span()),
+                            original_var_key.get_ty(pred).clone(),
+                        )
+                    })
+                {
+                    collect_all_duplicate_paths(
+                        contract,
+                        pred_key,
+                        &mut dupe_paths,
+                        *dupe_var_key,
+                        path_expr,
+                        pred,
+                    );
                 }
             }
 
