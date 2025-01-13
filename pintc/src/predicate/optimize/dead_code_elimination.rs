@@ -164,7 +164,7 @@ pub(crate) fn dead_select_elimination(contract: &mut Contract) {
 /// let a = x + 1;
 /// let d = a + 1;
 pub(crate) fn duplicate_variable_elimination(contract: &mut Contract) {
-    fn queue_path_for_replacement(
+    fn collect_all_duplicate_paths(
         contract: &Contract,
         pred_key: PredKey,
         dupe_paths: &mut Vec<(ExprKey, ExprKey)>,
@@ -239,7 +239,7 @@ pub(crate) fn duplicate_variable_elimination(contract: &mut Contract) {
                 });
 
                 if let Some(original_path_expr) = original_path_expr {
-                    queue_path_for_replacement(
+                    collect_all_duplicate_paths(
                         contract,
                         pred_key,
                         &mut dupe_paths,
@@ -264,7 +264,7 @@ pub(crate) fn duplicate_variable_elimination(contract: &mut Contract) {
                             )
                         })
                     {
-                        queue_path_for_replacement(
+                        collect_all_duplicate_paths(
                             contract,
                             pred_key,
                             &mut dupe_paths,
