@@ -4,7 +4,7 @@ use itertools::Itertools;
 use crate::{
     error::Handler,
     expr::{evaluate::Evaluator, Expr, Immediate},
-    predicate::{ConstraintDecl, Contract, ExprKey, VariableKey},
+    predicate::{ConstraintDecl, Contract, ExprKey, PredKey, Predicate, VariableKey},
     span::empty_span,
     warning::Warning,
 };
@@ -164,61 +164,73 @@ pub(crate) fn dead_select_elimination(contract: &mut Contract) {
 /// let a = x + 1;
 /// let d = a + 1;
 pub(crate) fn duplicate_variable_elimination(contract: &mut Contract) {
-    for pred_key in contract.preds.keys().collect::<Vec<_>>() {
-        let pred_variables = contract
-            .preds
-            .get(pred_key)
-            .expect("pred guaranteed to exist")
-            .variables()
-            .collect::<Vec<_>>();
-
-        // gather all variable declarations with identical expressions
-        let mut dupe_var_decls: Vec<(
-            VariableKey, /* original */
-            VariableKey, /* duplicate */
-        )> = vec![];
-
-        for (i, (var_key, var)) in pred_variables.iter().enumerate() {
-            // avoid double checking any variable that has already been marked as a duplicate
-            if dupe_var_decls
-                .iter()
-                .any(|(original_var_key, dupe_var_key)| {
-                    original_var_key == var_key || dupe_var_key == var_key
-                })
-            {
-                continue;
-            };
-
-            for (subsequent_var_key, subsequent_var) in pred_variables.iter().skip(i + 1) {
-                if let Some(pred) = contract.preds.get(pred_key) {
-                    if !var_key
-                        .get_ty(pred)
-                        .eq(contract, subsequent_var_key.get_ty(pred))
-                    {
-                        continue;
-                    }
-                }
-
-                if var
-                    .expr
-                    .get(contract)
-                    .eq(contract, subsequent_var.expr.get(contract))
-                {
-                    dupe_var_decls.push((*var_key, *subsequent_var_key));
+    fn queue_path_for_replacement(
+        contract: &Contract,
+        pred_key: PredKey,
+        dupe_paths: &mut Vec<(ExprKey, ExprKey)>,
+        dupe_var_key: VariableKey,
+        path_expr: ExprKey,
+        pred: &Predicate,
+    ) {
+        contract.exprs(pred_key).for_each(|expr| {
+            if let Expr::Path(name, _) = expr.get(contract) {
+                if *name == dupe_var_key.get(pred).name {
+                    dupe_paths.push((path_expr, expr))
                 }
             }
-        }
+        });
+    }
 
-        // collect all of the duplicate var exprs and duplicate paths to be cleared out
-        let mut dupe_var_exprs: Vec<(ExprKey, ExprKey)> = vec![];
-        let mut dupe_paths: Vec<(ExprKey, ExprKey)> = vec![];
+    for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         if let Some(pred) = contract.preds.get(pred_key) {
+            let pred_variables = contract
+                .preds
+                .get(pred_key)
+                .expect("pred guaranteed to exist")
+                .variables()
+                .collect::<Vec<_>>();
+
+            // gather all variable declarations with identical expressions
+            let mut dupe_var_decls: Vec<(
+                VariableKey, /* original */
+                VariableKey, /* duplicate */
+            )> = vec![];
+
+            for (i, (var_key, var)) in pred_variables.iter().enumerate() {
+                // avoid double checking any variable that has already been marked as a duplicate
+                if dupe_var_decls
+                    .iter()
+                    .any(|(original_var_key, dupe_var_key)| {
+                        original_var_key == var_key || dupe_var_key == var_key
+                    })
+                {
+                    continue;
+                };
+
+                for (subsequent_var_key, subsequent_var) in pred_variables.iter().skip(i + 1) {
+                    if var_key
+                        .get_ty(pred)
+                        .eq(contract, subsequent_var_key.get_ty(pred))
+                        && var
+                            .expr
+                            .get(contract)
+                            .eq(contract, subsequent_var.expr.get(contract))
+                    {
+                        dupe_var_decls.push((*var_key, *subsequent_var_key));
+                    }
+                }
+            }
+
+            // collect all of the duplicate var exprs and duplicate paths to be cleared out
+            let mut dupe_var_exprs: Vec<(ExprKey, ExprKey)> = vec![];
+            let mut dupe_paths: Vec<(ExprKey, ExprKey)> = vec![];
             for (original_var_key, dupe_var_key) in &dupe_var_decls {
                 let original_expr_key = original_var_key.get(pred).expr;
                 let dupe_expr_key = dupe_var_key.get(pred).expr;
                 dupe_var_exprs.push((original_expr_key, dupe_expr_key));
 
-                let mut original_path_expr = contract.exprs(pred_key).find(|expr| {
+                // get path expr if original exists, if not try to get one of it's dupes, and if that fails, skip the process
+                let original_path_expr = contract.exprs(pred_key).find(|expr| {
                     if let Expr::Path(name, _) = expr.get(contract) {
                         *name == original_var_key.get(pred).name
                     } else {
@@ -226,9 +238,17 @@ pub(crate) fn duplicate_variable_elimination(contract: &mut Contract) {
                     }
                 });
 
-                // if the original variable is unused, check if the duplicate is in use and needs to be replaced
-                if original_path_expr.is_none() {
-                    original_path_expr = contract
+                if let Some(original_path_expr) = original_path_expr {
+                    queue_path_for_replacement(
+                        contract,
+                        pred_key,
+                        &mut dupe_paths,
+                        *dupe_var_key,
+                        original_path_expr,
+                        pred,
+                    );
+                } else {
+                    if let Some(path_expr) = contract
                         .exprs(pred_key)
                         .find(|expr| {
                             if let Expr::Path(name, _) = expr.get(contract) {
@@ -242,30 +262,30 @@ pub(crate) fn duplicate_variable_elimination(contract: &mut Contract) {
                                 Expr::Path(original_var_key.get(pred).name.clone(), empty_span()),
                                 original_var_key.get_ty(pred).clone(),
                             )
-                        });
-                }
-
-                if let Some(original_path_expr) = original_path_expr {
-                    contract.exprs(pred_key).for_each(|expr| {
-                        if let Expr::Path(name, _) = expr.get(contract) {
-                            if *name == dupe_var_key.get(pred).name {
-                                dupe_paths.push((original_path_expr, expr))
-                            }
-                        }
-                    });
+                        })
+                    {
+                        queue_path_for_replacement(
+                            contract,
+                            pred_key,
+                            &mut dupe_paths,
+                            *dupe_var_key,
+                            path_expr,
+                            pred,
+                        );
+                    }
                 }
             }
-        }
 
-        // replace all uses of the duplicate var paths with the originals
-        for (original_expr_key, dupe_expr_key) in dupe_paths {
-            contract.replace_exprs(Some(pred_key), dupe_expr_key, original_expr_key);
-        }
+            // replace all uses of the duplicate var paths with the originals
+            for (original_expr_key, dupe_expr_key) in dupe_paths {
+                contract.replace_exprs(Some(pred_key), dupe_expr_key, original_expr_key);
+            }
 
-        // remove all duplicate variables
-        if let Some(pred) = contract.preds.get_mut(pred_key) {
-            for (_, dupe_var_key) in dupe_var_decls {
-                pred.variables.remove(dupe_var_key);
+            // remove all duplicate variables
+            if let Some(pred) = contract.preds.get_mut(pred_key) {
+                for (_, dupe_var_key) in dupe_var_decls {
+                    pred.variables.remove(dupe_var_key);
+                }
             }
         }
     }
@@ -285,10 +305,10 @@ pub(crate) fn duplicate_variable_elimination(contract: &mut Contract) {
 pub(crate) fn duplicate_constraint_elimination(contract: &mut Contract) {
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         if let Some(pred) = contract.preds.get(pred_key) {
-            let mut redundant_constraint_locs: Vec<usize> = vec![];
+            let mut redundant_constraint_indicess: Vec<usize> = vec![];
 
             for (i, constraint) in pred.constraints.iter().enumerate() {
-                if redundant_constraint_locs.contains(&i) {
+                if redundant_constraint_indicess.contains(&i) {
                     continue;
                 }
 
@@ -298,7 +318,7 @@ pub(crate) fn duplicate_constraint_elimination(contract: &mut Contract) {
                         .get(contract)
                         .eq(contract, subsequent_constraint.expr.get(contract))
                     {
-                        redundant_constraint_locs.push(i + j + 1);
+                        redundant_constraint_indicess.push(i + j + 1);
                     }
                 }
             }
@@ -306,7 +326,7 @@ pub(crate) fn duplicate_constraint_elimination(contract: &mut Contract) {
             if let Some(pred) = contract.preds.get_mut(pred_key) {
                 // Remove duplicate constraints in reverse to avoid removing the wrong indices from
                 // shifting elements.
-                redundant_constraint_locs
+                redundant_constraint_indicess
                     .iter()
                     .sorted()
                     .rev()

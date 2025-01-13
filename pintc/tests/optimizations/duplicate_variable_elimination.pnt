@@ -801,7 +801,9 @@ predicate Test(w: int, x: int, y: bool, z: bool, w2: Coin, x2: Coin) {
 //     let ::f: bool = (1 == ::x);
 //     let ::h: bool = (::x != 1);
 //     let ::j: bool = (::y && ::z);
+//     let ::k: bool = (::z && ::y);
 //     let ::l: bool = (::y || ::z);
+//     let ::m: bool = (::z || ::y);
 //     let ::n: int = (1 - ::x);
 //     let ::p: int = (::x - 1);
 //     let ::q: int = (1 / ::x);
@@ -866,9 +868,9 @@ predicate Test(w: int, x: int, y: bool, z: bool, w2: Coin, x2: Coin) {
 //     constraint (::h == (3 > ::x));
 //     constraint (::h == (4 > ::x));
 //     constraint (::j == (5 > ::x));
-//     constraint (::j == (6 > ::x));
+//     constraint (::k == (6 > ::x));
 //     constraint (::l == (7 > ::x));
-//     constraint (::l == (8 > ::x));
+//     constraint (::m == (8 > ::x));
 //     constraint (::n == 4);
 //     constraint (::n == 5);
 //     constraint (::p == 6);
