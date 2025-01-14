@@ -63,11 +63,11 @@ fn inlined_storage_accesses() {
                   Memory(StoreRange)
                   Stack(Push(2))
                   Memory(Free)
-                node 2
+                node 2 (leaf)
                   Access(MutKeys)
                   Stack(Push(0))
                   Pred(EqSet)
-                node 3
+                node 3 (leaf)
                   Stack(Push(12))
                   Memory(Alloc)
                   Stack(Pop)
