@@ -1,0 +1,11 @@
+storage {
+    ary: int[3],
+}
+
+predicate test() {
+    let a = mut storage::ary;
+    let b = map x in a' { x * x };
+
+    constraint b[0] > 0;
+    constraint b[0] + b[1] == b[2];
+}

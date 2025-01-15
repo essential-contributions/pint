@@ -41,7 +41,16 @@ pub fn fmt_compiled_predicate_with_indent(
             essential_asm::from_bytes(programs.get(&node.program_address).unwrap().0.clone())
                 .collect::<Result<_, _>>()
                 .unwrap();
-        writeln!(f, "{}node {idx}", indent)?;
+        writeln!(
+            f,
+            "{}node {idx}{}",
+            indent,
+            if node.edge_start == essential_types::predicate::Edge::MAX {
+                " (leaf)"
+            } else {
+                ""
+            }
+        )?;
         for op in ops {
             writeln!(f, "{}  {:?}", indent, op)?;
         }

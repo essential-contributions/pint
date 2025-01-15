@@ -27,11 +27,11 @@ fn check_order() {
         expect_test::expect![[r#"
             predicate ::A {
                 --- Nodes ---
-                node 0
+                node 0 (leaf)
                   Access(MutKeys)
                   Stack(Push(0))
                   Pred(EqSet)
-                node 1
+                node 1 (leaf)
                   Stack(Push(1))
                   Stack(Push(0))
                   Stack(Push(0))
@@ -45,7 +45,7 @@ fn check_order() {
                   Stack(Push(80))
                   Crypto(Sha256)
                   Access(PredicateExists)
-                node 2
+                node 2 (leaf)
                   Stack(Push(1))
                   Stack(Push(0))
                   Stack(Push(0))
@@ -63,11 +63,11 @@ fn check_order() {
 
             predicate ::B {
                 --- Nodes ---
-                node 0
+                node 0 (leaf)
                   Access(MutKeys)
                   Stack(Push(0))
                   Pred(EqSet)
-                node 1
+                node 1 (leaf)
                   Stack(Push(0))
                   Stack(Push(0))
                   Stack(Push(1))
@@ -78,11 +78,11 @@ fn check_order() {
 
             predicate ::C {
                 --- Nodes ---
-                node 0
+                node 0 (leaf)
                   Access(MutKeys)
                   Stack(Push(0))
                   Pred(EqSet)
-                node 1
+                node 1 (leaf)
                   Stack(Push(0))
                   Stack(Push(0))
                   Stack(Push(1))
