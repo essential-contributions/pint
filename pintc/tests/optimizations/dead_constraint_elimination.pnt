@@ -99,9 +99,6 @@ predicate Test(x: int, y: int) {
 // ) {
 //     constraint (::x == 1);
 //     constraint (::x == ::y);
-//     constraint (::x == ::y);
-//     constraint (::x == ::y);
-//     constraint (::x == ::y);
 //     constraint (::x < ::y);
 //     constraint (::x == ::x);
 //     constraint __eq_set(__mut_keys(), {0});

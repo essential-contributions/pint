@@ -44,7 +44,7 @@ impl IntrinsicKind {
 // ExternalIntrinsic //
 ///////////////////////
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ExternalIntrinsic {
     // Returns the address of a predicate in the same contract
     AddressOf,
@@ -131,7 +131,7 @@ impl ExternalIntrinsic {
 // InternalIntrinsic //
 ///////////////////////
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum InternalIntrinsic {
     // Determines if two sets are equal
     EqSet,
