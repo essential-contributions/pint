@@ -491,7 +491,6 @@ fn binary_ops() {
                 constraint x < y;
                 constraint x >= y;
                 constraint x > y;
-                constraint x > y;
             }
             "#,
             ),
@@ -522,7 +521,7 @@ fn binary_ops() {
                   Stack(Push(0))
                   Stack(Push(1))
                   Access(PredicateData)
-                  Pred(Gt)
+                  Pred(Gte)
                 node 3
                   Stack(Push(0))
                   Stack(Push(0))
@@ -532,7 +531,7 @@ fn binary_ops() {
                   Stack(Push(0))
                   Stack(Push(1))
                   Access(PredicateData)
-                  Pred(Gte)
+                  Pred(Lt)
                 node 4
                   Stack(Push(0))
                   Stack(Push(0))
@@ -542,7 +541,7 @@ fn binary_ops() {
                   Stack(Push(0))
                   Stack(Push(1))
                   Access(PredicateData)
-                  Pred(Lt)
+                  Pred(Lte)
                 node 5
                   Stack(Push(0))
                   Stack(Push(0))
@@ -552,7 +551,7 @@ fn binary_ops() {
                   Stack(Push(0))
                   Stack(Push(1))
                   Access(PredicateData)
-                  Pred(Lte)
+                  Pred(Eq)
                 node 6
                   Stack(Push(0))
                   Stack(Push(0))
@@ -563,18 +562,8 @@ fn binary_ops() {
                   Stack(Push(1))
                   Access(PredicateData)
                   Pred(Eq)
-                node 7
-                  Stack(Push(0))
-                  Stack(Push(0))
-                  Stack(Push(1))
-                  Access(PredicateData)
-                  Stack(Push(1))
-                  Stack(Push(0))
-                  Stack(Push(1))
-                  Access(PredicateData)
-                  Pred(Eq)
                   Pred(Not)
-                node 8
+                node 7
                   Stack(Push(0))
                   Stack(Push(0))
                   Stack(Push(1))
@@ -589,7 +578,7 @@ fn binary_ops() {
                   Stack(Push(1))
                   Access(PredicateData)
                   Pred(Eq)
-                node 9
+                node 8
                   Stack(Push(0))
                   Stack(Push(0))
                   Stack(Push(1))
@@ -604,7 +593,7 @@ fn binary_ops() {
                   Stack(Push(1))
                   Access(PredicateData)
                   Pred(Eq)
-                node 10
+                node 9
                   Stack(Push(0))
                   Stack(Push(0))
                   Stack(Push(1))
@@ -619,7 +608,7 @@ fn binary_ops() {
                   Stack(Push(1))
                   Access(PredicateData)
                   Pred(Eq)
-                node 11
+                node 10
                   Stack(Push(0))
                   Stack(Push(0))
                   Stack(Push(1))
@@ -634,7 +623,7 @@ fn binary_ops() {
                   Stack(Push(1))
                   Access(PredicateData)
                   Pred(Eq)
-                node 12
+                node 11
                   Stack(Push(0))
                   Stack(Push(0))
                   Stack(Push(1))
