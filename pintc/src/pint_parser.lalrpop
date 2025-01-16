@@ -42,6 +42,15 @@ Decl: () = {
 
 // Decls allowed inside predicates.
 PredicateInnerDecl: () = {
+    <l:@L> ConstDecl ";" <r:@R> => {
+        let span = (context.span_from)(l, r);
+        handler.emit_err(Error::Parse {
+            error: ParseError::UnsupportedConstLocation {
+                span: span.clone(),
+            },
+        });
+    },
+
     ConstraintDecl ";",
     IfDecl,
     MatchDecl,

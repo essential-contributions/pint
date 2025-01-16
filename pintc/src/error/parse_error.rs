@@ -69,6 +69,8 @@ pub enum ParseError {
     TypeNotSupported { ty: String, span: Span },
     #[error("Unsupported literal")]
     LiteralNotSupported { kind: String, span: Span },
+    #[error("`consts` must be declared outside of a `predicate`")]
+    UnsupportedConstLocation { span: Span },
 }
 
 impl ReportableError for ParseError {
@@ -241,6 +243,11 @@ impl ReportableError for ParseError {
                 span: span.clone(),
                 color: Color::Red,
             }],
+            UnsupportedConstLocation { span, .. } => vec![ErrorLabel {
+                message: "unexpected `const`".to_string(),
+                span: span.clone(),
+                color: Color::Red,
+            }],
         }
     }
 
@@ -271,6 +278,9 @@ impl ReportableError for ParseError {
         use ParseError::*;
         match self {
             UnsupportedLeadingPlus { .. } => Some("try removing the `+`".to_string()),
+            UnsupportedConstLocation { .. } => {
+                Some("try declaring the const outside the body of the `predicate`".to_string())
+            }
             _ => None,
         }
     }
@@ -345,6 +355,7 @@ impl Spanned for ParseError {
             | MissingIntrinsic { span, .. }
             | TypeNotSupported { span, .. }
             | LiteralNotSupported { span, .. }
+            | UnsupportedConstLocation { span, .. }
             | Lex { span } => span,
 
             InvalidToken => unreachable!("The `InvalidToken` error is always wrapped in `Lex`."),
