@@ -9,6 +9,7 @@ predicate A(b: int) {
 }
 
 // parse_failure <<<
-// expected `::`, `an identifier`, `constraint`, `if`, `let`, `macro_name`, `match`, `use`, or `}`, found `const`
-// @69..74: expected `::`, `an identifier`, `constraint`, `if`, `let`, `macro_name`, `match`, `use`, or `}`
+// `consts` must be declared outside of a `predicate`
+// @69..82: unexpected `const`
+// try declaring the const outside the body of the `predicate`
 // >>>
