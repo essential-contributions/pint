@@ -52,6 +52,25 @@ pub fn fmt_compiled_predicate_with_indent(
             indent,
             if is_leaf { ",leaf" } else { "" }
         )?;
+
+        // Uncommenting this will print the nodes which depend on this node.  Can be quite useful
+        // for debugging, but I'm (Toby) not uncommenting it at this stage as it adds more noise to
+        // the tests.  It also is less readable -- a more useful version might be to pre-cache and
+        // then print which nodes this node depends on.  A reversal of the relationship.
+        //
+        //writeln!(
+        //    f,
+        //    "{}dependants {}",
+        //    indent,
+        //    compiled_predicate
+        //        .node_edges(idx)
+        //        .unwrap_or(&[])
+        //        .iter()
+        //        .map(|i| format!("{i}"))
+        //        .collect::<Vec<_>>()
+        //        .join(" ")
+        //)?;
+
         for op in ops {
             writeln!(f, "{}  {:?}", indent, op)?;
         }

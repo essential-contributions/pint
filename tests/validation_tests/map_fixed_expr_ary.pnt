@@ -1,0 +1,7 @@
+predicate test() {
+    let ary = [[5, 5], [4, 4], [3, 3], [2, 2], [1, 1]];
+
+    let dbls = map x in ary { x[0] + x[1] };
+
+    constraint dbls[3] == 4;
+}
