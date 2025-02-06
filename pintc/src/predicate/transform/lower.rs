@@ -671,6 +671,12 @@ pub(crate) fn lower_ins(handler: &Handler, contract: &mut Contract) -> Result<()
 /// constraint __size_of(x) == 0;
 /// constraint __size_of(y) != 0;
 ///
+/// Handle selects separately as follows:
+/// constraint ( c ? a : b ) == nil;
+///
+/// becomes
+///
+/// constraint c ? (__size_of(a) == 0) : (__size_of(b) == 0)
 pub(crate) fn lower_compares_to_nil(contract: &mut Contract) {
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         let compares_to_nil = contract
@@ -688,45 +694,105 @@ pub(crate) fn lower_compares_to_nil(contract: &mut Contract) {
 
         let convert_to_size_of_compare =
             |contract: &mut Contract, op: &BinaryOp, expr: &ExprKey, span: &crate::span::Span| {
-                let size_of = contract.exprs.insert(
-                    Expr::IntrinsicCall {
-                        kind: (
-                            IntrinsicKind::External(ExternalIntrinsic::SizeOf),
-                            empty_span(),
-                        ),
-                        args: vec![*expr],
-                        span: span.clone(),
-                    },
-                    Type::Primitive {
-                        kind: PrimitiveKind::Int,
-                        span: empty_span(),
-                    },
-                );
+                if let Expr::Select { condition, then_expr, else_expr, .. } = expr.get(contract).clone() {
+                    let zero = contract.exprs.insert_int(0);
 
-                let zero = contract.exprs.insert(
-                    Expr::Immediate {
-                        value: Immediate::Int(0),
-                        span: empty_span(),
-                    },
-                    Type::Primitive {
-                        kind: PrimitiveKind::Bool,
-                        span: empty_span(),
-                    },
-                );
+                    let size_of_then = contract.exprs.insert(
+                        Expr::IntrinsicCall {
+                            kind: (
+                                IntrinsicKind::External(ExternalIntrinsic::SizeOf),
+                                empty_span(),
+                            ),
+                            args: vec![then_expr],
+                            span: span.clone(),
+                        },
+                        types::r#int(),
+                    );
 
-                // New binary op: `__size_of(expr) == 0`
-                contract.exprs.insert(
-                    Expr::BinaryOp {
-                        op: *op,
-                        lhs: size_of,
-                        rhs: zero,
-                        span: span.clone(),
-                    },
-                    Type::Primitive {
-                        kind: PrimitiveKind::Bool,
-                        span: empty_span(),
-                    },
-                )
+                    let size_of_then_op_0 = contract.exprs.insert(
+                        Expr::BinaryOp {
+                            op: *op,
+                            lhs: size_of_then,
+                            rhs: zero,
+                            span: span.clone(),
+                        },
+                        types::r#bool(),
+                    );
+
+                    let size_of_else = contract.exprs.insert(
+                        Expr::IntrinsicCall {
+                            kind: (
+                                IntrinsicKind::External(ExternalIntrinsic::SizeOf),
+                                empty_span(),
+                            ),
+                            args: vec![else_expr],
+                            span: span.clone(),
+                        },
+                        types::r#int(),
+                    );
+
+                    let zero = contract.exprs.insert_int(0);
+
+                    let size_of_else_op_0 = contract.exprs.insert(
+                        Expr::BinaryOp {
+                            op: *op,
+                            lhs: size_of_else,
+                            rhs: zero,
+                            span: span.clone(),
+                        },
+                        types::r#bool(),
+                    );
+
+                    contract.exprs.insert(
+                        Expr::Select {
+                            condition: condition,
+                            then_expr:  size_of_then_op_0,
+                            else_expr: size_of_else_op_0,
+                            span: span.clone(),
+                        },
+                        types::r#bool(),
+                    )
+                } else {
+                    let size_of = contract.exprs.insert(
+                        Expr::IntrinsicCall {
+                            kind: (
+                                IntrinsicKind::External(ExternalIntrinsic::SizeOf),
+                                empty_span(),
+                            ),
+                            args: vec![*expr],
+                            span: span.clone(),
+                        },
+                        Type::Primitive {
+                            kind: PrimitiveKind::Int,
+                            span: empty_span(),
+                        },
+                    );
+
+                    let zero = contract.exprs.insert(
+                        Expr::Immediate {
+                            value: Immediate::Int(0),
+                            span: empty_span(),
+                        },
+                        Type::Primitive {
+                            kind: PrimitiveKind::Bool,
+                            span: empty_span(),
+                        },
+                    );
+
+                    // New binary op: `__size_of(expr) == 0`
+                    contract.exprs.insert(
+                        Expr::BinaryOp {
+                            op: *op,
+                            lhs: size_of,
+                            rhs: zero,
+                            span: span.clone(),
+                        },
+                        Type::Primitive {
+                            kind: PrimitiveKind::Bool,
+                            span: empty_span(),
+                        },
+                    )
+                }
             };
 
         for (old_bin_op, op, lhs, rhs, span) in compares_to_nil.iter() {

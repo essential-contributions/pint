@@ -31,7 +31,7 @@ impl super::Contract {
         replace_const_refs(&mut self);
 
         // Convert comparisons to `nil` into comparisons between __size_of(..) and 0.
-        lower_compares_to_nil(&mut self);
+        //lower_compares_to_nil(&mut self);
 
         // Unroll each generator into one large conjuction
         let _ = handler.scope(|handler| unroll_generators(handler, &mut self));
@@ -84,11 +84,13 @@ impl super::Contract {
         lower_union_variant_paths(&mut self);
 
         // Insert OOB checks for storage vector accesses
-        let _ = legalize_vector_accesses(handler, &mut self);
+        // let _ = legalize_vector_accesses(handler, &mut self);
 
-        // Lower all storage accesses to __storage_get and __storage_get_extern intrinsics. Also
-        // add constraints on mutable keys
+        // Lower all storage accesses to storage intrinsics (`__pre_state`, `__pre_state_extern`,
+        // `_post_state`, and `__post_state_extern`). Also add constraints on mutable keys
         let _ = lower_storage_accesses(handler, &mut self);
+
+        lower_compares_to_nil(&mut self);
 
         // Ensure that the final contract is indeed final
         if !handler.has_errors() {

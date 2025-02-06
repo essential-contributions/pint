@@ -390,10 +390,11 @@ impl<'a> AsmBuilder<'a> {
             | Expr::In { .. }
             | Expr::Range { .. }
             | Expr::Generator { .. }
-            | Expr::Match { .. } => Err(handler.emit_internal_err(
+            | Expr::Match { .. } => {
+                Err(handler.emit_internal_err(
                 "These expressions should have been lowered by now",
                 empty_span(),
-            )),
+            ))},
         }
     }
 
@@ -790,6 +791,8 @@ impl<'a> AsmBuilder<'a> {
                 }
 
                 match kind {
+                    ExternalIntrinsic::PanicIf => asm.push(PNCIF),
+
                     ExternalIntrinsic::RecoverSECP256k1 => asm.push(RSECP),
 
                     ExternalIntrinsic::Sha256 => asm.extend([PUSH(3), SHL, SHA2]),

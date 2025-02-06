@@ -39,7 +39,7 @@ pub(crate) fn legalize_vector_accesses_in_predicate(
         span: empty_span(),
     };
 
-    // Collect all variable variables that are initialized to index expressions to storage vector
+    // Collect all variables that are initialized to index expressions to storage vector
     let variable_vector_accesses = contract
         .preds
         .get(pred_key)

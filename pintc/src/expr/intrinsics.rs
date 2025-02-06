@@ -49,6 +49,9 @@ pub enum ExternalIntrinsic {
     // Returns the address of a predicate in the same contract
     AddressOf,
 
+    // Panics if supplied condition is `true`
+    PanicIf,
+
     // Recovers the public key from a secp256k1 signature.
     RecoverSECP256k1,
 
@@ -75,6 +78,7 @@ impl Display for ExternalIntrinsic {
     fn fmt(&self, f: &mut Formatter) -> Result {
         match self {
             Self::AddressOf => write!(f, "__address_of"),
+            Self::PanicIf => write!(f, "__panic_if"),
             Self::RecoverSECP256k1 => write!(f, "__recover_secp256k1"),
             Self::Sha256 => write!(f, "__sha256"),
             Self::SizeOf => write!(f, "__size_of"),
@@ -91,6 +95,9 @@ impl ExternalIntrinsic {
         match self {
             Self::AddressOf => vec![
                 string(), // path to a predicate in the contract
+            ],
+            Self::PanicIf => vec![
+                r#bool(), // path to a predicate in the contract
             ],
             Self::RecoverSECP256k1 => vec![
                 b256(),                             // data hash
@@ -116,6 +123,7 @@ impl ExternalIntrinsic {
     pub fn ty(&self) -> Type {
         match self {
             Self::AddressOf => b256(),
+            Self::PanicIf => any(),
             Self::RecoverSECP256k1 => tuple(vec![b256(), int()]),
             Self::Sha256 => b256(),
             Self::SizeOf => int(),
