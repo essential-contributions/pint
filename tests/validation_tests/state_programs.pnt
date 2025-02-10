@@ -13,30 +13,26 @@ storage {
     a: int[3],
 }
 
-macro @unwrap_or_1($a, $b) {
-    $a == nil ? $b : $a
-}
-
-macro @unwrap_or_2($a, $b) {
-    __size_of($a) == 0 ? $b : $a
+macro @unwrap_or($a, $b) {
+    $a == nil ? $b : $a!
 }
 
 predicate Simple(p: int, q: { int, b256[2] }) {
     constraint p == 69;
     
-    let e1 = p / (- mut storage::x * mut storage::y + mut storage::t.0 + mut storage::a[0]);
+    let e1 = p / (- mut storage::x! * mut storage::y! + mut storage::t.0! + mut storage::a[0]!);
     constraint e1 == p / (-1 * 2 + 3 + 5);
     constraint e1' == p / (-11 * 12 + 13 + 15);
 
-    let e2 = @unwrap_or_1(mut storage::t.1; 69) * @unwrap_or_2(mut storage::a[1]; 70);
+    let e2 = @unwrap_or(mut storage::t.1; 69) * @unwrap_or(mut storage::a[1]; 70);
 
     // t.1 is nil then becomes non-nil
     // a[1] is non-nil then becomes nil
     constraint e2 == 69 * 6; 
     constraint e2' == 14 * 70; 
 
-    constraint @unwrap_or_1(mut storage::t.1; 69) * @unwrap_or_2(mut storage::a[1]; 70) == 69 * 6;
-    constraint @unwrap_or_1(mut storage::t.1'; 69) * @unwrap_or_2(mut storage::a[1]'; 70) == 14 * 70;
+    constraint @unwrap_or(mut storage::t.1; 69) * @unwrap_or(mut storage::a[1]; 70) == 69 * 6;
+    constraint @unwrap_or(mut storage::t.1'; 69) * @unwrap_or(mut storage::a[1]'; 70) == 14 * 70;
 
     let e3 = (true as int + 3) in -5..(3*3 + p); // no storage accesses
     constraint e3;

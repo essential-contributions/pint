@@ -12,14 +12,14 @@ predicate Test() {
 
     // `x` here is set in the pre let db.  Selecting it should still work.
 
-    constraint true ? x == 42 : true;
-    constraint x == nil ? true : x == 42;
+    constraint true ? x! == 42 : true;
+    constraint x == nil ? true : x! == 42;
 
     let y = storage::y;
 
     // `y` here is `nil` because it's not set in the pre let db, so comparing it to 42 should panic.
     // However, the constraint should still pass due to the short-circuit.
 
-    constraint y == nil ? true : y == 42;
-    constraint false ? y != 42 : true;
+    constraint y == nil ? true : y! == 42;
+    constraint false ? y! != 42 : true;
 }

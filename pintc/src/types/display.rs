@@ -72,6 +72,10 @@ impl DisplayWithContract for super::Type {
                 write!(f, "{name} ({})", contract.with_ctrct(ty.as_ref()))
             }
 
+            super::Type::Optional { ty, .. } => {
+                write!(f, "?{}", contract.with_ctrct(ty.as_ref()),)
+            }
+
             super::Type::Map { ty_from, ty_to, .. } => {
                 write!(
                     f,

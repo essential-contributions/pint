@@ -45,5 +45,5 @@ predicate Test(
 
     // `x` here is `nil` because it's not set in the pre let db, so comparing it to 42 should panic.
     // However, the constraint should still pass due to the short-circuit
-    constraint true || (x == 42);
+    constraint true || (x! == 42);
 }

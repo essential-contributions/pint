@@ -33,6 +33,10 @@ pub enum Expr {
         value: Option<ExprKey>,
         span: Span,
     },
+    Optional {
+        value: Option<ExprKey>,
+        span: Span,
+    },
     Path(String, Span),
     LocalStorageAccess {
         name: String,
@@ -182,7 +186,6 @@ pub struct MatchElse {
 #[derive(Clone, Debug, PartialEq)]
 pub enum Immediate {
     Error,
-    Nil,
     Real(f64),
     Int(i64),
     Bool(bool),
@@ -195,6 +198,10 @@ pub enum Immediate {
         value_size: usize,
         value: Option<Box<Immediate>>,
         decl: UnionKey,
+    },
+    Optional {
+        value: Option<Box<Immediate>>,
+        value_size: usize,
     },
 }
 
@@ -230,9 +237,19 @@ impl Immediate {
 
             Immediate::UnionVariant { decl, .. } => Type::Union { decl: *decl, span },
 
+            Immediate::Optional { value, .. } => {
+                if let Some(value) = value {
+                    Type::Optional {
+                        ty: Box::new(value.get_ty(opt_span)),
+                        span,
+                    }
+                } else {
+                    Type::Unknown(span)
+                }
+            }
+
             _ => Type::Primitive {
                 kind: match self {
-                    Immediate::Nil => PrimitiveKind::Nil,
                     Immediate::Real(_) => PrimitiveKind::Real,
                     Immediate::Int(_) => PrimitiveKind::Int,
                     Immediate::Bool(_) => PrimitiveKind::Bool,
@@ -242,6 +259,7 @@ impl Immediate {
                     Immediate::Error
                     | Immediate::Array { .. }
                     | Immediate::Tuple(_)
+                    | Immediate::Optional { .. }
                     | Immediate::UnionVariant { .. } => {
                         unreachable!()
                     }
@@ -258,6 +276,7 @@ pub enum UnaryOp {
     Neg,
     Not,
     NextState,
+    Unwrap,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -316,6 +335,7 @@ impl Spanned for Expr {
             | Expr::Array { span, .. }
             | Expr::Tuple { span, .. }
             | Expr::UnionVariant { span, .. }
+            | Expr::Optional { span, .. }
             | Expr::Path(_, span)
             | Expr::LocalStorageAccess { span, .. }
             | Expr::ExternalStorageAccess { span, .. }
@@ -341,16 +361,6 @@ impl Spanned for Expr {
 }
 
 impl Expr {
-    pub fn is_nil(&self) -> bool {
-        matches!(
-            self,
-            Expr::Immediate {
-                value: Immediate::Nil,
-                ..
-            }
-        )
-    }
-
     pub fn is_immediate(&self) -> bool {
         matches!(self, Expr::Immediate { .. })
     }
@@ -394,6 +404,11 @@ impl Expr {
                 Expr::LocalStorageAccess { .. } | Expr::ExternalStorageAccess { .. } => true,
                 Expr::TupleFieldAccess { tuple, .. } => tuple.is_storage_access(contract),
                 Expr::Index { expr, .. } => expr.is_storage_access(contract),
+                Expr::UnaryOp {
+                    op: UnaryOp::NextState,
+                    expr,
+                    ..
+                } => expr.is_storage_access(contract),
                 _ => false,
             }
     }
@@ -449,6 +464,15 @@ impl Expr {
                     ..
                 },
             ) => union_variant_eq(contract, lhs_path, lhs_value, rhs_path, rhs_value),
+
+            (
+                Expr::Optional {
+                    value: lhs_value, ..
+                },
+                Expr::Optional {
+                    value: rhs_value, ..
+                },
+            ) => optional_eq(contract, lhs_value, rhs_value),
 
             (Expr::Path(lhs_path, ..), Expr::Path(rhs_path, ..)) => path_eq(lhs_path, rhs_path),
 
@@ -776,6 +800,7 @@ impl Expr {
             | (Expr::Array { .. }, _)
             | (Expr::Tuple { .. }, _)
             | (Expr::UnionVariant { .. }, _)
+            | (Expr::Optional { .. }, _)
             | (Expr::Path(..), _)
             | (Expr::LocalStorageAccess { .. }, _)
             | (Expr::ExternalStorageAccess { .. }, _)
@@ -812,6 +837,11 @@ impl Expr {
             }
             Expr::Tuple { fields, .. } => fields.iter_mut().for_each(|(_, expr)| replace(expr)),
             Expr::UnionVariant { value, .. } => {
+                if let Some(value) = value {
+                    replace(value)
+                }
+            }
+            Expr::Optional { value, .. } => {
                 if let Some(value) = value {
                     replace(value)
                 }
@@ -982,6 +1012,22 @@ pub fn union_variant_eq(
 
             _ => false,
         }
+}
+
+pub fn optional_eq(
+    contract: &Contract,
+    lhs_value: &Option<ExprKey>,
+    rhs_value: &Option<ExprKey>,
+) -> bool {
+    match (lhs_value, rhs_value) {
+        (Some(lhs_value), Some(rhs_value)) => lhs_value
+            .get(contract)
+            .eq(contract, rhs_value.get(contract)),
+
+        (None, None) => true,
+
+        _ => false,
+    }
 }
 
 pub fn path_eq(lhs_path: &String, rhs_path: &String) -> bool {

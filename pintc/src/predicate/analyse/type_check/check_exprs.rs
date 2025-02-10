@@ -60,6 +60,16 @@ impl Contract {
                         queue.pop();
                     }
 
+                    // Successfully inferred its type along with the types of some other other
+                    // expressions. Save the inferred types and pop the queue.
+                    Ok(Inference::Types { ty, others }) => {
+                        next_key.set_ty(ty, self);
+                        for (other_expr, other_ty) in others {
+                            other_expr.set_ty(other_ty, self);
+                        }
+                        queue.pop();
+                    }
+
                     // Some dependencies need to be inferred before we can get back to this
                     // expr.  When pushing dependencies we need to check if they're already
                     // queued, in which case we have a recursive dependency and an error.
@@ -144,6 +154,8 @@ impl Contract {
                 value,
                 span,
             } => Ok(self.infer_union_expr(handler, path, path_span, *value, span)),
+
+            Expr::Optional { value, span } => Ok(self.infer_optional_expr(*value, span)),
 
             Expr::Path(path, span) => Ok(self.infer_path_by_name(handler, pred, path, span)),
 
@@ -310,7 +322,10 @@ impl Contract {
     ) -> Inference {
         match self.storage.as_ref() {
             Some(storage) => match storage.0.iter().find(|s_var| s_var.name.name == *name) {
-                Some(s_var) => Inference::Type(s_var.ty.clone()),
+                Some(s_var) => Inference::Type(Type::Optional {
+                    ty: Box::new(s_var.ty.clone()),
+                    span: empty_span(),
+                }),
                 None => {
                     handler.emit_err(Error::Compile {
                         error: CompileError::StorageSymbolNotFound {
@@ -362,7 +377,10 @@ impl Contract {
             // Then, look for the storage variable that this access refers to
             match interface.storage.as_ref() {
                 Some(storage) => match storage.0.iter().find(|s_var| s_var.name.name == *name) {
-                    Some(s_var) => Inference::Type(s_var.ty.clone()),
+                    Some(s_var) => Inference::Type(Type::Optional {
+                        ty: Box::new(s_var.ty.clone()),
+                        span: empty_span(),
+                    }),
                     None => {
                         handler.emit_err(Error::Compile {
                             error: CompileError::StorageSymbolNotFound {
@@ -512,6 +530,33 @@ impl Contract {
                     Inference::Dependant(rhs_expr_key)
                 }
             }
+
+            UnaryOp::Unwrap => {
+                let ty = rhs_expr_key.get_ty(self);
+                if !ty.is_unknown() {
+                    if let Type::Optional { ty, .. } = ty {
+                        Inference::Type(*ty.clone())
+                    } else {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::OperatorTypeError {
+                                arity: "unary",
+                                large_err: Box::new(LargeTypeError::OperatorTypeError {
+                                    op: "!",
+                                    expected_ty: "optional".to_string(),
+                                    found_ty: self.with_ctrct(ty).to_string(),
+                                    span: span.clone(),
+                                    expected_span: Some(span.clone()),
+                                }),
+                            },
+                        });
+
+                        // Recover with `ty` itself even though we know this is wrong
+                        Inference::Type(ty.clone())
+                    }
+                } else {
+                    Inference::Dependant(rhs_expr_key)
+                }
+            }
         }
     }
 
@@ -594,8 +639,10 @@ impl Contract {
                                         arity: "binary",
                                         large_err: Box::new(LargeTypeError::OperatorTypeError {
                                             op: op.as_str(),
-                                            expected_ty: self.with_ctrct(lhs_ty).to_string(),
-                                            found_ty: self.with_ctrct(rhs_ty).to_string(),
+                                            expected_ty: self
+                                                .with_ctrct(lhs_ty.clone())
+                                                .to_string(),
+                                            found_ty: self.with_ctrct(rhs_ty.clone()).to_string(),
                                             span: self.expr_key_to_span(rhs_expr_key),
                                             expected_span: Some(
                                                 self.expr_key_to_span(lhs_expr_key),
@@ -606,10 +653,35 @@ impl Contract {
                             }
                         }
 
-                        Inference::Type(Type::Primitive {
-                            kind: PrimitiveKind::Bool,
-                            span: span.clone(),
-                        })
+                        // TODO: implement type coercion in other places too
+                        if lhs_ty.is_any() && !rhs_ty.is_any() {
+                            // Type coercion
+                            Inference::Types {
+                                // Type of the binary operation
+                                ty: Type::Primitive {
+                                    kind: PrimitiveKind::Bool,
+                                    span: span.clone(),
+                                },
+                                // Type of the `lhs`
+                                others: vec![(lhs_expr_key, rhs_ty.clone())],
+                            }
+                        } else if !lhs_ty.is_any() && rhs_ty.is_any() {
+                            // Type coercion
+                            Inference::Types {
+                                // Type of the binary operation
+                                ty: Type::Primitive {
+                                    kind: PrimitiveKind::Bool,
+                                    span: span.clone(),
+                                },
+                                // Type of the `rhs`
+                                others: vec![(rhs_expr_key, lhs_ty.clone())],
+                            }
+                        } else {
+                            Inference::Type(Type::Primitive {
+                                kind: PrimitiveKind::Bool,
+                                span: span.clone(),
+                            })
+                        }
                     }
 
                     BinaryOp::LessThanOrEqual
@@ -1388,10 +1460,24 @@ impl Contract {
             return Inference::Dependant(index_expr_key);
         }
 
-        let ary_ty = array_expr_key.get_ty(self);
-        if ary_ty.is_unknown() {
+        let ty = array_expr_key.get_ty(self);
+        if ty.is_unknown() {
             return Inference::Dependant(array_expr_key);
         }
+
+        let is_storage_access = array_expr_key.is_storage_access(self);
+
+        let ary_ty = if is_storage_access {
+            if let Some(ary_ty) = ty.get_optional_ty() {
+                ary_ty
+            } else {
+                handler
+                    .emit_internal_err("storage accesses must be of type optional", span.clone());
+                return Inference::Type(Type::Error(span.clone()));
+            }
+        } else {
+            ty
+        };
 
         if let Some(range_expr_key) = ary_ty.get_array_range_expr() {
             // Is this an array?
@@ -1412,7 +1498,15 @@ impl Contract {
                 });
             }
             if let Some(el_ty) = ary_ty.get_array_el_type() {
-                Inference::Type(el_ty.clone())
+                if is_storage_access {
+                    // Is it an array with an unknown range (probably a const immediate)?
+                    Inference::Type(Type::Optional {
+                        ty: Box::new(el_ty.clone()),
+                        span: el_ty.span().clone(),
+                    })
+                } else {
+                    Inference::Type(el_ty.clone())
+                }
             } else {
                 handler.emit_internal_err(
                     "failed to get array element type in infer_index_expr()",
@@ -1422,8 +1516,15 @@ impl Contract {
                 Inference::Type(Type::Error(span.clone()))
             }
         } else if let Some(el_ty) = ary_ty.get_array_el_type() {
-            // Is it an array with an unknown range (probably a const immediate)?
-            Inference::Type(el_ty.clone())
+            if is_storage_access {
+                // Is it an array with an unknown range (probably a const immediate)?
+                Inference::Type(Type::Optional {
+                    ty: Box::new(el_ty.clone()),
+                    span: el_ty.span().clone(),
+                })
+            } else {
+                Inference::Type(el_ty.clone())
+            }
         } else if let Some(from_ty) = ary_ty.get_map_ty_from() {
             // Is this a storage map?
             if !from_ty.eq(self, index_ty) {
@@ -1437,7 +1538,10 @@ impl Contract {
 
                 Inference::Type(Type::Error(span.clone()))
             } else if let Some(to_ty) = ary_ty.get_map_ty_to() {
-                Inference::Type(to_ty.clone())
+                Inference::Type(Type::Optional {
+                    ty: Box::new(to_ty.clone()),
+                    span: to_ty.span().clone(),
+                })
             } else {
                 handler.emit_internal_err(
                     "failed to get array element type in infer_index_expr()",
@@ -1500,8 +1604,23 @@ impl Contract {
         field: &TupleAccess,
         span: &Span,
     ) -> Inference {
-        let tuple_ty = tuple_expr_key.get_ty(self);
-        if !tuple_ty.is_unknown() {
+        let ty = tuple_expr_key.get_ty(self);
+        if !ty.is_unknown() {
+            let is_storage_access = tuple_expr_key.is_storage_access(self);
+            let tuple_ty = if is_storage_access {
+                if let Some(tuple_ty) = ty.get_optional_ty() {
+                    tuple_ty
+                } else {
+                    handler.emit_internal_err(
+                        "storage accesses must be of type optional",
+                        span.clone(),
+                    );
+                    return Inference::Type(Type::Error(span.clone()));
+                }
+            } else {
+                ty
+            };
+
             if tuple_ty.is_tuple() {
                 match field {
                     TupleAccess::Error => {
@@ -1514,7 +1633,15 @@ impl Contract {
 
                     TupleAccess::Index(idx) => {
                         if let Some(field_ty) = tuple_ty.get_tuple_field_type_by_idx(*idx) {
-                            Inference::Type(field_ty.clone())
+                            if is_storage_access {
+                                // Tuple field accesses on a storage access return an optional
+                                Inference::Type(Type::Optional {
+                                    ty: Box::new(field_ty.clone()),
+                                    span: field_ty.span().clone(),
+                                })
+                            } else {
+                                Inference::Type(field_ty.clone())
+                            }
                         } else {
                             handler.emit_err(Error::Compile {
                                 error: CompileError::InvalidTupleAccessor {
@@ -1530,7 +1657,15 @@ impl Contract {
 
                     TupleAccess::Name(name) => {
                         if let Some(field_ty) = tuple_ty.get_tuple_field_type_by_name(name) {
-                            Inference::Type(field_ty.clone())
+                            if is_storage_access {
+                                // Tuple field accesses on a storage access return an optional
+                                Inference::Type(Type::Optional {
+                                    ty: Box::new(field_ty.clone()),
+                                    span: field_ty.span().clone(),
+                                })
+                            } else {
+                                Inference::Type(field_ty.clone())
+                            }
                         } else {
                             handler.emit_err(Error::Compile {
                                 error: CompileError::InvalidTupleAccessor {
@@ -1702,6 +1837,25 @@ impl Contract {
             });
 
             Inference::Type(Type::Error(span.clone()))
+        }
+    }
+
+    fn infer_optional_expr(&self, value: Option<ExprKey>, span: &Span) -> Inference {
+        if let Some(value) = value {
+            let value_ty = value.get_ty(self);
+            if value_ty.is_unknown() {
+                Inference::Dependant(value)
+            } else {
+                Inference::Type(Type::Optional {
+                    ty: Box::new(value_ty.clone()),
+                    span: span.clone(),
+                })
+            }
+        } else {
+            // If this optional is a `nil`, then we can't figure out the type without the context.
+            // Set the type to `Any` and hope that we can better infer it later. If not, emit an
+            // type inference error.
+            Inference::Type(Type::Any(span.clone()))
         }
     }
 

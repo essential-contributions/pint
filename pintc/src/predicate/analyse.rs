@@ -13,6 +13,10 @@ use crate::{
 enum Inference {
     Ignored,
     Type(Type),
+    Types {
+        ty: Type,
+        others: Vec<(ExprKey, Type)>,
+    },
     Dependant(ExprKey),
     Dependencies(Vec<ExprKey>),
     BoundDependencies {
@@ -117,8 +121,7 @@ impl Contract {
                 if !evaluator.contains_path(&path.name) {
                     if let Expr::Immediate { value, .. } = expr {
                         evaluator.insert_value(path.name.clone(), value.clone());
-                    } else if let Ok(imm) = evaluator.evaluate_key(&cnst.expr, &eval_handler, self)
-                    {
+                    } else if let Ok(imm) = evaluator.evaluate(cnst.expr, &eval_handler, self) {
                         evaluator.insert_value(path.name.clone(), imm);
 
                         // Take note of this const as we need to update the const declaration
@@ -206,6 +209,7 @@ impl Contract {
                         }
 
                         Inference::Ignored
+                        | Inference::Types { .. } // todo: should probably handle this? 
                         | Inference::Dependant(_)
                         | Inference::Dependencies(_)
                         | Inference::BoundDependencies { .. } => {

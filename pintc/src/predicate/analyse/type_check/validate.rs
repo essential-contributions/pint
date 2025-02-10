@@ -25,6 +25,7 @@ impl Contract {
                     });
                 }
                 Type::Alias { ty, .. } => check_custom_type(ty, handler),
+                Type::Optional { ty, .. } => check_custom_type(ty, handler),
                 Type::Map { ty_from, ty_to, .. } => {
                     check_custom_type(ty_from, handler);
                     check_custom_type(ty_to, handler);

@@ -45,9 +45,7 @@ PredicateInnerDecl: () = {
     <l:@L> ConstDecl ";" <r:@R> => {
         let span = (context.span_from)(l, r);
         handler.emit_err(Error::Parse {
-            error: ParseError::UnsupportedConstLocation {
-                span: span.clone(),
-            },
+            error: ParseError::UnsupportedConstLocation { span: span.clone() },
         });
     },
 
@@ -454,6 +452,7 @@ Type: Type = {
     <ArrayType>,
     <VectorType>,
     <TypeAtom>,
+    <OptionalType>,
 }
 
 TypeAtom: Type = {
@@ -522,6 +521,15 @@ TupleFields: Vec<(Option<Ident>, Type)> = {
 
 TupleField: (Option<Ident>, Type) = {
     <id:(<Ident> ":")?> <ty:Type> => (id, ty),
+}
+
+OptionalType: Type = {
+    <l:@L> "?" <ty: Type> <r:@R> => {
+        Type::Optional {
+            ty: Box::new(ty),
+            span: (context.span_from)(l, r),
+        }
+    }
 }
 
 /////////////////////
@@ -779,6 +787,17 @@ PostfixOp: ExprKey = {
             Type::Unknown(span),
         )
     },
+    <l:@L> <expr:PostfixOp> "!" <r:@R> => {
+        let span = (context.span_from)(l, r);
+        context.contract.exprs.insert(
+            Expr::UnaryOp {
+                op: UnaryOp::Unwrap,
+                expr,
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        )
+    },
     <Term>,
 }
 
@@ -814,6 +833,7 @@ TermInner: Expr = {
     PredicateCallExpr,
     ArrayExpr,
     TupleExpr,
+    OptionalExpr,
     UnionExpr,
     <l:@L> <path:Path> <r:@R> => Expr::Path(path, (context.span_from)(l, r)),
     <StoragePath>,
@@ -1119,6 +1139,21 @@ UnionExpr: Expr = {
     }
 }
 
+OptionalExpr: Expr = {
+    <l:@L> "nil" <m:@R> <r:@R> => {
+        Expr::Optional {
+            value: None,
+            span: (context.span_from)(l, r),
+        }
+    },
+    <l:@L> "val" "(" <expr:Expr> ")" <m:@R> <r:@R> => {
+        Expr::Optional {
+            value: Some(expr),
+            span: (context.span_from)(l, r),
+        }
+    }
+}
+
 Range: ExprKey = {
     <l:@L> <lb:Additive> ".." <ub:Additive> <r:@R> => {
         let span = (context.span_from)(l, r);
@@ -1184,7 +1219,6 @@ Immediate: Immediate = {
     <s:"real_lit"> => Immediate::Real(s.replace('_', "").parse().unwrap()),
     "true" => Immediate::Bool(true),
     "false" => Immediate::Bool(false),
-    "nil" => Immediate::Nil,
 };
 
 Ident: Ident = {
@@ -1319,6 +1353,7 @@ extern {
         "true" => lexer::Token::True,
         "false" => lexer::Token::False,
         "nil" => lexer::Token::Nil,
+        "val" => lexer::Token::Val,
 
         "if" => lexer::Token::If,
         "else" => lexer::Token::Else,

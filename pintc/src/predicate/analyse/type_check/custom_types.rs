@@ -55,6 +55,7 @@ impl Contract {
                 Type::Array { ty, .. } => {
                     modified = replace_alias_target(alias_map, ty);
                 }
+
                 Type::Tuple { fields, .. } => {
                     // We need a .try_any() here.
                     modified = fields.iter_mut().fold(false, |acc, (_, ty)| {
@@ -65,10 +66,16 @@ impl Contract {
                         }
                     });
                 }
+
+                Type::Optional { ty, .. } => {
+                    modified = replace_alias_target(alias_map, ty);
+                }
+
                 Type::Map { ty_from, ty_to, .. } => {
                     modified = replace_alias_target(alias_map, ty_from)
                         || replace_alias_target(alias_map, ty_to);
                 }
+
                 Type::Vector { ty, .. } => {
                     modified = replace_alias_target(alias_map, ty);
                 }
@@ -153,6 +160,8 @@ impl Contract {
 
                     Ok(())
                 }
+
+                Type::Optional { ty, .. } => inspect_type_names(handler, contract, seen_names, ty),
 
                 Type::Custom {
                     name: custom_name,
@@ -249,6 +258,8 @@ impl Contract {
                 Type::Tuple { fields, .. } => fields
                     .iter_mut()
                     .for_each(|(_, ty)| replace_custom_type(new_types, union_keys, ty)),
+
+                Type::Optional { ty, .. } => replace_custom_type(new_types, union_keys, ty),
 
                 Type::Alias { ty, .. } => replace_custom_type(new_types, union_keys, ty),
 
