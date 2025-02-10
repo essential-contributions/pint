@@ -167,7 +167,7 @@ fn unroll_generator(
 
             // Check each condition, if available, against the values map above
             for condition in &conditions {
-                match evaluator.evaluate_key(condition, handler, contract)? {
+                match evaluator.evaluate_key(condition, handler, contract, false)? {
                     Immediate::Bool(false) => {
                         satisfied = false;
                         break;

@@ -57,7 +57,8 @@ pub(crate) fn fold_consts(contract: &mut Contract) -> bool {
                 continue;
             }
 
-            if let Ok(imm) = evaluator.evaluate_key(&expr_key, &Handler::default(), contract) {
+            if let Ok(imm) = evaluator.evaluate_key(&expr_key, &Handler::default(), contract, false)
+            {
                 let simplified_expr = Expr::Immediate {
                     value: imm.clone(),
                     span: expr_key.get(contract).span().clone(),
