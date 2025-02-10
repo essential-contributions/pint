@@ -120,23 +120,25 @@ where
             .collect::<Vec<(String, String)>>();
 
         let warning_file: &str = &format!("{}", self.span().context().display());
-        let mut report_builder =
-            Report::build(ReportKind::Warning, warning_file, self.span().start())
-                .with_message(format!("{}", self.bold()))
-                .with_labels(
-                    self.labels()
-                        .iter()
-                        .enumerate()
-                        .map(|(index, label)| {
-                            let filepath: &str = &filepaths_and_sources[index].0;
-                            let mut style = Style::new().bold();
-                            style.foreground = Some(label.color);
-                            Label::new((filepath, label.span.start()..label.span.end()))
-                                .with_message(label.message.clone().paint(style))
-                                .with_color(label.color)
-                        })
-                        .collect::<Vec<_>>(),
-                );
+        let mut report_builder = Report::build(
+            ReportKind::Warning,
+            (warning_file, self.span().range.clone()),
+        )
+        .with_message(format!("{}", self.bold()))
+        .with_labels(
+            self.labels()
+                .iter()
+                .enumerate()
+                .map(|(index, label)| {
+                    let filepath: &str = &filepaths_and_sources[index].0;
+                    let mut style = Style::new().bold();
+                    style.foreground = Some(label.color);
+                    Label::new((filepath, label.span.start()..label.span.end()))
+                        .with_message(label.message.clone().paint(style))
+                        .with_color(label.color)
+                })
+                .collect::<Vec<_>>(),
+        );
 
         if let Some(code) = self.code() {
             report_builder = report_builder.with_code(code);

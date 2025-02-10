@@ -60,7 +60,7 @@ impl<'a> chumsky::Error<Token<'a>> for ParseError {
 /// Print a list of `FormatterError`s using the `ariadne` library
 pub(super) fn print_on_failure(filename: &str, source: &str, errs: &Vec<FormatterError>) -> usize {
     let pretty_print_error = |span: &Span, err: &FormatterError| {
-        Report::build(ReportKind::Error, filename, span.start())
+        Report::build(ReportKind::Error, (filename, span.clone()))
             .with_label(
                 Label::new((filename, span.start()..span.end()))
                     .with_message(format!("{err}").red().bold())
