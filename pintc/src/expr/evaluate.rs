@@ -525,10 +525,13 @@ impl Evaluator {
                 }
             }
 
+            Expr::ExternalStorageAccess { span, .. }
+            | Expr::LocalStorageAccess { span, .. }
+            | Expr::MacroCall { span, .. } => Err(handler.emit_err(Error::Compile {
+                error: CompileError::InvalidConst { span: span.clone() },
+            })),
+
             Expr::Error(_)
-            | Expr::LocalStorageAccess { .. }
-            | Expr::ExternalStorageAccess { .. }
-            | Expr::MacroCall { .. }
             | Expr::IntrinsicCall { .. }
             | Expr::LocalPredicateCall { .. }
             | Expr::ExternalPredicateCall { .. }

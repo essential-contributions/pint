@@ -96,5 +96,6 @@ predicate Test(
 // >>>
 
 // typecheck_failure <<<
-// compiler internal error: unexpected expression during compile-time evaluation
+// invalid constant
+// @316..326: expression must evaluate to a const
 // >>>

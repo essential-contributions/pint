@@ -383,6 +383,8 @@ pub enum CompileError {
     },
     #[error("invalid map range type")]
     InvalidMapRangeType { found_ty: String, span: Span },
+    #[error("invalid constant")]
+    InvalidConst { span: Span },
 }
 
 // This is here purely at the suggestion of Clippy, who pointed out that these error variants are
@@ -1274,6 +1276,12 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
+            InvalidConst { span } => vec![ErrorLabel {
+                message: format!("expression must evaluate to a const"),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
             FileIO { .. } => Vec::new(),
         }
     }
@@ -1468,7 +1476,8 @@ impl ReportableError for CompileError {
             | MissingUnionExprValue { .. }
             | UnionVariantTypeMismatch { .. }
             | VarsDependencyCycle { .. }
-            | InvalidMapRangeType { .. } => None,
+            | InvalidMapRangeType { .. }
+            | InvalidConst { .. } => None,
         }
     }
 
@@ -1694,7 +1703,8 @@ impl Spanned for CompileError {
             | OperatorInvalidType { span, .. }
             | InvalidStorageAccess { span, .. }
             | IdenticalPredicates { span, .. }
-            | InvalidMapRangeType { span, .. } => span,
+            | InvalidMapRangeType { span, .. }
+            | InvalidConst { span, .. } => span,
 
             DependencyCycle { spans } => &spans[0],
             VarsDependencyCycle { spans } => &spans[0],
