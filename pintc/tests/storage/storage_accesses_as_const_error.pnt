@@ -19,6 +19,8 @@ union G = A(int) | B(int[storage::t.0]);
 
 const C = storage::t.1;
 
+const D = Foo@[0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE]::storage::a;
+
 predicate Test(
     x: b256,
     addr: b256,
@@ -52,6 +54,7 @@ predicate Test(
 
 // parsed <<<
 // const ::C = storage::t.1;
+// const ::D = ::Foo@[0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE]::storage::a;
 // union ::G = A(int) | B(int[storage::t.0]);
 // type ::MyType = {int, int[storage::t.0]};
 // storage {
@@ -98,4 +101,6 @@ predicate Test(
 // typecheck_failure <<<
 // invalid constant
 // @316..326: expression must evaluate to a const
+// invalid constant
+// @341..425: expression must evaluate to a const
 // >>>
