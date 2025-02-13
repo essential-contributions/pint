@@ -377,7 +377,7 @@ impl Type {
                 }))
             }
         } else {
-            match Evaluator::new(contract).evaluate(range_expr, handler, contract, false) {
+            match Evaluator::new(contract).evaluate(range_expr, handler, contract) {
                 Ok(Immediate::Int(size)) if size > 0 => Ok(size),
                 Ok(_) => Err(handler.emit_err(Error::Compile {
                     error: CompileError::InvalidConstArrayLength {

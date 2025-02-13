@@ -75,12 +75,9 @@ pub(crate) fn dead_constraint_elimination(handler: &Handler, contract: &mut Cont
                     // then we don't care about the constraint.
                     //
                     // We also don't care about the errors emitted by the evaluator
-                    if let Ok(Immediate::Bool(b)) = evaluator.evaluate_key(
-                        &constraint.expr,
-                        &Handler::default(),
-                        contract,
-                        false,
-                    ) {
+                    if let Ok(Immediate::Bool(b)) =
+                        evaluator.evaluate_key(&constraint.expr, &Handler::default(), contract)
+                    {
                         if !b {
                             has_false_constraint = true;
                             handler.emit_warn(Warning::AlwaysFalseConstraint {
@@ -138,7 +135,7 @@ pub(crate) fn dead_select_elimination(contract: &mut Contract) {
             } = expr_key.get(contract)
             {
                 if let Ok(Immediate::Bool(b)) =
-                    evaluator.evaluate_key(condition, &Handler::default(), contract, false)
+                    evaluator.evaluate_key(condition, &Handler::default(), contract)
                 {
                     if b {
                         replace_map.insert(expr_key, *then_expr);

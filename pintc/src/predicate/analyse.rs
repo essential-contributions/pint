@@ -117,8 +117,7 @@ impl Contract {
                 if !evaluator.contains_path(&path.name) {
                     if let Expr::Immediate { value, .. } = expr {
                         evaluator.insert_value(path.name.clone(), value.clone());
-                    } else if let Ok(imm) =
-                        evaluator.evaluate_key(&cnst.expr, &eval_handler, self, true)
+                    } else if let Ok(imm) = evaluator.evaluate_key(&cnst.expr, &eval_handler, self)
                     {
                         evaluator.insert_value(path.name.clone(), imm);
 

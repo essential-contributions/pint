@@ -4,7 +4,7 @@ use crate::{
         BinaryOp as BinOp, Expr, Immediate as Imm, MatchBranch, MatchElse, TupleAccess, UnaryOp,
     },
     predicate::{Contract, ExprKey},
-    span::{empty_span, Span, Spanned},
+    span::{empty_span, Spanned},
     types::Type,
 };
 use fxhash::FxHashMap;
@@ -70,30 +70,13 @@ impl Evaluator {
         )
     }
 
-    fn emit_evaluate_err(
-        &self,
-        handler: &Handler,
-        must_be_constant: bool,
-        span: Span,
-        internal_err_msg: &str,
-    ) -> ErrorEmitted {
-        if must_be_constant {
-            handler.emit_err(Error::Compile {
-                error: CompileError::InvalidConst { span },
-            })
-        } else {
-            handler.emit_internal_err(internal_err_msg, empty_span())
-        }
-    }
-
     pub(crate) fn evaluate_key(
         &self,
         expr_key: &ExprKey,
         handler: &Handler,
         contract: &Contract,
-        must_be_constant: bool,
     ) -> Result<Imm, ErrorEmitted> {
-        self.evaluate(expr_key.get(contract), handler, contract, must_be_constant)
+        self.evaluate(expr_key.get(contract), handler, contract)
     }
 
     pub(crate) fn evaluate(
@@ -101,7 +84,6 @@ impl Evaluator {
         expr: &Expr,
         handler: &Handler,
         contract: &Contract,
-        must_be_constant: bool,
     ) -> Result<Imm, ErrorEmitted> {
         match expr {
             Expr::Immediate { value, .. } => Ok(value.clone()),
@@ -109,7 +91,7 @@ impl Evaluator {
             Expr::Array { elements, .. } => {
                 let imm_elements = elements
                     .iter()
-                    .map(|el_key| self.evaluate_key(el_key, handler, contract, must_be_constant))
+                    .map(|el_key| self.evaluate_key(el_key, handler, contract))
                     .collect::<Result<_, _>>()?;
 
                 Ok(Imm::Array(imm_elements))
@@ -119,7 +101,7 @@ impl Evaluator {
                 let imm_fields = fields
                     .iter()
                     .map(|(name, fld_key)| {
-                        self.evaluate_key(fld_key, handler, contract, must_be_constant)
+                        self.evaluate_key(fld_key, handler, contract)
                             .map(|fld_imm| (name.clone(), fld_imm))
                     })
                     .collect::<Result<_, _>>()?;
@@ -143,24 +125,22 @@ impl Evaluator {
                 }),
 
             Expr::UnaryOp { op, expr, .. } => {
-                let expr = self.evaluate_key(expr, handler, contract, must_be_constant)?;
+                let expr = self.evaluate_key(expr, handler, contract)?;
 
                 match (expr, op) {
                     (Imm::Real(expr), UnaryOp::Neg) => Ok(Imm::Real(-expr)),
                     (Imm::Int(expr), UnaryOp::Neg) => Ok(Imm::Int(-expr)),
                     (Imm::Bool(expr), UnaryOp::Not) => Ok(Imm::Bool(!expr)),
-                    _ => Err(self.emit_evaluate_err(
-                        handler,
-                        must_be_constant,
-                        empty_span(),
+                    _ => Err(handler.emit_internal_err(
                         "type error: invalid unary op for expression",
+                        empty_span(),
                     )),
                 }
             }
 
             Expr::BinaryOp { op, lhs, rhs, .. } => {
-                let lhs = self.evaluate_key(lhs, handler, contract, must_be_constant)?;
-                let rhs = self.evaluate_key(rhs, handler, contract, must_be_constant)?;
+                let lhs = self.evaluate_key(lhs, handler, contract)?;
+                let rhs = self.evaluate_key(rhs, handler, contract)?;
 
                 match (lhs, rhs) {
                     (Imm::Real(lhs), Imm::Real(rhs)) => match op {
@@ -178,11 +158,9 @@ impl Evaluator {
                         BinOp::GreaterThan => Ok(Imm::Bool(lhs > rhs)),
                         BinOp::GreaterThanOrEqual => Ok(Imm::Bool(lhs >= rhs)),
 
-                        _ => Err(self.emit_evaluate_err(
-                            handler,
-                            must_be_constant,
-                            empty_span(),
+                        _ => Err(handler.emit_internal_err(
                             "type error: invalid binary op for reals",
+                            empty_span(),
                         )),
                     },
 
@@ -202,11 +180,9 @@ impl Evaluator {
                         BinOp::GreaterThan => Ok(Imm::Bool(lhs > rhs)),
                         BinOp::GreaterThanOrEqual => Ok(Imm::Bool(lhs >= rhs)),
 
-                        _ => Err(self.emit_evaluate_err(
-                            handler,
-                            must_be_constant,
-                            empty_span(),
+                        _ => Err(handler.emit_internal_err(
                             "type error: invalid binary op for ints",
+                            empty_span(),
                         )),
                     },
 
@@ -223,11 +199,9 @@ impl Evaluator {
                         BinOp::LogicalAnd => Ok(Imm::Bool(lhs && rhs)),
                         BinOp::LogicalOr => Ok(Imm::Bool(lhs || rhs)),
 
-                        _ => Err(self.emit_evaluate_err(
-                            handler,
-                            must_be_constant,
-                            empty_span(),
+                        _ => Err(handler.emit_internal_err(
                             "type error: invalid binary op for bools",
+                            empty_span(),
                         )),
                     },
 
@@ -236,30 +210,26 @@ impl Evaluator {
                         BinOp::Equal => Ok(Imm::Bool(lhs == rhs)),
                         BinOp::NotEqual => Ok(Imm::Bool(lhs != rhs)),
 
-                        _ => Err(self.emit_evaluate_err(
-                            handler,
-                            must_be_constant,
-                            empty_span(),
+                        _ => Err(handler.emit_internal_err(
                             "type error: invalid binary op for B256",
+                            empty_span(),
                         )),
                     },
 
-                    _ => Err(self.emit_evaluate_err(
-                        handler,
-                        must_be_constant,
-                        empty_span(),
+                    _ => Err(handler.emit_internal_err(
                         "compile-time evaluation binary op between some types \
-                        not currently supported",
+                              not currently supported",
+                        empty_span(),
                     )),
                 }
             }
 
             Expr::Index { expr, index, span } => {
                 // If the expr is an array...
-                let ary = self.evaluate_key(expr, handler, contract, must_be_constant)?;
+                let ary = self.evaluate_key(expr, handler, contract)?;
                 if let Imm::Array(elements) = ary {
                     // And the index is an int...
-                    match self.evaluate_key(index, handler, contract, must_be_constant)? {
+                    match self.evaluate_key(index, handler, contract)? {
                         Imm::Int(n) => elements.get(n as usize).cloned().ok_or_else(|| {
                             handler.emit_err(Error::Compile {
                                 error: CompileError::ArrayIndexOutOfBounds { span: span.clone() },
@@ -294,7 +264,7 @@ impl Evaluator {
 
             Expr::TupleFieldAccess { tuple, field, span } => {
                 // If the expr is a tuple...
-                let tup = self.evaluate_key(tuple, handler, contract, must_be_constant)?;
+                let tup = self.evaluate_key(tuple, handler, contract)?;
                 if let Imm::Tuple(fields) = tup {
                     // And the field can be found...
                     match field {
@@ -337,14 +307,9 @@ impl Evaluator {
                 else_expr,
                 span,
             } => {
-                let cond = self.evaluate_key(condition, handler, contract, must_be_constant)?;
+                let cond = self.evaluate_key(condition, handler, contract)?;
                 if let Imm::Bool(b) = cond {
-                    self.evaluate_key(
-                        if b { then_expr } else { else_expr },
-                        handler,
-                        contract,
-                        must_be_constant,
-                    )
+                    self.evaluate_key(if b { then_expr } else { else_expr }, handler, contract)
                 } else {
                     let mut cond_ty = condition.get_ty(contract).clone();
                     if cond_ty.is_unknown() {
@@ -380,7 +345,7 @@ impl Evaluator {
 
                 // All casts are either redundant (e.g., bool as bool) or are to ints, except int
                 // as real. They'll be rejected by the type checker if not.
-                let imm = self.evaluate_key(value, handler, contract, must_be_constant)?;
+                let imm = self.evaluate_key(value, handler, contract)?;
                 match imm {
                     Imm::Real(_) => {
                         if ty.is_real() {
@@ -453,11 +418,9 @@ impl Evaluator {
                     .iter()
                     .find(|(_, union)| union.name.name == ty_path)
                     .ok_or_else(|| {
-                        self.emit_evaluate_err(
-                            handler,
-                            must_be_constant,
-                            path_span.clone(),
+                        handler.emit_internal_err(
                             "Union decl for variant not found",
+                            path_span.clone(),
                         )
                     })?;
 
@@ -472,19 +435,12 @@ impl Evaluator {
                     .enumerate()
                     .find_map(|(idx, variant_name)| (variant_name == path[2..]).then_some(idx))
                     .ok_or_else(|| {
-                        self.emit_evaluate_err(
-                            handler,
-                            must_be_constant,
-                            empty_span(),
-                            "Union tag not found in union decl",
-                        )
+                        handler.emit_internal_err("Union tag not found in union decl", empty_span())
                     })? as i64;
 
                 let value = value
                     .as_ref()
-                    .map(|value_key| {
-                        self.evaluate_key(value_key, handler, contract, must_be_constant)
-                    })
+                    .map(|value_key| self.evaluate_key(value_key, handler, contract))
                     .transpose()?
                     .map(Box::new);
 
@@ -497,17 +453,15 @@ impl Evaluator {
             }
 
             Expr::UnionTag { union_expr, span } => self
-                .evaluate_key(union_expr, handler, contract, must_be_constant)
+                .evaluate_key(union_expr, handler, contract)
                 .and_then(|imm| {
                     if let Imm::UnionVariant { tag_num, .. } = imm {
                         Ok(Imm::Int(tag_num))
                     } else {
-                        Err(self.emit_evaluate_err(
-                            handler,
-                            must_be_constant,
-                            span.clone(),
+                        Err(handler.emit_internal_err(
                             "unexpected expression during compile-time \
                                     evaluation of union expr (tag)",
+                            span.clone(),
                         ))
                     }
                 }),
@@ -515,7 +469,7 @@ impl Evaluator {
             Expr::UnionValue {
                 union_expr, span, ..
             } => self
-                .evaluate_key(union_expr, handler, contract, must_be_constant)
+                .evaluate_key(union_expr, handler, contract)
                 .and_then(|imm| {
                     if let Imm::UnionVariant {
                         value: Some(imm_val),
@@ -524,12 +478,10 @@ impl Evaluator {
                     {
                         Ok(imm_val.as_ref().clone())
                     } else {
-                        Err(self.emit_evaluate_err(
-                            handler,
-                            must_be_constant,
-                            span.clone(),
+                        Err(handler.emit_internal_err(
                             "unexpected expression during compile-time \
                                     evaluation of union expr (value)",
+                            span.clone(),
                         ))
                     }
                 }),
@@ -537,11 +489,11 @@ impl Evaluator {
             Expr::In {
                 value, collection, ..
             } => {
-                let value = self.evaluate_key(value, handler, contract, must_be_constant)?;
+                let value = self.evaluate_key(value, handler, contract)?;
 
                 if let Expr::Range { lb, ub, .. } = collection.get(contract) {
-                    let lb = self.evaluate_key(lb, handler, contract, must_be_constant)?;
-                    let ub = self.evaluate_key(ub, handler, contract, must_be_constant)?;
+                    let lb = self.evaluate_key(lb, handler, contract)?;
+                    let ub = self.evaluate_key(ub, handler, contract)?;
 
                     match (lb, ub, value) {
                         (Imm::Int(lb), Imm::Int(ub), Imm::Int(value)) => {
@@ -552,47 +504,40 @@ impl Evaluator {
                             Ok(Imm::Bool(ub >= value && lb <= value))
                         }
 
-                        _ => Err(self.emit_evaluate_err(
-                            handler,
-                            must_be_constant,
-                            empty_span(),
+                        _ => Err(handler.emit_internal_err(
                             "unexpected expression during compile-time evaluation \
                             evaluation of in expr with range",
+                            empty_span(),
                         )),
                     }
                 } else {
-                    let collection =
-                        self.evaluate_key(collection, handler, contract, must_be_constant)?;
+                    let collection = self.evaluate_key(collection, handler, contract)?;
 
                     match collection {
                         Imm::Array(collection) => Ok(Imm::Bool(collection.contains(&value))),
 
-                        _ => Err(self.emit_evaluate_err(
-                            handler,
-                            must_be_constant,
-                            empty_span(),
+                        _ => Err(handler.emit_internal_err(
                             "unexpected expression during compile-time evaluation \
                             evaluation of in expr",
+                            empty_span(),
                         )),
                     }
                 }
             }
 
-            Expr::Error(span)
-            | Expr::LocalStorageAccess { span, .. }
-            | Expr::ExternalStorageAccess { span, .. }
-            | Expr::MacroCall { span, .. }
-            | Expr::IntrinsicCall { span, .. }
-            | Expr::LocalPredicateCall { span, .. }
-            | Expr::ExternalPredicateCall { span, .. }
-            | Expr::Range { span, .. }
-            | Expr::Generator { span, .. }
-            | Expr::Map { span, .. }
-            | Expr::Match { span, .. } => Err(self.emit_evaluate_err(
-                handler,
-                must_be_constant,
-                span.clone(),
+            Expr::Error(_)
+            | Expr::LocalStorageAccess { .. }
+            | Expr::ExternalStorageAccess { .. }
+            | Expr::MacroCall { .. }
+            | Expr::IntrinsicCall { .. }
+            | Expr::LocalPredicateCall { .. }
+            | Expr::ExternalPredicateCall { .. }
+            | Expr::Range { .. }
+            | Expr::Generator { .. }
+            | Expr::Map { .. }
+            | Expr::Match { .. } => Err(handler.emit_internal_err(
                 "unexpected expression during compile-time evaluation",
+                empty_span(),
             )),
         }
     }

@@ -102,16 +102,13 @@ impl Contract {
             // variant, which evaluates to int).
             let index_expr = index_key.get(self);
             let index_span = index_expr.span().clone();
-            if let Ok(index_value) = evaluator
-                .evaluate(index_expr, handler, self, false)
-                .map_err(|_| {
-                    handler.emit_err(Error::Compile {
-                        error: CompileError::NonConstArrayIndex {
-                            span: index_span.clone(),
-                        },
-                    })
+            if let Ok(index_value) = evaluator.evaluate(index_expr, handler, self).map_err(|_| {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::NonConstArrayIndex {
+                        span: index_span.clone(),
+                    },
                 })
-            {
+            }) {
                 // Get the size of the accessed array.
                 if let Ok(array_size) = get_array_size_from_type(self, handler, &array_ty) {
                     // Check for OOB.

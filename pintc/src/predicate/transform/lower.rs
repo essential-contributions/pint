@@ -202,12 +202,8 @@ pub(crate) fn lower_array_ranges(
                         eval_memos.insert(old_range_expr_key, new_expr_key);
                         new_expr_key
                     } else {
-                        let value = evaluator.evaluate_key(
-                            &old_range_expr_key,
-                            handler,
-                            contract,
-                            false,
-                        )?;
+                        let value =
+                            evaluator.evaluate_key(&old_range_expr_key, handler, contract)?;
                         if !matches!(value, Immediate::Int(_) | Immediate::UnionVariant { .. }) {
                             return Err(handler.emit_internal_err(
                                 "array range expression evaluates to non int immediate",
@@ -228,8 +224,7 @@ pub(crate) fn lower_array_ranges(
                         new_expr_key
                     }
                 } else {
-                    let value =
-                        evaluator.evaluate_key(&old_range_expr_key, handler, contract, false)?;
+                    let value = evaluator.evaluate_key(&old_range_expr_key, handler, contract)?;
                     if !matches!(value, Immediate::Int(_) | Immediate::UnionVariant { .. }) {
                         return Err(handler.emit_internal_err(
                             "array range expression evaluates to non int immediate",
@@ -321,7 +316,7 @@ pub(crate) fn lower_imm_accesses(
                     ));
                 };
 
-                match evaluator.evaluate(idx_expr, handler, contract, false) {
+                match evaluator.evaluate(idx_expr, handler, contract) {
                     Ok(
                         Immediate::Int(idx_val)
                         | Immediate::UnionVariant {
