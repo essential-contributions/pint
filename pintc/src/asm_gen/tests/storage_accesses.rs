@@ -21,7 +21,7 @@ fn inlined_storage_accesses() {
         expect_test::expect![[r#"
             predicate ::foo {
                 --- Nodes ---
-                node 0
+                node 0 (post)
                   Stack(Push(3))
                   Memory(Alloc)
                   Stack(Pop)
@@ -42,7 +42,7 @@ fn inlined_storage_accesses() {
                   Memory(StoreRange)
                   Stack(Push(2))
                   Memory(Free)
-                node 1
+                node 1 (post)
                   Stack(Push(3))
                   Memory(Alloc)
                   Stack(Pop)
@@ -63,11 +63,11 @@ fn inlined_storage_accesses() {
                   Memory(StoreRange)
                   Stack(Push(2))
                   Memory(Free)
-                node 2 (leaf)
+                node 2 (pre,leaf)
                   Access(MutKeys)
                   Stack(Push(0))
                   Pred(EqSet)
-                node 3 (leaf)
+                node 3 (pre,leaf)
                   Stack(Push(12))
                   Memory(Alloc)
                   Stack(Pop)
