@@ -1,0 +1,16 @@
+storage {
+    a: int,
+    b: int[3],
+    c: { int, int },
+}
+
+predicate test() {
+    let a = mut storage::a';
+    constraint a == 11;
+
+    let b = mut storage::b[1]';
+    constraint b == 22;
+
+    let c = mut storage::c.0';
+    constraint c == 33;
+}
