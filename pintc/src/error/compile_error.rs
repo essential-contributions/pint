@@ -383,7 +383,7 @@ pub enum CompileError {
     },
     #[error("invalid map range type")]
     InvalidMapRangeType { found_ty: String, span: Span },
-    #[error("invalid constant")]
+    #[error("attempt to use a non-constant value in a constant")]
     InvalidConst { span: Span },
 }
 
@@ -1277,7 +1277,7 @@ impl ReportableError for CompileError {
             }],
 
             InvalidConst { span } => vec![ErrorLabel {
-                message: "expression must evaluate to a const".to_string(),
+                message: "non-constant value".to_string(),
                 span: span.clone(),
                 color: Color::Red,
             }],

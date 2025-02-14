@@ -57,8 +57,8 @@ const B = Contract@[0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 // >>>
 
 // typecheck_failure <<<
-// invalid constant
-// @369..385: expression must evaluate to a const
-// invalid constant
-// @398..558: expression must evaluate to a const
+// attempt to use a non-constant value in a constant
+// @369..385: non-constant value
+// attempt to use a non-constant value in a constant
+// @398..558: non-constant value
 // >>>

@@ -99,8 +99,8 @@ predicate Test(
 // >>>
 
 // typecheck_failure <<<
-// invalid constant
-// @316..326: expression must evaluate to a const
-// invalid constant
-// @341..425: expression must evaluate to a const
+// attempt to use a non-constant value in a constant
+// @316..326: non-constant value
+// attempt to use a non-constant value in a constant
+// @341..425: non-constant value
 // >>>
