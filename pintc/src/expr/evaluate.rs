@@ -525,17 +525,19 @@ impl Evaluator {
                 }
             }
 
-            Expr::Error(_)
-            | Expr::LocalStorageAccess { .. }
-            | Expr::ExternalStorageAccess { .. }
-            | Expr::MacroCall { .. }
-            | Expr::IntrinsicCall { .. }
-            | Expr::LocalPredicateCall { .. }
-            | Expr::ExternalPredicateCall { .. }
-            | Expr::Range { .. }
-            | Expr::Generator { .. }
-            | Expr::Map { .. }
-            | Expr::Match { .. } => Err(handler.emit_internal_err(
+            Expr::ExternalStorageAccess { span, .. }
+            | Expr::LocalStorageAccess { span, .. }
+            | Expr::LocalPredicateCall { span, .. }
+            | Expr::ExternalPredicateCall { span, .. }
+            | Expr::Match { span, .. }
+            | Expr::IntrinsicCall { span, .. }
+            | Expr::Range { span, .. }
+            | Expr::Generator { span, .. }
+            | Expr::Map { span, .. } => Err(handler.emit_err(Error::Compile {
+                error: CompileError::InvalidConst { span: span.clone() },
+            })),
+
+            Expr::Error(_) | Expr::MacroCall { .. } => Err(handler.emit_internal_err(
                 "unexpected expression during compile-time evaluation",
                 empty_span(),
             )),
