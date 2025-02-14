@@ -1277,7 +1277,7 @@ impl ReportableError for CompileError {
             }],
 
             InvalidConst { span } => vec![ErrorLabel {
-                message: format!("expression must evaluate to a const"),
+                message: "expression must evaluate to a const".to_string(),
                 span: span.clone(),
                 color: Color::Red,
             }],

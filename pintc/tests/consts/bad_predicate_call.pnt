@@ -1,1 +1,64 @@
-interface Contract {    predicate Foo(        x1: bool,        x2: int,    );}predicate Foo(    addr1: b256,    addr2: b256,    foo_1: {        x1: bool,        x2: int,    },) {    constraint Contract@[addr1]::Foo@[addr2](        foo_1.x1,        foo_1.x2,    );}predicate Bar(    x1: bool,    x2: int,) {    constraint x1 == x2;}const A = Bar@[](false, 5);const B = Contract@[0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE]::Foo@[0x0000000000000000000000000000000000000000000000000000000000000000](true, 2);// parsed <<<// const ::A = ::Bar@[](false, 5);// const ::B = ::Contract@[0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE]::Foo@[0x0000000000000000000000000000000000000000000000000000000000000000](true, 2);// interface ::Contract {//     predicate Foo (//         x1: bool,//         x2: int,//     );// }//// predicate ::Foo(//     ::addr1: b256,//     ::addr2: b256,//     ::foo_1: {x1: bool, x2: int},// ) {//     constraint ::Contract@[::addr1]::Foo@[::addr2](::foo_1.x1, ::foo_1.x2);// }//// predicate ::Bar(//     ::x1: bool,//     ::x2: int,// ) {//     constraint (::x1 == ::x2);// }// >>>// typecheck_failure <<<// invalid constant// @369..385: expression must evaluate to a const// invalid constant// @398..558: expression must evaluate to a const// >>>
+interface Contract {
+    predicate Foo(
+        x1: bool,
+        x2: int,
+    );
+}
+
+predicate Foo(
+    addr1: b256,
+    addr2: b256,
+    foo_1: {
+        x1: bool,
+        x2: int,
+    },
+) {
+    constraint Contract@[addr1]::Foo@[addr2](
+        foo_1.x1,
+        foo_1.x2,
+    );
+}
+
+predicate Bar(
+    x1: bool,
+    x2: int,
+) {
+    constraint x1 == x2;
+}
+
+const A = Bar@[](false, 5);
+
+const B = Contract@[0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE]::Foo@[0x0000000000000000000000000000000000000000000000000000000000000000](true, 2);
+
+// parsed <<<
+// const ::A = ::Bar@[](false, 5);
+// const ::B = ::Contract@[0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE]::Foo@[0x0000000000000000000000000000000000000000000000000000000000000000](true, 2);
+// interface ::Contract {
+//     predicate Foo (
+//         x1: bool,
+//         x2: int,
+//     );
+// }
+//
+// predicate ::Foo(
+//     ::addr1: b256,
+//     ::addr2: b256,
+//     ::foo_1: {x1: bool, x2: int},
+// ) {
+//     constraint ::Contract@[::addr1]::Foo@[::addr2](::foo_1.x1, ::foo_1.x2);
+// }
+//
+// predicate ::Bar(
+//     ::x1: bool,
+//     ::x2: int,
+// ) {
+//     constraint (::x1 == ::x2);
+// }
+// >>>
+
+// typecheck_failure <<<
+// invalid constant
+// @369..385: expression must evaluate to a const
+// invalid constant
+// @398..558: expression must evaluate to a const
+// >>>
