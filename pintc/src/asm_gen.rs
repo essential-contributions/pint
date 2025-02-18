@@ -231,20 +231,34 @@ pub fn compile_predicate(
 
     // Insert non leaf nodes into the compute graph
     for (_, variable) in pred.variables() {
-        vars_to_nodes.insert(
-            (variable.name.clone(), Reads::Pre),
-            data_flow_graph.add_node(ComputeNode::Var {
-                var: variable.clone(),
-                reads: Reads::Pre,
-            }),
-        );
-        vars_to_nodes.insert(
-            (variable.name.clone(), Reads::Post),
-            data_flow_graph.add_node(ComputeNode::Var {
-                var: variable.clone(),
+        let post_accesses = variable
+            .expr
+            .collect_storage_accesses(contract)
+            .into_iter()
+            .filter(|access| access.is_post_storage_access_intrinsic(contract))
+            .collect::<Vec<_>>();
+
+        let var_node_pre = data_flow_graph.add_node(ComputeNode::Var {
+            var: variable.clone(),
+            reads: Reads::Pre,
+        });
+        vars_to_nodes.insert((variable.name.clone(), Reads::Pre), var_node_pre);
+
+        let var_node_post = data_flow_graph.add_node(ComputeNode::Var {
+            var: variable.clone(),
+            reads: Reads::Post,
+        });
+        vars_to_nodes.insert((variable.name.clone(), Reads::Post), var_node_post);
+
+        for access in post_accesses {
+            // create an `Expr` node for each post access
+            let expr_node = data_flow_graph.add_node(ComputeNode::Expr {
+                expr: access,
                 reads: Reads::Post,
-            }),
-        );
+            });
+            data_flow_graph.add_edge(expr_node, var_node_pre, ());
+            data_flow_graph.add_edge(expr_node, var_node_post, ());
+        }
     }
 
     // Insert edges between non leaf nodes

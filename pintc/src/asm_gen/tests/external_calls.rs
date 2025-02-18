@@ -19,7 +19,7 @@ fn local_predicate_calls() {
         expect_test::expect![[r#"
             predicate ::Foo {
                 --- Nodes ---
-                node 0 (leaf)
+                node 0 (pre,leaf)
                   Access(MutKeys)
                   Stack(Push(0))
                   Pred(EqSet)
@@ -27,18 +27,18 @@ fn local_predicate_calls() {
 
             predicate ::Bar {
                 --- Nodes ---
-                node 0 (leaf)
+                node 0 (pre,leaf)
                   Access(MutKeys)
                   Stack(Push(0))
                   Pred(EqSet)
-                node 1 (leaf)
+                node 1 (pre,leaf)
                   Stack(Push(0))
                   Stack(Push(0))
                   Stack(Push(1))
                   Access(PredicateData)
                   Stack(Push(0))
                   Pred(Eq)
-                node 2 (leaf)
+                node 2 (pre,leaf)
                   Stack(Push(1))
                   Stack(Push(0))
                   Stack(Push(0))
@@ -82,11 +82,11 @@ predicate Bar(x: int, y: b256, bar_1: { x: int, y: b256 }, bar_2: { x: int, y: b
         expect_test::expect![[r#"
             predicate ::Bar {
                 --- Nodes ---
-                node 0 (leaf)
+                node 0 (pre,leaf)
                   Access(MutKeys)
                   Stack(Push(0))
                   Pred(EqSet)
-                node 1 (leaf)
+                node 1 (pre,leaf)
                   Stack(Push(1))
                   Stack(Push(0))
                   Stack(Push(4))
@@ -99,7 +99,7 @@ predicate Bar(x: int, y: b256, bar_1: { x: int, y: b256 }, bar_2: { x: int, y: b
                   Access(PredicateData)
                   Stack(Push(4))
                   Pred(EqRange)
-                node 2 (leaf)
+                node 2 (pre,leaf)
                   Stack(Push(0))
                   Stack(Push(0))
                   Stack(Push(1))
@@ -109,7 +109,7 @@ predicate Bar(x: int, y: b256, bar_1: { x: int, y: b256 }, bar_2: { x: int, y: b
                   Stack(Push(1))
                   Access(PredicateData)
                   Pred(Eq)
-                node 3 (leaf)
+                node 3 (pre,leaf)
                   Stack(Push(1))
                   Stack(Push(3))
                   Stack(Push(0))
@@ -133,7 +133,7 @@ predicate Bar(x: int, y: b256, bar_1: { x: int, y: b256 }, bar_2: { x: int, y: b
                   Stack(Push(120))
                   Crypto(Sha256)
                   Access(PredicateExists)
-                node 4 (leaf)
+                node 4 (pre,leaf)
                   Stack(Push(1))
                   Stack(Push(2))
                   Stack(Push(0))
