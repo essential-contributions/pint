@@ -575,7 +575,11 @@ impl Contract {
                         error: CompileError::OperatorInvalidType {
                             op: op.as_str(),
                             ty_kind: "non-numeric",
-                            bad_ty: self.with_ctrct(lhs_ty).to_string(),
+                            bad_ty: if !lhs_ty.is_any() {
+                                Some(self.with_ctrct(lhs_ty).to_string())
+                            } else {
+                                None
+                            },
                             span: span.clone(),
                         },
                     });
@@ -586,7 +590,11 @@ impl Contract {
                         error: CompileError::OperatorInvalidType {
                             op: op.as_str(),
                             ty_kind: "non-numeric",
-                            bad_ty: self.with_ctrct(rhs_ty).to_string(),
+                            bad_ty: if !rhs_ty.is_any() {
+                                Some(self.with_ctrct(rhs_ty).to_string())
+                            } else {
+                                None
+                            },
                             span: span.clone(),
                         },
                     });
@@ -1498,8 +1506,8 @@ impl Contract {
                 });
             }
             if let Some(el_ty) = ary_ty.get_array_el_type() {
+                // Is it an array with an unknown range (probably a const immediate)?
                 if is_storage_access {
-                    // Is it an array with an unknown range (probably a const immediate)?
                     Inference::Type(Type::Optional {
                         ty: Box::new(el_ty.clone()),
                         span: el_ty.span().clone(),
@@ -1516,8 +1524,8 @@ impl Contract {
                 Inference::Type(Type::Error(span.clone()))
             }
         } else if let Some(el_ty) = ary_ty.get_array_el_type() {
+            // Is it an array with an unknown range (probably a const immediate)?
             if is_storage_access {
-                // Is it an array with an unknown range (probably a const immediate)?
                 Inference::Type(Type::Optional {
                     ty: Box::new(el_ty.clone()),
                     span: el_ty.span().clone(),
@@ -1561,7 +1569,10 @@ impl Contract {
                 });
             }
 
-            Inference::Type(el_ty.clone())
+            Inference::Type(Type::Optional {
+                ty: Box::new(el_ty.clone()),
+                span: el_ty.span().clone(),
+            })
         } else {
             handler.emit_err(Error::Compile {
                 error: CompileError::IndexExprNonIndexable {

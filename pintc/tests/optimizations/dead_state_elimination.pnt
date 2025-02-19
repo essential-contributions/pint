@@ -7,35 +7,35 @@ storage {
 
 predicate Test(f: int, g: int, h: bool) {
     // live states that should remain when optimized
-    let a = storage::x;
+    let a = storage::x!;
     constraint a' >= a + 42;
 
-    let b: int = storage::x;
+    let b: int = storage::x!;
     constraint (b == nil && b' == 1) || b' == b + 1;
 
-    let c: int[2] = mut storage::arr;
+    let c: int[2] = mut storage::arr!;
     constraint c'[0] == 42;
 
-    let d = storage::tup;
-    let d_0 = storage::tup.0;
+    let d = storage::tup!;
+    let d_0 = storage::tup.0!;
 
-    let e_0 = storage::bmap[0];
-    let e_1 = storage::bmap[1];
+    let e_0 = storage::bmap[0]!;
+    let e_1 = storage::bmap[1]!;
 
     constraint f == b + c[0];
     constraint g == d.1 + d_0;
     constraint h == (e_1 == e_0);
 
     // dead let that should be eliminated
-    let x1 = storage::x;
-    let x2 = storage::arr;
-    let x3 = storage::tup;
-    let x4 = storage::tup.0;
-    let x5 = storage::bmap[0];
-    let x6 = storage::bmap[1];
+    let x1 = storage::x!;
+    let x2 = storage::arr!;
+    let x3 = storage::tup!;
+    let x4 = storage::tup.0!;
+    let x5 = storage::bmap[0]!;
+    let x6 = storage::bmap[1]!;
 
     // mutable key remains, let is eliminated
-    let z = mut storage::x;
+    let z = mut storage::x!;
 }
 
 // parsed <<<
@@ -51,20 +51,20 @@ predicate Test(f: int, g: int, h: bool) {
 //     ::g: int,
 //     ::h: bool,
 // ) {
-//     let ::a = storage::x;
-//     let ::b: int = storage::x;
-//     let ::c: int[2] = mut storage::arr;
-//     let ::d = storage::tup;
-//     let ::d_0 = storage::tup.0;
-//     let ::e_0 = storage::bmap[0];
-//     let ::e_1 = storage::bmap[1];
-//     let ::x1 = storage::x;
-//     let ::x2 = storage::arr;
-//     let ::x3 = storage::tup;
-//     let ::x4 = storage::tup.0;
-//     let ::x5 = storage::bmap[0];
-//     let ::x6 = storage::bmap[1];
-//     let ::z = mut storage::x;
+//     let ::a = storage::x!;
+//     let ::b: int = storage::x!;
+//     let ::c: int[2] = mut storage::arr!;
+//     let ::d = storage::tup!;
+//     let ::d_0 = storage::tup.0!;
+//     let ::e_0 = storage::bmap[0]!;
+//     let ::e_1 = storage::bmap[1]!;
+//     let ::x1 = storage::x!;
+//     let ::x2 = storage::arr!;
+//     let ::x3 = storage::tup!;
+//     let ::x4 = storage::tup.0!;
+//     let ::x5 = storage::bmap[0]!;
+//     let ::x6 = storage::bmap[1]!;
+//     let ::z = mut storage::x!;
 //     constraint (::a' >= (::a + 42));
 //     constraint (((::b == nil) && (::b' == 1)) || (::b' == (::b + 1)));
 //     constraint (::c'[0] == 42);
@@ -87,22 +87,22 @@ predicate Test(f: int, g: int, h: bool) {
 //     ::g: int,
 //     ::h: bool,
 // ) {
-//     let ::a: int = __pre_state({0});
-//     let ::b: int = __pre_state({0});
-//     let ::c: int[2] = __pre_state({1, 0});
-//     let ::d: {int, int} = __pre_state({2, 0});
-//     let ::d_0: int = __pre_state({2, (0 + 0)});
-//     let ::e_0: bool = __pre_state({3, 0});
-//     let ::e_1: bool = __pre_state({3, 1});
-//     let ::x1: int = __pre_state({0});
-//     let ::x2: int[2] = __pre_state({1, 0});
-//     let ::x3: {int, int} = __pre_state({2, 0});
-//     let ::x4: int = __pre_state({2, (0 + 0)});
-//     let ::x5: bool = __pre_state({3, 0});
-//     let ::x6: bool = __pre_state({3, 1});
-//     let ::z: int = __pre_state({0});
+//     let ::a: int = __pre_state({0})!;
+//     let ::b: int = __pre_state({0})!;
+//     let ::c: int[2] = __pre_state({1, 0})!;
+//     let ::d: {int, int} = __pre_state({2, 0})!;
+//     let ::d_0: int = __pre_state({2, (0 + 0)})!;
+//     let ::e_0: bool = __pre_state({3, 0})!;
+//     let ::e_1: bool = __pre_state({3, 1})!;
+//     let ::x1: int = __pre_state({0})!;
+//     let ::x2: int[2] = __pre_state({1, 0})!;
+//     let ::x3: {int, int} = __pre_state({2, 0})!;
+//     let ::x4: int = __pre_state({2, (0 + 0)})!;
+//     let ::x5: bool = __pre_state({3, 0})!;
+//     let ::x6: bool = __pre_state({3, 1})!;
+//     let ::z: int = __pre_state({0})!;
 //     constraint (::a' >= (::a + 42));
-//     constraint (((__size_of(::b) == 0) && (::b' == 1)) || (::b' == (::b + 1)));
+//     constraint (((::b == nil) && (::b' == 1)) || (::b' == (::b + 1)));
 //     constraint (::c'[0] == 42);
 //     constraint (::f == (::b + ::c[0]));
 //     constraint (::g == (::d.1 + ::d_0));
@@ -124,14 +124,14 @@ predicate Test(f: int, g: int, h: bool) {
 //     ::g: int,
 //     ::h: bool,
 // ) {
-//     let ::a: int = __pre_state({0});
-//     let ::c: int[2] = __pre_state({1, 0});
-//     let ::d: {int, int} = __pre_state({2, 0});
-//     let ::d_0: int = __pre_state({2, 0});
-//     let ::e_0: bool = __pre_state({3, 0});
-//     let ::e_1: bool = __pre_state({3, 1});
+//     let ::a: int = __pre_state({0})!;
+//     let ::c: int[2] = __pre_state({1, 0})!;
+//     let ::d: {int, int} = __pre_state({2, 0})!;
+//     let ::d_0: int = __pre_state({2, 0})!;
+//     let ::e_0: bool = __pre_state({3, 0})!;
+//     let ::e_1: bool = __pre_state({3, 1})!;
 //     constraint (::a' >= (::a + 42));
-//     constraint (((__size_of(::a) == 0) && (::a' == 1)) || (::a' == (::a + 1)));
+//     constraint (((::a == nil) && (::a' == 1)) || (::a' == (::a + 1)));
 //     constraint (::c'[0] == 42);
 //     constraint (::f == (::a + ::c[0]));
 //     constraint (::g == (::d.1 + ::d_0));

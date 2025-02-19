@@ -7,7 +7,7 @@ storage {
 }
 
 predicate Initialize(value: int) {
-    let counter: ?int = mut storage::counter;
+    let counter: int? = mut storage::counter;
     constraint counter'! == value;
 
     // redundant but showcases a different syntax
@@ -15,7 +15,7 @@ predicate Initialize(value: int) {
 }
 
 predicate Increment(amount: int) {
-    let counter: ?int = mut storage::counter;
+    let counter: int? = mut storage::counter;
     constraint counter'! == counter! + amount;
 
     // redundant but showcases a different syntax

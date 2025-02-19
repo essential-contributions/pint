@@ -73,7 +73,7 @@ impl DisplayWithContract for super::Type {
             }
 
             super::Type::Optional { ty, .. } => {
-                write!(f, "?{}", contract.with_ctrct(ty.as_ref()),)
+                write!(f, "{}?", contract.with_ctrct(ty.as_ref()),)
             }
 
             super::Type::Map { ty_from, ty_to, .. } => {

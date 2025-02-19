@@ -37,21 +37,21 @@ predicate test(p: int) {
 
 // typecheck_failure <<<
 // incorrect intrinsic argument
-// @133..143: expected `_[]`, found `int`
+// @133..143: expected `_[]?`, found `int?`
 // @123..132: arguments to this intrinsic are incorrect`
 // incorrect intrinsic argument
-// @172..182: expected `_[]`, found `b256`
+// @172..182: expected `_[]?`, found `b256?`
 // @162..171: arguments to this intrinsic are incorrect`
 // incorrect intrinsic argument
-// @211..221: expected `_[]`, found `( int => int )`
+// @211..221: expected `_[]?`, found `( int => int )?`
 // @201..210: arguments to this intrinsic are incorrect`
 // incorrect intrinsic argument
-// @250..260: expected `_[]`, found `{int, int}`
+// @250..260: expected `_[]?`, found `{int, int}?`
 // @240..249: arguments to this intrinsic are incorrect`
 // incorrect intrinsic argument
-// @290..291: expected `_[]`, found `int`
+// @290..291: expected `_[]?`, found `int`
 // @280..289: arguments to this intrinsic are incorrect`
 // incorrect intrinsic argument
-// @322..323: expected `_[]`, found `int`
+// @322..323: expected `_[]?`, found `int`
 // @312..321: arguments to this intrinsic are incorrect`
 // >>>

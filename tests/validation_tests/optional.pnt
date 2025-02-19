@@ -20,6 +20,7 @@ predicate foo(x: { int, { int, int } }) {
     constraint storage::t.0'! == 42;
     constraint storage::t.1.0'! == 69;
     constraint storage::t.1.1'! == 99;
+    constraint storage::t.1.1'! == 99;
 
     constraint x.0 == 1;
     constraint x.1.0 == 2;

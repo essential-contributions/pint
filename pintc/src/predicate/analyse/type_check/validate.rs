@@ -237,4 +237,47 @@ impl Contract {
 
         handler.result(())
     }
+
+    pub(in crate::predicate::analyse) fn check_uninferrable_types(
+        &mut self,
+        handler: &Handler,
+    ) -> Result<(), ErrorEmitted> {
+        fn check_any_type(ty: &Type, handler: &Handler) {
+            match ty {
+                Type::Any(span) => {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::UninferrableType { span: span.clone() },
+                    });
+                }
+                Type::Array { ty, .. } => check_any_type(ty, handler),
+                Type::Tuple { fields, .. } => fields
+                    .iter()
+                    .for_each(|(_, field)| check_any_type(field, handler)),
+                Type::Alias { ty, .. } => check_any_type(ty, handler),
+                Type::Optional { ty, .. } => check_any_type(ty, handler),
+                Type::Map { ty_from, ty_to, .. } => {
+                    check_any_type(ty_from, handler);
+                    check_any_type(ty_to, handler);
+                }
+                Type::Vector { ty, .. } => check_any_type(ty, handler),
+                Type::Error(_)
+                | Type::Unknown(_)
+                | Type::Custom { .. }
+                | Type::Primitive { .. }
+                | Type::Union { .. } => {}
+            }
+        }
+
+        // Check all variables and expressions
+        for (pred_key, _) in self.preds.iter() {
+            self.exprs(pred_key).for_each(|expr_key| {
+                check_any_type(expr_key.get_ty(self), handler);
+            });
+        }
+
+        // TODO: Check consts. We're not type checking constants at all currently so that has to be
+        // handled first
+
+        handler.result(())
+    }
 }

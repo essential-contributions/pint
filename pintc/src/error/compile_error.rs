@@ -151,6 +151,8 @@ pub enum CompileError {
     UnknownType { span: Span },
     #[error("undefined type")]
     UndefinedType { span: Span },
+    #[error("uninferrable type")]
+    UninferrableType { span: Span },
     #[error("condition for {conditional} must be a `bool`")]
     NonBoolConditional {
         ty: String,
@@ -226,7 +228,7 @@ pub enum CompileError {
     OperatorInvalidType {
         op: &'static str,
         ty_kind: &'static str,
-        bad_ty: String,
+        bad_ty: Option<String>,
         span: Span,
     },
     #[error("{init_kind} initialization type error")]
@@ -788,6 +790,12 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
+            UninferrableType { span } => vec![ErrorLabel {
+                message: "type of this expression cannot be inferred".to_string(),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
             IndexExprNonIndexable {
                 non_indexable_type,
                 span,
@@ -1016,7 +1024,11 @@ impl ReportableError for CompileError {
                 bad_ty,
                 span,
             } => vec![ErrorLabel {
-                message: format!("invalid {ty_kind} type `{bad_ty}` for operator `{op}`"),
+                message: if let Some(bad_ty) = bad_ty {
+                    format!("invalid {ty_kind} type `{bad_ty}` for operator `{op}`")
+                } else {
+                    format!("invalid {ty_kind} type for operator `{op}`")
+                },
                 span: span.clone(),
                 color: Color::Red,
             }],
@@ -1429,6 +1441,7 @@ impl ReportableError for CompileError {
             | MacroSpliceVarNotArray { .. }
             | UnknownType { .. }
             | UndefinedType { .. }
+            | UninferrableType { .. }
             | NonBoolConditional { .. }
             | SelectBranchesTypeMismatch { .. }
             | ConstraintExpressionTypeError { .. }
@@ -1651,6 +1664,7 @@ impl Spanned for CompileError {
             | CannotIndexIntoValue { span, .. }
             | UnknownType { span }
             | UndefinedType { span }
+            | UninferrableType { span }
             | NonBoolConditional { span, .. }
             | IndexExprNonIndexable { span, .. }
             | ArrayAccessWithWrongType { span, .. }

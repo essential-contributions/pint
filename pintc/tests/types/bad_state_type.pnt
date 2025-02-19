@@ -30,7 +30,9 @@ predicate Foo() {
 
 // typecheck_failure <<<
 // local variables cannot have storage types
-// @106..130: found local variable of storage type ( int => bool ) here
+// @106..130: found local variable of storage type ( int => bool )? here
+// type of local variable depends on the storage type `( int => bool )`
 // local variables cannot have storage types
-// @136..170: found local variable of storage type ( bool => b256 ) here
+// @136..170: found local variable of storage type ( bool => b256 )? here
+// type of local variable depends on the storage type `( bool => b256 )`
 // >>>

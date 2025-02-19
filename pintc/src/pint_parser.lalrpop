@@ -449,10 +449,14 @@ MacroBodyInnerDecls: () = {
 /////////////
 
 Type: Type = {
+    <NonOptionalType>,
+    <OptionalType>,
+}
+
+NonOptionalType: Type = {
     <ArrayType>,
     <VectorType>,
     <TypeAtom>,
-    <OptionalType>,
 }
 
 TypeAtom: Type = {
@@ -524,7 +528,7 @@ TupleField: (Option<Ident>, Type) = {
 }
 
 OptionalType: Type = {
-    <l:@L> "?" <ty: Type> <r:@R> => {
+    <l:@L> <ty: Type> "?" <r:@R> => {
         Type::Optional {
             ty: Box::new(ty),
             span: (context.span_from)(l, r),
@@ -701,7 +705,7 @@ MultOpOp: BinaryOp = {
 }
 
 AsOp: ExprKey = {
-     <l:@L> <value:AsOp> "as" <ty:Type> <r:@R> => {
+     <l:@L> <value:AsOp> "as" <ty:NonOptionalType> <r:@R> => {
         let span = (context.span_from)(l, r);
         context.contract.exprs.insert(
             Expr::Cast {

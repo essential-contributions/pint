@@ -33,11 +33,11 @@ predicate MyPredicate(
     let m2_5_6 = mut storage::m2[5][6];
 
     // Update state
-    constraint s_x' == 7;
-    constraint s_y' == true;
-    constraint s_z' == {8, 0x2222222200000000222222220000000022222222000000002222222200000000};
-    constraint s_a' == [{false, 3}, {true, 4}];
-    constraint s_u' == MyUnion::B;
-    constraint m1_42' == 0x3333333300000000333333330000000033333333000000003333333300000000;
-    constraint m2_5_6' == {true, 69};
+    constraint s_x'! == 7;
+    constraint s_y'! == true;
+    constraint s_z'! == {8, 0x2222222200000000222222220000000022222222000000002222222200000000};
+    constraint s_a'! == [{false, 3}, {true, 4}];
+    constraint s_u'! == MyUnion::B;
+    constraint m1_42'! == 0x3333333300000000333333330000000033333333000000003333333300000000;
+    constraint m2_5_6'! == {true, 69};
 }

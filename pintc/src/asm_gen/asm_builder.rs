@@ -111,8 +111,14 @@ impl<'a> AsmBuilder<'a> {
             let num_keys = access
                 .get_ty(contract)
                 .get_optional_ty()
-                .unwrap()
+                .ok_or_else(|| {
+                    handler.emit_internal_err(
+                        "storage accesses must be of type optional",
+                        empty_span(),
+                    )
+                })?
                 .storage_keys(handler, contract)? as i64;
+
             let access_size = (access.get_ty(contract).size(handler, contract)?) as i64;
 
             let alloc_size = 2 * num_keys // for each key, add the data address then its length
@@ -135,41 +141,27 @@ impl<'a> AsmBuilder<'a> {
         if node.is_leaf() {
             self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
         } else {
-            // This is the size of the returned data. Each non-leaf node returns the length of the
-            // data followed by the data itself. The data length represents the amount of "useful"
-            // data and the rest is padding up to expr_size.
-            let result_size = expr_size;
-
             // Allocate enough memory for the returned data, if needed
-            if total_memory_size < result_size {
-                asm.extend([PUSH(result_size - total_memory_size), ALOC, POP]);
+            if total_memory_size < expr_size {
+                asm.extend([PUSH(expr_size - total_memory_size), ALOC, POP]);
             }
 
-            if expr.is_storage_access(contract) {
-                // If `expr` is a storage access, we have to handle it separately because the
-                // returned data might have length < expr_size
-                asm.push(PUSH(0)); // mem idx where the data will be stored
-                self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
+            // Reserve scratch space at the bottom of the stack. Currently used by morphisms.
+            // TODO: check if this expr contains morphisms and omit this if not.
+            asm.extend([PUSH(2), RES]);
 
-                // Then, store the actual data.
-                asm.extend([PUSH(expr_size), STOR]);
-            } else {
-                // Reserve scratch space at the bottom of the stack.  Currently used by morphisms.
-                asm.extend([PUSH(2), RES]);
+            // Compile and store the data to memory
+            asm.push(PUSH(0)); // mem idx where the data will be stored
+            self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
+            asm.extend([PUSH(expr_size), STOR]);
 
-                // Store the actual data
-                asm.push(PUSH(0)); // mem idx where the data will be stored
-                self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
-                asm.extend([PUSH(expr_size), STOR]);
-
-                // Free the scratch. (Need an 'unreserve' opcode?)
-                asm.extend([POP, POP]);
-            }
+            // Free the scratch. (Need an 'unreserve' opcode?)
+            asm.extend([POP, POP]);
 
             // While compiling the expr we may have allocated more buffers in memory.  We need to
             // shrink memory down to just the result.
             // TODO: have compile_expr() return whether this is necessary.
-            asm.extend([PUSH(result_size), FREE]);
+            asm.extend([PUSH(expr_size), FREE]);
         }
 
         Ok(asm)
@@ -189,61 +181,66 @@ impl<'a> AsmBuilder<'a> {
         let expr_ty = expr.get_ty(contract);
         let expr_size = expr_ty.size(handler, contract)? as i64;
 
-        // For precomputed expressions, just load the value from memory
-        if let Some(mem_idx) = self.precomputed_expr_to_mem_idx.get(expr) {
-            asm.extend([PUSH(*mem_idx), PUSH(expr_size), LODR]);
-        } else {
-            match self.compile_expr_pointer(handler, asm, expr, contract, pred)? {
-                Location::PredicateData => {
-                    asm.extend([PUSH(expr_size), DATA]);
-                }
-
-                Location::Memory => {
-                    if expr_size == 1 {
-                        asm.push(LOD);
-                    } else {
-                        asm.extend([PUSH(expr_size), LODR]);
-                    }
-                }
-
-                Location::Storage(is_extern) => {
-                    let num_keys = expr_ty
-                        .get_optional_ty()
-                        .unwrap()
-                        .storage_keys(handler, contract)? as i64;
-                    let access_mem_idx = self.storage_expr_to_mem_idx[expr];
-
-                    // Read the storage keys into memory
-                    asm.extend([
-                        PUSH(num_keys),
-                        PUSH(access_mem_idx), // mem idx for the output of KREX or KRNG
-                        if is_extern { KREX } else { KRNG },
-                    ]);
-
-                    // Now read the actual data
-                    asm.extend([
-                        PUSH(access_mem_idx + num_keys * 2), // where the actual data lives
-                        PUSH(expr_size - 1),
-                        LODR,
-                    ]);
-
-                    // Sum the sizes of all the values read. These are laid out as follows in
-                    // memory:
-                    // `[a_addr, a_len, b_addr, b_len, a_value, b_value, ...]`
-                    if num_keys > 1 {
-                        asm.push(PUSH(0));
-                        asm.extend(
-                            (0..num_keys)
-                                .flat_map(|i| [PUSH(access_mem_idx + 2 * i + 1), LOD, ADD]),
-                        );
-                    } else {
-                        asm.extend([PUSH(access_mem_idx + 1), LOD]);
-                    }
-                    asm.extend([PUSH(0), EQ, NOT]);
-                }
-
-                Location::Stack => {}
+        match self.compile_expr_pointer(handler, asm, expr, contract, pred)? {
+            Location::PredicateData => {
+                asm.extend([PUSH(expr_size), DATA]);
             }
+
+            Location::Memory => {
+                if expr_size == 1 {
+                    asm.push(LOD);
+                } else {
+                    asm.extend([PUSH(expr_size), LODR]);
+                }
+            }
+
+            Location::Storage(is_extern) => {
+                let num_keys = expr
+                    .get_ty(contract)
+                    .get_optional_ty()
+                    .ok_or_else(|| {
+                        handler.emit_internal_err(
+                            "storage accesses must be of type optional",
+                            empty_span(),
+                        )
+                    })?
+                    .storage_keys(handler, contract)? as i64;
+
+                let access_mem_idx = self.storage_expr_to_mem_idx[expr];
+
+                // Read the storage keys into memory
+                asm.extend([
+                    PUSH(num_keys),
+                    PUSH(access_mem_idx), // mem idx for the output of KREX or KRNG
+                    if is_extern { KREX } else { KRNG },
+                ]);
+
+                // Now read the actual data
+                asm.extend([
+                    PUSH(access_mem_idx + num_keys * 2), // where the actual data lives
+                    PUSH(expr_size - 1),                 // size of the data (excluding the tag)
+                    LODR,
+                ]);
+
+                // Sum the sizes of all the values read. These are laid out as follows in
+                // memory:
+                // `[a_addr, a_len, b_addr, b_len, a_value, b_value, ...]`
+                if num_keys > 1 {
+                    asm.push(PUSH(0));
+                    asm.extend(
+                        (0..num_keys).flat_map(|i| [PUSH(access_mem_idx + 2 * i + 1), LOD, ADD]),
+                    );
+                } else {
+                    asm.extend([PUSH(access_mem_idx + 1), LOD]);
+                }
+
+                // This computes the tag on the stack. If the total size read from storage is
+                // equal to the size of the value in the optional, then the tag should be 1.
+                // Otherwise, it should be 0.
+                asm.extend([PUSH(expr_size - 1), EQ]);
+            }
+
+            Location::Stack => {}
         }
         Ok(asm.len() - old_asm_len)
     }
@@ -260,6 +257,12 @@ impl<'a> AsmBuilder<'a> {
         contract: &Contract,
         pred: &Predicate,
     ) -> Result<Location, ErrorEmitted> {
+        // For precomputed expressions, just return the address in memory
+        if let Some(mem_idx) = self.precomputed_expr_to_mem_idx.get(expr) {
+            asm.push(PUSH(*mem_idx));
+            return Ok(Location::Memory);
+        }
+
         fn compile_immediate(
             handler: &Handler,
             asm: &mut Asm,
@@ -539,18 +542,76 @@ impl<'a> AsmBuilder<'a> {
                 asm.push(SUB);
                 Ok(Location::Stack)
             }
+
             UnaryOp::Unwrap => {
-                match self.compile_expr_pointer(handler, &mut vec![], expr, contract, pred)? {
-                    Location::Stack | Location::Storage(_) => {
-                        self.compile_expr(handler, asm, expr, contract, pred)?;
+                let expr_size = expr.get_ty(contract).size(handler, contract)? as i64;
+                let location = self.compile_expr_pointer(handler, asm, expr, contract, pred)?;
+                match location {
+                    Location::Storage(is_extern) => {
+                        let num_keys = expr
+                            .get_ty(contract)
+                            .get_optional_ty()
+                            .ok_or_else(|| {
+                                handler.emit_internal_err(
+                                    "storage accesses must be of type optional",
+                                    empty_span(),
+                                )
+                            })?
+                            .storage_keys(handler, contract)?
+                            as i64;
+
+                        let access_mem_idx = self.storage_expr_to_mem_idx[expr];
+
+                        // Read the storage keys into memory
+                        asm.extend([
+                            PUSH(num_keys),
+                            PUSH(access_mem_idx), // mem idx for the output of KREX or KRNG
+                            if is_extern { KREX } else { KRNG },
+                        ]);
+
+                        // Sum the sizes of all the values read. These are laid out as follows in
+                        // memory:
+                        // `[a_addr, a_len, b_addr, b_len, a_value, b_value, ...]`
+                        if num_keys > 1 {
+                            asm.push(PUSH(0));
+                            asm.extend(
+                                (0..num_keys)
+                                    .flat_map(|i| [PUSH(access_mem_idx + 2 * i + 1), LOD, ADD]),
+                            );
+                        } else {
+                            asm.extend([PUSH(access_mem_idx + 1), LOD]);
+                        }
+
+                        // This computes the tag on the stack and panics if the tag is 0.
+                        //
+                        // If the total size read from storage is equal to the size of the value in
+                        // the optional, then the tag should be 1.  Otherwise, it should be 0.
+                        asm.extend([PUSH(expr_size - 1), EQ, NOT, PNCIF]);
+
+                        // Now read the actual unwrapped data
+                        asm.extend([
+                            PUSH(access_mem_idx + num_keys * 2), // where the actual data lives
+                            PUSH(expr_size - 1), // size of the data (excluding the tag)
+                            LODR,
+                        ]);
+
+                        Ok(Location::Stack)
+                    }
+
+                    Location::Stack => {
+                        // Panic if the tag is 0. The tag is at the top of the stack. What remains
+                        // is the unwrapped data.
                         asm.extend([NOT, PNCIF]);
                         Ok(Location::Stack)
                     }
-                    Location::Memory => {
-                        self.compile_expr_pointer(handler, asm, expr, contract, pred)?;
-                        Ok(Location::Memory)
+
+                    Location::Memory | Location::PredicateData => {
+                        // Load the tag as the last word in the allocated memory for `expr`. Panic
+                        // if the tag is 0. Otherwise, nothing to be done with the base address
+                        // where the unwrapped data lives.
+                        asm.extend([DUP, PUSH(expr_size - 1), ADD, LOD, NOT, PNCIF]);
+                        Ok(location)
                     }
-                    _ => todo!(),
                 }
             }
             UnaryOp::Error => {
@@ -963,7 +1024,7 @@ impl<'a> AsmBuilder<'a> {
 
         if let Location::Stack | Location::Storage(_) = location {
             return Err(handler.emit_internal_err(
-                "unexpected index operator for `Location::Value` or `Location::Storage`",
+                "unexpected index operator for `Location::Stack` or `Location::Storage`",
                 empty_span(),
             ));
         }
@@ -998,7 +1059,7 @@ impl<'a> AsmBuilder<'a> {
 
         if let Location::Stack | Location::Storage(_) = location {
             return Err(handler.emit_internal_err(
-                "unexpected tuple access for `Location::Value` and `Location::Storage`",
+                "unexpected tuple access for `Location::Stack` and `Location::Storage`",
                 empty_span(),
             ));
         }
@@ -1060,8 +1121,9 @@ impl<'a> AsmBuilder<'a> {
         let expr_ty = expr.get_ty(contract);
         if let Some(value) = value {
             self.compile_expr(handler, asm, value, contract, pred)?;
-            asm.push(PUSH(1));
+            asm.push(PUSH(1)); // tag
         } else {
+            // tag and value are both zeros
             for _ in 0..expr_ty.size(handler, contract)? {
                 asm.push(PUSH(0));
             }
@@ -1128,38 +1190,8 @@ impl<'a> AsmBuilder<'a> {
         match self.compile_expr_pointer(handler, asm, union_expr_key, contract, pred)? {
             Location::PredicateData => asm.extend([PUSH(1), DATA]),
 
-            Location::Storage(is_extern) => {
-                let num_keys = union_expr_key
-                    .get_ty(contract)
-                    .get_optional_ty()
-                    .unwrap()
-                    .storage_keys(handler, contract)? as i64;
-
-                let access_mem_idx = self.storage_expr_to_mem_idx[union_expr_key];
-
-                // Read the storage keys into memory
-                asm.extend([
-                    PUSH(num_keys),
-                    PUSH(access_mem_idx),
-                    if is_extern { KREX } else { KRNG },
-                ]);
-
-                // Sum the sizes of all the values read. These are laid out as follows in
-                // memory:
-                // `[a_addr, a_len, b_addr, b_len, a_value, b_value, ...]`
-                if num_keys > 1 {
-                    asm.push(PUSH(0));
-                    asm.extend(
-                        (0..num_keys).flat_map(|i| [PUSH(access_mem_idx + 2 * i + 1), LOD, ADD]),
-                    );
-                } else {
-                    asm.extend([PUSH(access_mem_idx + 1), LOD]);
-                }
-                asm.extend([PUSH(0), EQ, NOT]);
-            }
-
             // Are these supported?
-            Location::Memory | Location::Stack => {
+            Location::Memory | Location::Storage { .. } | Location::Stack => {
                 unimplemented!("support union matches in non- predicate data?")
             }
         }
@@ -1183,29 +1215,7 @@ impl<'a> AsmBuilder<'a> {
                 Ok(location)
             }
 
-            Location::Storage(is_extern) => {
-                let union_expr_ty = union_expr_key.get_ty(contract);
-                let num_keys = union_expr_ty
-                    .get_optional_ty()
-                    .unwrap()
-                    .storage_keys(handler, contract)? as i64;
-                let union_expr_size = union_expr_ty.size(handler, contract)? as i64;
-
-                let access_mem_idx = self.storage_expr_to_mem_idx[union_expr_key];
-
-                // Read the storage keys into memory
-                asm.extend([
-                    PUSH(num_keys),
-                    PUSH(access_mem_idx), // mem idx for the output of KREX or KRNG
-                    if is_extern { KREX } else { KRNG },
-                    PUSH(access_mem_idx + num_keys * 2), // where the actual data lives
-                    PUSH(union_expr_size - 1),
-                    LODR,
-                ]);
-                Ok(Location::Stack)
-            }
-
-            Location::Stack => {
+            Location::Stack | Location::Storage { .. } => {
                 unimplemented!("union value or unions in storage")
             }
         }
@@ -1257,8 +1267,14 @@ impl<'a> AsmBuilder<'a> {
             Location::Storage(is_extern) => {
                 let num_keys = range_ty
                     .get_optional_ty()
-                    .unwrap()
+                    .ok_or_else(|| {
+                        handler.emit_internal_err(
+                            "storage accesses must be of type optional",
+                            empty_span(),
+                        )
+                    })?
                     .storage_keys(handler, contract)? as i64;
+
                 let access_mem_idx = self.storage_expr_to_mem_idx[range_key];
 
                 asm.append(&mut array_asm);

@@ -3,7 +3,7 @@ storage {
 }
 
 predicate test() {
-    let a = mut storage::ary;
+    let a = mut storage::ary!;
     let b = map x in a' { x * x };
 
     constraint b[0] + b[1] == b[2];
@@ -16,7 +16,7 @@ predicate test() {
 //
 // predicate ::test(
 // ) {
-//     let ::a = mut storage::ary;
+//     let ::a = mut storage::ary!;
 //     let ::b = map x in ::a' { (::x * ::x) };
 //     constraint ((::b[0] + ::b[1]) == ::b[2]);
 // }
@@ -29,7 +29,7 @@ predicate test() {
 //
 // predicate ::test(
 // ) {
-//     let ::a: int[3] = __pre_state({0, 0});
+//     let ::a: int[3] = __pre_state({0, 0})!;
 //     let ::b: int[3] = map x in ::a' { (::x * ::x) };
 //     constraint ((::b[0] + ::b[1]) == ::b[2]);
 //     constraint __eq_set(__mut_keys(), {{0, 0}, 2, {0, (0 + 1)}, 2, {0, (0 + 2)}, 2, 9});

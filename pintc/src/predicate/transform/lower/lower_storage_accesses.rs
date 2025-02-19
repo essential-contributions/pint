@@ -376,12 +376,12 @@ fn get_base_storage_key(
 
             if inner_expr_ty.is_map() || inner_expr_ty.is_vector() {
                 // next key element is the index itself
-                key.push(dbg!(*index));
+                key.push(*index);
 
                 // Extract the wrapped type
                 let Some(expr_ty) = expr_ty.get_optional_ty() else {
                     return Err(handler.emit_internal_err(
-                        "storage accesses must be of type optional",
+                        "3. storage accesses must be of type optional",
                         empty_span(),
                     ));
                 };

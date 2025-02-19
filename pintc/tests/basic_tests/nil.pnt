@@ -51,28 +51,13 @@ predicate test() {
 // }
 // >>>
 
-// flattened <<<
-// storage {
-//     x: int,
-//     z: {int, int, int},
-// }
-//
-// predicate ::test(
-// ) {
-//     let ::x: int = __pre_state({0});
-//     let ::z: {int, int, int} = __pre_state({1, 0});
-//     constraint false;
-//     constraint false;
-//     constraint (__size_of(::x) == 0);
-//     constraint (__size_of(::x) == 0);
-//     constraint (__size_of(::z) == 0);
-//     constraint (__size_of(::z) == 0);
-//     constraint (__size_of(::x) != 0);
-//     constraint (__size_of(::x) != 0);
-//     constraint (__size_of(::z) != 0);
-//     constraint (__size_of(::z) != 0);
-//     constraint ((__size_of(::z) == 0) && (__size_of(::x) != 0));
-//     constraint ((__size_of(::z) != 0) && (__size_of(::x) == 0));
-//     constraint __eq_set(__mut_keys(), {0});
-// }
+// typecheck_failure <<<
+// uninferrable type
+// @166..169: type of this expression cannot be inferred
+// uninferrable type
+// @159..162: type of this expression cannot be inferred
+// uninferrable type
+// @139..142: type of this expression cannot be inferred
+// uninferrable type
+// @132..135: type of this expression cannot be inferred
 // >>>

@@ -12,11 +12,11 @@ predicate Transfer(
     constraint from != 0x0000000000000000000000000000000000000000000000000000000000000000;
     constraint to != 0x0000000000000000000000000000000000000000000000000000000000000000;
 
-    let from_balance = storage::balances[from];
+    let from_balance = storage::balances[from]!;
     constraint from_balance >= value;
     constraint from_balance' == from_balance - value;
 
-    let to_balance = storage::balances[to];
+    let to_balance = storage::balances[to]!;
     constraint to_balance' == to_balance + value;
 }
 
@@ -25,10 +25,10 @@ predicate Mint(
     account: b256,
     value: int,
 ) {
-    let total_supply = storage::total_supply;
+    let total_supply = storage::total_supply!;
     constraint total_supply' == total_supply + value;
 
-    let account_balance = storage::balances[account];
+    let account_balance = storage::balances[account]!;
     constraint account_balance' == account_balance + value;
 }
 
@@ -37,11 +37,11 @@ predicate Burn (
     account: b256,
     value: int,
 ) {
-    let account_balance = storage::balances[account];
+    let account_balance = storage::balances[account]!;
     constraint account_balance >= value;
     constraint account_balance' == account_balance - value;
 
-    let total_supply = storage::total_supply;
+    let total_supply = storage::total_supply!;
     constraint total_supply' == total_supply - value;
 }
 
@@ -56,8 +56,8 @@ predicate Burn (
 //     ::to: b256,
 //     ::value: int,
 // ) {
-//     let ::from_balance = storage::balances[::from];
-//     let ::to_balance = storage::balances[::to];
+//     let ::from_balance = storage::balances[::from]!;
+//     let ::to_balance = storage::balances[::to]!;
 //     constraint (::from != 0x0000000000000000000000000000000000000000000000000000000000000000);
 //     constraint (::to != 0x0000000000000000000000000000000000000000000000000000000000000000);
 //     constraint (::from_balance >= ::value);
@@ -69,8 +69,8 @@ predicate Burn (
 //     ::account: b256,
 //     ::value: int,
 // ) {
-//     let ::total_supply = storage::total_supply;
-//     let ::account_balance = storage::balances[::account];
+//     let ::total_supply = storage::total_supply!;
+//     let ::account_balance = storage::balances[::account]!;
 //     constraint (::total_supply' == (::total_supply + ::value));
 //     constraint (::account_balance' == (::account_balance + ::value));
 // }
@@ -79,8 +79,8 @@ predicate Burn (
 //     ::account: b256,
 //     ::value: int,
 // ) {
-//     let ::account_balance = storage::balances[::account];
-//     let ::total_supply = storage::total_supply;
+//     let ::account_balance = storage::balances[::account]!;
+//     let ::total_supply = storage::total_supply!;
 //     constraint (::account_balance >= ::value);
 //     constraint (::account_balance' == (::account_balance - ::value));
 //     constraint (::total_supply' == (::total_supply - ::value));
@@ -98,8 +98,8 @@ predicate Burn (
 //     ::to: b256,
 //     ::value: int,
 // ) {
-//     let ::from_balance: int = __pre_state({0, ::from});
-//     let ::to_balance: int = __pre_state({0, ::to});
+//     let ::from_balance: int = __pre_state({0, ::from})!;
+//     let ::to_balance: int = __pre_state({0, ::to})!;
 //     constraint (::from != 0x0000000000000000000000000000000000000000000000000000000000000000);
 //     constraint (::to != 0x0000000000000000000000000000000000000000000000000000000000000000);
 //     constraint (::from_balance >= ::value);
@@ -112,8 +112,8 @@ predicate Burn (
 //     ::account: b256,
 //     ::value: int,
 // ) {
-//     let ::total_supply: int = __pre_state({1});
-//     let ::account_balance: int = __pre_state({0, ::account});
+//     let ::total_supply: int = __pre_state({1})!;
+//     let ::account_balance: int = __pre_state({0, ::account})!;
 //     constraint (::total_supply' == (::total_supply + ::value));
 //     constraint (::account_balance' == (::account_balance + ::value));
 //     constraint __eq_set(__mut_keys(), {0});
@@ -123,8 +123,8 @@ predicate Burn (
 //     ::account: b256,
 //     ::value: int,
 // ) {
-//     let ::account_balance: int = __pre_state({0, ::account});
-//     let ::total_supply: int = __pre_state({1});
+//     let ::account_balance: int = __pre_state({0, ::account})!;
+//     let ::total_supply: int = __pre_state({1})!;
 //     constraint (::account_balance >= ::value);
 //     constraint (::account_balance' == (::account_balance - ::value));
 //     constraint (::total_supply' == (::total_supply - ::value));

@@ -490,6 +490,7 @@ impl Type {
                 }
                 None
             }
+            Type::Optional { ty, .. } => ty.get_storage_only_ty(contract),
             Type::Alias { ty, .. } => ty.get_storage_only_ty(contract),
             Type::Union { decl, .. } => {
                 let union_decl = contract
@@ -1059,6 +1060,13 @@ pub fn tuple(fields: Vec<Type>) -> Type {
 
 pub fn vector(ty: Type) -> Type {
     Type::Vector {
+        ty: Box::new(ty),
+        span: empty_span(),
+    }
+}
+
+pub fn optional(ty: Type) -> Type {
+    Type::Optional {
         ty: Box::new(ty),
         span: empty_span(),
     }

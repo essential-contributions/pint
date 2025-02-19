@@ -39,15 +39,15 @@ predicate test() {
 
 // typecheck_failure <<<
 // variable initialization type error
-// @228..238: initializing expression has unexpected type `int`
+// @228..238: initializing expression has unexpected type `int?`
 // @221..225: expecting type `bool`
 // variable initialization type error
-// @259..269: initializing expression has unexpected type `bool`
+// @259..269: initializing expression has unexpected type `bool?`
 // @253..256: expecting type `int`
 // variable initialization type error
-// @301..317: initializing expression has unexpected type `int`
+// @301..317: initializing expression has unexpected type `int?`
 // @294..298: expecting type `bool`
 // variable initialization type error
-// @348..370: initializing expression has unexpected type `bool`
+// @348..370: initializing expression has unexpected type `bool?`
 // @342..345: expecting type `int`
 // >>>

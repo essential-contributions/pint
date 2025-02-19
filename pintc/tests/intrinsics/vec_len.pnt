@@ -48,8 +48,8 @@ predicate test() {
 //
 // predicate ::test(
 // ) {
-//     let ::l: int = __pre_state({0});
-//     let ::l2: int = __pre_state_extern(0x0000000000000000000000000000000000000000000000000000000000000000, {0});
+//     let ::l: int? = __pre_state({0});
+//     let ::l2: int? = __pre_state_extern(0x0000000000000000000000000000000000000000000000000000000000000000, {0});
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
