@@ -73,7 +73,9 @@ pub(crate) fn lower_aliases(contract: &mut Contract) {
                 }
             }
 
-            Type::Array { ty, .. } => replace_alias(new_types_map, ty),
+            Type::FixedArray { ty, .. } | Type::UnsizedArray { ty, .. } => {
+                replace_alias(new_types_map, ty)
+            }
 
             Type::Tuple { fields, .. } => fields
                 .iter_mut()

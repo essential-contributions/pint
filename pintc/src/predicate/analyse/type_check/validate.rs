@@ -15,7 +15,9 @@ impl Contract {
         // Helper function that searches for nested undefined type in a given type.
         fn check_custom_type(ty: &Type, handler: &Handler) {
             match ty {
-                Type::Array { ty, .. } => check_custom_type(ty, handler),
+                Type::FixedArray { ty, .. } | Type::UnsizedArray { ty, .. } => {
+                    check_custom_type(ty, handler)
+                }
                 Type::Tuple { fields, .. } => fields
                     .iter()
                     .for_each(|(_, field)| check_custom_type(field, handler)),
@@ -250,7 +252,9 @@ impl Contract {
                         error: CompileError::UninferrableType { span: span.clone() },
                     });
                 }
-                Type::Array { ty, .. } => check_any_type(ty, handler),
+                Type::FixedArray { ty, .. } | Type::UnsizedArray { ty, .. } => {
+                    check_any_type(ty, handler)
+                }
                 Type::Tuple { fields, .. } => fields
                     .iter()
                     .for_each(|(_, field)| check_any_type(field, handler)),

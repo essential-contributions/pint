@@ -118,7 +118,8 @@ fn check_expr(
         Type::Alias { span, .. } => {
             emit_illegal_type_error!(handler, span, "type alias", "expr_types");
         }
-        Type::Array { .. }
+        Type::FixedArray { .. }
+        | Type::UnsizedArray { .. }
         | Type::Tuple { .. }
         | Type::Primitive { .. }
         | Type::Optional { .. }

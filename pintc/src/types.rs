@@ -27,10 +27,14 @@ pub enum Type {
         kind: PrimitiveKind,
         span: Span,
     },
-    Array {
+    FixedArray {
         ty: Box<Self>,
         range: Option<ExprKey>,
         size: Option<i64>,
+        span: Span,
+    },
+    UnsizedArray {
+        ty: Box<Self>,
         span: Span,
     },
     Tuple {
@@ -308,22 +312,21 @@ impl Type {
     }
 
     pub fn is_array(&self) -> bool {
-        check_alias!(self, is_array, matches!(self, Type::Array { .. }))
+        check_alias!(self, is_array, matches!(self, Type::FixedArray { .. }))
     }
 
     pub fn get_array_el_type(&self) -> Option<&Type> {
         check_alias!(self, get_array_el_type, {
-            if let Type::Array { ty, .. } = self {
-                Some(ty)
-            } else {
-                None
+            match self {
+                Type::FixedArray { ty, .. } | Type::UnsizedArray { ty, .. } => Some(ty),
+                _ => None,
             }
         })
     }
 
     pub fn get_array_range_expr(&self) -> Option<ExprKey> {
         check_alias!(self, get_array_range_expr, {
-            if let Type::Array { range, .. } = self {
+            if let Type::FixedArray { range, .. } = self {
                 *range
             } else {
                 None
@@ -337,7 +340,7 @@ impl Type {
     pub fn get_all_array_range_exprs(&self) -> Vec<ExprKey> {
         let mut range_exprs = Vec::new();
         match self {
-            Self::Array { ty, range, .. } => {
+            Self::FixedArray { ty, range, .. } => {
                 range_exprs.extend(ty.get_all_array_range_exprs());
                 if let Some(range) = range {
                     range_exprs.push(*range);
@@ -366,7 +369,7 @@ impl Type {
 
     pub fn get_array_size(&self) -> Option<i64> {
         check_alias!(self, get_array_size, {
-            if let Type::Array { size, .. } = self {
+            if let Type::FixedArray { size, .. } = self {
                 *size
             } else {
                 None
@@ -480,7 +483,7 @@ impl Type {
     pub fn get_storage_only_ty(&self, contract: &Contract) -> Option<Self> {
         match self {
             Type::Map { .. } | Type::Vector { .. } => Some(self.clone()),
-            Type::Array { ty, .. } => ty.get_storage_only_ty(contract),
+            Type::FixedArray { ty, .. } => ty.get_storage_only_ty(contract),
             Type::Tuple { fields, .. } => {
                 for (_, field) in fields {
                     let ty = field.get_storage_only_ty(contract);
@@ -523,7 +526,7 @@ impl Type {
                 // We only support vectors of these types for now
                 ty.is_bool() || ty.is_int() || ty.is_b256()
             }
-            Type::Array { ty, .. } => ty.is_allowed_in_storage(contract),
+            Type::FixedArray { ty, .. } => ty.is_allowed_in_storage(contract),
             Type::Tuple { fields, .. } => fields.iter().fold(true, |acc, (_, field)| {
                 acc && field.is_allowed_in_storage(contract)
             }),
@@ -553,7 +556,7 @@ impl Type {
                 field_ty.size(handler, contract).map(|size| acc + size)
             }),
 
-            Self::Array {
+            Self::FixedArray {
                 ty, range, size, ..
             } => Ok(ty.size(handler, contract)?
                 * size.unwrap_or(Self::get_array_size_from_range_expr(
@@ -594,6 +597,7 @@ impl Type {
                 kind: PrimitiveKind::String | PrimitiveKind::Real,
                 span,
             }
+            | Self::UnsizedArray { span, .. }
             | Self::Error(span)
             | Self::Unknown(span)
             | Self::Any(span)
@@ -624,7 +628,7 @@ impl Type {
                     .map(|slots| acc + slots)
             }),
 
-            Self::Array {
+            Self::FixedArray {
                 ty, range, size, ..
             } => Ok(ty.storage_keys(handler, contract)?
                 * size.unwrap_or(Self::get_array_size_from_range_expr(
@@ -632,6 +636,9 @@ impl Type {
                     range.expect("expecting a valid range at this point"),
                     contract,
                 )?) as usize),
+
+            // `SizedArray` takes up a single storage slot that stores the length of the array.
+            Self::UnsizedArray { .. } => Ok(1),
 
             // Unions fit in a single slot since we can't access within a union without a `match`
             // first. So, might as well store the whole thing in a single key
@@ -689,7 +696,7 @@ impl Type {
                     .collect::<Result<Vec<_>, _>>()?,
             )),
 
-            Type::Array {
+            Type::FixedArray {
                 ty, range, size, ..
             } => Ok(TypeABI::Array {
                 ty: Box::new(ty.abi(handler, contract)?),
@@ -751,7 +758,11 @@ impl Type {
 
             // This is sub-optimal; we're saying two arrays of the same element type are
             // equivalent, regardless of their size.
-            (Self::Array { ty: lhs_ty, .. }, Self::Array { ty: rhs_ty, .. }) => {
+            (Self::FixedArray { ty: lhs_ty, .. }, Self::FixedArray { ty: rhs_ty, .. }) => {
+                lhs_ty.eq(contract, rhs_ty)
+            }
+
+            (Self::UnsizedArray { ty: lhs_ty, .. }, Self::UnsizedArray { ty: rhs_ty, .. }) => {
                 lhs_ty.eq(contract, rhs_ty)
             }
 
@@ -906,7 +917,7 @@ impl Type {
 
     pub fn replace_type_expr(&mut self, old_expr: ExprKey, new_expr: ExprKey) {
         match self {
-            Type::Array { ty, range, .. } => {
+            Type::FixedArray { ty, range, .. } => {
                 // Arrays are the only type which have an expr key.
                 if let Some(range) = range {
                     if *range == old_expr {
@@ -939,6 +950,7 @@ impl Type {
             | Type::Any(_)
             | Type::Nil(_)
             | Type::Primitive { .. }
+            | Type::UnsizedArray { .. }
             | Type::Custom { .. }
             | Type::Union { .. } => {}
         }
@@ -954,7 +966,8 @@ impl Spanned for Type {
             | Any(span)
             | Nil(span)
             | Primitive { span, .. }
-            | Array { span, .. }
+            | FixedArray { span, .. }
+            | UnsizedArray { span, .. }
             | Tuple { span, .. }
             | Union { span, .. }
             | Optional { span, .. }
