@@ -52,7 +52,7 @@ impl Contract {
                 }
 
                 // Recurse.
-                Type::Array { ty, .. } => {
+                Type::FixedArray { ty, .. } | Type::UnsizedArray { ty, .. } => {
                     modified = replace_alias_target(alias_map, ty);
                 }
                 Type::Tuple { fields, .. } => {
@@ -136,7 +136,9 @@ impl Contract {
             ty: &'a Type,
         ) -> Result<(), ErrorEmitted> {
             match ty {
-                Type::Array { ty, .. } => inspect_type_names(handler, contract, seen_names, ty),
+                Type::FixedArray { ty, .. } | Type::UnsizedArray { ty, .. } => {
+                    inspect_type_names(handler, contract, seen_names, ty)
+                }
 
                 Type::Tuple { fields, .. } => fields
                     .iter()
@@ -242,7 +244,7 @@ impl Contract {
                 }
 
                 // Recurse for these types.
-                Type::Array { ty, .. } => {
+                Type::FixedArray { ty, .. } | Type::UnsizedArray { ty, .. } => {
                     replace_custom_type(new_types, union_keys, ty.borrow_mut())
                 }
 

@@ -1009,7 +1009,7 @@ impl<'a> AsmBuilder<'a> {
         }
 
         // Grab the element ty of the array
-        let Type::Array { ty, .. } = expr.get_ty(contract) else {
+        let Type::FixedArray { ty, .. } = expr.get_ty(contract) else {
             return Err(
                 handler.emit_internal_err("type must exist and be an array type", empty_span())
             );

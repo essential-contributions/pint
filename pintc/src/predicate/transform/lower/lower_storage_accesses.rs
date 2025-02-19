@@ -373,7 +373,7 @@ fn get_base_storage_key(
                     key.push(contract.exprs.insert_int(0)); // placeholder for offsets
                 }
             } else {
-                let Type::Array { ty, .. } = expr.get_ty(contract) else {
+                let Type::FixedArray { ty, .. } = expr.get_ty(contract) else {
                     return Err(handler
                         .emit_internal_err("type must exist and be an array type", empty_span()));
                 };
