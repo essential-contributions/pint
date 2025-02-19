@@ -1,0 +1,13 @@
+type a1 = int[][5];
+type a2 = int[4][];
+
+type b = { int, int[3], int[] };
+
+union c = x(bool) | y(bool[2]) | z(bool[]);
+
+predicate test(p: { int, bool[] }) {
+
+    let f: bool[] = p.1;
+
+    constraint __len(f) == __len(p.1);
+}
