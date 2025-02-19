@@ -218,7 +218,7 @@ impl Immediate {
 
             Immediate::Array(elements) => {
                 // Assume all elements have the same type.
-                Type::Array {
+                Type::FixedArray {
                     ty: Box::new(
                         elements
                             .first()

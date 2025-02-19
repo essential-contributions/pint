@@ -1,0 +1,45 @@
+storage {
+    s: bool[4],
+}
+
+predicate test(p: int[3]) {
+    constraint __len(p) < 11;
+
+    constraint __len([1, 2, 3]) < 22;
+
+    let a: int[2] = [4, 5];
+    constraint __len(a) < 33;
+
+    constraint __len(storage::s) < 44;
+}
+
+// parsed <<<
+// storage {
+//     s: bool[4],
+// }
+//
+// predicate ::test(
+//     ::p: int[3],
+// ) {
+//     let ::a: int[2] = [4, 5];
+//     constraint (__len(::p) < 11);
+//     constraint (__len([1, 2, 3]) < 22);
+//     constraint (__len(::a) < 33);
+//     constraint (__len(storage::s) < 44);
+// }
+// >>>
+
+// typecheck_failure <<<
+// incorrect intrinsic argument
+// @78..79: expected `_[_]`, found `int[3]`
+// @72..77: arguments to this intrinsic are incorrect`
+// incorrect intrinsic argument
+// @109..118: expected `_[_]`, found `int[3]`
+// @103..108: arguments to this intrinsic are incorrect`
+// incorrect intrinsic argument
+// @176..177: expected `_[_]`, found `int[2]`
+// @170..175: arguments to this intrinsic are incorrect`
+// incorrect intrinsic argument
+// @207..217: expected `_[_]`, found `bool[4]?`
+// @201..206: arguments to this intrinsic are incorrect`
+// >>>

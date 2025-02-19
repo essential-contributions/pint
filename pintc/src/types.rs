@@ -27,10 +27,14 @@ pub enum Type {
         kind: PrimitiveKind,
         span: Span,
     },
-    Array {
+    FixedArray {
         ty: Box<Self>,
         range: Option<ExprKey>,
         size: Option<i64>,
+        span: Span,
+    },
+    UnsizedArray {
+        ty: Box<Self>,
         span: Span,
     },
     Tuple {
@@ -308,22 +312,21 @@ impl Type {
     }
 
     pub fn is_array(&self) -> bool {
-        check_alias!(self, is_array, matches!(self, Type::Array { .. }))
+        check_alias!(self, is_array, matches!(self, Type::FixedArray { .. }))
     }
 
     pub fn get_array_el_type(&self) -> Option<&Type> {
         check_alias!(self, get_array_el_type, {
-            if let Type::Array { ty, .. } = self {
-                Some(ty)
-            } else {
-                None
+            match self {
+                Type::FixedArray { ty, .. } | Type::UnsizedArray { ty, .. } => Some(ty),
+                _ => None,
             }
         })
     }
 
     pub fn get_array_range_expr(&self) -> Option<ExprKey> {
         check_alias!(self, get_array_range_expr, {
-            if let Type::Array { range, .. } = self {
+            if let Type::FixedArray { range, .. } = self {
                 *range
             } else {
                 None
@@ -334,31 +337,46 @@ impl Type {
     /// Returns all array range expressions in given type. For example, given the following
     /// expression `{ int, int[3 + 3], int[a][b] }`, this method a vector of `ExprKey` that point
     /// to the following expressions `3 + 3`, `a`, `b`.
-    pub fn get_all_array_range_exprs(&self) -> Vec<ExprKey> {
+    pub fn get_all_array_range_exprs(&self, contract: &Contract) -> Vec<ExprKey> {
         let mut range_exprs = Vec::new();
         match self {
-            Self::Array { ty, range, .. } => {
-                range_exprs.extend(ty.get_all_array_range_exprs());
+            Self::FixedArray { ty, range, .. } => {
+                range_exprs.extend(ty.get_all_array_range_exprs(contract));
                 if let Some(range) = range {
                     range_exprs.push(*range);
                 }
             }
             Self::Tuple { fields, .. } => {
                 for field in fields {
-                    range_exprs.extend(field.1.get_all_array_range_exprs());
+                    range_exprs.extend(field.1.get_all_array_range_exprs(contract));
                 }
             }
-            Self::Alias { ty, .. } => {
-                range_exprs.extend(ty.get_all_array_range_exprs());
-            }
             Self::Map { ty_from, ty_to, .. } => {
-                range_exprs.extend(ty_from.get_all_array_range_exprs());
-                range_exprs.extend(ty_to.get_all_array_range_exprs());
+                range_exprs.extend(ty_from.get_all_array_range_exprs(contract));
+                range_exprs.extend(ty_to.get_all_array_range_exprs(contract));
             }
-            Self::Vector { ty, .. } => {
-                range_exprs.extend(ty.get_all_array_range_exprs());
+
+            Self::Union { decl, .. } => {
+                if let Some(UnionDecl { variants, .. }) = contract.unions.get(*decl) {
+                    for variant in variants {
+                        if let Some(ty) = &variant.ty {
+                            range_exprs.extend(ty.get_all_array_range_exprs(contract));
+                        }
+                    }
+                }
             }
-            _ => {}
+
+            Self::UnsizedArray { ty, .. }
+            | Self::Alias { ty, .. }
+            | Self::Optional { ty, .. }
+            | Self::Vector { ty, .. } => range_exprs.extend(ty.get_all_array_range_exprs(contract)),
+
+            Self::Error(_)
+            | Self::Unknown(_)
+            | Self::Any(_)
+            | Self::Nil(_)
+            | Self::Primitive { .. }
+            | Self::Custom { .. } => {}
         }
 
         range_exprs
@@ -366,7 +384,7 @@ impl Type {
 
     pub fn get_array_size(&self) -> Option<i64> {
         check_alias!(self, get_array_size, {
-            if let Type::Array { size, .. } = self {
+            if let Type::FixedArray { size, .. } = self {
                 *size
             } else {
                 None
@@ -480,33 +498,31 @@ impl Type {
     pub fn get_storage_only_ty(&self, contract: &Contract) -> Option<Self> {
         match self {
             Type::Map { .. } | Type::Vector { .. } => Some(self.clone()),
-            Type::Array { ty, .. } => ty.get_storage_only_ty(contract),
-            Type::Tuple { fields, .. } => {
-                for (_, field) in fields {
-                    let ty = field.get_storage_only_ty(contract);
-                    if let Some(ty) = ty {
-                        return Some(ty);
-                    }
-                }
-                None
-            }
-            Type::Optional { ty, .. } => ty.get_storage_only_ty(contract),
-            Type::Alias { ty, .. } => ty.get_storage_only_ty(contract),
-            Type::Union { decl, .. } => {
-                let union_decl = contract
-                    .unions
-                    .get(*decl)
-                    .expect("union decl guaranteed to exist");
-                for variant in &union_decl.variants {
-                    if let Some(variant_ty) = &variant.ty {
-                        if let Some(ty) = variant_ty.get_storage_only_ty(contract) {
-                            return Some(ty);
-                        }
-                    }
-                }
-                None
-            }
-            _ => None,
+
+            Type::Tuple { fields, .. } => fields
+                .iter()
+                .find_map(|(_, field)| field.get_storage_only_ty(contract)),
+
+            Type::Union { decl, .. } => contract.unions.get(*decl).and_then(|union_decl| {
+                union_decl.variants.iter().find_map(|variant| {
+                    variant
+                        .ty
+                        .as_ref()
+                        .and_then(|variant_ty| variant_ty.get_storage_only_ty(contract))
+                })
+            }),
+
+            Type::FixedArray { ty, .. }
+            | Type::UnsizedArray { ty, .. }
+            | Type::Optional { ty, .. }
+            | Type::Alias { ty, .. } => ty.get_storage_only_ty(contract),
+
+            Type::Error(_)
+            | Type::Unknown(_)
+            | Type::Any(_)
+            | Type::Nil(_)
+            | Type::Primitive { .. }
+            | Type::Custom { .. } => None,
         }
     }
 
@@ -515,25 +531,54 @@ impl Type {
     // - Storage vectors where the element type is not bool, int, nor b256
     pub fn is_allowed_in_storage(&self, contract: &Contract) -> bool {
         match self {
-            Type::Map { ty_from, ty_to, .. } => {
-                ty_from.get_storage_only_ty(contract).is_none()
-                    && ty_to.is_allowed_in_storage(contract)
-            }
             Type::Vector { ty, .. } => {
                 // We only support vectors of these types for now
                 ty.is_bool() || ty.is_int() || ty.is_b256()
             }
-            Type::Array { ty, .. } => ty.is_allowed_in_storage(contract),
-            Type::Tuple { fields, .. } => fields.iter().fold(true, |acc, (_, field)| {
-                acc && field.is_allowed_in_storage(contract)
-            }),
-            Type::Alias { ty, .. } => ty.is_allowed_in_storage(contract),
+
             Type::Custom { .. } => {
                 // Disallow custom types since they're ambiguous. Hopefully, by the time we need
                 // this method, all custom types are gone.
                 false
             }
-            _ => true,
+
+            Type::UnsizedArray { .. } => {
+                // Disallow unsized arrays.  The top level unsized arrays should be converted to
+                // `Type::Vector` already, and so any embedded unsized arrays are then disallowed.
+                false
+            }
+
+            Type::Map { ty_from, ty_to, .. } => {
+                ty_from.get_storage_only_ty(contract).is_none()
+                    && ty_from.is_allowed_in_storage(contract)
+                    && ty_to.is_allowed_in_storage(contract)
+            }
+
+            Type::Tuple { fields, .. } => fields
+                .iter()
+                .all(|(_, field)| field.is_allowed_in_storage(contract)),
+
+            Type::Union { decl, .. } => contract
+                .unions
+                .get(*decl)
+                .map(|union_decl| {
+                    union_decl.variants.iter().all(|variant| {
+                        variant
+                            .ty
+                            .as_ref()
+                            .map(|ty| ty.is_allowed_in_storage(contract))
+                            .unwrap_or(true)
+                    })
+                })
+                .unwrap_or(true),
+
+            Type::FixedArray { ty, .. } | Type::Alias { ty, .. } | Type::Optional { ty, .. } => {
+                ty.is_allowed_in_storage(contract)
+            }
+
+            Type::Nil(_) | Type::Primitive { .. } => true,
+
+            Type::Error(_) | Type::Unknown(_) | Type::Any(_) => false,
         }
     }
 
@@ -553,7 +598,7 @@ impl Type {
                 field_ty.size(handler, contract).map(|size| acc + size)
             }),
 
-            Self::Array {
+            Self::FixedArray {
                 ty, range, size, ..
             } => Ok(ty.size(handler, contract)?
                 * size.unwrap_or(Self::get_array_size_from_range_expr(
@@ -586,6 +631,15 @@ impl Type {
 
             // `Vector` also takes up a single storage slot that stores the length of the vector
             Self::Vector { .. } => Ok(1),
+
+            // For now unsized arrays aren't supported in places where we'd need to know the size
+            // of the type.  In the future we should special case them out into different ASM gen
+            // which will handle them with __len() or equivalent.  Giving it a unique error here,
+            // but still Internal.
+            Self::UnsizedArray { span, .. } => Err(handler.emit_internal_err(
+                "cannot use or refer to dynamic arrays here (yet)",
+                span.clone(),
+            )),
 
             // Not expecting any of these types at this stage. These are either unsupported types
             // (like `String` and `Real`) or types that should have been resolved by the time we
@@ -624,7 +678,7 @@ impl Type {
                     .map(|slots| acc + slots)
             }),
 
-            Self::Array {
+            Self::FixedArray {
                 ty, range, size, ..
             } => Ok(ty.storage_keys(handler, contract)?
                 * size.unwrap_or(Self::get_array_size_from_range_expr(
@@ -632,6 +686,9 @@ impl Type {
                     range.expect("expecting a valid range at this point"),
                     contract,
                 )?) as usize),
+
+            // `SizedArray` takes up a single storage slot that stores the length of the array.
+            Self::UnsizedArray { .. } => Ok(1),
 
             // Unions fit in a single slot since we can't access within a union without a `match`
             // first. So, might as well store the whole thing in a single key
@@ -689,7 +746,7 @@ impl Type {
                     .collect::<Result<Vec<_>, _>>()?,
             )),
 
-            Type::Array {
+            Type::FixedArray {
                 ty, range, size, ..
             } => Ok(TypeABI::Array {
                 ty: Box::new(ty.abi(handler, contract)?),
@@ -725,7 +782,7 @@ impl Type {
 
             // This, of course, is incorrect. It's just a placeholder until we can support ABI gen
             // for vectors, which is non-trivial.
-            Type::Vector { .. } => Ok(TypeABI::Int),
+            Type::UnsizedArray { .. } | Type::Vector { .. } => Ok(TypeABI::Int),
 
             _ => unimplemented!("other types are not yet supported"),
         }
@@ -751,7 +808,11 @@ impl Type {
 
             // This is sub-optimal; we're saying two arrays of the same element type are
             // equivalent, regardless of their size.
-            (Self::Array { ty: lhs_ty, .. }, Self::Array { ty: rhs_ty, .. }) => {
+            (Self::FixedArray { ty: lhs_ty, .. }, Self::FixedArray { ty: rhs_ty, .. }) => {
+                lhs_ty.eq(contract, rhs_ty)
+            }
+
+            (Self::UnsizedArray { ty: lhs_ty, .. }, Self::UnsizedArray { ty: rhs_ty, .. }) => {
                 lhs_ty.eq(contract, rhs_ty)
             }
 
@@ -906,7 +967,7 @@ impl Type {
 
     pub fn replace_type_expr(&mut self, old_expr: ExprKey, new_expr: ExprKey) {
         match self {
-            Type::Array { ty, range, .. } => {
+            Type::FixedArray { ty, range, .. } => {
                 // Arrays are the only type which have an expr key.
                 if let Some(range) = range {
                     if *range == old_expr {
@@ -939,6 +1000,7 @@ impl Type {
             | Type::Any(_)
             | Type::Nil(_)
             | Type::Primitive { .. }
+            | Type::UnsizedArray { .. }
             | Type::Custom { .. }
             | Type::Union { .. } => {}
         }
@@ -954,7 +1016,8 @@ impl Spanned for Type {
             | Any(span)
             | Nil(span)
             | Primitive { span, .. }
-            | Array { span, .. }
+            | FixedArray { span, .. }
+            | UnsizedArray { span, .. }
             | Tuple { span, .. }
             | Union { span, .. }
             | Optional { span, .. }
@@ -1054,6 +1117,13 @@ pub fn b256() -> Type {
 pub fn string() -> Type {
     Type::Primitive {
         kind: PrimitiveKind::String,
+        span: empty_span(),
+    }
+}
+
+pub fn dyn_array(ty: Type) -> Type {
+    Type::UnsizedArray {
+        ty: Box::new(ty),
         span: empty_span(),
     }
 }

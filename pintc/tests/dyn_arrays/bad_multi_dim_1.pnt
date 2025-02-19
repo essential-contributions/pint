@@ -1,0 +1,10 @@
+type a = int[4][];
+
+predicate test() {
+    constraint __len(a) > 0;
+}
+
+// parse_failure <<<
+// expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `map`, `match`, `mut`, `storage`, or `{`, found `]`
+// @16..17: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `map`, `match`, `mut`, `storage`, or `{`
+// >>>

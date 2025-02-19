@@ -248,17 +248,17 @@ fn storage_types() {
 
     check(
         &run_parser!(storage_var_type, "int[]"),
-        expect_test::expect!["int[]"],
+        expect_test::expect!["int[_]"],
     );
 
     check(
         &run_parser!(storage_var_type, "b256[]"),
-        expect_test::expect!["b256[]"],
+        expect_test::expect!["b256[_]"],
     );
 
     check(
         &run_parser!(storage_var_type, "bool[]"),
-        expect_test::expect!["bool[]"],
+        expect_test::expect!["bool[_]"],
     );
 
     // Multi dimensional vectors are not yet supported
@@ -2041,7 +2041,6 @@ fn array_type() {
         expect_test::expect!["{int, {bool, b256}}[9][::N]"],
     );
 
-    // This should fail in type checking
     check(
         &run_parser!(
             (yp::PintParser::new(), ""),
@@ -2050,7 +2049,7 @@ fn array_type() {
         expect_test::expect![[r#"
 
             predicate ::test(
-                ::a: int[],
+                ::a: int[_],
             ) {
             }"#]],
     );
