@@ -19,6 +19,7 @@ impl DisplayWithContract for &super::Expr {
     fn fmt(&self, f: &mut Formatter, contract: &Contract) -> Result {
         match self {
             super::Expr::Error(..) => write!(f, "Error"),
+
             super::Expr::Immediate { value, .. } => value.fmt(f, contract),
 
             super::Expr::Array { elements, .. } => {
@@ -51,13 +52,23 @@ impl DisplayWithContract for &super::Expr {
                 Ok(())
             }
 
+            super::Expr::Optional { value, .. } => {
+                if let Some(value) = value {
+                    write!(f, "val({})", contract.with_ctrct(value))
+                } else {
+                    write!(f, "nil")
+                }
+            }
+
             super::Expr::Path(p, _) => write!(f, "{p}"),
+
             super::Expr::LocalStorageAccess { name, mutable, .. } => {
                 if *mutable {
                     write!(f, "mut ")?;
                 }
                 write!(f, "storage::{name}")
             }
+
             super::Expr::ExternalStorageAccess {
                 interface,
                 address,
@@ -72,12 +83,14 @@ impl DisplayWithContract for &super::Expr {
             super::Expr::UnaryOp { op, expr, .. } => {
                 if matches!(op, super::UnaryOp::NextState) {
                     write!(f, "{}'", contract.with_ctrct(expr))
+                } else if matches!(op, super::UnaryOp::Unwrap) {
+                    write!(f, "{}!", contract.with_ctrct(expr))
                 } else {
                     match op {
                         super::UnaryOp::Error => write!(f, "error"),
                         super::UnaryOp::Neg => write!(f, "-"),
                         super::UnaryOp::Not => write!(f, "!"),
-                        super::UnaryOp::NextState => unreachable!(),
+                        super::UnaryOp::NextState | super::UnaryOp::Unwrap => unreachable!(),
                     }?;
                     expr.fmt(f, contract)
                 }
@@ -273,7 +286,6 @@ impl DisplayWithContract for super::Immediate {
     fn fmt(&self, f: &mut Formatter, contract: &Contract) -> Result {
         match self {
             super::Immediate::Error => write!(f, "Error"),
-            super::Immediate::Nil => write!(f, "nil"),
             super::Immediate::Real(n) => write!(f, "{n:e}"),
             super::Immediate::Int(n) => write!(f, "{n}"),
             super::Immediate::Bool(b) => write!(f, "{b}"),
@@ -302,6 +314,13 @@ impl DisplayWithContract for super::Immediate {
                 });
                 write_many_iter!(f, i, ", ");
                 write!(f, "}}")
+            }
+            super::Immediate::Optional { value, .. } => {
+                if let Some(value) = value {
+                    write!(f, "val({})", contract.with_ctrct(*value.clone()))
+                } else {
+                    write!(f, "nil")
+                }
             }
             super::Immediate::UnionVariant {
                 tag_num,

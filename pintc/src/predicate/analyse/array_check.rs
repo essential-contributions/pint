@@ -15,7 +15,7 @@ fn get_array_size_from_type(
     if let Some(n) = array_ty.get_array_size() {
         Ok(n)
     } else if let Some(range_expr_key) = array_ty.get_array_range_expr() {
-        Type::get_array_size_from_range_expr(handler, range_expr_key.get(contract), contract)
+        Type::get_array_size_from_range_expr(handler, range_expr_key, contract)
     } else {
         unreachable!("array_ty MUST be an array type for this call")
     }
@@ -100,9 +100,8 @@ impl Contract {
         for (array_ty, index_key) in accesses {
             // First, try evaluating the index value, since it must be an immediate int (or union
             // variant, which evaluates to int).
-            let index_expr = index_key.get(self);
-            let index_span = index_expr.span().clone();
-            if let Ok(index_value) = evaluator.evaluate(index_expr, handler, self).map_err(|_| {
+            let index_span = index_key.get(self).span().clone();
+            if let Ok(index_value) = evaluator.evaluate(index_key, handler, self).map_err(|_| {
                 handler.emit_err(Error::Compile {
                     error: CompileError::NonConstArrayIndex {
                         span: index_span.clone(),

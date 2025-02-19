@@ -169,7 +169,12 @@ fn bools() {
     assert_eq!(lex_one_success("false"), Token::False);
     assert_ne!(lex_one_success("false"), Token::True);
     assert_ne!(lex_one_success("true"), Token::False);
+}
+
+#[test]
+fn bools() {
     assert_eq!(lex_one_success("nil"), Token::Nil);
+    assert_eq!(lex_one_success("val"), Token::Val);
 }
 
 #[test]

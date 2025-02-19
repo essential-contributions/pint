@@ -146,6 +146,10 @@ impl ExprKey {
                 .map(|value| value.can_panic(contract, pred))
                 .unwrap_or(false),
 
+            Expr::Optional { value, .. } => value
+                .map(|value| value.can_panic(contract, pred))
+                .unwrap_or(false),
+
             Expr::UnaryOp { expr, .. } => expr.can_panic(contract, pred),
 
             Expr::BinaryOp { lhs, rhs, .. } => {
@@ -281,6 +285,12 @@ impl ExprKey {
                 }
 
                 Expr::UnionVariant { value, .. } => {
+                    if let Some(value) = value {
+                        storage_accesses.extend(value.collect_storage_accesses(contract));
+                    }
+                }
+
+                Expr::Optional { value, .. } => {
                     if let Some(value) = value {
                         storage_accesses.extend(value.collect_storage_accesses(contract));
                     }
@@ -461,6 +471,12 @@ impl ExprKey {
                 }
 
                 Expr::UnionVariant { value, .. } => {
+                    if let Some(value) = value {
+                        path_to_var_exprs.extend(value.collect_path_to_var_exprs(contract, pred));
+                    }
+                }
+
+                Expr::Optional { value, .. } => {
                     if let Some(value) = value {
                         path_to_var_exprs.extend(value.collect_path_to_var_exprs(contract, pred));
                     }
@@ -722,6 +738,12 @@ impl Iterator for ExprsIter<'_> {
             }
 
             Expr::UnionVariant { value, .. } => {
+                if let Some(value) = value {
+                    queue_if_new!(self, value);
+                }
+            }
+
+            Expr::Optional { value, .. } => {
                 if let Some(value) = value {
                     queue_if_new!(self, value);
                 }

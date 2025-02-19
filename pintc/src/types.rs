@@ -41,6 +41,10 @@ pub enum Type {
         decl: UnionKey,
         span: Span,
     },
+    Optional {
+        ty: Box<Self>,
+        span: Span,
+    },
     Custom {
         name: String,
         span: Span,
@@ -135,6 +139,10 @@ impl Type {
 
     pub fn is_num(&self) -> bool {
         check_alias!(self, is_num, self.is_int() || self.is_real())
+    }
+
+    pub fn is_optional(&self) -> bool {
+        check_alias!(self, is_map, matches!(self, Type::Optional { .. }))
     }
 
     pub fn is_map(&self) -> bool {
@@ -234,6 +242,16 @@ impl Type {
                     }
                 },
             )
+        })
+    }
+
+    pub fn get_optional_ty(&self) -> Option<&Type> {
+        check_alias!(self, get_optional_ty, {
+            if let Type::Optional { ty, .. } = self {
+                Some(ty)
+            } else {
+                None
+            }
         })
     }
 
@@ -358,10 +376,11 @@ impl Type {
 
     pub fn get_array_size_from_range_expr(
         handler: &Handler,
-        range_expr: &Expr,
+        range_expr_key: ExprKey,
         contract: &Contract,
     ) -> Result<i64, ErrorEmitted> {
         // TODO: REMOVE THIS.  WE'RE LOWERING IN A PASS.
+        let range_expr = range_expr_key.get(contract);
         if let Expr::Path(path, _) = range_expr {
             // It's hopefully an enumeration union for the range expression.
             if let Some(size) = contract.unions.iter().find_map(|(_key, union_decl)| {
@@ -377,7 +396,7 @@ impl Type {
                 }))
             }
         } else {
-            match Evaluator::new(contract).evaluate(range_expr, handler, contract) {
+            match Evaluator::new(contract).evaluate(range_expr_key, handler, contract) {
                 Ok(Immediate::Int(size)) if size > 0 => Ok(size),
                 Ok(_) => Err(handler.emit_err(Error::Compile {
                     error: CompileError::InvalidConstArrayLength {
@@ -538,10 +557,7 @@ impl Type {
             } => Ok(ty.size(handler, contract)?
                 * size.unwrap_or(Self::get_array_size_from_range_expr(
                     handler,
-                    range
-                        .as_ref()
-                        .and_then(|e| e.try_get(contract))
-                        .expect("expr key guaranteed to exist"),
+                    range.expect("expecting a valid range at this point"),
                     contract,
                 )?) as usize),
 
@@ -559,6 +575,8 @@ impl Type {
                 // Add 1 for the tag.
                 Ok(max_variant_size + 1)
             }
+
+            Self::Optional { ty, .. } => Ok(1 + ty.size(handler, contract)?),
 
             // The point here is that a `Map` takes up a storage slot, even though it doesn't
             // actually store anything in it. The `Map` type is not really allowed anywhere else,
@@ -609,16 +627,15 @@ impl Type {
             } => Ok(ty.storage_keys(handler, contract)?
                 * size.unwrap_or(Self::get_array_size_from_range_expr(
                     handler,
-                    range
-                        .as_ref()
-                        .and_then(|e| e.try_get(contract))
-                        .expect("expr key guaranteed to exist"),
+                    range.expect("expecting a valid range at this point"),
                     contract,
                 )?) as usize),
 
             // Unions fit in a single slot since we can't access within a union without a `match`
             // first. So, might as well store the whole thing in a single key
             Self::Union { .. } => Ok(1),
+
+            Self::Optional { .. } => Ok(1),
 
             // The point here is that a `Map` takes up a storage slot, even though it doesn't
             // actually store anything in it. The `Map` type is not really allowed anywhere else,
@@ -676,10 +693,7 @@ impl Type {
                 ty: Box::new(ty.abi(handler, contract)?),
                 size: size.unwrap_or(Self::get_array_size_from_range_expr(
                     handler,
-                    range
-                        .as_ref()
-                        .and_then(|e| e.try_get(contract))
-                        .expect("expr key guaranteed to exist"),
+                    range.expect("expecting a valid range at this point"),
                     contract,
                 )?),
             }),
@@ -806,6 +820,10 @@ impl Type {
                 lhs_decl == rhs_decl
             }
 
+            (Self::Optional { ty: lhs_ty, .. }, Self::Optional { ty: rhs_ty, .. }) => {
+                lhs_ty.eq(contract, rhs_ty)
+            }
+
             // TODO: remove Type::Custom as the very first thing we do so we never need to compare
             // them.  We probably wouldn't need `contract` passed then.
             (lhs_ty, rhs_ty) => {
@@ -899,6 +917,8 @@ impl Type {
                     .for_each(|(_, field_ty)| field_ty.replace_type_expr(old_expr, new_expr));
             }
 
+            Type::Optional { ty, .. } => ty.replace_type_expr(old_expr, new_expr),
+
             Type::Alias { ty, .. } => ty.replace_type_expr(old_expr, new_expr),
 
             Type::Map { ty_from, ty_to, .. } => {
@@ -929,6 +949,7 @@ impl Spanned for Type {
             | Array { span, .. }
             | Tuple { span, .. }
             | Union { span, .. }
+            | Optional { span, .. }
             | Custom { span, .. }
             | Alias { span, .. }
             | Map { span, .. }

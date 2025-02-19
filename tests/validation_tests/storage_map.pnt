@@ -10,7 +10,7 @@ predicate Simple() {
     let x = mut storage::map1[69];
     let y = mut storage::map2[0x0000000000000001000000000000000200000000000000030000000000000004];
 
-    constraint supply' == 42;
-    constraint x' == 98;
-    constraint y' == 44;
+    constraint supply' == val(42);
+    constraint x' == val(98);
+    constraint y' == val(44);
 }

@@ -90,8 +90,6 @@ pub enum Token {
     True,
     #[token("false")]
     False,
-    #[token("nil")]
-    Nil,
     #[token("string")]
     String,
     #[token("b256")]
@@ -163,6 +161,11 @@ pub enum Token {
     #[token("where")]
     Where,
 
+    #[token("val")]
+    Val,
+    #[token("nil")]
+    Nil,
+
     // Ident has a flag indicating whether it's in a macro argument.  Is generally false.
     #[regex(r"[A-Za-z_][A-Za-z_0-9]*", |lex| {(lex.slice().to_string(), false)})]
     Ident((String, bool)),
@@ -229,7 +232,6 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Map,
     Token::Match,
     Token::Mut,
-    Token::Nil,
     Token::Predicate,
     Token::Real,
     Token::SelfTok,
@@ -240,6 +242,8 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Union,
     Token::Use,
     Token::Where,
+    Token::Val,
+    Token::Nil,
 ];
 
 impl fmt::Display for Token {
@@ -284,7 +288,6 @@ impl fmt::Display for Token {
             Token::Bool => write!(f, "bool"),
             Token::True => write!(f, "true"),
             Token::False => write!(f, "false"),
-            Token::Nil => write!(f, "nil"),
             Token::String => write!(f, "string"),
             Token::B256 => write!(f, "b256"),
             Token::Macro => write!(f, "macro"),
@@ -343,6 +346,8 @@ impl fmt::Display for Token {
             Token::Fold => write!(f, "fold"),
             Token::Filter => write!(f, "filter"),
             Token::Where => write!(f, "where"),
+            Token::Val => write!(f, "val"),
+            Token::Nil => write!(f, "nil"),
             Token::Ident((ident, _)) => write!(f, "{ident}"),
             Token::IntrinsicName(ident) => write!(f, "{ident}"),
             Token::RealLiteral(ident) => write!(f, "{ident}"),

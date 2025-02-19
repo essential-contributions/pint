@@ -71,20 +71,24 @@ predicate Foo(
     let w = mut storage::w;
 
     // `x` is set in the pre let db and in the solution
-    constraint __size_of(x) == 1;
-    constraint __size_of(x) == 1;
+    // `x` is an optional
+    constraint __size_of(x) == 1 + 1;
+    constraint __size_of(x') == 1 + 1;
 
     // `y` is set in the pre let db and in the solution
-    constraint __size_of(y) == 1;
-    constraint __size_of(y') == 1;
+    // `y` is an `int` 
+    constraint __size_of(y!) == 1;
+    constraint __size_of(y'!) == 1;
 
     // `z` is not set in the pre let db but is set in the solution
-    constraint __size_of(z) == 0;
-    constraint __size_of(z') == 1;
+    // `z` is an optional
+    constraint __size_of(z) == 1 + 1;
+    constraint __size_of(z') == 1 + 1;
 
     // `w` is set in the pre let db but unset in the solution
-    constraint __size_of(w) == 4;
-    constraint __size_of(w') == 0;
+    // `w` is an optional
+    constraint __size_of(w) == 1 + 4;
+    constraint __size_of(w') == 1 + 4;
 
     // `__size_of` called on non-let vars.
     constraint __size_of(1) == 1;

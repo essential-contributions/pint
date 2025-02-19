@@ -552,8 +552,6 @@ dependencies = [
 [[package]]
 name = "essential-asm"
 version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6923e90fec1fca93017346078a7846468d4a758b96182338389de84a33ec7122"
 dependencies = [
  "bitflags 2.8.0",
  "essential-asm-gen",
@@ -564,8 +562,6 @@ dependencies = [
 [[package]]
 name = "essential-asm-gen"
 version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "99c315530fb75940002e1d65dc932f0b5f6af47ac6fc9b7851e8aa4c3d06c831"
 dependencies = [
  "essential-asm-spec",
  "essential-types",
@@ -577,8 +573,6 @@ dependencies = [
 [[package]]
 name = "essential-asm-spec"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8925c8f919b39b735f09713639bba0791ad8275db98a203e8d562502b84e88ce"
 dependencies = [
  "serde",
  "serde_yaml",
@@ -587,21 +581,19 @@ dependencies = [
 [[package]]
 name = "essential-check"
 version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d266107205d3ac02763d80d42d014d451538a02c5bb06dcd18806cb524709085"
 dependencies = [
+ "essential-hash",
  "essential-sign",
  "essential-types",
  "essential-vm",
  "thiserror 1.0.69",
  "tokio",
+ "tracing",
 ]
 
 [[package]]
 name = "essential-hash"
 version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20c4afe77fa9779e600216f8a6efb17329c194d3eeeef989a6001e749a296714"
 dependencies = [
  "essential-types",
  "postcard",
@@ -612,8 +604,6 @@ dependencies = [
 [[package]]
 name = "essential-sign"
 version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "28d46ba95598252156752cd6db17099536db65e1762a510051a29f9fca755d98"
 dependencies = [
  "essential-hash",
  "essential-types",
@@ -623,8 +613,6 @@ dependencies = [
 [[package]]
 name = "essential-types"
 version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb9ce67e642944ec19647a59f2b5c8848baa9af6884c5e4fe000e3b669dae7b9"
 dependencies = [
  "hex",
  "serde",
@@ -633,8 +621,6 @@ dependencies = [
 [[package]]
 name = "essential-vm"
 version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "652d045c15b7563a6f54083e8c00840b801f06e3f43e45b1615bac420e658bc1"
 dependencies = [
  "ed25519-dalek",
  "essential-asm",
@@ -642,6 +628,7 @@ dependencies = [
  "secp256k1",
  "sha2",
  "thiserror 1.0.69",
+ "tracing",
 ]
 
 [[package]]
@@ -1968,6 +1955,28 @@ dependencies = [
  "serde_spanned",
  "toml_datetime",
  "winnow",
+]
+
+[[package]]
+name = "tracing"
+version = "0.1.41"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "784e0ac535deb450455cbfa28a6f0df145ea1bb7ae51b821cf5e7927fdcfbdd0"
+dependencies = [
+ "pin-project-lite",
+ "tracing-attributes",
+ "tracing-core",
+]
+
+[[package]]
+name = "tracing-attributes"
+version = "0.1.28"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "395ae124c09f9e6918a2310af6038fba074bcf474ac352496d5910dd59a2226d"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.98",
 ]
 
 [[package]]

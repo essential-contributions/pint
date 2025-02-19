@@ -120,7 +120,13 @@ fn lower_storage_accesses_in_predicate(
         // of the keys to collect here is equal to the number of stoage slots that `expr_ty`
         // requires.
         if mutable {
-            let num_keys = expr_ty.storage_keys(handler, contract)?;
+            // Extract the wrapped type
+            let num_keys = if let Some(ty) = expr_ty.get_optional_ty() {
+                ty.storage_keys(handler, contract)?
+            } else {
+                return Err(handler
+                    .emit_internal_err("storage accesses must be of type optional", empty_span()));
+            };
 
             // Push the base key and its type
             keys_set_field_types.push((None, key_ty.clone()));
@@ -359,12 +365,27 @@ fn get_base_storage_key(
         }
 
         Expr::Index { expr, index, .. } => {
-            let inner_expr_ty = expr.get_ty(contract).clone();
             let (addr, mutable, next_state, mut key) =
                 get_base_storage_key(handler, expr, contract)?;
+
+            // Extract the wrapped type
+            let Some(inner_expr_ty) = expr.get_ty(contract).get_optional_ty() else {
+                return Err(handler
+                    .emit_internal_err("storage accesses must be of type optional", empty_span()));
+            };
+
             if inner_expr_ty.is_map() || inner_expr_ty.is_vector() {
                 // next key element is the index itself
-                key.push(*index);
+                key.push(dbg!(*index));
+
+                // Extract the wrapped type
+                let Some(expr_ty) = expr_ty.get_optional_ty() else {
+                    return Err(handler.emit_internal_err(
+                        "storage accesses must be of type optional",
+                        empty_span(),
+                    ));
+                };
+
                 if !(expr_ty.is_any_primitive()
                     || expr_ty.is_union()
                     || expr_ty.is_map()
@@ -373,7 +394,7 @@ fn get_base_storage_key(
                     key.push(contract.exprs.insert_int(0)); // placeholder for offsets
                 }
             } else {
-                let Type::Array { ty, .. } = expr.get_ty(contract) else {
+                let Type::Array { ty, .. } = inner_expr_ty else {
                     return Err(handler
                         .emit_internal_err("type must exist and be an array type", empty_span()));
                 };
@@ -410,8 +431,14 @@ fn get_base_storage_key(
             let (addr, mutable, next_state, mut key) =
                 get_base_storage_key(handler, tuple, contract)?;
 
+            // Extract the wrapped type
+            let Some(inner_expr_ty) = tuple.get_ty(contract).get_optional_ty() else {
+                return Err(handler
+                    .emit_internal_err("storage accesses must be of type optional", empty_span()));
+            };
+
             // Grab the fields of the tuple
-            let Type::Tuple { ref fields, .. } = tuple.get_ty(contract) else {
+            let Type::Tuple { ref fields, .. } = inner_expr_ty else {
                 return Err(
                     handler.emit_internal_err("type must exist and be a tuple type", empty_span())
                 );

@@ -113,6 +113,12 @@ impl Contract {
                 }
             }
 
+            Expr::Optional { value, .. } => {
+                if let Some(value) = value {
+                    self.visitor_from_key(kind, *value, f);
+                }
+            }
+
             Expr::ExternalStorageAccess { address, .. } => self.visitor_from_key(kind, *address, f),
 
             Expr::UnaryOp { expr, .. } => self.visitor_from_key(kind, *expr, f),

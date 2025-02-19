@@ -1,9 +1,6 @@
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler, ParseError},
-    expr::{
-        evaluate::Evaluator, BinaryOp, Expr, ExternalIntrinsic, Immediate, IntrinsicKind,
-        MatchBranch, TupleAccess, UnaryOp,
-    },
+    expr::{evaluate::Evaluator, BinaryOp, Expr, Immediate, MatchBranch, TupleAccess, UnaryOp},
     predicate::{
         BlockStatement, Const, ConstraintDecl, Contract, ExprKey, ExprsIter, Ident, IfDecl,
         Interface, MatchDecl, MatchDeclBranch, Param, PredKey, PredicateInterface, StorageVar,
@@ -81,6 +78,8 @@ pub(crate) fn lower_aliases(contract: &mut Contract) {
             Type::Tuple { fields, .. } => fields
                 .iter_mut()
                 .for_each(|(_, ty)| replace_alias(new_types_map, ty)),
+
+            Type::Optional { ty, .. } => replace_alias(new_types_map, ty),
 
             Type::Map { ty_from, ty_to, .. } => {
                 replace_alias(new_types_map, ty_from);
@@ -202,8 +201,7 @@ pub(crate) fn lower_array_ranges(
                         eval_memos.insert(old_range_expr_key, new_expr_key);
                         new_expr_key
                     } else {
-                        let value =
-                            evaluator.evaluate_key(&old_range_expr_key, handler, contract)?;
+                        let value = evaluator.evaluate(old_range_expr_key, handler, contract)?;
                         if !matches!(value, Immediate::Int(_) | Immediate::UnionVariant { .. }) {
                             return Err(handler.emit_internal_err(
                                 "array range expression evaluates to non int immediate",
@@ -224,7 +222,7 @@ pub(crate) fn lower_array_ranges(
                         new_expr_key
                     }
                 } else {
-                    let value = evaluator.evaluate_key(&old_range_expr_key, handler, contract)?;
+                    let value = evaluator.evaluate(old_range_expr_key, handler, contract)?;
                     if !matches!(value, Immediate::Int(_) | Immediate::UnionVariant { .. }) {
                         return Err(handler.emit_internal_err(
                             "array range expression evaluates to non int immediate",
@@ -316,7 +314,7 @@ pub(crate) fn lower_imm_accesses(
                     ));
                 };
 
-                match evaluator.evaluate(idx_expr, handler, contract) {
+                match evaluator.evaluate(array_idx_key, handler, contract) {
                     Ok(
                         Immediate::Int(idx_val)
                         | Immediate::UnionVariant {
@@ -656,103 +654,6 @@ pub(crate) fn lower_ins(handler: &Handler, contract: &mut Contract) -> Result<()
     }
 }
 
-/// Convert all comparisons to `nil` to comparisons between the intrinsic `__size_of` and 0.
-/// For example:
-///
-/// let x = storage::x;
-/// let y = storage::x;
-/// constraint x == nil;
-/// constraint y != nil;
-///
-/// becomes:
-///
-/// let x = storage::x;
-/// let y = storage::x;
-/// constraint __size_of(x) == 0;
-/// constraint __size_of(y) != 0;
-///
-pub(crate) fn lower_compares_to_nil(contract: &mut Contract) {
-    for pred_key in contract.preds.keys().collect::<Vec<_>>() {
-        let compares_to_nil = contract
-            .exprs(pred_key)
-            .filter_map(|expr_key| match expr_key.try_get(contract) {
-                Some(Expr::BinaryOp { op, lhs, rhs, span })
-                    if (*op == BinaryOp::Equal || *op == BinaryOp::NotEqual)
-                        && (lhs.get(contract).is_nil() || rhs.get(contract).is_nil()) =>
-                {
-                    Some((expr_key, *op, *lhs, *rhs, span.clone()))
-                }
-                _ => None,
-            })
-            .collect::<Vec<_>>();
-
-        let convert_to_size_of_compare =
-            |contract: &mut Contract, op: &BinaryOp, expr: &ExprKey, span: &crate::span::Span| {
-                let size_of = contract.exprs.insert(
-                    Expr::IntrinsicCall {
-                        kind: (
-                            IntrinsicKind::External(ExternalIntrinsic::SizeOf),
-                            empty_span(),
-                        ),
-                        args: vec![*expr],
-                        span: span.clone(),
-                    },
-                    Type::Primitive {
-                        kind: PrimitiveKind::Int,
-                        span: empty_span(),
-                    },
-                );
-
-                let zero = contract.exprs.insert(
-                    Expr::Immediate {
-                        value: Immediate::Int(0),
-                        span: empty_span(),
-                    },
-                    Type::Primitive {
-                        kind: PrimitiveKind::Bool,
-                        span: empty_span(),
-                    },
-                );
-
-                // New binary op: `__size_of(expr) == 0`
-                contract.exprs.insert(
-                    Expr::BinaryOp {
-                        op: *op,
-                        lhs: size_of,
-                        rhs: zero,
-                        span: span.clone(),
-                    },
-                    Type::Primitive {
-                        kind: PrimitiveKind::Bool,
-                        span: empty_span(),
-                    },
-                )
-            };
-
-        for (old_bin_op, op, lhs, rhs, span) in compares_to_nil.iter() {
-            let new_bin_op = match (lhs.get(contract).is_nil(), rhs.get(contract).is_nil()) {
-                (false, true) => convert_to_size_of_compare(contract, op, lhs, span),
-                (true, false) => convert_to_size_of_compare(contract, op, rhs, span),
-                (true, true) => contract.exprs.insert(
-                    // Comparing two `nil`s should always return `false` regardless of whether this is
-                    // an `Equal` or a `NotEqual`.
-                    Expr::Immediate {
-                        value: Immediate::Bool(false),
-                        span: empty_span(),
-                    },
-                    Type::Primitive {
-                        kind: PrimitiveKind::Bool,
-                        span: empty_span(),
-                    },
-                ),
-                _ => unreachable!("both operands cannot be non-nil simultaneously at this stage"),
-            };
-
-            contract.replace_exprs(Some(pred_key), *old_bin_op, new_bin_op);
-        }
-    }
-}
-
 /// Convert all `if` declarations into individual constraints that are pushed to `pred.constraints`.
 /// For example:
 ///
@@ -1011,6 +912,7 @@ pub(super) fn coalesce_prime_ops(contract: &mut Contract) {
                 | Expr::Array { .. }
                 | Expr::Tuple { .. }
                 | Expr::UnionVariant { .. }
+                | Expr::Optional { .. }
                 | Expr::Path(..)
                 | Expr::LocalStorageAccess { .. }
                 | Expr::ExternalStorageAccess { .. }

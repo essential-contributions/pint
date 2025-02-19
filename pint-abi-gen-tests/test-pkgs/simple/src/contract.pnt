@@ -38,27 +38,27 @@ predicate Foo(
     };
 
     // Declare some local variables.
-    let s0: bool = mut storage::s0;
-    let s1: int = mut storage::s1;
-    let s2: b256 = mut storage::s2;
-    let s3: { int, int } = mut storage::s3;
-    let s4: { int, int, { int, int } } = mut storage::s4;
-    let my_map0_key42: int = mut storage::my_map0[42];
-    let my_map1_key1: { int, { b256, int } } = mut storage::my_map1[1];
-    let my_nested_map0_key1_2: int = mut storage::my_nested_map0[1][2];
-    let my_nested_map1_key2_3: { int, { b256, int } } = mut storage::my_nested_map1[2][0x3333333333333333333333333333333333333333333333333333333333333333];
-    let my_array: int[5] = mut storage::my_array;
+    let s0: ?bool = mut storage::s0;
+    let s1: ?int = mut storage::s1;
+    let s2: ?b256 = mut storage::s2;
+    let s3: ?{ int, int } = mut storage::s3;
+    let s4: ?{ int, int, { int, int } } = mut storage::s4;
+    let my_map0_key42: ?int = mut storage::my_map0[42];
+    let my_map1_key1: ?{ int, { b256, int } } = mut storage::my_map1[1];
+    let my_nested_map0_key1_2: ?int = mut storage::my_nested_map0[1][2];
+    let my_nested_map1_key2_3: ?{ int, { b256, int } } = mut storage::my_nested_map1[2][0x3333333333333333333333333333333333333333333333333333333333333333];
+    let my_array: ?int[5] = mut storage::my_array;
 
     // Check the let.
-    constraint s0' == true;
-    constraint s1' == 42;
-    constraint s2' == 0x4242424242424242424242424242424242424242424242424242424242424242;
-    constraint s3' == { 30, 31 };
-    constraint s4' == { 40, 41, { 420, 421 } };
-    constraint my_map0_key42' == 24;
-    constraint my_map0_key42' != 25;
-    constraint my_map1_key1' == { 1111, { 0x2222222222222222222222222222222222222222222222222222222222222222, 3333 } };
-    constraint my_nested_map0_key1_2' == 1234;
-    constraint my_nested_map1_key2_3' == { 69, { 0x1111111100000000111111110000000011111111000000001111111100000000, 96 } };
-    constraint my_array' == [11, 12, 13, 14, 15];
+    constraint s0'! == true;
+    constraint s1'! == 42;
+    constraint s2'! == 0x4242424242424242424242424242424242424242424242424242424242424242;
+    constraint s3'! == { 30, 31 };
+    constraint s4'! == { 40, 41, { 420, 421 } };
+    constraint my_map0_key42'! == 24;
+    constraint my_map0_key42'! != 25;
+    constraint my_map1_key1'! == { 1111, { 0x2222222222222222222222222222222222222222222222222222222222222222, 3333 } };
+    constraint my_nested_map0_key1_2'! == 1234;
+    constraint my_nested_map1_key2_3'! == { 69, { 0x1111111100000000111111110000000011111111000000001111111100000000, 96 } };
+    constraint my_array'! == [11, 12, 13, 14, 15];
 }

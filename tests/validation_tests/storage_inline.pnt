@@ -6,11 +6,11 @@ storage {
 
 predicate test() {
     let a = mut storage::a';
-    constraint a == 11;
+    constraint a! == 11;
 
     let b = mut storage::b[1]';
-    constraint b == 22;
+    constraint b! == 22;
 
     let c = mut storage::c.0';
-    constraint c == 33;
+    constraint c! == 33;
 }

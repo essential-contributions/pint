@@ -7,25 +7,25 @@ storage {
 
 predicate Test() {
     let t = mut storage::t.0[0];
-    constraint t' == 1;
+    constraint t'! == 1;
     
     let u = mut storage::u.1.0[false];
-    constraint u' == 3;
+    constraint u'! == 3;
 
     let v_0_0 = mut storage::v[6].1[2].0;
-    constraint v_0_0' == 12;
+    constraint v_0_0'! == 12;
     let v_0_1 = mut storage::v[6].1[2].1;
-    constraint v_0_1' == 13;
+    constraint v_0_1'! == 13;
 
     let w_0_0 = mut storage::w[{ 10, 11 }].0;
-    constraint w_0_0' == false;
+    constraint w_0_0'! == false;
     let w_0_1 = mut storage::w[{ 10, 11 }].1;
-    constraint w_0_1' == 4;
+    constraint w_0_1'! == 4;
 
-    constraint mut storage::t.0[0]' == 1;
-    constraint mut storage::u.1.0[false]' == 3;
-    constraint mut storage::v[6].1[2].0' == 12;
-    constraint mut storage::v[6].1[2].1' == 13;
-    constraint mut storage::w[{ 10, 11 }].0' == false;
-    constraint mut storage::w[{ 10, 11 }].1' == 4;
+    constraint mut storage::t.0[0]'! == 1;
+    constraint mut storage::u.1.0[false]'! == 3;
+    constraint mut storage::v[6].1[2].0'! == 12;
+    constraint mut storage::v[6].1[2].1'! == 13;
+    constraint mut storage::w[{ 10, 11 }].0'! == false;
+    constraint mut storage::w[{ 10, 11 }].1'! == 4;
 }

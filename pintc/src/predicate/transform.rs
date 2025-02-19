@@ -6,8 +6,8 @@ mod validate;
 use crate::error::{ErrorEmitted, Handler};
 use legalize::legalize_vector_accesses;
 use lower::{
-    coalesce_prime_ops, lower_aliases, lower_array_ranges, lower_casts, lower_compares_to_nil,
-    lower_ifs, lower_imm_accesses, lower_ins, lower_matches, lower_storage_accesses,
+    coalesce_prime_ops, lower_aliases, lower_array_ranges, lower_casts, lower_ifs,
+    lower_imm_accesses, lower_ins, lower_matches, lower_storage_accesses,
     lower_union_variant_paths, replace_const_refs,
 };
 use unroll::unroll_generators;
@@ -29,9 +29,6 @@ impl super::Contract {
 
         // Plug const decls in everywhere so they maybe lowered below.
         replace_const_refs(&mut self);
-
-        // Convert comparisons to `nil` into comparisons between __size_of(..) and 0.
-        lower_compares_to_nil(&mut self);
 
         // Unroll each generator into one large conjuction
         let _ = handler.scope(|handler| unroll_generators(handler, &mut self));

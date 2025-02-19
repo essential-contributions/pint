@@ -118,6 +118,7 @@ fn check_expr(
         Type::Array { .. }
         | Type::Tuple { .. }
         | Type::Primitive { .. }
+        | Type::Optional { .. }
         | Type::Map { .. }
         | Type::Vector { .. }
         | Type::Union { .. } => {}
@@ -174,6 +175,7 @@ fn check_expr(
         | Expr::Array { .. }
         | Expr::Tuple { .. }
         | Expr::UnionVariant { .. }
+        | Expr::Optional { .. }
         | Expr::Path(..)
         | Expr::LocalStorageAccess { .. }
         | Expr::ExternalStorageAccess { .. }
