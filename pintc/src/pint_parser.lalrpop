@@ -837,7 +837,7 @@ TermInner: Expr = {
     PredicateCallExpr,
     ArrayExpr,
     TupleExpr,
-    OptionalExpr,
+    <l:@L> "nil" <m:@R> <r:@R> => Expr::Nil((context.span_from)(l, r)),
     UnionExpr,
     <l:@L> <path:Path> <r:@R> => Expr::Path(path, (context.span_from)(l, r)),
     <StoragePath>,
@@ -1143,21 +1143,6 @@ UnionExpr: Expr = {
     }
 }
 
-OptionalExpr: Expr = {
-    <l:@L> "nil" <m:@R> <r:@R> => {
-        Expr::Optional {
-            value: None,
-            span: (context.span_from)(l, r),
-        }
-    },
-    <l:@L> "val" "(" <expr:Expr> ")" <m:@R> <r:@R> => {
-        Expr::Optional {
-            value: Some(expr),
-            span: (context.span_from)(l, r),
-        }
-    }
-}
-
 Range: ExprKey = {
     <l:@L> <lb:Additive> ".." <ub:Additive> <r:@R> => {
         let span = (context.span_from)(l, r);
@@ -1357,7 +1342,6 @@ extern {
         "true" => lexer::Token::True,
         "false" => lexer::Token::False,
         "nil" => lexer::Token::Nil,
-        "val" => lexer::Token::Val,
 
         "if" => lexer::Token::If,
         "else" => lexer::Token::Else,

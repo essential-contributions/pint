@@ -161,8 +161,6 @@ pub enum Token {
     #[token("where")]
     Where,
 
-    #[token("val")]
-    Val,
     #[token("nil")]
     Nil,
 
@@ -242,7 +240,6 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Union,
     Token::Use,
     Token::Where,
-    Token::Val,
     Token::Nil,
 ];
 
@@ -346,7 +343,6 @@ impl fmt::Display for Token {
             Token::Fold => write!(f, "fold"),
             Token::Filter => write!(f, "filter"),
             Token::Where => write!(f, "where"),
-            Token::Val => write!(f, "val"),
             Token::Nil => write!(f, "nil"),
             Token::Ident((ident, _)) => write!(f, "{ident}"),
             Token::IntrinsicName(ident) => write!(f, "{ident}"),

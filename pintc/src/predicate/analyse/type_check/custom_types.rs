@@ -84,7 +84,11 @@ impl Contract {
                 Type::Union { .. } => {}
 
                 // Ignore.
-                Type::Error(_) | Type::Unknown(_) | Type::Any(_) | Type::Primitive { .. } => {}
+                Type::Error(_)
+                | Type::Unknown(_)
+                | Type::Any(_)
+                | Type::Nil(_)
+                | Type::Primitive { .. } => {}
             }
 
             modified
@@ -209,7 +213,11 @@ impl Contract {
 
                 Type::Vector { ty, .. } => inspect_type_names(handler, contract, seen_names, ty),
 
-                Type::Error(_) | Type::Unknown(_) | Type::Any(_) | Type::Primitive { .. } => Ok(()),
+                Type::Error(_)
+                | Type::Unknown(_)
+                | Type::Any(_)
+                | Type::Nil(_)
+                | Type::Primitive { .. } => Ok(()),
             }
         }
 
@@ -273,6 +281,7 @@ impl Contract {
                 Type::Error(_)
                 | Type::Unknown(_)
                 | Type::Any(_)
+                | Type::Nil(_)
                 | Type::Primitive { .. }
                 | Type::Union { .. } => {}
             }

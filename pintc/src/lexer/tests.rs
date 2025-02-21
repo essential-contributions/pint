@@ -174,7 +174,6 @@ fn bools() {
 #[test]
 fn optional() {
     assert_eq!(lex_one_success("nil"), Token::Nil);
-    assert_eq!(lex_one_success("val"), Token::Val);
 }
 
 #[test]

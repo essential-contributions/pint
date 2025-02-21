@@ -228,7 +228,7 @@ pub enum CompileError {
     OperatorInvalidType {
         op: &'static str,
         ty_kind: &'static str,
-        bad_ty: Option<String>,
+        bad_ty: String,
         span: Span,
     },
     #[error("{init_kind} initialization type error")]
@@ -1024,11 +1024,7 @@ impl ReportableError for CompileError {
                 bad_ty,
                 span,
             } => vec![ErrorLabel {
-                message: if let Some(bad_ty) = bad_ty {
-                    format!("invalid {ty_kind} type `{bad_ty}` for operator `{op}`")
-                } else {
-                    format!("invalid {ty_kind} type for operator `{op}`")
-                },
+                message: format!("invalid {ty_kind} type `{bad_ty}` for operator `{op}`"),
                 span: span.clone(),
                 color: Color::Red,
             }],

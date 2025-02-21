@@ -155,7 +155,7 @@ impl Contract {
                 span,
             } => Ok(self.infer_union_expr(handler, path, path_span, *value, span)),
 
-            Expr::Optional { value, span } => Ok(self.infer_optional_expr(*value, span)),
+            Expr::Nil(span) => Ok(Inference::Type(Type::Nil(span.clone()))),
 
             Expr::Path(path, span) => Ok(self.infer_path_by_name(handler, pred, path, span)),
 
@@ -575,11 +575,7 @@ impl Contract {
                         error: CompileError::OperatorInvalidType {
                             op: op.as_str(),
                             ty_kind: "non-numeric",
-                            bad_ty: if !lhs_ty.is_any() {
-                                Some(self.with_ctrct(lhs_ty).to_string())
-                            } else {
-                                None
-                            },
+                            bad_ty: self.with_ctrct(lhs_ty).to_string(),
                             span: span.clone(),
                         },
                     });
@@ -590,11 +586,7 @@ impl Contract {
                         error: CompileError::OperatorInvalidType {
                             op: op.as_str(),
                             ty_kind: "non-numeric",
-                            bad_ty: if !rhs_ty.is_any() {
-                                Some(self.with_ctrct(rhs_ty).to_string())
-                            } else {
-                                None
-                            },
+                            bad_ty: self.with_ctrct(rhs_ty).to_string(),
                             span: span.clone(),
                         },
                     });
@@ -662,7 +654,7 @@ impl Contract {
                         }
 
                         // TODO: implement type coercion in other places too
-                        if lhs_ty.is_any() && !rhs_ty.is_any() {
+                        if lhs_ty.is_nil() && !rhs_ty.is_nil() {
                             // Type coercion
                             Inference::Types {
                                 // Type of the binary operation
@@ -673,7 +665,7 @@ impl Contract {
                                 // Type of the `lhs`
                                 others: vec![(lhs_expr_key, rhs_ty.clone())],
                             }
-                        } else if !lhs_ty.is_any() && rhs_ty.is_any() {
+                        } else if !lhs_ty.is_nil() && rhs_ty.is_nil() {
                             // Type coercion
                             Inference::Types {
                                 // Type of the binary operation
@@ -1848,25 +1840,6 @@ impl Contract {
             });
 
             Inference::Type(Type::Error(span.clone()))
-        }
-    }
-
-    fn infer_optional_expr(&self, value: Option<ExprKey>, span: &Span) -> Inference {
-        if let Some(value) = value {
-            let value_ty = value.get_ty(self);
-            if value_ty.is_unknown() {
-                Inference::Dependant(value)
-            } else {
-                Inference::Type(Type::Optional {
-                    ty: Box::new(value_ty.clone()),
-                    span: span.clone(),
-                })
-            }
-        } else {
-            // If this optional is a `nil`, then we can't figure out the type without the context.
-            // Set the type to `Any` and hope that we can better infer it later. If not, emit an
-            // type inference error.
-            Inference::Type(Type::Any(span.clone()))
         }
     }
 

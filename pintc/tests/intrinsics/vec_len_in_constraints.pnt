@@ -4,8 +4,8 @@ storage {
 }
 
 predicate test(v_len: int) {
-    constraint val(v_len) == __vec_len(storage::v);
-    constraint __vec_len(storage::v) == val(0);
+    constraint v_len == __vec_len(storage::v)!;
+    constraint __vec_len(storage::v)! == 0;
 }
 
 // parsed <<<

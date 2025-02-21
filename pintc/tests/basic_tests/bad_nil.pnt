@@ -20,9 +20,9 @@ predicate test(x: int, y: int, z: int) {
 
 // typecheck_failure <<<
 // operator invalid type error
-// @86..93: invalid non-numeric type for operator `+`
+// @86..93: invalid non-numeric type `_?` for operator `+`
 // operator invalid type error
-// @110..117: invalid non-numeric type for operator `<`
+// @110..117: invalid non-numeric type `_?` for operator `<`
 // uninferrable type
 // @134..137: type of this expression cannot be inferred
 // uninferrable type
@@ -30,6 +30,6 @@ predicate test(x: int, y: int, z: int) {
 // uninferrable type
 // @90..93: type of this expression cannot be inferred
 // constraint expression type error
-// @123..137: constraint expression has unexpected type `_`
+// @123..137: constraint expression has unexpected type `_?`
 // @134..137: expecting type `bool`
 // >>>

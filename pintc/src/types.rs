@@ -10,7 +10,6 @@ mod display;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum PrimitiveKind {
-    Nil,
     Bool,
     Int,
     Real,
@@ -23,6 +22,7 @@ pub enum Type {
     Error(Span),
     Unknown(Span),
     Any(Span),
+    Nil(Span),
     Primitive {
         kind: PrimitiveKind,
         span: Span,
@@ -97,6 +97,10 @@ impl Type {
         matches!(self, Type::Any(_))
     }
 
+    pub fn is_nil(&self) -> bool {
+        matches!(self, Type::Nil(_))
+    }
+
     pub fn is_unknown(&self) -> bool {
         matches!(self, Type::Unknown(_))
     }
@@ -111,10 +115,6 @@ impl Type {
         } else {
             None
         }
-    }
-
-    pub fn is_nil(&self) -> bool {
-        check_alias!(self, is_nil, is_primitive!(self, PrimitiveKind::Nil))
     }
 
     pub fn is_bool(&self) -> bool {
@@ -591,12 +591,13 @@ impl Type {
             // (like `String` and `Real`) or types that should have been resolved by the time we
             // need their size (like `Custom` and `Alias`)
             Self::Primitive {
-                kind: PrimitiveKind::String | PrimitiveKind::Real | PrimitiveKind::Nil,
+                kind: PrimitiveKind::String | PrimitiveKind::Real,
                 span,
             }
             | Self::Error(span)
             | Self::Unknown(span)
             | Self::Any(span)
+            | Self::Nil(span)
             | Self::Custom { span, .. }
             | Self::Alias { span, .. } => {
                 Err(handler.emit_internal_err("unexpected type when getting size", span.clone()))
@@ -650,12 +651,13 @@ impl Type {
             // (like `String` and `Real`) or types that should have been resolved by the time we
             // need their size (like `Custom` and `Alias`)
             Self::Primitive {
-                kind: PrimitiveKind::String | PrimitiveKind::Real | PrimitiveKind::Nil,
+                kind: PrimitiveKind::String | PrimitiveKind::Real,
                 span,
             }
             | Self::Error(span)
             | Self::Unknown(span)
             | Self::Any(span)
+            | Self::Nil(span)
             | Self::Custom { span, .. }
             | Self::Alias { span, .. } => Err(handler.emit_internal_err(
                 "unexpected type when calculating storage slots",
@@ -673,7 +675,6 @@ impl Type {
                 PrimitiveKind::Real => TypeABI::Real,
                 PrimitiveKind::String => TypeABI::String,
                 PrimitiveKind::B256 => TypeABI::B256,
-                _ => unimplemented!(),
             }),
 
             Type::Tuple { fields, .. } => Ok(TypeABI::Tuple(
@@ -738,6 +739,10 @@ impl Type {
             // Type::Any is equal to anything!
             (Self::Any(_), _) => true,
             (_, Self::Any(_)) => true,
+
+            // Type::Nil is not equal to anything!
+            (Self::Nil(_), _) => false,
+            (_, Self::Nil(_)) => false,
 
             (Self::Alias { ty: lhs_ty, .. }, rhs) => lhs_ty.eq(contract, rhs),
             (lhs, Self::Alias { ty: rhs_ty, .. }) => lhs.eq(contract, rhs_ty.as_ref()),
@@ -932,6 +937,7 @@ impl Type {
             Type::Error(_)
             | Type::Unknown(_)
             | Type::Any(_)
+            | Type::Nil(_)
             | Type::Primitive { .. }
             | Type::Custom { .. }
             | Type::Union { .. } => {}
@@ -946,6 +952,7 @@ impl Spanned for Type {
             Error(span)
             | Unknown(span)
             | Any(span)
+            | Nil(span)
             | Primitive { span, .. }
             | Array { span, .. }
             | Tuple { span, .. }

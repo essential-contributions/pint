@@ -85,6 +85,7 @@ impl Contract {
 
         match expr {
             Expr::Error(_)
+            | Expr::Nil(_)
             | Expr::Path(_, _)
             | Expr::LocalStorageAccess { .. }
             | Expr::MacroCall { .. }
@@ -108,12 +109,6 @@ impl Contract {
             }
 
             Expr::UnionVariant { value, .. } => {
-                if let Some(value) = value {
-                    self.visitor_from_key(kind, *value, f);
-                }
-            }
-
-            Expr::Optional { value, .. } => {
                 if let Some(value) = value {
                     self.visitor_from_key(kind, *value, f);
                 }

@@ -318,17 +318,6 @@ impl<'a> AsmBuilder<'a> {
                     }
                     Ok(1 + value_size)
                 }
-                Immediate::Optional { value, value_size } => {
-                    if let Some(value) = value {
-                        let value_size = compile_immediate(handler, asm, value)?;
-                        asm.push(PUSH(1));
-                        Ok(1 + value_size)
-                    } else {
-                        asm.push(PUSH(1 + *value_size as i64));
-                        asm.push(RES);
-                        Ok(1 + value_size)
-                    }
-                }
                 Immediate::Error | Immediate::Real(_) | Immediate::String(_) => {
                     Err(handler.emit_internal_err("unexpected literal", empty_span()))
                 }
@@ -356,9 +345,7 @@ impl<'a> AsmBuilder<'a> {
             Expr::UnionVariant { path, value, .. } => {
                 self.compile_union_expr(handler, asm, expr, path, value, contract, pred)
             }
-            Expr::Optional { value, .. } => {
-                self.compile_optional_expr(handler, asm, expr, value, contract, pred)
-            }
+            Expr::Nil(_) => self.compile_nil_expr(handler, asm, expr, contract),
             Expr::UnaryOp { op, expr, .. } => {
                 self.compile_unary_op(handler, asm, op, expr, contract, pred)
             }
@@ -1116,24 +1103,16 @@ impl<'a> AsmBuilder<'a> {
         Ok(location)
     }
 
-    fn compile_optional_expr(
+    fn compile_nil_expr(
         &mut self,
         handler: &Handler,
         asm: &mut Asm,
         expr: &ExprKey,
-        value: &Option<ExprKey>,
         contract: &Contract,
-        pred: &Predicate,
     ) -> Result<Location, ErrorEmitted> {
-        let expr_ty = expr.get_ty(contract);
-        if let Some(value) = value {
-            self.compile_expr(handler, asm, value, contract, pred)?;
-            asm.push(PUSH(1)); // tag
-        } else {
-            // tag and value are both zeros
-            asm.push(PUSH(expr_ty.size(handler, contract)? as i64));
-            asm.push(RES);
-        }
+        // tag and value are both zeros
+        asm.push(PUSH(expr.get_ty(contract).size(handler, contract)? as i64));
+        asm.push(RES);
         Ok(Location::Stack)
     }
 

@@ -146,9 +146,7 @@ impl ExprKey {
                 .map(|value| value.can_panic(contract, pred))
                 .unwrap_or(false),
 
-            Expr::Optional { value, .. } => value
-                .map(|value| value.can_panic(contract, pred))
-                .unwrap_or(false),
+            Expr::Nil(_) => false,
 
             Expr::UnaryOp { expr, .. } => expr.can_panic(contract, pred),
 
@@ -290,12 +288,6 @@ impl ExprKey {
                     }
                 }
 
-                Expr::Optional { value, .. } => {
-                    if let Some(value) = value {
-                        storage_accesses.extend(value.collect_storage_accesses(contract));
-                    }
-                }
-
                 Expr::LocalStorageAccess { .. } | Expr::ExternalStorageAccess { .. } => {
                     storage_accesses.insert(*self);
                 }
@@ -432,6 +424,7 @@ impl ExprKey {
                 }
 
                 Expr::Error(_)
+                | Expr::Nil(_)
                 | Expr::Immediate { .. }
                 | Expr::Path(..)
                 | Expr::MacroCall { .. }
@@ -471,12 +464,6 @@ impl ExprKey {
                 }
 
                 Expr::UnionVariant { value, .. } => {
-                    if let Some(value) = value {
-                        path_to_var_exprs.extend(value.collect_path_to_var_exprs(contract, pred));
-                    }
-                }
-
-                Expr::Optional { value, .. } => {
                     if let Some(value) = value {
                         path_to_var_exprs.extend(value.collect_path_to_var_exprs(contract, pred));
                     }
@@ -603,6 +590,7 @@ impl ExprKey {
                 }
 
                 Expr::LocalStorageAccess { .. }
+                | Expr::Nil(_)
                 | Expr::Error(_)
                 | Expr::Immediate { .. }
                 | Expr::MacroCall { .. }
@@ -743,12 +731,6 @@ impl Iterator for ExprsIter<'_> {
                 }
             }
 
-            Expr::Optional { value, .. } => {
-                if let Some(value) = value {
-                    queue_if_new!(self, value);
-                }
-            }
-
             Expr::ExternalStorageAccess { address, .. } => queue_if_new!(self, address),
 
             Expr::UnaryOp { expr, .. } => queue_if_new!(self, expr),
@@ -871,6 +853,7 @@ impl Iterator for ExprsIter<'_> {
             }
 
             Expr::Error(_)
+            | Expr::Nil(_)
             | Expr::LocalStorageAccess { .. }
             | Expr::Path(_, _)
             | Expr::MacroCall { .. } => {}

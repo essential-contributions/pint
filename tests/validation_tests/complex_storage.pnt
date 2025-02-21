@@ -34,13 +34,4 @@ predicate Foo() {
     constraint storage::map_in_map[9][A]'! == 42;
     constraint storage::map_in_map_in_map'[88][B][999]! == F;
     constraint storage::map_in_map_in_map[88][B][999]'! == F;
-
-    constraint storage::address' == val(C); 
-    constraint storage::address2' == val(D);
-    constraint storage::imap'[69] == val(E);
-    constraint storage::imap[69]' == val(E);
-    constraint storage::map_in_map'[9][A] == val(42);
-    constraint storage::map_in_map[9][A]' == val(42);
-    constraint storage::map_in_map_in_map'[88][B][999] == val(F);
-    constraint storage::map_in_map_in_map[88][B][999]' == val(F);
 }

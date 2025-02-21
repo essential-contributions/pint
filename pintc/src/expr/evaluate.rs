@@ -380,8 +380,6 @@ impl Evaluator {
                         }
                     }
 
-                    Imm::Optional { .. } => todo!(),
-
                     // Invalid to cast from these values.
                     Imm::String(_)
                     | Imm::B256(_)
@@ -443,15 +441,6 @@ impl Evaluator {
                     decl,
                 })
             }
-
-            Expr::Optional { value, .. } => Ok(Imm::Optional {
-                value: if let Some(value) = value {
-                    Some(Box::new(self.evaluate(*value, handler, contract)?))
-                } else {
-                    None
-                },
-                value_size: expr.get_ty(contract).size(handler, contract)? - 1,
-            }),
 
             Expr::UnionTag { union_expr, span } => self
                 .evaluate(*union_expr, handler, contract)
@@ -527,6 +516,7 @@ impl Evaluator {
             }
 
             Expr::Error(_)
+            | Expr::Nil(_)
             | Expr::LocalStorageAccess { .. }
             | Expr::ExternalStorageAccess { .. }
             | Expr::MacroCall { .. }
@@ -620,12 +610,10 @@ impl ExprKey {
                 }
             }
 
-            Expr::Optional { value, span } => Expr::Optional {
-                value: value.map(|value| value.plug_in(contract, values_map)),
-                span,
-            },
-
-            Expr::LocalStorageAccess { .. } | Expr::MacroCall { .. } | Expr::Error(_) => expr,
+            Expr::LocalStorageAccess { .. }
+            | Expr::Nil(_)
+            | Expr::MacroCall { .. }
+            | Expr::Error(_) => expr,
             Expr::Path(ref path, ref span) => {
                 let span = span.clone();
                 values_map.get(path).map_or(expr, |value| Expr::Immediate {

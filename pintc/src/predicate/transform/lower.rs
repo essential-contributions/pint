@@ -89,6 +89,7 @@ pub(crate) fn lower_aliases(contract: &mut Contract) {
             Type::Vector { ty, .. } => replace_alias(new_types_map, ty),
 
             Type::Error(_)
+            | Type::Nil(_)
             | Type::Unknown(_)
             | Type::Any(_)
             | Type::Primitive { .. }
@@ -912,7 +913,7 @@ pub(super) fn coalesce_prime_ops(contract: &mut Contract) {
                 | Expr::Array { .. }
                 | Expr::Tuple { .. }
                 | Expr::UnionVariant { .. }
-                | Expr::Optional { .. }
+                | Expr::Nil(..)
                 | Expr::Path(..)
                 | Expr::LocalStorageAccess { .. }
                 | Expr::ExternalStorageAccess { .. }

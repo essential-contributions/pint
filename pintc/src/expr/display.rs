@@ -52,12 +52,8 @@ impl DisplayWithContract for &super::Expr {
                 Ok(())
             }
 
-            super::Expr::Optional { value, .. } => {
-                if let Some(value) = value {
-                    write!(f, "val({})", contract.with_ctrct(value))
-                } else {
-                    write!(f, "nil")
-                }
+            super::Expr::Nil(_) => {
+                write!(f, "nil")
             }
 
             super::Expr::Path(p, _) => write!(f, "{p}"),
@@ -314,13 +310,6 @@ impl DisplayWithContract for super::Immediate {
                 });
                 write_many_iter!(f, i, ", ");
                 write!(f, "}}")
-            }
-            super::Immediate::Optional { value, .. } => {
-                if let Some(value) = value {
-                    write!(f, "val({})", contract.with_ctrct(*value.clone()))
-                } else {
-                    write!(f, "nil")
-                }
             }
             super::Immediate::UnionVariant {
                 tag_num,
