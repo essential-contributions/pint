@@ -45,9 +45,7 @@ PredicateInnerDecl: () = {
     <l:@L> ConstDecl ";" <r:@R> => {
         let span = (context.span_from)(l, r);
         handler.emit_err(Error::Parse {
-            error: ParseError::UnsupportedConstLocation {
-                span: span.clone(),
-            },
+            error: ParseError::UnsupportedConstLocation { span: span.clone() },
         });
     },
 
@@ -451,6 +449,11 @@ MacroBodyInnerDecls: () = {
 /////////////
 
 Type: Type = {
+    <NonOptionalType>,
+    <OptionalType>,
+}
+
+NonOptionalType: Type = {
     <ArrayType>,
     <VectorType>,
     <TypeAtom>,
@@ -522,6 +525,15 @@ TupleFields: Vec<(Option<Ident>, Type)> = {
 
 TupleField: (Option<Ident>, Type) = {
     <id:(<Ident> ":")?> <ty:Type> => (id, ty),
+}
+
+OptionalType: Type = {
+    <l:@L> <ty: Type> "?" <r:@R> => {
+        Type::Optional {
+            ty: Box::new(ty),
+            span: (context.span_from)(l, r),
+        }
+    }
 }
 
 /////////////////////
@@ -693,7 +705,7 @@ MultOpOp: BinaryOp = {
 }
 
 AsOp: ExprKey = {
-     <l:@L> <value:AsOp> "as" <ty:Type> <r:@R> => {
+     <l:@L> <value:AsOp> "as" <ty:NonOptionalType> <r:@R> => {
         let span = (context.span_from)(l, r);
         context.contract.exprs.insert(
             Expr::Cast {
@@ -779,6 +791,17 @@ PostfixOp: ExprKey = {
             Type::Unknown(span),
         )
     },
+    <l:@L> <expr:PostfixOp> "!" <r:@R> => {
+        let span = (context.span_from)(l, r);
+        context.contract.exprs.insert(
+            Expr::UnaryOp {
+                op: UnaryOp::Unwrap,
+                expr,
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        )
+    },
     <Term>,
 }
 
@@ -814,6 +837,7 @@ TermInner: Expr = {
     PredicateCallExpr,
     ArrayExpr,
     TupleExpr,
+    <l:@L> "nil" <m:@R> <r:@R> => Expr::Nil((context.span_from)(l, r)),
     UnionExpr,
     <l:@L> <path:Path> <r:@R> => Expr::Path(path, (context.span_from)(l, r)),
     <StoragePath>,
@@ -1184,7 +1208,6 @@ Immediate: Immediate = {
     <s:"real_lit"> => Immediate::Real(s.replace('_', "").parse().unwrap()),
     "true" => Immediate::Bool(true),
     "false" => Immediate::Bool(false),
-    "nil" => Immediate::Nil,
 };
 
 Ident: Ident = {

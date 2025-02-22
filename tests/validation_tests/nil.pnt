@@ -39,9 +39,9 @@ predicate Foo() {
 
     // `z` is not set in the pre let db but is set in the solution
     constraint z == nil;
-    constraint z' != 1;
+    constraint z'! != 1;
     constraint storage::z == nil;
-    constraint storage::z' != 1;
+    constraint storage::z'! != 1;
 
     // `w` is set in the pre let db but unset in the solution
     constraint w != nil;

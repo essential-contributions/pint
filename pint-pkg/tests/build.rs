@@ -210,13 +210,13 @@ fn build_contract_one_contract_dep() {
 }
 
 predicate Init(value: int) {
-    let counter: int = mut storage::counter;
-    constraint counter' == value;
+    let counter: int? = mut storage::counter;
+    constraint counter'! == value;
 }
 
 predicate Increment() {
-    let counter: int = mut storage::counter;
-    constraint counter' == counter + 1;
+    let counter: int? = mut storage::counter;
+    constraint counter'! == counter! + 1;
 }
 "#;
 

@@ -30,8 +30,8 @@ union Baz = X | Y;
 type Xyzzy = int;
 
 predicate test(a2: Undefined, b2: Undefined, a: int, b: Foo, d: Baz) {
-    let a1: Undefined = storage::a;
-    let b1: Undefined = storage::b;
+    let a1: Undefined? = storage::a;
+    let b1: Undefined? = storage::b;
 
     let c1 = a1 as Undefined;
     let c2 = b1 as Undefined;
@@ -74,8 +74,8 @@ predicate test(a2: Undefined, b2: Undefined, a: int, b: Foo, d: Baz) {
 //     ::b: ::Foo,
 //     ::d: ::Baz,
 // ) {
-//     let ::a1: ::Undefined = storage::a;
-//     let ::b1: ::Undefined = storage::b;
+//     let ::a1: ::Undefined? = storage::a;
+//     let ::b1: ::Undefined? = storage::b;
 //     let ::c1 = ::a1 as ::Undefined;
 //     let ::c2 = ::b1 as ::Undefined;
 //     let ::c = ::a as ::Bar;
@@ -87,7 +87,7 @@ predicate test(a2: Undefined, b2: Undefined, a: int, b: Foo, d: Baz) {
 // undefined type
 // @483..492: type is undefined
 // undefined type
-// @519..528: type is undefined
+// @520..529: type is undefined
 // undefined type
 // @419..428: type is undefined
 // undefined type
@@ -95,11 +95,11 @@ predicate test(a2: Undefined, b2: Undefined, a: int, b: Foo, d: Baz) {
 // undefined type
 // @456..459: type is undefined
 // undefined type
-// @622..625: type is undefined
+// @624..627: type is undefined
 // undefined type
-// @593..602: type is undefined
+// @595..604: type is undefined
 // undefined type
-// @563..572: type is undefined
+// @565..574: type is undefined
 // undefined type
 // @59..68: type is undefined
 // undefined type
@@ -125,13 +125,13 @@ predicate test(a2: Undefined, b2: Undefined, a: int, b: Foo, d: Baz) {
 // undefined type
 // @350..359: type is undefined
 // invalid cast
-// @557..572: illegal cast to `::Undefined`
+// @559..574: illegal cast to `::Undefined`
 // casts may only be made to `int`
 // invalid cast
-// @587..602: illegal cast to `::Undefined`
+// @589..604: illegal cast to `::Undefined`
 // casts may only be made to `int`
 // invalid cast
-// @617..625: illegal cast to `::Bar`
+// @619..627: illegal cast to `::Bar`
 // casts may only be made to `int`
 // const initialization type error
 // @71..72: const initializer has unexpected type `int`

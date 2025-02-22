@@ -4,7 +4,6 @@ use std::fmt::{Display, Formatter, Result};
 impl Display for super::PrimitiveKind {
     fn fmt(&self, f: &mut Formatter) -> Result {
         match self {
-            super::PrimitiveKind::Nil => write!(f, "nil"),
             super::PrimitiveKind::Bool => write!(f, "bool"),
             super::PrimitiveKind::Int => write!(f, "int"),
             super::PrimitiveKind::Real => write!(f, "real"),
@@ -22,6 +21,8 @@ impl DisplayWithContract for super::Type {
             super::Type::Unknown(..) => write!(f, "Unknown"),
 
             super::Type::Any(..) => write!(f, "_"),
+
+            super::Type::Nil(..) => write!(f, "_?"), // Basicaly an unknonw optional
 
             super::Type::Primitive { kind, .. } => write!(f, "{kind}"),
 
@@ -70,6 +71,10 @@ impl DisplayWithContract for super::Type {
 
             super::Type::Alias { name, ty, .. } => {
                 write!(f, "{name} ({})", contract.with_ctrct(ty.as_ref()))
+            }
+
+            super::Type::Optional { ty, .. } => {
+                write!(f, "{}?", contract.with_ctrct(ty.as_ref()),)
             }
 
             super::Type::Map { ty_from, ty_to, .. } => {

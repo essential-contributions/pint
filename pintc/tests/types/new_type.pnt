@@ -41,7 +41,7 @@ predicate test(h: Hooray, pt: A) {
 
     let q: int = i as Int;
 
-    let x: I = storage::x;
+    let x: I? = storage::x;
 }
 
 // parsed <<<
@@ -79,7 +79,7 @@ predicate test(h: Hooray, pt: A) {
 //     let ::e: ::Experience = ::Experience::Int;
 //     let ::p: ::Point = {66, 77};
 //     let ::q: int = ::i as ::Int;
-//     let ::x: ::I = storage::x;
+//     let ::x: ::I? = storage::x;
 //     constraint (::pt == ::A::T);
 //     constraint (::h[1] == 55);
 //     constraint (::r < ::p.y);
@@ -121,7 +121,7 @@ predicate test(h: Hooray, pt: A) {
 //     let ::e: ::Experience = ::Experience::Int;
 //     let ::p: {x: int, y: int} = {66, 77};
 //     let ::q: int = ::i;
-//     let ::x: int = __pre_state({0});
+//     let ::x: int? = __pre_state({0});
 //     constraint (::pt == ::TheLetterA::T);
 //     constraint (::h[1] == 55);
 //     constraint (::r < ::p.y);

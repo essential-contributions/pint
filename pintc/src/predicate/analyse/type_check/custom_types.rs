@@ -55,6 +55,7 @@ impl Contract {
                 Type::Array { ty, .. } => {
                     modified = replace_alias_target(alias_map, ty);
                 }
+
                 Type::Tuple { fields, .. } => {
                     // We need a .try_any() here.
                     modified = fields.iter_mut().fold(false, |acc, (_, ty)| {
@@ -65,10 +66,16 @@ impl Contract {
                         }
                     });
                 }
+
+                Type::Optional { ty, .. } => {
+                    modified = replace_alias_target(alias_map, ty);
+                }
+
                 Type::Map { ty_from, ty_to, .. } => {
                     modified = replace_alias_target(alias_map, ty_from)
                         || replace_alias_target(alias_map, ty_to);
                 }
+
                 Type::Vector { ty, .. } => {
                     modified = replace_alias_target(alias_map, ty);
                 }
@@ -77,7 +84,11 @@ impl Contract {
                 Type::Union { .. } => {}
 
                 // Ignore.
-                Type::Error(_) | Type::Unknown(_) | Type::Any(_) | Type::Primitive { .. } => {}
+                Type::Error(_)
+                | Type::Unknown(_)
+                | Type::Any(_)
+                | Type::Nil(_)
+                | Type::Primitive { .. } => {}
             }
 
             modified
@@ -154,6 +165,8 @@ impl Contract {
                     Ok(())
                 }
 
+                Type::Optional { ty, .. } => inspect_type_names(handler, contract, seen_names, ty),
+
                 Type::Custom {
                     name: custom_name,
                     span: custom_ty_span,
@@ -200,7 +213,11 @@ impl Contract {
 
                 Type::Vector { ty, .. } => inspect_type_names(handler, contract, seen_names, ty),
 
-                Type::Error(_) | Type::Unknown(_) | Type::Any(_) | Type::Primitive { .. } => Ok(()),
+                Type::Error(_)
+                | Type::Unknown(_)
+                | Type::Any(_)
+                | Type::Nil(_)
+                | Type::Primitive { .. } => Ok(()),
             }
         }
 
@@ -250,6 +267,8 @@ impl Contract {
                     .iter_mut()
                     .for_each(|(_, ty)| replace_custom_type(new_types, union_keys, ty)),
 
+                Type::Optional { ty, .. } => replace_custom_type(new_types, union_keys, ty),
+
                 Type::Alias { ty, .. } => replace_custom_type(new_types, union_keys, ty),
 
                 Type::Map { ty_from, ty_to, .. } => {
@@ -262,6 +281,7 @@ impl Contract {
                 Type::Error(_)
                 | Type::Unknown(_)
                 | Type::Any(_)
+                | Type::Nil(_)
                 | Type::Primitive { .. }
                 | Type::Union { .. } => {}
             }

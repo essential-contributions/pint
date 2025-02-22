@@ -102,6 +102,9 @@ fn check_expr(
         Type::Any(span) => {
             emit_illegal_type_error!(handler, span, "any type", "expr_types");
         }
+        Type::Nil(span) => {
+            emit_illegal_type_error!(handler, span, "nil type", "expr_types");
+        }
         Type::Custom { name, span, .. } => {
             // TODO: unclear how to test this. We will refactor custom types soon anyways.
             if !contract.unions.values().any(
@@ -118,6 +121,7 @@ fn check_expr(
         Type::Array { .. }
         | Type::Tuple { .. }
         | Type::Primitive { .. }
+        | Type::Optional { .. }
         | Type::Map { .. }
         | Type::Vector { .. }
         | Type::Union { .. } => {}
@@ -174,6 +178,7 @@ fn check_expr(
         | Expr::Array { .. }
         | Expr::Tuple { .. }
         | Expr::UnionVariant { .. }
+        | Expr::Nil(_)
         | Expr::Path(..)
         | Expr::LocalStorageAccess { .. }
         | Expr::ExternalStorageAccess { .. }

@@ -169,6 +169,10 @@ fn bools() {
     assert_eq!(lex_one_success("false"), Token::False);
     assert_ne!(lex_one_success("false"), Token::True);
     assert_ne!(lex_one_success("true"), Token::False);
+}
+
+#[test]
+fn optional() {
     assert_eq!(lex_one_success("nil"), Token::Nil);
 }
 

@@ -10,7 +10,7 @@ interface i {
 }
 
 predicate test(addr1: b256) {
-    let x = i@[addr1]::storage::x;
+    let x = i@[addr1]::storage::x!;
     constraint x == [1, 2, 3];
 }
 
@@ -29,7 +29,7 @@ predicate test(addr1: b256) {
 // predicate ::test(
 //     ::addr1: b256,
 // ) {
-//     let ::x = ::i@[::addr1]::storage::x;
+//     let ::x = ::i@[::addr1]::storage::x!;
 //     constraint (::x == [1, 2, 3]);
 // }
 // >>>
@@ -49,7 +49,7 @@ predicate test(addr1: b256) {
 // predicate ::test(
 //     ::addr1: b256,
 // ) {
-//     let ::x: int[3] = __pre_state_extern(::addr1, {0, 0});
+//     let ::x: int[3] = __pre_state_extern(::addr1, {0, 0})!;
 //     constraint (::x == [1, 2, 3]);
 //     constraint __eq_set(__mut_keys(), {0});
 // }

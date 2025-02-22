@@ -70,28 +70,19 @@ impl Evaluator {
         )
     }
 
-    pub(crate) fn evaluate_key(
-        &self,
-        expr_key: &ExprKey,
-        handler: &Handler,
-        contract: &Contract,
-    ) -> Result<Imm, ErrorEmitted> {
-        self.evaluate(expr_key.get(contract), handler, contract)
-    }
-
     pub(crate) fn evaluate(
         &self,
-        expr: &Expr,
+        expr: ExprKey,
         handler: &Handler,
         contract: &Contract,
     ) -> Result<Imm, ErrorEmitted> {
-        match expr {
+        match expr.get(contract) {
             Expr::Immediate { value, .. } => Ok(value.clone()),
 
             Expr::Array { elements, .. } => {
                 let imm_elements = elements
                     .iter()
-                    .map(|el_key| self.evaluate_key(el_key, handler, contract))
+                    .map(|el_key| self.evaluate(*el_key, handler, contract))
                     .collect::<Result<_, _>>()?;
 
                 Ok(Imm::Array(imm_elements))
@@ -101,7 +92,7 @@ impl Evaluator {
                 let imm_fields = fields
                     .iter()
                     .map(|(name, fld_key)| {
-                        self.evaluate_key(fld_key, handler, contract)
+                        self.evaluate(*fld_key, handler, contract)
                             .map(|fld_imm| (name.clone(), fld_imm))
                     })
                     .collect::<Result<_, _>>()?;
@@ -125,7 +116,7 @@ impl Evaluator {
                 }),
 
             Expr::UnaryOp { op, expr, .. } => {
-                let expr = self.evaluate_key(expr, handler, contract)?;
+                let expr = self.evaluate(*expr, handler, contract)?;
 
                 match (expr, op) {
                     (Imm::Real(expr), UnaryOp::Neg) => Ok(Imm::Real(-expr)),
@@ -139,8 +130,8 @@ impl Evaluator {
             }
 
             Expr::BinaryOp { op, lhs, rhs, .. } => {
-                let lhs = self.evaluate_key(lhs, handler, contract)?;
-                let rhs = self.evaluate_key(rhs, handler, contract)?;
+                let lhs = self.evaluate(*lhs, handler, contract)?;
+                let rhs = self.evaluate(*rhs, handler, contract)?;
 
                 match (lhs, rhs) {
                     (Imm::Real(lhs), Imm::Real(rhs)) => match op {
@@ -226,10 +217,10 @@ impl Evaluator {
 
             Expr::Index { expr, index, span } => {
                 // If the expr is an array...
-                let ary = self.evaluate_key(expr, handler, contract)?;
+                let ary = self.evaluate(*expr, handler, contract)?;
                 if let Imm::Array(elements) = ary {
                     // And the index is an int...
-                    match self.evaluate_key(index, handler, contract)? {
+                    match self.evaluate(*index, handler, contract)? {
                         Imm::Int(n) => elements.get(n as usize).cloned().ok_or_else(|| {
                             handler.emit_err(Error::Compile {
                                 error: CompileError::ArrayIndexOutOfBounds { span: span.clone() },
@@ -264,7 +255,7 @@ impl Evaluator {
 
             Expr::TupleFieldAccess { tuple, field, span } => {
                 // If the expr is a tuple...
-                let tup = self.evaluate_key(tuple, handler, contract)?;
+                let tup = self.evaluate(*tuple, handler, contract)?;
                 if let Imm::Tuple(fields) = tup {
                     // And the field can be found...
                     match field {
@@ -307,9 +298,9 @@ impl Evaluator {
                 else_expr,
                 span,
             } => {
-                let cond = self.evaluate_key(condition, handler, contract)?;
+                let cond = self.evaluate(*condition, handler, contract)?;
                 if let Imm::Bool(b) = cond {
-                    self.evaluate_key(if b { then_expr } else { else_expr }, handler, contract)
+                    self.evaluate(if b { *then_expr } else { *else_expr }, handler, contract)
                 } else {
                     let mut cond_ty = condition.get_ty(contract).clone();
                     if cond_ty.is_unknown() {
@@ -345,7 +336,7 @@ impl Evaluator {
 
                 // All casts are either redundant (e.g., bool as bool) or are to ints, except int
                 // as real. They'll be rejected by the type checker if not.
-                let imm = self.evaluate_key(value, handler, contract)?;
+                let imm = self.evaluate(*value, handler, contract)?;
                 match imm {
                     Imm::Real(_) => {
                         if ty.is_real() {
@@ -390,8 +381,7 @@ impl Evaluator {
                     }
 
                     // Invalid to cast from these values.
-                    Imm::Nil
-                    | Imm::String(_)
+                    Imm::String(_)
                     | Imm::B256(_)
                     | Imm::Array { .. }
                     | Imm::Tuple(_)
@@ -407,7 +397,7 @@ impl Evaluator {
             } => {
                 // Ugh, this isn't a great way to be getting the union type. :( Strings and all the
                 // values/types which use them need to be refactored.  Or we get the type passed in
-                // from evaluate_key().  This whole method is pretty sucky -- e.g, getting the tag
+                // from evaluate().  This whole method is pretty sucky -- e.g, getting the tag
                 // num and union size.
                 let mut path_segs = path.split("::").collect::<Vec<_>>();
                 path_segs.pop();
@@ -440,7 +430,7 @@ impl Evaluator {
 
                 let value = value
                     .as_ref()
-                    .map(|value_key| self.evaluate_key(value_key, handler, contract))
+                    .map(|value_key| self.evaluate(*value_key, handler, contract))
                     .transpose()?
                     .map(Box::new);
 
@@ -453,7 +443,7 @@ impl Evaluator {
             }
 
             Expr::UnionTag { union_expr, span } => self
-                .evaluate_key(union_expr, handler, contract)
+                .evaluate(*union_expr, handler, contract)
                 .and_then(|imm| {
                     if let Imm::UnionVariant { tag_num, .. } = imm {
                         Ok(Imm::Int(tag_num))
@@ -469,7 +459,7 @@ impl Evaluator {
             Expr::UnionValue {
                 union_expr, span, ..
             } => self
-                .evaluate_key(union_expr, handler, contract)
+                .evaluate(*union_expr, handler, contract)
                 .and_then(|imm| {
                     if let Imm::UnionVariant {
                         value: Some(imm_val),
@@ -489,11 +479,11 @@ impl Evaluator {
             Expr::In {
                 value, collection, ..
             } => {
-                let value = self.evaluate_key(value, handler, contract)?;
+                let value = self.evaluate(*value, handler, contract)?;
 
                 if let Expr::Range { lb, ub, .. } = collection.get(contract) {
-                    let lb = self.evaluate_key(lb, handler, contract)?;
-                    let ub = self.evaluate_key(ub, handler, contract)?;
+                    let lb = self.evaluate(*lb, handler, contract)?;
+                    let ub = self.evaluate(*ub, handler, contract)?;
 
                     match (lb, ub, value) {
                         (Imm::Int(lb), Imm::Int(ub), Imm::Int(value)) => {
@@ -511,7 +501,7 @@ impl Evaluator {
                         )),
                     }
                 } else {
-                    let collection = self.evaluate_key(collection, handler, contract)?;
+                    let collection = self.evaluate(*collection, handler, contract)?;
 
                     match collection {
                         Imm::Array(collection) => Ok(Imm::Bool(collection.contains(&value))),
@@ -526,6 +516,7 @@ impl Evaluator {
             }
 
             Expr::Error(_)
+            | Expr::Nil(_)
             | Expr::LocalStorageAccess { .. }
             | Expr::ExternalStorageAccess { .. }
             | Expr::MacroCall { .. }
@@ -619,7 +610,10 @@ impl ExprKey {
                 }
             }
 
-            Expr::LocalStorageAccess { .. } | Expr::MacroCall { .. } | Expr::Error(_) => expr,
+            Expr::LocalStorageAccess { .. }
+            | Expr::Nil(_)
+            | Expr::MacroCall { .. }
+            | Expr::Error(_) => expr,
             Expr::Path(ref path, ref span) => {
                 let span = span.clone();
                 values_map.get(path).map_or(expr, |value| Expr::Immediate {

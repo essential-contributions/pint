@@ -65,10 +65,10 @@ predicate test(
 //     ::c_len: int,
 //     ::d_len: int,
 // ) {
-//     let ::a: int = __pre_state({0});
-//     let ::b: bool = __pre_state({1});
-//     let ::c: b256 = __pre_state({2});
-//     let ::d: {int, bool} = __pre_state({3, 0});
+//     let ::a: int? = __pre_state({0});
+//     let ::b: bool? = __pre_state({1});
+//     let ::c: b256? = __pre_state({2});
+//     let ::d: {int, bool}? = __pre_state({3, 0});
 //     constraint (::a_len == __size_of(::a));
 //     constraint (::b_len == __size_of(::b));
 //     constraint (::c_len == __size_of(::c));

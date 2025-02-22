@@ -4,7 +4,7 @@ storage {
 }
 
 predicate test_int() {
-    let a = storage::int_ary;
+    let a = storage::int_ary!;
     let b = map x in a { x * x };
 
     constraint b[0] + b[1] == b[2];
@@ -12,7 +12,7 @@ predicate test_int() {
 }
 
 predicate test_ary() {
-    let a = storage::ary_ary;
+    let a = storage::ary_ary!;
     let b = map x in a { x[0] * x[1] };
 
     constraint b[0] == b[2];
@@ -27,7 +27,7 @@ predicate test_ary() {
 //
 // predicate ::test_int(
 // ) {
-//     let ::a = storage::int_ary;
+//     let ::a = storage::int_ary!;
 //     let ::b = map x in ::a { (::x * ::x) };
 //     constraint ((::b[0] + ::b[1]) == ::b[2]);
 //     constraint (::b[2] != 0);
@@ -35,7 +35,7 @@ predicate test_ary() {
 //
 // predicate ::test_ary(
 // ) {
-//     let ::a = storage::ary_ary;
+//     let ::a = storage::ary_ary!;
 //     let ::b = map x in ::a { (::x[0] * ::x[1]) };
 //     constraint (::b[0] == ::b[2]);
 //     constraint (::b[0] != 0);
@@ -50,7 +50,7 @@ predicate test_ary() {
 //
 // predicate ::test_int(
 // ) {
-//     let ::a: int[3] = __pre_state({0, 0});
+//     let ::a: int[3] = __pre_state({0, 0})!;
 //     let ::b: int[3] = map x in ::a { (::x * ::x) };
 //     constraint ((::b[0] + ::b[1]) == ::b[2]);
 //     constraint (::b[2] != 0);
@@ -59,7 +59,7 @@ predicate test_ary() {
 //
 // predicate ::test_ary(
 // ) {
-//     let ::a: int[2][3] = __pre_state({1, 0});
+//     let ::a: int[2][3] = __pre_state({1, 0})!;
 //     let ::b: int[3] = map x in ::a { (::x[0] * ::x[1]) };
 //     constraint (::b[0] == ::b[2]);
 //     constraint (::b[0] != 0);

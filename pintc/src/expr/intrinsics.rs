@@ -1,4 +1,4 @@
-use crate::types::{any, b256, error, int, r#bool, string, tuple, vector, Type};
+use crate::types::{any, b256, error, int, optional, r#bool, string, tuple, vector, Type};
 use std::fmt::{Display, Formatter, Result};
 
 ///////////////////
@@ -103,7 +103,7 @@ impl ExternalIntrinsic {
             Self::ThisAddress => vec![],
             Self::ThisContractAddress => vec![],
             Self::VecLen => vec![
-                vector(any()), // storage vector to find the length of
+                optional(vector(any())), // storage vector to find the length of
             ],
             Self::VerifyEd25519 => vec![
                 any(),                       // data
@@ -121,7 +121,7 @@ impl ExternalIntrinsic {
             Self::SizeOf => int(),
             Self::ThisAddress => b256(),
             Self::ThisContractAddress => b256(),
-            Self::VecLen => int(),
+            Self::VecLen => optional(int()),
             Self::VerifyEd25519 => r#bool(),
         }
     }

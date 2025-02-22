@@ -12,7 +12,7 @@ const X = 42;
 const Y = true;
 
 predicate foo() {
-    let counter = Counter@[ContractID]::storage::counter;
+    let counter = Counter@[ContractID]::storage::counter!;
     constraint counter' >= 100;
     constraint Counter@[ContractID]::foo@[PredicateId](X, Y);
 }
@@ -34,7 +34,7 @@ predicate foo() {
 //
 // predicate ::foo(
 // ) {
-//     let ::counter = ::Counter@[::ContractID]::storage::counter;
+//     let ::counter = ::Counter@[::ContractID]::storage::counter!;
 //     constraint (::counter' >= 100);
 //     constraint ::Counter@[::ContractID]::foo@[::PredicateId](::X, ::Y);
 // }
@@ -57,7 +57,7 @@ predicate foo() {
 //
 // predicate ::foo(
 // ) {
-//     let ::counter: int = __pre_state_extern(0x6D05CB94739FFB92CA96750EBF262A82C3ED8F05262DD26B503D732F0B74777E, {0});
+//     let ::counter: int = __pre_state_extern(0x6D05CB94739FFB92CA96750EBF262A82C3ED8F05262DD26B503D732F0B74777E, {0})!;
 //     constraint (::counter' >= 100);
 //     constraint ::Counter@[0x6D05CB94739FFB92CA96750EBF262A82C3ED8F05262DD26B503D732F0B74777E]::foo@[0x1111111111111111111111111111111111111111111111111111111111111111](42, true);
 //     constraint __eq_set(__mut_keys(), {0});

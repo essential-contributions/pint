@@ -147,8 +147,12 @@ pub(crate) fn legalize_vector_accesses_in_predicate(
                     args: vec![vector_storage_access],
                     span: empty_span(),
                 },
-                int_ty.clone(),
+                Type::Optional {
+                    ty: Box::new(int_ty.clone()),
+                    span: empty_span(),
+                },
             );
+
             if let Some(pred) = contract.preds.get_mut(pred_key) {
                 pred.variables.insert(
                     Variable {
@@ -156,7 +160,10 @@ pub(crate) fn legalize_vector_accesses_in_predicate(
                         expr: intrinsic,
                         span: empty_span(),
                     },
-                    int_ty.clone(),
+                    Type::Optional {
+                        ty: Box::new(int_ty.clone()),
+                        span: empty_span(),
+                    },
                 );
             }
         };
@@ -184,6 +191,18 @@ pub(crate) fn legalize_vector_accesses_in_predicate(
         // current length of the vector
         let vec_len_path = contract.exprs.insert(
             Expr::Path(vec_len_variable_var_name.clone(), empty_span()),
+            Type::Optional {
+                ty: Box::new(int_ty.clone()),
+                span: empty_span(),
+            },
+        );
+
+        let unwrap = contract.exprs.insert(
+            Expr::UnaryOp {
+                op: UnaryOp::Unwrap,
+                expr: vec_len_path,
+                span: empty_span(),
+            },
             int_ty.clone(),
         );
 
@@ -191,7 +210,7 @@ pub(crate) fn legalize_vector_accesses_in_predicate(
             Expr::BinaryOp {
                 op: BinaryOp::LessThan,
                 lhs: *index,
-                rhs: vec_len_path,
+                rhs: unwrap,
                 span: empty_span(),
             },
             bool_ty.clone(),
@@ -233,6 +252,18 @@ pub(crate) fn legalize_vector_accesses_in_predicate(
                 expr: vec_len_path,
                 span: empty_span(),
             },
+            Type::Optional {
+                ty: Box::new(int_ty.clone()),
+                span: empty_span(),
+            },
+        );
+
+        let unwrap = contract.exprs.insert(
+            Expr::UnaryOp {
+                op: UnaryOp::Unwrap,
+                expr: vec_len_path_prime,
+                span: empty_span(),
+            },
             int_ty.clone(),
         );
 
@@ -240,7 +271,7 @@ pub(crate) fn legalize_vector_accesses_in_predicate(
             Expr::BinaryOp {
                 op: BinaryOp::LessThan,
                 lhs: *index,
-                rhs: vec_len_path_prime,
+                rhs: unwrap,
                 span: empty_span(),
             },
             bool_ty.clone(),
