@@ -199,12 +199,12 @@ storage variable in Pint requires the <code>storage</code> keyword again:</p>
 <pre><code class="language-pint">let a = storage::a;
 let t = storage::t;
 let t_1 = storage::t.1;
-let arr_2_1: int = storage::arr[2].1;
+let arr_2_1: int? = storage::arr[2].1;
 
 let x = storage::x;
-let incremented = storage::x + 1;
+let incremented = storage::x! + 1;
 
-constraint incremented == x + 1; // always true!
+constraint incremented == x! + 1; // always true!
 </code></pre>
 <p>A few things to note here:</p>
 <ol>
@@ -232,7 +232,7 @@ declarative language where the order of statements does not matter and there is 
 execution, statements like <code>x = x + 1</code> cannot be written and are not logical. Instead, Pint offers a
 special syntax, reserved for local variables, that means &quot;the future value of&quot;. Here's an example:</p>
 <pre><code class="language-pint">let bal = mut storage::bal;
-constraint bal' &gt;= bal + 42;
+constraint bal'! &gt;= bal! + 42;
 </code></pre>
 <p>Here, <code>bal'</code>, unlike <code>bal</code>, is actually <strong>unknown at solve-time</strong>. That is, <code>bal'</code> must be solved
 for as if it were a predicate parameter and every solution must include a proposed value for <code>bal'</code>.
@@ -240,8 +240,8 @@ If, for example, the value of <code>bal</code> was read to be <code>100</code> a
 the next value of <code>bal</code> should be <code>150</code> (i.e. <code>bal' = 150</code>) which would be a valid solution because
 <code>150 &gt;= 100 + 42</code> (assuming all other constraints in the predicate are also satisfied).</p>
 <p>The <code>'</code> operator can also be used for variables that have arbitrary initializers. For example:</p>
-<pre><code class="language-pint">let bal_in_dollars = price * mut storage::bal;
-constraint bal_in_dollars' == price * bal'; // always true!
+<pre><code class="language-pint">let bal_in_dollars: int = price * mut storage::bal!;
+constraint bal_in_dollars' == price * bal'!; // always true!
 </code></pre>
 <p>Basically, when validating a solution, <code>bal_in_dollars'</code> is computed by plugging in the <em>new</em> value
 of <code>storage::bal</code> into the expression <code>price * storage::bal</code>. That is, a valid solution must satisfy
@@ -262,7 +262,7 @@ a storage access. In the example of the previous section, because <code>mut</cod
 <p>When the <code>mut</code> keyword as added before a storage access into a compound type, mutability applies
 <strong>only</strong> to the portion of the compound type that is being accessed. For example, in the example
 below:</p>
-<pre><code class="language-pint">let inner: { bool, b256 } = mut storage::v.1;
+<pre><code class="language-pint">let inner: { bool, b256 }? = mut storage::v.1;
 </code></pre>
 <p><code>v.1</code> is a storage access into nested tuple <code>v</code> defined in the <code>storage</code> block declared earlier.
 Here, both <code>v.1.0</code> ( a <code>bool</code>) and <code>v.1.1</code> (a <code>b256</code>) are both allowed to be mutated, but <code>v.0</code> is
@@ -273,7 +273,7 @@ anyways. In this case, there is no value stored at that storage variable and not
 To help you reason about this, Pint provides the literal <code>nil</code> to represent the <em>absence of a
 value</em>. For example,</p>
 <pre><code class="language-pint">let w = mut storage::w;
-let value_1 = (w == nil ? 0 : w);
+let value_1 = (w == nil ? 0 : w!);
 </code></pre>
 <p>In the example above, we first check if <code>w</code> is <code>nil</code> before attempting to read it. If it is <code>nil</code>
 (i.e. currently has no value), then we initialize <code>value_1</code> to <code>0</code>. Otherwise, we initialize it to
@@ -281,7 +281,7 @@ the non-empty value of <code>w</code>. Without checking if <code>w</code> is <co
 <code>w</code> has a value or not, then it is possible that the state read operation will fail causing a
 <em>panic</em> in the VM.</p>
 <p>The following is also a valid approach for handling <code>nil</code> checks:</p>
-<pre><code class="language-pint">let value_2 = (mut storage::w == nil) ? 0 : storage::w;
+<pre><code class="language-pint">let value_2 = (mut storage::w == nil) ? 0 : storage::w!;
 constraint value_2 == value_1; // always true!
 </code></pre>
 <p>It is also possible to update a variable to <code>nil</code> using the &quot;next state&quot; operator:</p>
