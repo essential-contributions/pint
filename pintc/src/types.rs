@@ -774,7 +774,7 @@ impl Type {
 
             // This, of course, is incorrect. It's just a placeholder until we can support ABI gen
             // for vectors, which is non-trivial.
-            Type::Vector { .. } => Ok(TypeABI::Int),
+            Type::UnsizedArray { .. } | Type::Vector { .. } => Ok(TypeABI::Int),
 
             _ => unimplemented!("other types are not yet supported"),
         }
@@ -1109,6 +1109,13 @@ pub fn b256() -> Type {
 pub fn string() -> Type {
     Type::Primitive {
         kind: PrimitiveKind::String,
+        span: empty_span(),
+    }
+}
+
+pub fn dyn_array(ty: Type) -> Type {
+    Type::UnsizedArray {
+        ty: Box::new(ty),
         span: empty_span(),
     }
 }
