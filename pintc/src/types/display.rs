@@ -38,7 +38,7 @@ impl DisplayWithContract for super::Type {
             }
 
             super::Type::UnsizedArray { ty, .. } => {
-                write!(f, "{}[]", contract.with_ctrct(ty.as_ref()),)
+                write!(f, "{}[_]", contract.with_ctrct(ty.as_ref()),)
             }
 
             super::Type::Tuple { fields, .. } => {

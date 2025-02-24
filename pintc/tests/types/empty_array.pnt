@@ -5,7 +5,7 @@ predicate test(ary: int[10], vector: int[]) {
 // parsed <<<
 // predicate ::test(
 //     ::ary: int[10],
-//     ::vector: int[],
+//     ::vector: int[_],
 // ) {
 //     constraint (::ary != []);
 // }
@@ -14,6 +14,4 @@ predicate test(ary: int[10], vector: int[]) {
 // typecheck_failure <<<
 // illegal empty array value
 // @68..70: empty array values are illegal
-// predicate parameters cannot have storage types
-// @29..42: found parameter of storage type int[] here
 // >>>

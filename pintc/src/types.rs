@@ -337,31 +337,46 @@ impl Type {
     /// Returns all array range expressions in given type. For example, given the following
     /// expression `{ int, int[3 + 3], int[a][b] }`, this method a vector of `ExprKey` that point
     /// to the following expressions `3 + 3`, `a`, `b`.
-    pub fn get_all_array_range_exprs(&self) -> Vec<ExprKey> {
+    pub fn get_all_array_range_exprs(&self, contract: &Contract) -> Vec<ExprKey> {
         let mut range_exprs = Vec::new();
         match self {
             Self::FixedArray { ty, range, .. } => {
-                range_exprs.extend(ty.get_all_array_range_exprs());
+                range_exprs.extend(ty.get_all_array_range_exprs(contract));
                 if let Some(range) = range {
                     range_exprs.push(*range);
                 }
             }
             Self::Tuple { fields, .. } => {
                 for field in fields {
-                    range_exprs.extend(field.1.get_all_array_range_exprs());
+                    range_exprs.extend(field.1.get_all_array_range_exprs(contract));
                 }
             }
-            Self::Alias { ty, .. } => {
-                range_exprs.extend(ty.get_all_array_range_exprs());
-            }
             Self::Map { ty_from, ty_to, .. } => {
-                range_exprs.extend(ty_from.get_all_array_range_exprs());
-                range_exprs.extend(ty_to.get_all_array_range_exprs());
+                range_exprs.extend(ty_from.get_all_array_range_exprs(contract));
+                range_exprs.extend(ty_to.get_all_array_range_exprs(contract));
             }
-            Self::Vector { ty, .. } => {
-                range_exprs.extend(ty.get_all_array_range_exprs());
+
+            Self::Union { decl, .. } => {
+                if let Some(UnionDecl { variants, .. }) = contract.unions.get(*decl) {
+                    for variant in variants {
+                        if let Some(ty) = &variant.ty {
+                            range_exprs.extend(ty.get_all_array_range_exprs(contract));
+                        }
+                    }
+                }
             }
-            _ => {}
+
+            Self::UnsizedArray { ty, .. }
+            | Self::Alias { ty, .. }
+            | Self::Optional { ty, .. }
+            | Self::Vector { ty, .. } => range_exprs.extend(ty.get_all_array_range_exprs(contract)),
+
+            Self::Error(_)
+            | Self::Unknown(_)
+            | Self::Any(_)
+            | Self::Nil(_)
+            | Self::Primitive { .. }
+            | Self::Custom { .. } => {}
         }
 
         range_exprs
@@ -483,33 +498,31 @@ impl Type {
     pub fn get_storage_only_ty(&self, contract: &Contract) -> Option<Self> {
         match self {
             Type::Map { .. } | Type::Vector { .. } => Some(self.clone()),
-            Type::FixedArray { ty, .. } => ty.get_storage_only_ty(contract),
-            Type::Tuple { fields, .. } => {
-                for (_, field) in fields {
-                    let ty = field.get_storage_only_ty(contract);
-                    if let Some(ty) = ty {
-                        return Some(ty);
-                    }
-                }
-                None
-            }
-            Type::Optional { ty, .. } => ty.get_storage_only_ty(contract),
-            Type::Alias { ty, .. } => ty.get_storage_only_ty(contract),
-            Type::Union { decl, .. } => {
-                let union_decl = contract
-                    .unions
-                    .get(*decl)
-                    .expect("union decl guaranteed to exist");
-                for variant in &union_decl.variants {
-                    if let Some(variant_ty) = &variant.ty {
-                        if let Some(ty) = variant_ty.get_storage_only_ty(contract) {
-                            return Some(ty);
-                        }
-                    }
-                }
-                None
-            }
-            _ => None,
+
+            Type::Tuple { fields, .. } => fields
+                .iter()
+                .find_map(|(_, field)| field.get_storage_only_ty(contract)),
+
+            Type::Union { decl, .. } => contract.unions.get(*decl).and_then(|union_decl| {
+                union_decl.variants.iter().find_map(|variant| {
+                    variant
+                        .ty
+                        .as_ref()
+                        .and_then(|variant_ty| variant_ty.get_storage_only_ty(contract))
+                })
+            }),
+
+            Type::FixedArray { ty, .. }
+            | Type::UnsizedArray { ty, .. }
+            | Type::Optional { ty, .. }
+            | Type::Alias { ty, .. } => ty.get_storage_only_ty(contract),
+
+            Type::Error(_)
+            | Type::Unknown(_)
+            | Type::Any(_)
+            | Type::Nil(_)
+            | Type::Primitive { .. }
+            | Type::Custom { .. } => None,
         }
     }
 
@@ -518,25 +531,54 @@ impl Type {
     // - Storage vectors where the element type is not bool, int, nor b256
     pub fn is_allowed_in_storage(&self, contract: &Contract) -> bool {
         match self {
-            Type::Map { ty_from, ty_to, .. } => {
-                ty_from.get_storage_only_ty(contract).is_none()
-                    && ty_to.is_allowed_in_storage(contract)
-            }
             Type::Vector { ty, .. } => {
                 // We only support vectors of these types for now
                 ty.is_bool() || ty.is_int() || ty.is_b256()
             }
-            Type::FixedArray { ty, .. } => ty.is_allowed_in_storage(contract),
-            Type::Tuple { fields, .. } => fields.iter().fold(true, |acc, (_, field)| {
-                acc && field.is_allowed_in_storage(contract)
-            }),
-            Type::Alias { ty, .. } => ty.is_allowed_in_storage(contract),
+
             Type::Custom { .. } => {
                 // Disallow custom types since they're ambiguous. Hopefully, by the time we need
                 // this method, all custom types are gone.
                 false
             }
-            _ => true,
+
+            Type::UnsizedArray { .. } => {
+                // Disallow unsized arrays.  The top level unsized arrays should be converted to
+                // `Type::Vector` already, and so any embedded unsized arrays are then disallowed.
+                false
+            }
+
+            Type::Map { ty_from, ty_to, .. } => {
+                ty_from.get_storage_only_ty(contract).is_none()
+                    && ty_from.is_allowed_in_storage(contract)
+                    && ty_to.is_allowed_in_storage(contract)
+            }
+
+            Type::Tuple { fields, .. } => fields
+                .iter()
+                .all(|(_, field)| field.is_allowed_in_storage(contract)),
+
+            Type::Union { decl, .. } => contract
+                .unions
+                .get(*decl)
+                .map(|union_decl| {
+                    union_decl.variants.iter().all(|variant| {
+                        variant
+                            .ty
+                            .as_ref()
+                            .map(|ty| ty.is_allowed_in_storage(contract))
+                            .unwrap_or(true)
+                    })
+                })
+                .unwrap_or(true),
+
+            Type::FixedArray { ty, .. } | Type::Alias { ty, .. } | Type::Optional { ty, .. } => {
+                ty.is_allowed_in_storage(contract)
+            }
+
+            Type::Nil(_) | Type::Primitive { .. } => true,
+
+            Type::Error(_) | Type::Unknown(_) | Type::Any(_) => false,
         }
     }
 

@@ -210,7 +210,7 @@ impl Contract {
                         }
 
                         Inference::Ignored
-                        | Inference::Types { .. } // todo: should probably handle this? 
+                        | Inference::Types { .. } // todo: should probably handle this?
                         | Inference::Dependant(_)
                         | Inference::Dependencies(_)
                         | Inference::BoundDependencies { .. } => {
