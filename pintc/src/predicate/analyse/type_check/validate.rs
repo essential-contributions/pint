@@ -245,7 +245,7 @@ impl Contract {
     ) -> Result<(), ErrorEmitted> {
         fn check_any_type(ty: &Type, handler: &Handler) {
             match ty {
-                Type::Nil(span) => {
+                Type::Nil(span) | Type::Any(span) => {
                     handler.emit_err(Error::Compile {
                         error: CompileError::UninferrableType { span: span.clone() },
                     });
@@ -262,7 +262,6 @@ impl Contract {
                 }
                 Type::Vector { ty, .. } => check_any_type(ty, handler),
                 Type::Error(_)
-                | Type::Any(_)
                 | Type::Unknown(_)
                 | Type::Custom { .. }
                 | Type::Primitive { .. }

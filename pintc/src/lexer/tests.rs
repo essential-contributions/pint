@@ -258,6 +258,11 @@ fn if_else_cond() {
 }
 
 #[test]
+fn asm() {
+    assert_eq!(lex_one_success("asm"), Token::Asm);
+}
+
+#[test]
 fn r#use() {
     assert_eq!(lex_one_success("use"), Token::Use);
 }

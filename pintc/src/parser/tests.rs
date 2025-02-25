@@ -895,6 +895,39 @@ interface Foo {
 }
 
 #[test]
+fn asm_blocks() {
+    let pint = (yp::PintParser::new(), "");
+
+    check(
+        &run_parser!(pint, r#"predicate test() { let x: int = asm() {}; }"#),
+        expect_test::expect![[r#"
+
+            predicate ::test(
+            ) {
+                let ::x: int = asm() {
+                };
+            }"#]],
+    );
+
+    check(
+        &run_parser!(
+            pint,
+            r#"predicate test() { let w: int = asm(x, y, 1 + z,) {push 1 pop foo}; }"#
+        ),
+        expect_test::expect![[r#"
+
+            predicate ::test(
+            ) {
+                let ::w: int = asm(::x, ::y, (1 + ::z)) {
+                    push 1
+                    pop
+                    foo
+                };
+            }"#]],
+    );
+}
+
+#[test]
 fn local_storage_access() {
     let expr = (yp::TestDelegateParser::new(), "expr");
 

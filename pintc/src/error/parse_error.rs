@@ -71,6 +71,8 @@ pub enum ParseError {
     LiteralNotSupported { kind: String, span: Span },
     #[error("`consts` must be declared outside of a `predicate`")]
     UnsupportedConstLocation { span: Span },
+    #[error("assembly instruction cannot have a non-integer argument")]
+    ExpectedIntegerLiteral { span: Span },
 }
 
 impl ReportableError for ParseError {
@@ -243,8 +245,13 @@ impl ReportableError for ParseError {
                 span: span.clone(),
                 color: Color::Red,
             }],
-            UnsupportedConstLocation { span, .. } => vec![ErrorLabel {
+            UnsupportedConstLocation { span } => vec![ErrorLabel {
                 message: "unexpected `const`".to_string(),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+            ExpectedIntegerLiteral { span } => vec![ErrorLabel {
+                message: "instruction argument must be an integer literal".to_string(),
                 span: span.clone(),
                 color: Color::Red,
             }],
@@ -356,6 +363,7 @@ impl Spanned for ParseError {
             | TypeNotSupported { span, .. }
             | LiteralNotSupported { span, .. }
             | UnsupportedConstLocation { span, .. }
+            | ExpectedIntegerLiteral { span, .. }
             | Lex { span } => span,
 
             InvalidToken => unreachable!("The `InvalidToken` error is always wrapped in `Lex`."),

@@ -1,0 +1,82 @@
+storage {
+    m: ( int => int )
+}
+
+predicate foo(w: int) {
+    let y = 5;
+
+    let x0: int = asm() { };
+
+    let x1: int = asm() {
+        PUSH 5
+        POP
+        ADD
+        ALOC
+        BAND
+    };
+
+    let x2: int = asm(w, y, storage::m[5]) {
+        PUSH 5
+        POP
+        ADD
+        ALOC
+        BAND
+    };
+}
+
+// parsed <<<
+// storage {
+//     m: ( int => int ),
+// }
+//
+// predicate ::foo(
+//     ::w: int,
+// ) {
+//     let ::y = 5;
+//     let ::x0: int = asm() {
+//     };
+//     let ::x1: int = asm() {
+//         PUSH 5
+//         POP
+//         ADD
+//         ALOC
+//         BAND
+//     };
+//     let ::x2: int = asm(::w, ::y, storage::m[5]) {
+//         PUSH 5
+//         POP
+//         ADD
+//         ALOC
+//         BAND
+//     };
+// }
+// >>>
+
+// flattened <<<
+// storage {
+//     m: ( int => int ),
+// }
+//
+// predicate ::foo(
+//     ::w: int,
+// ) {
+//     let ::y: int = 5;
+//     let ::x0: int = asm() {
+//     };
+//     let ::x1: int = asm() {
+//         PUSH 5
+//         POP
+//         ADD
+//         ALOC
+//         BAND
+//     };
+//     let ::x2: int = asm(::w, ::y, __pre_state({0, 5})) {
+//         PUSH 5
+//         POP
+//         ADD
+//         ALOC
+//         BAND
+//     };
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>

@@ -1,0 +1,11 @@
+predicate foo() {
+    let x: int = asm() {
+        PUSH 0x0000111100001111000011110000111100001111000011110000111100001111
+        POP
+    };
+}
+
+// parse_failure <<<
+// assembly instruction cannot have a non-integer argument
+// @56..122: instruction argument must be an integer literal
+// >>>

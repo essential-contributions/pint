@@ -116,6 +116,8 @@ pub enum Token {
     Cond,
     #[token("match")]
     Match,
+    #[token("asm")]
+    Asm,
 
     #[token("let")]
     Let,
@@ -229,6 +231,7 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Macro,
     Token::Map,
     Token::Match,
+    Token::Asm,
     Token::Mut,
     Token::Predicate,
     Token::Real,
@@ -324,6 +327,7 @@ impl fmt::Display for Token {
             Token::Else => write!(f, "else"),
             Token::Cond => write!(f, "cond"),
             Token::Match => write!(f, "match"),
+            Token::Asm => write!(f, "asm"),
             Token::Let => write!(f, "let"),
             Token::Const => write!(f, "const"),
             Token::Storage => write!(f, "storage"),

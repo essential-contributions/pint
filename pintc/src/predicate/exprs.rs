@@ -129,6 +129,8 @@ impl ExprKey {
 
             Expr::Path(path, _) => pred.variables().any(|(_, variable)| &variable.name == path),
 
+            Expr::AsmBlock { args, .. } => args.iter().any(|arg| arg.can_panic(contract, pred)),
+
             Expr::Error(_) | Expr::Immediate { .. } | Expr::MacroCall { .. } => false,
 
             Expr::Array {
@@ -333,6 +335,12 @@ impl ExprKey {
                     }
                 }
 
+                Expr::AsmBlock { args, .. } => {
+                    args.iter().for_each(|arg| {
+                        storage_accesses.extend(arg.collect_storage_accesses(contract));
+                    });
+                }
+
                 Expr::ExternalPredicateCall {
                     c_addr,
                     p_addr,
@@ -499,6 +507,12 @@ impl ExprKey {
                 }
 
                 Expr::IntrinsicCall { args, .. } => {
+                    args.iter().for_each(|arg| {
+                        path_to_var_exprs.extend(arg.collect_path_to_var_exprs(contract, pred));
+                    });
+                }
+
+                Expr::AsmBlock { args, .. } => {
                     args.iter().for_each(|arg| {
                         path_to_var_exprs.extend(arg.collect_path_to_var_exprs(contract, pred));
                     });
@@ -741,6 +755,12 @@ impl Iterator for ExprsIter<'_> {
             }
 
             Expr::IntrinsicCall { args, .. } => {
+                for arg in args {
+                    queue_if_new!(self, arg);
+                }
+            }
+
+            Expr::AsmBlock { args, .. } => {
                 for arg in args {
                     queue_if_new!(self, arg);
                 }

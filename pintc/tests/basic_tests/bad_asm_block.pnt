@@ -1,0 +1,21 @@
+predicate foo() {
+    let x = asm() {
+        PUSH 1 
+        POP
+    };
+}
+
+// parsed <<<
+// predicate ::foo(
+// ) {
+//     let ::x = asm() {
+//         PUSH 1
+//         POP
+//     };
+// }
+// >>>
+
+// typecheck_failure <<<
+// uninferrable type
+// @30..71: type of this expression cannot be inferred
+// >>>

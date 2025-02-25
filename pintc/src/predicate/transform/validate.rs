@@ -180,6 +180,7 @@ fn check_expr(
         | Expr::UnionVariant { .. }
         | Expr::Nil(_)
         | Expr::Path(..)
+        | Expr::AsmBlock { .. }
         | Expr::LocalStorageAccess { .. }
         | Expr::ExternalStorageAccess { .. }
         | Expr::UnaryOp { .. }

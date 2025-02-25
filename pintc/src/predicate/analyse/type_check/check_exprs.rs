@@ -159,6 +159,8 @@ impl Contract {
 
             Expr::Path(path, span) => Ok(self.infer_path_by_name(handler, pred, path, span)),
 
+            Expr::AsmBlock { args, span, .. } => Ok(self.infer_asm_block(args, span)),
+
             Expr::LocalStorageAccess { name, span, .. } => {
                 Ok(self.infer_local_storage_access(handler, name, span))
             }
@@ -311,6 +313,28 @@ impl Contract {
             Inference::Type(ary_ty)
         } else {
             Inference::Type(imm.get_ty(Some(span)))
+        }
+    }
+
+    fn infer_asm_block(&self, args: &[ExprKey], span: &Span) -> Inference {
+        let mut arg_tys = Vec::with_capacity(args.len());
+
+        let mut deps = Vec::new();
+        for arg in args {
+            let arg_ty = arg.get_ty(self);
+            if !arg_ty.is_unknown() {
+                arg_tys.push(arg_ty.clone());
+            } else {
+                deps.push(*arg);
+            }
+        }
+
+        if deps.is_empty() {
+            // We can't really know the type of of an `AsmBlock` in isolation. We have to infer it
+            // from the context later.
+            Inference::Type(Type::Any(span.clone()))
+        } else {
+            Inference::Dependencies(deps)
         }
     }
 

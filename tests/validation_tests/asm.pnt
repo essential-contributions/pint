@@ -1,0 +1,67 @@
+// db <<<
+// 0, 69
+// 1, 42
+// >>>
+
+storage {
+    s1: int,
+    s2: int,
+}
+
+predicate foo() {
+    let y = 5555;
+    let z = 3333;
+    let w = 2222;
+
+    let sum: int = asm(w, y, z) {
+        PUSH 0
+        LOD // load w
+        PUSH 1
+        LOD // load y
+        ADD
+        PUSH 2
+        LOD // load z
+        ADD
+    };
+
+    constraint sum == w + y + z;
+
+    let equal: bool = asm({ w, y, z }, w, y, z) {
+        PUSH 0
+        PUSH 3
+        LODR // load { w, y, z }
+        PUSH 3
+        LOD // load w
+        PUSH 4
+        LOD // load y
+        PUSH 5
+        LOD // load z
+        PUSH 3
+        EQRA
+    };
+
+    constraint equal;
+
+    let load_s: int = asm(storage::s2'!) {
+        // Memory starts with [ <storage::s2'!> ]
+
+        PUSH 0 // storage key for `s1`
+        PUSH 1 // key len for `s1`
+        PUSH 1 // num keys for `s1`
+        PUSH 3 
+        ALOC   // allocate 3 words mem_addr for `s1`: addr, len, value
+        KRNG
+        // Now the memory looks like: [ <storage::s2'!>, 3, 1, 69 ]
+
+        PUSH 3 
+        LOD    // load from mem index 3 where the data lives
+                
+        PUSH 0
+        LOD    // load storage::s2'!
+        
+        ADD
+    };
+
+    constraint load_s == mut storage::s1! + mut storage::s2'!;
+    constraint load_s' == mut storage::s1'! + mut storage::s2'!;
+}
