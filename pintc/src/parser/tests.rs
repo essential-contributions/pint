@@ -264,10 +264,7 @@ fn storage_types() {
     // Multi dimensional vectors are not yet supported
     check(
         &run_parser!(storage_var_type, "int[][]"),
-        expect_test::expect![[r#"
-            expected `?`, found `[`
-            @18..19: expected `?`
-        "#]],
+        expect_test::expect!["int[][]"],
     );
 }
 
