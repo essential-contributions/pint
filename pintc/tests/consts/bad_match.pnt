@@ -1,0 +1,33 @@
+union Coin = Penny | Nickel | Dime | Quarter;
+
+const new_coin = match Coin::Penny {
+    Coin::Penny => 1,
+    Coin::Nickel => 5,
+    Coin::Dime => 10,
+    Coin::Quarter => 25,
+};
+
+predicate CoinConversion1(coin: Coin) {
+    let coin_in_cents = match coin {
+        Coin::Penny => 1,
+        Coin::Nickel => 5,
+        Coin::Dime => 10,
+        Coin::Quarter => 25,
+    };
+}
+
+// parsed <<<
+// const ::new_coin = match ::Coin::Penny { ::Coin::Penny => 1, ::Coin::Nickel => 5, ::Coin::Dime => 10, ::Coin::Quarter => 25 };
+// union ::Coin = Penny | Nickel | Dime | Quarter;
+//
+// predicate ::CoinConversion1(
+//     ::coin: ::Coin,
+// ) {
+//     let ::coin_in_cents = match ::coin { ::Coin::Penny => 1, ::Coin::Nickel => 5, ::Coin::Dime => 10, ::Coin::Quarter => 25 };
+// }
+// >>>
+
+// typecheck_failure <<<
+// attempt to use a non-constant value in a constant
+// @64..177: non-constant value
+// >>>
