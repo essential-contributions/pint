@@ -8,7 +8,7 @@ use super::Inference;
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler, LargeTypeError},
     predicate::{Const, ConstraintDecl, Contract, Expr, ExprKey, Ident, VisitorKind},
-    span::{Span, Spanned},
+    span::{empty_span, Span, Spanned},
     types::Type,
 };
 use fxhash::{FxHashMap, FxHashSet};
@@ -60,40 +60,14 @@ impl Contract {
                     self.type_check_match_decl(handler, Some(pred_key), match_decl)
                 });
 
-            let mut init_exprs_types = FxHashMap::default();
-
             // Confirm now that all variable variables are typed.
             let mut variable_key_to_new_type = FxHashMap::default();
             for (variable_key, variable) in self.preds[pred_key].variables() {
                 let variable_ty = variable_key.get_ty(&self.preds[pred_key]);
-                let expr_ty = variable.expr.get_ty(self);
-
-                match (variable_ty, expr_ty) {
-                    (Type::Unknown(_), Type::Unknown(_)) => {
-                        handler.emit_err(Error::Compile {
-                            error: CompileError::UnknownType {
-                                span: variable.span.clone(),
-                            },
-                        });
-                    }
-                    (Type::Unknown(_), _) => {
-                        // Infer variable type from its initializer
-                        variable_key_to_new_type.insert(variable_key, expr_ty.clone());
-                    }
-                    (_, Type::Unknown(_)) => {
-                        handler.emit_err(Error::Compile {
-                            error: CompileError::UnknownType {
-                                span: variable.span.clone(),
-                            },
-                        });
-                    }
-                    (_, Type::Any(_)) => {
-                        // Infer expression type from the specified type of the variable
-                        init_exprs_types.insert(variable.expr, variable_ty.clone());
-                    }
-                    _ => {
+                if !variable_ty.is_unknown() {
+                    let expr_ty = variable.expr.get_ty(self);
+                    if !expr_ty.is_unknown() {
                         if !variable_ty.eq(self, expr_ty) {
-                            // Mismatch type error
                             handler.emit_err(Error::Compile {
                                 error: CompileError::VarInitTypeError {
                                     large_err: Box::new(LargeTypeError::VarInitTypeError {
@@ -105,13 +79,25 @@ impl Contract {
                                 },
                             });
                         }
+                    } else {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::UnknownType {
+                                span: variable.span.clone(),
+                            },
+                        });
+                    }
+                } else {
+                    let expr_ty = variable.expr.get_ty(self).clone();
+                    if !expr_ty.is_unknown() {
+                        variable_key_to_new_type.insert(variable_key, expr_ty.clone());
+                    } else {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::UnknownType {
+                                span: variable.span.clone(),
+                            },
+                        });
                     }
                 }
-            }
-
-            // Now update the types of the initializer exprs if we couldn't infer them before
-            for (expr, ty) in init_exprs_types {
-                expr.set_ty(ty, self);
             }
 
             self.preds
@@ -236,5 +222,30 @@ impl Contract {
 
         // If we get this far then there was an error.
         Err(handler.cancel())
+    }
+
+    pub(super) fn type_check_asm_blocks(&mut self, handler: &Handler) -> Result<(), ErrorEmitted> {
+        let mut asm_blocks_types = FxHashMap::default();
+        for pred_key in self.preds.keys().collect::<Vec<_>>() {
+            for (variable_key, variable) in self.preds[pred_key].variables() {
+                if variable.expr.get(self).is_asm_block() {
+                    let variable_ty = variable_key.get_ty(&self.preds[pred_key]);
+                    if !variable_ty.is_unknown() {
+                        asm_blocks_types.insert(variable.expr, variable_ty.clone());
+                    } else {
+                        return Err(handler.emit_internal_err(
+                            "vars initalized to asm blocks must have a user-specified type",
+                            empty_span(),
+                        ));
+                    }
+                }
+            }
+        }
+
+        for (expr, ty) in asm_blocks_types {
+            expr.set_ty(ty, self);
+        }
+
+        Ok(())
     }
 }

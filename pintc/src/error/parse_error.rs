@@ -71,7 +71,7 @@ pub enum ParseError {
     LiteralNotSupported { kind: String, span: Span },
     #[error("`consts` must be declared outside of a `predicate`")]
     UnsupportedConstLocation { span: Span },
-    #[error("assembly instruction cannot have a non-integer argument")]
+    #[error("assembly instruction can only have a 64-bit integer argument")]
     ExpectedIntegerLiteral { span: Span },
 }
 
@@ -251,7 +251,7 @@ impl ReportableError for ParseError {
                 color: Color::Red,
             }],
             ExpectedIntegerLiteral { span } => vec![ErrorLabel {
-                message: "instruction argument must be an integer literal".to_string(),
+                message: "expecting a 64-bit integer here".to_string(),
                 span: span.clone(),
                 color: Color::Red,
             }],

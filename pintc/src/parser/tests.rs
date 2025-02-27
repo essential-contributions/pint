@@ -925,6 +925,14 @@ fn asm_blocks() {
                 };
             }"#]],
     );
+
+    check(
+        &run_parser!(pint, r#"predicate test() { let w = asm() {}; }"#),
+        expect_test::expect![[r#"
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `map`, `match`, `mut`, `storage`, or `{`, found `asm`
+            @27..30: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `map`, `match`, `mut`, `storage`, or `{`
+        "#]],
+    );
 }
 
 #[test]

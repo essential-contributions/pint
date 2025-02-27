@@ -6,6 +6,6 @@ predicate foo() {
 }
 
 // parse_failure <<<
-// assembly instruction cannot have a non-integer argument
-// @56..122: instruction argument must be an integer literal
+// assembly instruction can only have a 64-bit integer argument
+// @56..122: expecting a 64-bit integer here
 // >>>
