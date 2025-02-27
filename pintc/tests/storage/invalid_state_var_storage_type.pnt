@@ -26,9 +26,9 @@ predicate test() {
 
 // typecheck_failure <<<
 // local variables cannot have storage types
-// @124..142: found local variable of storage type {( int => int ), int} here
+// @124..142: found local variable of storage type {( int => int ), int}? here
 // type of local variable depends on the storage type `( int => int )`
 // local variables cannot have storage types
-// @148..166: found local variable of storage type {::a ({( bool => bool ), int}), int} here
+// @148..166: found local variable of storage type {::a ({( bool => bool ), int}), int}? here
 // type of local variable depends on the storage type `( bool => bool )`
 // >>>

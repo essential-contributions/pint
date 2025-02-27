@@ -265,8 +265,8 @@ fn storage_types() {
     check(
         &run_parser!(storage_var_type, "int[][]"),
         expect_test::expect![[r#"
-            expected something else, found `[`
-            @18..19: expected something else
+            expected `?`, found `[`
+            @18..19: expected `?`
         "#]],
     );
 }
@@ -472,6 +472,42 @@ fn immediates() {
             @11..30: integer literal is too large
             value exceeds limit of `9,223,372,036,854,775,807`
         "#]],
+    );
+}
+
+#[test]
+fn optional() {
+    let expr = (yp::TestDelegateParser::new(), "expr");
+
+    check(&run_parser!(expr, r#"nil"#), expect_test::expect!["nil"]);
+
+    check(
+        &run_parser!(expr, r#"{ [nil, nil, nil], nil }"#),
+        expect_test::expect!["{[nil, nil, nil], nil}"],
+    );
+
+    check(
+        &run_parser!(expr, r#"x!! != 3"#),
+        expect_test::expect!["(::x!! != 3)"],
+    );
+
+    check(
+        &run_parser!(expr, r#"x!! != 3"#),
+        expect_test::expect!["(::x!! != 3)"],
+    );
+
+    check(
+        &run_parser!(expr, r#"{1, 2}[3]!! != 3"#),
+        expect_test::expect!["({1, 2}[3]!! != 3)"],
+    );
+
+    let type_ = (yp::TestDelegateParser::new(), "type");
+
+    check(&run_parser!(type_, r#"int?"#), expect_test::expect!["int?"]);
+
+    check(
+        &run_parser!(type_, r#"{int[3], bool}?"#),
+        expect_test::expect!["{int[3], bool}?"],
     );
 }
 
@@ -1103,8 +1139,8 @@ fn const_decls() {
     check(
         &run_parser!(pint, "const z: int;"),
         expect_test::expect![[r#"
-            expected `=`, found `;`
-            @12..13: expected `=`
+            expected `=`, or `?`, found `;`
+            @12..13: expected `=`, or `?`
         "#]],
     );
 }
@@ -1587,8 +1623,8 @@ fn unions() {
             }"#
         ),
         expect_test::expect![[r#"
-            expected `=`, found `;`
-            @61..62: expected `=`
+            expected `=`, or `?`, found `;`
+            @61..62: expected `=`, or `?`
         "#]],
     );
 }
@@ -3150,8 +3186,8 @@ fn experimental() {
     check(
         &run_parser!(pint, "predicate test() { let blah: real; }", mod_path),
         expect_test::expect![[r#"
-            expected `=`, found `;`
-            @33..34: expected `=`
+            expected `=`, or `?`, found `;`
+            @33..34: expected `=`, or `?`
         "#]],
     );
 

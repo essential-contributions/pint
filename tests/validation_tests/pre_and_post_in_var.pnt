@@ -1,0 +1,13 @@
+// db <<<
+// 1, 5
+// >>>
+storage {
+    x: int,
+    y: int
+}
+
+predicate foo() {
+    let x = mut storage::x'! + mut storage::y!;
+    constraint x == 3 + 5;
+    constraint x' == 3 + 6;
+}

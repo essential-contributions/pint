@@ -146,6 +146,8 @@ impl ExprKey {
                 .map(|value| value.can_panic(contract, pred))
                 .unwrap_or(false),
 
+            Expr::Nil(_) => false,
+
             Expr::UnaryOp { expr, .. } => expr.can_panic(contract, pred),
 
             Expr::BinaryOp { lhs, rhs, .. } => {
@@ -422,6 +424,7 @@ impl ExprKey {
                 }
 
                 Expr::Error(_)
+                | Expr::Nil(_)
                 | Expr::Immediate { .. }
                 | Expr::Path(..)
                 | Expr::MacroCall { .. }
@@ -587,6 +590,7 @@ impl ExprKey {
                 }
 
                 Expr::LocalStorageAccess { .. }
+                | Expr::Nil(_)
                 | Expr::Error(_)
                 | Expr::Immediate { .. }
                 | Expr::MacroCall { .. }
@@ -849,6 +853,7 @@ impl Iterator for ExprsIter<'_> {
             }
 
             Expr::Error(_)
+            | Expr::Nil(_)
             | Expr::LocalStorageAccess { .. }
             | Expr::Path(_, _)
             | Expr::MacroCall { .. } => {}

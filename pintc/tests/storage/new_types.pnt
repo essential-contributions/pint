@@ -13,9 +13,9 @@ predicate test() {
     let y = storage::n[false];
     let z = storage::o[false];
 
-    constraint x == 11;
-    constraint y' < 22;
-    constraint z != 0x3333333333333333333333333333333333333333333333333333333333333333;
+    constraint x! == 11;
+    constraint y'! < 22;
+    constraint z! != 0x3333333333333333333333333333333333333333333333333333333333333333;
 }
 
 // parsed <<<
@@ -33,9 +33,9 @@ predicate test() {
 //     let ::x = storage::m[true];
 //     let ::y = storage::n[false];
 //     let ::z = storage::o[false];
-//     constraint (::x == 11);
-//     constraint (::y' < 22);
-//     constraint (::z != 0x3333333333333333333333333333333333333333333333333333333333333333);
+//     constraint (::x! == 11);
+//     constraint (::y'! < 22);
+//     constraint (::z! != 0x3333333333333333333333333333333333333333333333333333333333333333);
 // }
 // >>>
 
@@ -51,12 +51,12 @@ predicate test() {
 //
 // predicate ::test(
 // ) {
-//     let ::x: int = __pre_state({0, true});
-//     let ::y: int = __pre_state({1, false});
-//     let ::z: b256 = __pre_state({2, false});
-//     constraint (::x == 11);
-//     constraint (::y' < 22);
-//     constraint (::z != 0x3333333333333333333333333333333333333333333333333333333333333333);
+//     let ::x: int? = __pre_state({0, true});
+//     let ::y: int? = __pre_state({1, false});
+//     let ::z: b256? = __pre_state({2, false});
+//     constraint (::x! == 11);
+//     constraint (::y'! < 22);
+//     constraint (::z! != 0x3333333333333333333333333333333333333333333333333333333333333333);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

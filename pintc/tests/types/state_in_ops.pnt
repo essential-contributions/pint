@@ -26,6 +26,6 @@ predicate test() {
 
 // typecheck_failure <<<
 // binary operator type error
-// @132..134: operator `&&` argument has unexpected type `int`
+// @126..128: operator `&&` argument has unexpected type `bool?`
 // @126..134: expecting type `bool`
 // >>>

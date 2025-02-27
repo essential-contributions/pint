@@ -131,8 +131,8 @@ const DEFAULT_CONTRACT_PNT: &str = r#"storage {
 }
 
 predicate Increment() {
-    let counter: int = mut storage::counter;
-    constraint (counter == nil && counter' == 1) || counter' == counter + 1;
+    let counter: int? = mut storage::counter;
+    constraint (counter == nil && counter'! == 1) || counter'! == counter! + 1;
 }
 "#;
 

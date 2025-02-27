@@ -1,4 +1,4 @@
-predicate test(ary: int[10]) {
+predicate test_int(ary: int[10]) {
     let evens: int[10] = map x in ary {
         x % 2 == 1 ? x + 1 : x
     };
@@ -8,8 +8,16 @@ predicate test(ary: int[10]) {
     constraint !zero_map[3];
 }
 
+predicate test_int_array(ary: int[5][2]) {
+    let sums = map x in ary {
+        x[0] + x[1]
+    };
+
+    constraint sums[4] == 11;
+}
+
 // parsed <<<
-// predicate ::test(
+// predicate ::test_int(
 //     ::ary: int[10],
 // ) {
 //     let ::evens: int[10] = map x in ::ary { (((::x % 2) == 1) ? (::x + 1) : ::x) };
@@ -17,16 +25,31 @@ predicate test(ary: int[10]) {
 //     constraint ((::evens[4] + ::evens[0]) == 10);
 //     constraint !::zero_map[3];
 // }
+//
+// predicate ::test_int_array(
+//     ::ary: int[2][5],
+// ) {
+//     let ::sums = map x in ::ary { (::x[0] + ::x[1]) };
+//     constraint (::sums[4] == 11);
+// }
 // >>>
 
 // flattened <<<
-// predicate ::test(
+// predicate ::test_int(
 //     ::ary: int[10],
 // ) {
 //     let ::evens: int[10] = map x in ::ary { (((::x % 2) == 1) ? (::x + 1) : ::x) };
 //     let ::zero_map: bool[10] = map y in ::ary { (::y == 0) };
 //     constraint ((::evens[4] + ::evens[0]) == 10);
 //     constraint !::zero_map[3];
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+//
+// predicate ::test_int_array(
+//     ::ary: int[2][5],
+// ) {
+//     let ::sums: int[5] = map x in ::ary { (::x[0] + ::x[1]) };
+//     constraint (::sums[4] == 11);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

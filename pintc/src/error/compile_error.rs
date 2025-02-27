@@ -151,6 +151,8 @@ pub enum CompileError {
     UnknownType { span: Span },
     #[error("undefined type")]
     UndefinedType { span: Span },
+    #[error("uninferrable type")]
+    UninferrableType { span: Span },
     #[error("condition for {conditional} must be a `bool`")]
     NonBoolConditional {
         ty: String,
@@ -786,6 +788,12 @@ impl ReportableError for CompileError {
 
             UndefinedType { span } => vec![ErrorLabel {
                 message: "type is undefined".to_string(),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
+            UninferrableType { span } => vec![ErrorLabel {
+                message: "type of this expression cannot be inferred".to_string(),
                 span: span.clone(),
                 color: Color::Red,
             }],
@@ -1437,6 +1445,7 @@ impl ReportableError for CompileError {
             | MacroSpliceVarNotArray { .. }
             | UnknownType { .. }
             | UndefinedType { .. }
+            | UninferrableType { .. }
             | NonBoolConditional { .. }
             | SelectBranchesTypeMismatch { .. }
             | ConstraintExpressionTypeError { .. }
@@ -1660,6 +1669,7 @@ impl Spanned for CompileError {
             | CannotIndexIntoValue { span, .. }
             | UnknownType { span }
             | UndefinedType { span }
+            | UninferrableType { span }
             | NonBoolConditional { span, .. }
             | IndexExprNonIndexable { span, .. }
             | ArrayAccessWithWrongType { span, .. }

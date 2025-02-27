@@ -34,7 +34,7 @@ predicate Foo() {
 //
 // predicate ::Foo(
 // ) {
-//     let ::counter: int = __pre_state_extern(0x0003000300030003000300030003000300030003000300030003000300030003, {0});
+//     let ::counter: int? = __pre_state_extern(0x0003000300030003000300030003000300030003000300030003000300030003, {0});
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

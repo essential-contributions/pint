@@ -1,0 +1,25 @@
+{
+  "solutions": [
+    {
+      "predicate_to_solve": {
+        "contract": "<>",
+        "predicate": "<::test>"
+      },
+      "predicate_data": [],
+      "state_mutations": [
+        {
+          "key": [0],
+          "value": [11]
+        },
+        {
+          "key": [1, 1],
+          "value": [22]
+        },
+        {
+          "key": [2, 0],
+          "value": [33]
+        }
+      ]
+    }
+  ]
+}

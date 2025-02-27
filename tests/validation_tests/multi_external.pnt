@@ -30,13 +30,13 @@ predicate Foo() {
     let w = Baz@[baz_addr]::storage::w;
     let z = Baz@[baz_addr]::storage::z;
 
-    constraint x' - x == 1;
-    constraint y' - y == 2;
-    constraint w' - w == 3;
-    constraint z' - z == 4;
+    constraint x'! - x! == 1;
+    constraint y'! - y! == 2;
+    constraint w'! - w! == 3;
+    constraint z'! - z! == 4;
 
-    constraint Bar@[bar_addr]::storage::x' - Bar@[bar_addr]::storage::x == 1;
-    constraint Bar@[bar_addr]::storage::y' - Bar@[bar_addr]::storage::y == 2;
-    constraint Baz@[baz_addr]::storage::w' - Baz@[baz_addr]::storage::w == 3;
-    constraint Baz@[baz_addr]::storage::z' - Baz@[baz_addr]::storage::z == 4;
+    constraint Bar@[bar_addr]::storage::x'! - Bar@[bar_addr]::storage::x! == 1;
+    constraint Bar@[bar_addr]::storage::y'! - Bar@[bar_addr]::storage::y! == 2;
+    constraint Baz@[baz_addr]::storage::w'! - Baz@[baz_addr]::storage::w! == 3;
+    constraint Baz@[baz_addr]::storage::z'! - Baz@[baz_addr]::storage::z! == 4;
 }

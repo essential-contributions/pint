@@ -10,13 +10,13 @@ storage {
 }
 
 predicate foo() {
-    let t = storage::t;
+    let t = storage::t!;
     constraint t'.0 == 0;
     constraint t'.1 == 0;
     constraint t.0' == 0;
     constraint t.1' == 0;
 
-    let t1 = storage::t1;
+    let t1 = storage::t1!;
     constraint t1'.0 == 0;
     constraint t1'.1 == { 0, 0 };
     constraint t1'.1.0 == 0;
@@ -26,13 +26,13 @@ predicate foo() {
     constraint t1.1.1' == 0;
     constraint t1.1.0' == 0;
 
-    let u = storage::u;
+    let u = storage::u!;
     constraint u'.0 == false;
     constraint u'.1 == false;
     constraint u.0' == false;
     constraint u.1' == false;
 
-    let u1 = storage::u1;
+    let u1 = storage::u1!;
     constraint u1'.0 == true;
     constraint u1'.1 == { true, true };
     constraint u1'.1.0 == true;
@@ -42,13 +42,13 @@ predicate foo() {
     constraint u1.1.1' == true;
     constraint u1.1.0' == true;    
     
-    let v = storage::v;
+    let v = storage::v!;
     constraint v'.0 == 0x0000000000000001000000000000000200000000000000030000000000000004;
     constraint v'.1 == 0x0000000000000001000000000000000200000000000000030000000000000004;
     constraint v.0' == 0x0000000000000001000000000000000200000000000000030000000000000004;
     constraint v.1' == 0x0000000000000001000000000000000200000000000000030000000000000004;
 
-    let v1 = storage::v1;
+    let v1 = storage::v1!;
     constraint v1'.0 == 0x0000000000000001000000000000000200000000000000030000000000000004;
     constraint v1'.1 == { 0x0000000000000001000000000000000200000000000000030000000000000004, 0x0000000000000001000000000000000200000000000000030000000000000004 };
     constraint v1'.1.0 == 0x0000000000000001000000000000000200000000000000030000000000000004;
@@ -58,13 +58,13 @@ predicate foo() {
     constraint v1.1.1' == 0x0000000000000001000000000000000200000000000000030000000000000004;
     constraint v1.1.0' == 0x0000000000000001000000000000000200000000000000030000000000000004;
 
-    let w = storage::w;
+    let w = storage::w!;
     constraint w'.0 == [1, 1];
     constraint w'.1 == [1, 1];
     constraint w.0' == [1, 1];
     constraint w.1' == [1, 1];
 
-    let w1 = storage::w1;
+    let w1 = storage::w1!;
     constraint w1'.0 == [1, 1];
     constraint w1'.1 == { [1, 1], [1, 1] };
     constraint w1'.1.0 == [1, 1];
@@ -89,14 +89,14 @@ predicate foo() {
 //
 // predicate ::foo(
 // ) {
-//     let ::t = storage::t;
-//     let ::t1 = storage::t1;
-//     let ::u = storage::u;
-//     let ::u1 = storage::u1;
-//     let ::v = storage::v;
-//     let ::v1 = storage::v1;
-//     let ::w = storage::w;
-//     let ::w1 = storage::w1;
+//     let ::t = storage::t!;
+//     let ::t1 = storage::t1!;
+//     let ::u = storage::u!;
+//     let ::u1 = storage::u1!;
+//     let ::v = storage::v!;
+//     let ::v1 = storage::v1!;
+//     let ::w = storage::w!;
+//     let ::w1 = storage::w1!;
 //     constraint (::t'.0 == 0);
 //     constraint (::t'.1 == 0);
 //     constraint (::t.0' == 0);
@@ -162,14 +162,14 @@ predicate foo() {
 //
 // predicate ::foo(
 // ) {
-//     let ::t: {int, int} = __pre_state({0, 0});
-//     let ::t1: {int, {int, int}} = __pre_state({1, 0});
-//     let ::u: {bool, bool} = __pre_state({2, 0});
-//     let ::u1: {bool, {bool, bool}} = __pre_state({3, 0});
-//     let ::v: {b256, b256} = __pre_state({4, 0});
-//     let ::v1: {b256, {b256, b256}} = __pre_state({5, 0});
-//     let ::w: {int[2], int[2]} = __pre_state({6, 0});
-//     let ::w1: {int[2], {int[2], int[2]}} = __pre_state({7, 0});
+//     let ::t: {int, int} = __pre_state({0, 0})!;
+//     let ::t1: {int, {int, int}} = __pre_state({1, 0})!;
+//     let ::u: {bool, bool} = __pre_state({2, 0})!;
+//     let ::u1: {bool, {bool, bool}} = __pre_state({3, 0})!;
+//     let ::v: {b256, b256} = __pre_state({4, 0})!;
+//     let ::v1: {b256, {b256, b256}} = __pre_state({5, 0})!;
+//     let ::w: {int[2], int[2]} = __pre_state({6, 0})!;
+//     let ::w1: {int[2], {int[2], int[2]}} = __pre_state({7, 0})!;
 //     constraint (::t'.0 == 0);
 //     constraint (::t'.1 == 0);
 //     constraint (::t'.0 == 0);

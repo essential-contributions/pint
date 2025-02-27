@@ -85,6 +85,7 @@ impl Contract {
 
         match expr {
             Expr::Error(_)
+            | Expr::Nil(_)
             | Expr::Path(_, _)
             | Expr::LocalStorageAccess { .. }
             | Expr::MacroCall { .. }

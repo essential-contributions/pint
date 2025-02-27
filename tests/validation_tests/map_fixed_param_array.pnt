@@ -1,0 +1,7 @@
+predicate test(ary: int[5][2]) {
+    let sums = map x in ary {
+        x[0] + x[1]
+    };
+
+    constraint sums[4] == 11;
+}

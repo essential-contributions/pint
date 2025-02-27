@@ -9,8 +9,8 @@ storage {
 
 // ANCHOR: storage_access
 predicate foo(addr1: b256) {
-    let complex_read: b256 = storage::complex_map[{42, 69}].1;
+    let complex_read: b256? = storage::complex_map[{42, 69}].1;
 
-    let nested_read: bool = storage::nested_map[addr1][100];
+    let nested_read: bool? = storage::nested_map[addr1][100];
 }
 // ANCHOR_END: storage_access

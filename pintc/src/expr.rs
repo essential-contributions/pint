@@ -33,6 +33,7 @@ pub enum Expr {
         value: Option<ExprKey>,
         span: Span,
     },
+    Nil(Span),
     Path(String, Span),
     LocalStorageAccess {
         name: String,
@@ -182,7 +183,6 @@ pub struct MatchElse {
 #[derive(Clone, Debug, PartialEq)]
 pub enum Immediate {
     Error,
-    Nil,
     Real(f64),
     Int(i64),
     Bool(bool),
@@ -232,7 +232,6 @@ impl Immediate {
 
             _ => Type::Primitive {
                 kind: match self {
-                    Immediate::Nil => PrimitiveKind::Nil,
                     Immediate::Real(_) => PrimitiveKind::Real,
                     Immediate::Int(_) => PrimitiveKind::Int,
                     Immediate::Bool(_) => PrimitiveKind::Bool,
@@ -258,6 +257,7 @@ pub enum UnaryOp {
     Neg,
     Not,
     NextState,
+    Unwrap,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -316,6 +316,7 @@ impl Spanned for Expr {
             | Expr::Array { span, .. }
             | Expr::Tuple { span, .. }
             | Expr::UnionVariant { span, .. }
+            | Expr::Nil(span)
             | Expr::Path(_, span)
             | Expr::LocalStorageAccess { span, .. }
             | Expr::ExternalStorageAccess { span, .. }
@@ -341,16 +342,6 @@ impl Spanned for Expr {
 }
 
 impl Expr {
-    pub fn is_nil(&self) -> bool {
-        matches!(
-            self,
-            Expr::Immediate {
-                value: Immediate::Nil,
-                ..
-            }
-        )
-    }
-
     pub fn is_immediate(&self) -> bool {
         matches!(self, Expr::Immediate { .. })
     }
@@ -394,6 +385,11 @@ impl Expr {
                 Expr::LocalStorageAccess { .. } | Expr::ExternalStorageAccess { .. } => true,
                 Expr::TupleFieldAccess { tuple, .. } => tuple.is_storage_access(contract),
                 Expr::Index { expr, .. } => expr.is_storage_access(contract),
+                Expr::UnaryOp {
+                    op: UnaryOp::NextState,
+                    expr,
+                    ..
+                } => expr.is_storage_access(contract),
                 _ => false,
             }
     }
@@ -449,6 +445,8 @@ impl Expr {
                     ..
                 },
             ) => union_variant_eq(contract, lhs_path, lhs_value, rhs_path, rhs_value),
+
+            (Expr::Nil(_), Expr::Nil(_)) => false,
 
             (Expr::Path(lhs_path, ..), Expr::Path(rhs_path, ..)) => path_eq(lhs_path, rhs_path),
 
@@ -776,6 +774,7 @@ impl Expr {
             | (Expr::Array { .. }, _)
             | (Expr::Tuple { .. }, _)
             | (Expr::UnionVariant { .. }, _)
+            | (Expr::Nil(_), _)
             | (Expr::Path(..), _)
             | (Expr::LocalStorageAccess { .. }, _)
             | (Expr::ExternalStorageAccess { .. }, _)
@@ -901,6 +900,7 @@ impl Expr {
             }
 
             Expr::MacroCall { .. }
+            | Expr::Nil(_)
             | Expr::Path(_, _)
             | Expr::LocalStorageAccess { .. }
             | Expr::Error(_) => {}

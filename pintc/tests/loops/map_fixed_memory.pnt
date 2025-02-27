@@ -1,37 +1,68 @@
 storage {
-    ary: int[3],
+    int_ary: int[3],
+    ary_ary: int[3][2], // There is a bug in storage arrays, this is actually int[2][3].
 }
 
-predicate test() {
-    let a = storage::ary;
+predicate test_int() {
+    let a = storage::int_ary!;
     let b = map x in a { x * x };
 
     constraint b[0] + b[1] == b[2];
+    constraint b[2] != 0;
+}
+
+predicate test_ary() {
+    let a = storage::ary_ary!;
+    let b = map x in a { x[0] * x[1] };
+
+    constraint b[0] == b[2];
+    constraint b[0] != 0;
 }
 
 // parsed <<<
 // storage {
-//     ary: int[3],
+//     int_ary: int[3],
+//     ary_ary: int[2][3],
 // }
 //
-// predicate ::test(
+// predicate ::test_int(
 // ) {
-//     let ::a = storage::ary;
+//     let ::a = storage::int_ary!;
 //     let ::b = map x in ::a { (::x * ::x) };
 //     constraint ((::b[0] + ::b[1]) == ::b[2]);
+//     constraint (::b[2] != 0);
+// }
+//
+// predicate ::test_ary(
+// ) {
+//     let ::a = storage::ary_ary!;
+//     let ::b = map x in ::a { (::x[0] * ::x[1]) };
+//     constraint (::b[0] == ::b[2]);
+//     constraint (::b[0] != 0);
 // }
 // >>>
 
 // flattened <<<
 // storage {
-//     ary: int[3],
+//     int_ary: int[3],
+//     ary_ary: int[2][3],
 // }
 //
-// predicate ::test(
+// predicate ::test_int(
 // ) {
-//     let ::a: int[3] = __pre_state({0, 0});
+//     let ::a: int[3] = __pre_state({0, 0})!;
 //     let ::b: int[3] = map x in ::a { (::x * ::x) };
 //     constraint ((::b[0] + ::b[1]) == ::b[2]);
+//     constraint (::b[2] != 0);
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+//
+// predicate ::test_ary(
+// ) {
+//     let ::a: int[2][3] = __pre_state({1, 0})!;
+//     let ::b: int[3] = map x in ::a { (::x[0] * ::x[1]) };
+//     constraint (::b[0] == ::b[2]);
+//     constraint (::b[0] != 0);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

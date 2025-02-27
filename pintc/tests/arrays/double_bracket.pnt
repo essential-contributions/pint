@@ -90,8 +90,9 @@ predicate test() {
 
 // typecheck_failure <<<
 // local variables cannot have storage types
-// @760..800: found local variable of storage type ( int[3] => int ) here
+// @760..800: found local variable of storage type ( int[3] => int )? here
+// type of local variable depends on the storage type `( int[3] => int )`
 // local variables cannot have storage types
-// @862..899: found local variable of storage type {int, ( int[3] => int )} here
+// @862..899: found local variable of storage type {int, ( int[3] => int )}? here
 // type of local variable depends on the storage type `( int[3] => int )`
 // >>>
