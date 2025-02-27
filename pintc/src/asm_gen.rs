@@ -228,6 +228,7 @@ pub fn compile_predicate(
 ) -> Result<(CompiledPredicate, BTreeSet<Program>), ErrorEmitted> {
     let mut data_flow_graph = Graph::<ComputeNode, ()>::new();
     let mut vars_to_nodes = FxHashMap::<(String, Reads), NodeIndex>::default();
+    let mut asm_args_to_nodes = FxHashMap::<ExprKey, NodeIndex>::default();
 
     // Insert non leaf nodes into the compute graph
     for (_, variable) in pred.variables() {
@@ -255,6 +256,8 @@ pub fn compile_predicate(
                         reads: Reads::Pre,
                     });
 
+                    asm_args_to_nodes.insert(*arg, arg_node);
+
                     // If the argument has post accesses, they get their own nodes that the arg
                     // node depends on
                     let post_accesses = arg
@@ -276,6 +279,7 @@ pub fn compile_predicate(
                     // Finally, the var nodes themselves depend on the arg node
                     data_flow_graph.add_edge(arg_node, var_node_pre, ());
                     data_flow_graph.add_edge(arg_node, var_node_post, ());
+
                     arg_node
                 })
                 .collect();
@@ -312,17 +316,31 @@ pub fn compile_predicate(
 
     // Insert edges between non leaf nodes
     for (_, variable) in pred.variables() {
-        for (var_name, reads) in variable.expr.collect_path_to_var_exprs(contract, pred) {
-            data_flow_graph.add_edge(
-                vars_to_nodes[&(var_name.clone(), reads)],
-                vars_to_nodes[&(variable.name.clone(), Reads::Pre)],
-                (),
-            );
-            data_flow_graph.add_edge(
-                vars_to_nodes[&(var_name.clone(), reads)],
-                vars_to_nodes[&(variable.name.clone(), Reads::Post)],
-                (),
-            );
+        if let Expr::AsmBlock { args, .. } = variable.expr.get(contract) {
+            // For asm blocks, insert edges from the vars we depend on to the asm args
+            for arg in args {
+                for (var_name, reads) in arg.collect_path_to_var_exprs(contract, pred) {
+                    data_flow_graph.add_edge(
+                        vars_to_nodes[&(var_name, reads)],
+                        asm_args_to_nodes[arg],
+                        (),
+                    );
+                }
+            }
+        } else {
+            // Otherwise, insert edges from the vars we depend on to this var directly
+            for (var_name, reads) in variable.expr.collect_path_to_var_exprs(contract, pred) {
+                data_flow_graph.add_edge(
+                    vars_to_nodes[&(var_name.clone(), reads)],
+                    vars_to_nodes[&(variable.name.clone(), Reads::Pre)],
+                    (),
+                );
+                data_flow_graph.add_edge(
+                    vars_to_nodes[&(var_name.clone(), reads)],
+                    vars_to_nodes[&(variable.name.clone(), Reads::Post)],
+                    (),
+                );
+            }
         }
     }
 

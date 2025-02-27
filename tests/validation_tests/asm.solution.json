@@ -16,6 +16,14 @@
           "value": [142]
         }
       ]
+    },
+    {
+      "predicate_to_solve": {
+        "contract": "<>",
+        "predicate": "<::bar>"
+      },
+      "predicate_data": [[99]],
+      "state_mutations": []
     }
   ]
 }

@@ -65,3 +65,49 @@ predicate foo() {
     constraint load_s == mut storage::s1! + mut storage::s2'!;
     constraint load_s' == mut storage::s1'! + mut storage::s2'!;
 }
+
+// Diamond-shaped dependency graph 
+predicate bar(z: int) {
+    // i.e. let y = z_ * x + z;
+    let y: int = asm(z_, x, z, w) {
+        PUSH 0
+        LOD // load z_
+        PUSH 1
+        LOD // load x
+        MUL // z_ * x
+        PUSH 2
+        LOD // load z
+        ADD // z_ * x + z
+        PUSH 3
+        LOD // load w
+        MUL // (z_ * x + z) * w
+    };
+
+    // i.e. let x = z + 1;
+    let x: int = asm(z_) {
+        PUSH 0
+        LOD // load z_
+        PUSH 1
+        ADD // z_ + 1
+    };
+
+    let w: int = asm(z_) {
+        PUSH 0
+        LOD // load z_
+        PUSH 2
+        MUL // z_ * 2
+    };
+
+    // i.e. let z_ = z;
+    let z_: int =  asm() {
+        PUSH 0
+        PUSH 0
+        PUSH 1
+        DATA // load z
+    };
+
+    constraint y == (z_ * x + z ) * w;
+
+    // More expressively 
+    constraint y == (z * (z + 1) + z ) * (z * 2);
+}
