@@ -113,7 +113,7 @@ pub fn compile_contract(
                 ),
             );
         } else {
-            // This predicate failed to compiled. Just exist for now.
+            // This predicate failed to compile. Just exit for now.
             return Err(handler.cancel());
         }
     }
