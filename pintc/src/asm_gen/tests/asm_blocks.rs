@@ -188,7 +188,7 @@ fn all_ops() {
                     PEX
                     PNCIF
                     POP
-                    PUSH 69
+                    0x69
                     REP
                     REPC
                     REPE
@@ -255,7 +255,7 @@ fn all_ops() {
                   Access(PredicateExists)
                   TotalControlFlow(PanicIf)
                   Stack(Pop)
-                  Stack(Push(69))
+                  Stack(Push(105))
                   Stack(Repeat)
                   Access(RepeatCounter)
                   Stack(RepeatEnd)
@@ -301,7 +301,7 @@ fn bad_ops() {
             r#"
         predicate foo(y: int) {
             let x: int = asm() {
-                PUSH
+                PUSH 5
                 POP
             };
             constraint x == y;
@@ -309,9 +309,9 @@ fn bad_ops() {
           "#,
         ),
         expect_test::expect![[r#"
-            instruction missing an argument
-            @82..86: this instruction must be provided an integer argument
-            compiler internal error: predicate must exist in the compiled_predicates map
+            bad `PUSH` instruction
+            @82..86: `PUSH` is not a valid instruction in an asm block 
+            try directly inserting an integer immediate instead
         "#]],
     );
 
@@ -329,7 +329,6 @@ fn bad_ops() {
         expect_test::expect![[r#"
             unrecognized instruction
             @82..90: this instruction is not a valid EssentialVM instruction 
-            compiler internal error: predicate must exist in the compiled_predicates map
         "#]],
     );
 }

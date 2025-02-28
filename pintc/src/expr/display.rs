@@ -356,11 +356,10 @@ impl Display for super::Ident {
 
 impl Display for super::AsmOp {
     fn fmt(&self, f: &mut Formatter) -> Result {
-        write!(f, "{}", self.op)?;
-        if let Some(arg) = self.arg {
-            write!(f, " {arg}")?;
+        match self {
+            super::AsmOp::Imm(imm, _) => write!(f, "{}", imm),
+            super::AsmOp::Op(op) => write!(f, "{}", op),
         }
-        Ok(())
     }
 }
 

@@ -912,15 +912,16 @@ fn asm_blocks() {
     check(
         &run_parser!(
             pint,
-            r#"predicate test() { let w: int = asm(x, y, 1 + z,) {push 1 pop foo}; }"#
+            r#"predicate test() { let w: int = asm(x, y, 1 + z,) {1 pop 2 foo}; }"#
         ),
         expect_test::expect![[r#"
 
             predicate ::test(
             ) {
                 let ::w: int = asm(::x, ::y, (1 + ::z)) {
-                    push 1
+                    1
                     pop
+                    2
                     foo
                 };
             }"#]],
