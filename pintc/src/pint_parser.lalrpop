@@ -1265,26 +1265,21 @@ AsmBlockExpr: ExprKey = {
 }
 
 AsmOp: AsmOp = {
-    <l1:@L> <op:Ident> <l2:@L> <arg:"int_lit"?> <r:@R> => {
-        AsmOp {
-            op,
-            arg: arg
-                .map(
-                    |arg| match context.parse_int_immediate(handler, arg, (l2, r)) {
-                        Immediate::Int(val) => Some(val),
-                        _ => {
-                            handler.emit_err(Error::Parse {
-                                error: ParseError::ExpectedIntegerLiteral {
-                                    span: (context.span_from)(l2, r),
-                                },
-                            });
-                            None
-                        }
+    <l:@L> <imm:"int_lit"> <r:@R> => {
+        let span = (context.span_from)(l, r);
+        match context.parse_int_immediate(handler, imm, (l, r)) {
+            Immediate::Int(val) => AsmOp::Imm(val, span.clone()),
+            _ => {
+                handler.emit_err(Error::Parse {
+                    error: ParseError::ExpectedIntegerLiteral {
+                        span: span.clone(),
                     },
-                )
-                .unwrap_or_else(|| None),
+                });
+                AsmOp::Imm(0, span)
+            }
         }
-    }
+    },
+    <op:Ident> => AsmOp::Op(op)
 }
 
 

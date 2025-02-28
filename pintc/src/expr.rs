@@ -164,9 +164,9 @@ impl Default for Ident {
 }
 
 #[derive(Clone, Debug)]
-pub struct AsmOp {
-    pub(super) op: Ident,
-    pub(super) arg: Option<i64>,
+pub enum AsmOp {
+    Imm(i64, Span),
+    Op(Ident),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -1032,7 +1032,11 @@ pub fn asm_block_eq(
         && lhs_ops
             .iter()
             .zip(rhs_ops.iter())
-            .all(|(lhs_op, rhs_op)| lhs_op.op.name == rhs_op.op.name && lhs_op.arg == rhs_op.arg)
+            .all(|(lhs_op, rhs_op)| match (lhs_op, rhs_op) {
+                (AsmOp::Imm(lhs_imm, _), AsmOp::Imm(rhs_imm, _)) => lhs_imm == rhs_imm,
+                (AsmOp::Op(lhs_op), AsmOp::Op(rhs_op)) => lhs_op.name == rhs_op.name,
+                _ => false,
+            })
 }
 
 pub fn local_storage_access_eq(

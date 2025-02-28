@@ -14,18 +14,18 @@ predicate foo() {
     let w = 2222;
 
     let sum: int = asm(w, y, z) {
-        PUSH 0 // store back result at this memory location
+        0x00 // store back result at this memory location
 
-        PUSH 0
+        0x00
         LOD // load w
-        PUSH 1
+        0x01
         LOD // load y
         ADD
-        PUSH 2
+        0x02
         LOD // load z
         ADD
        
-        PUSH 1 
+        1 
         FREE // keep only 1 word
         STO
     };
@@ -33,21 +33,21 @@ predicate foo() {
     constraint sum == w + y + z;
 
     let equal: bool = asm({ w, y, z }, w, y, z) {
-        PUSH 0 // store back result at this memory location
+        0x00 // store back result at this memory location
 
-        PUSH 0
-        PUSH 3
+        0x00
+        0x03
         LODR // load { w, y, z }
-        PUSH 3
+        0x03
         LOD // load w
-        PUSH 4
+        0x04
         LOD // load y
-        PUSH 5
+        0x05
         LOD // load z
-        PUSH 3
+        0x03
         EQRA
 
-        PUSH 1 
+        0x01 
         FREE // keep only 1 word
         STO
     };
@@ -55,27 +55,27 @@ predicate foo() {
     constraint equal;
 
     let load_s: int = asm(storage::s2'!) {
-        PUSH 0 // store back result at this memory location
+        0x00 // store back result at this memory location
 
         // Memory starts with [ <storage::s2'!> ]
 
-        PUSH 0 // storage key for `s1`
-        PUSH 1 // key len for `s1`
-        PUSH 1 // num keys for `s1`
-        PUSH 3 
+        0x00 // storage key for `s1`
+        0x01 // key len for `s1`
+        0x01 // num keys for `s1`
+        0x03 
         ALOC   // allocate 3 words mem_addr for `s1`: addr, len, value
         KRNG
         // Now the memory looks like: [ <storage::s2'!>, 3, 1, 69 ]
 
-        PUSH 3 
+        0x03 
         LOD    // load from mem index 3 wat this memory location the data lives
                 
-        PUSH 0
+        0x00
         LOD    // load storage::s2'!
         
         ADD
 
-        PUSH 1 
+        0x01 
         FREE // keep only 1 word
         STO
     };
@@ -88,62 +88,62 @@ predicate foo() {
 predicate bar(z: int) {
     // i.e. let y = z_ * x + z;
     let y: int = asm(z_, x, z, w) {
-        PUSH 0 // store back result at this memory location
+        0x00 // store back result at this memory location
 
-        PUSH 0
+        0x00
         LOD // load z_
-        PUSH 1
+        0x01
         LOD // load x
         MUL // z_ * x
-        PUSH 2
+        0x02
         LOD // load z
         ADD // z_ * x + z
-        PUSH 3
+        0x03
         LOD // load w
         MUL // (z_ * x + z) * w
 
-        PUSH 1 
+        0x01 
         FREE // keep only 1 word
         STO
     };
 
     // i.e. let x = z + 1;
     let x: int = asm(z_) {
-        PUSH 0 // store back result at this memory location
+        0x00 // store back result at this memory location
 
-        PUSH 0
+        0x00
         LOD // load z_
-        PUSH 1
+        0x01
         ADD // z_ + 1
 
-        PUSH 1 
+        0x01 
         FREE // keep only 1 word
         STO
     };
 
     let w: int = asm(z_) {
-        PUSH 0 // store back result at this memory location
+        0x00 // store back result at this memory location
 
-        PUSH 0
+        0x00
         LOD // load z_
-        PUSH 2
+        0x02
         MUL // z_ * 2
 
-        PUSH 1 
+        0x01 
         FREE // keep only 1 word
         STO
     };
 
     // i.e. let z_ = z;
     let z_: int =  asm() {
-        PUSH 0 // store back result at this memory location
+        0x00 // store back result at this memory location
 
-        PUSH 0
-        PUSH 0
-        PUSH 1
+        0x00
+        0x00
+        0x01
         DATA // load z
 
-        PUSH 1 
+        0x01 
         ALOC  // allocate memory for the returned data
         POP
         STO

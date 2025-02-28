@@ -385,8 +385,8 @@ pub enum CompileError {
     },
     #[error("invalid map range type")]
     InvalidMapRangeType { found_ty: String, span: Span },
-    #[error("instruction missing an argument")]
-    InstructionMissingArg { span: Span },
+    #[error("bad `PUSH` instruction")]
+    BadPushInstruction { span: Span },
     #[error("unrecognized instruction")]
     UnregonizedInstruction { span: Span },
 }
@@ -1286,8 +1286,8 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
-            InstructionMissingArg { span } => vec![ErrorLabel {
-                message: "this instruction must be provided an integer argument".to_string(),
+            BadPushInstruction { span } => vec![ErrorLabel {
+                message: "`PUSH` is not a valid instruction in an asm block ".to_string(),
                 span: span.clone(),
                 color: Color::Red,
             }],
@@ -1494,7 +1494,7 @@ impl ReportableError for CompileError {
             | UnionVariantTypeMismatch { .. }
             | VarsDependencyCycle { .. }
             | InvalidMapRangeType { .. }
-            | InstructionMissingArg { .. }
+            | BadPushInstruction { .. }
             | UnregonizedInstruction { .. } => None,
         }
     }
@@ -1574,6 +1574,10 @@ impl ReportableError for CompileError {
                 if missing_variants.len() > 1 { "s" } else { "" },
                 pretty_join_strings(missing_variants),
             )),
+
+            BadPushInstruction { .. } => {
+                Some("try directly inserting an integer immediate instead".to_string())
+            }
 
             _ => None,
         }
@@ -1723,7 +1727,7 @@ impl Spanned for CompileError {
             | InvalidStorageAccess { span, .. }
             | IdenticalPredicates { span, .. }
             | InvalidMapRangeType { span, .. }
-            | InstructionMissingArg { span }
+            | BadPushInstruction { span }
             | UnregonizedInstruction { span } => span,
 
             DependencyCycle { spans } => &spans[0],

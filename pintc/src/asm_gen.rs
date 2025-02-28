@@ -112,6 +112,9 @@ pub fn compile_contract(
                     predicate.span.clone(),
                 ),
             );
+        } else {
+            // This predicate failed to compile. Just exit for now.
+            return Err(handler.cancel());
         }
     }
 
