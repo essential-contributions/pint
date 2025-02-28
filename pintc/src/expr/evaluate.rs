@@ -517,6 +517,7 @@ impl Evaluator {
 
             Expr::Error(_)
             | Expr::Nil(_)
+            | Expr::AsmBlock { .. }
             | Expr::LocalStorageAccess { .. }
             | Expr::ExternalStorageAccess { .. }
             | Expr::MacroCall { .. }
@@ -620,6 +621,14 @@ impl ExprKey {
                     value: value.clone(),
                     span,
                 })
+            }
+            Expr::AsmBlock { args, ops, span } => {
+                let args = args
+                    .into_iter()
+                    .map(|arg| arg.plug_in(contract, values_map))
+                    .collect::<Vec<_>>();
+
+                Expr::AsmBlock { args, ops, span }
             }
             Expr::ExternalStorageAccess {
                 interface,

@@ -35,6 +35,11 @@ pub enum Expr {
     },
     Nil(Span),
     Path(String, Span),
+    AsmBlock {
+        args: Vec<ExprKey>,
+        ops: Vec<AsmOp>,
+        span: Span,
+    },
     LocalStorageAccess {
         name: String,
         mutable: bool,
@@ -156,6 +161,12 @@ impl Default for Ident {
             span: empty_span(),
         }
     }
+}
+
+#[derive(Clone, Debug)]
+pub struct AsmOp {
+    pub(super) op: Ident,
+    pub(super) arg: Option<i64>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -318,6 +329,7 @@ impl Spanned for Expr {
             | Expr::UnionVariant { span, .. }
             | Expr::Nil(span)
             | Expr::Path(_, span)
+            | Expr::AsmBlock { span, .. }
             | Expr::LocalStorageAccess { span, .. }
             | Expr::ExternalStorageAccess { span, .. }
             | Expr::UnaryOp { span, .. }
@@ -344,6 +356,10 @@ impl Spanned for Expr {
 impl Expr {
     pub fn is_immediate(&self) -> bool {
         matches!(self, Expr::Immediate { .. })
+    }
+
+    pub fn is_asm_block(&self) -> bool {
+        matches!(self, Expr::AsmBlock { .. })
     }
 
     pub fn is_storage_access_intrinsic(&self) -> bool {
@@ -449,6 +465,18 @@ impl Expr {
             (Expr::Nil(_), Expr::Nil(_)) => false,
 
             (Expr::Path(lhs_path, ..), Expr::Path(rhs_path, ..)) => path_eq(lhs_path, rhs_path),
+            (
+                Expr::AsmBlock {
+                    args: lhs_args,
+                    ops: lhs_ops,
+                    ..
+                },
+                Expr::AsmBlock {
+                    args: rhs_args,
+                    ops: rhs_ops,
+                    ..
+                },
+            ) => asm_block_eq(contract, lhs_args, lhs_ops, rhs_args, rhs_ops),
 
             (
                 Expr::LocalStorageAccess {
@@ -776,6 +804,7 @@ impl Expr {
             | (Expr::UnionVariant { .. }, _)
             | (Expr::Nil(_), _)
             | (Expr::Path(..), _)
+            | (Expr::AsmBlock { .. }, ..)
             | (Expr::LocalStorageAccess { .. }, _)
             | (Expr::ExternalStorageAccess { .. }, _)
             | (Expr::UnaryOp { .. }, _)
@@ -816,6 +845,7 @@ impl Expr {
                 }
             }
             Expr::UnaryOp { expr, .. } => replace(expr),
+            Expr::AsmBlock { args, .. } => args.iter_mut().for_each(replace),
             Expr::ExternalStorageAccess { address, .. } => replace(address),
             Expr::BinaryOp { lhs, rhs, .. } => {
                 replace(lhs);
@@ -986,6 +1016,23 @@ pub fn union_variant_eq(
 
 pub fn path_eq(lhs_path: &String, rhs_path: &String) -> bool {
     lhs_path == rhs_path
+}
+
+pub fn asm_block_eq(
+    contract: &Contract,
+    lhs_args: &[ExprKey],
+    lhs_ops: &[AsmOp],
+    rhs_args: &[ExprKey],
+    rhs_ops: &[AsmOp],
+) -> bool {
+    lhs_args
+        .iter()
+        .zip(rhs_args.iter())
+        .all(|(lhs_arg, rhs_arg)| lhs_arg.get(contract).eq(contract, rhs_arg.get(contract)))
+        && lhs_ops
+            .iter()
+            .zip(rhs_ops.iter())
+            .all(|(lhs_op, rhs_op)| lhs_op.op.name == rhs_op.op.name && lhs_op.arg == rhs_op.arg)
 }
 
 pub fn local_storage_access_eq(

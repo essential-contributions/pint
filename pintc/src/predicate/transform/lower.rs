@@ -915,6 +915,7 @@ pub(super) fn coalesce_prime_ops(contract: &mut Contract) {
                 | Expr::UnionVariant { .. }
                 | Expr::Nil(..)
                 | Expr::Path(..)
+                | Expr::AsmBlock { .. }
                 | Expr::LocalStorageAccess { .. }
                 | Expr::ExternalStorageAccess { .. }
                 | Expr::UnaryOp { .. }

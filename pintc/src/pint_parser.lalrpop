@@ -227,6 +227,15 @@ LetDecl: () = {
             .insert_variable(handler, mod_prefix, name.1, &name.0, ty, init, span)
             .map(|_| ());
     },
+    <l:@L> "let" <name:LetName> <ty:(":" <Type>)> "=" <init:AsmBlockExpr> <r:@R> => {
+        let span = (context.span_from)(l, r);
+        let mod_prefix = context.mod_prefix;
+        let _ = context
+            .current_pred()
+            .expect("adding a variable to the predicate")
+            .insert_variable(handler, mod_prefix, name.1, &name.0, Some(ty), init, span)
+            .map(|_| ());
+    },
 }
 
 ConstDecl: () = {
@@ -1238,6 +1247,47 @@ IdentFromToken<Tok>: Ident = {
     }
 }
 
+/////////////////
+// ASM Blocks ///
+/////////////////
+AsmBlockExpr: ExprKey = {
+    <l:@L> "asm" "(" <args:SepList<Expr, ",">> ")" "{" <ops:AsmOp*> "}" <r:@R> => {
+        let span = (context.span_from)(l, r);
+        context.contract.exprs.insert(
+            Expr::AsmBlock {
+                args,
+                ops,
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        )
+    }
+}
+
+AsmOp: AsmOp = {
+    <l1:@L> <op:Ident> <l2:@L> <arg:"int_lit"?> <r:@R> => {
+        AsmOp {
+            op,
+            arg: arg
+                .map(
+                    |arg| match context.parse_int_immediate(handler, arg, (l2, r)) {
+                        Immediate::Int(val) => Some(val),
+                        _ => {
+                            handler.emit_err(Error::Parse {
+                                error: ParseError::ExpectedIntegerLiteral {
+                                    span: (context.span_from)(l2, r),
+                                },
+                            });
+                            None
+                        }
+                    },
+                )
+                .unwrap_or_else(|| None),
+        }
+    }
+}
+
+
 /////////////
 /// Utils ///
 /////////////
@@ -1347,6 +1397,7 @@ extern {
         "else" => lexer::Token::Else,
         "cond" => lexer::Token::Cond,
         "match" => lexer::Token::Match,
+        "asm" => lexer::Token::Asm,
 
         "mut" => lexer::Token::Mut,
         "use" => lexer::Token::Use,

@@ -114,6 +114,12 @@ impl Contract {
                 }
             }
 
+            Expr::AsmBlock { args, .. } => {
+                for arg in args {
+                    self.visitor_from_key(kind, *arg, f);
+                }
+            }
+
             Expr::ExternalStorageAccess { address, .. } => self.visitor_from_key(kind, *address, f),
 
             Expr::UnaryOp { expr, .. } => self.visitor_from_key(kind, *expr, f),

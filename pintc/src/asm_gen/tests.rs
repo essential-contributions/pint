@@ -5,6 +5,7 @@ use crate::{
 };
 use std::io::Write;
 
+mod asm_blocks;
 mod external_calls;
 mod intrinsics;
 mod multi_predicates;
