@@ -135,17 +135,7 @@ impl<'a> AsmBuilder<'a> {
         })?;
 
         if expr.get(contract).is_asm_block() {
-            // mem idx where the returned data will be stored
-            asm.push(PUSH(0));
-
-            // Now compile the asm block
             self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
-
-            // Free all the memory used by the asm block
-            asm.extend([PUSH(0), FREE]);
-
-            // Allocate enough memory for the returned data and store it
-            asm.extend([PUSH(expr_size), ALOC, POP, PUSH(expr_size), STOR]);
         } else {
             if alloc_size_for_storage_accesses > 0 {
                 asm.extend([PUSH(alloc_size_for_storage_accesses), ALOC, POP]);

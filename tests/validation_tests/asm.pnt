@@ -14,6 +14,8 @@ predicate foo() {
     let w = 2222;
 
     let sum: int = asm(w, y, z) {
+        PUSH 0 // store back result at this memory location
+
         PUSH 0
         LOD // load w
         PUSH 1
@@ -22,11 +24,17 @@ predicate foo() {
         PUSH 2
         LOD // load z
         ADD
+       
+        PUSH 1 
+        FREE // keep only 1 word
+        STO
     };
 
     constraint sum == w + y + z;
 
     let equal: bool = asm({ w, y, z }, w, y, z) {
+        PUSH 0 // store back result at this memory location
+
         PUSH 0
         PUSH 3
         LODR // load { w, y, z }
@@ -38,11 +46,17 @@ predicate foo() {
         LOD // load z
         PUSH 3
         EQRA
+
+        PUSH 1 
+        FREE // keep only 1 word
+        STO
     };
 
     constraint equal;
 
     let load_s: int = asm(storage::s2'!) {
+        PUSH 0 // store back result at this memory location
+
         // Memory starts with [ <storage::s2'!> ]
 
         PUSH 0 // storage key for `s1`
@@ -54,12 +68,16 @@ predicate foo() {
         // Now the memory looks like: [ <storage::s2'!>, 3, 1, 69 ]
 
         PUSH 3 
-        LOD    // load from mem index 3 where the data lives
+        LOD    // load from mem index 3 wat this memory location the data lives
                 
         PUSH 0
         LOD    // load storage::s2'!
         
         ADD
+
+        PUSH 1 
+        FREE // keep only 1 word
+        STO
     };
 
     constraint load_s == mut storage::s1! + mut storage::s2'!;
@@ -70,6 +88,8 @@ predicate foo() {
 predicate bar(z: int) {
     // i.e. let y = z_ * x + z;
     let y: int = asm(z_, x, z, w) {
+        PUSH 0 // store back result at this memory location
+
         PUSH 0
         LOD // load z_
         PUSH 1
@@ -81,29 +101,52 @@ predicate bar(z: int) {
         PUSH 3
         LOD // load w
         MUL // (z_ * x + z) * w
+
+        PUSH 1 
+        FREE // keep only 1 word
+        STO
     };
 
     // i.e. let x = z + 1;
     let x: int = asm(z_) {
+        PUSH 0 // store back result at this memory location
+
         PUSH 0
         LOD // load z_
         PUSH 1
         ADD // z_ + 1
+
+        PUSH 1 
+        FREE // keep only 1 word
+        STO
     };
 
     let w: int = asm(z_) {
+        PUSH 0 // store back result at this memory location
+
         PUSH 0
         LOD // load z_
         PUSH 2
         MUL // z_ * 2
+
+        PUSH 1 
+        FREE // keep only 1 word
+        STO
     };
 
     // i.e. let z_ = z;
     let z_: int =  asm() {
+        PUSH 0 // store back result at this memory location
+
         PUSH 0
         PUSH 0
         PUSH 1
         DATA // load z
+
+        PUSH 1 
+        ALOC  // allocate memory for the returned data
+        POP
+        STO
     };
 
     constraint y == (z_ * x + z ) * w;
