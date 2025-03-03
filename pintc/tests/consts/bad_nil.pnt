@@ -1,0 +1,16 @@
+const x = nil;
+
+predicate Test() {}
+
+// parsed <<<
+// const ::x = nil;
+//
+// predicate ::Test(
+// ) {
+// }
+// >>>
+
+// typecheck_failure <<<
+// attempt to use a non-constant value in a constant
+// @10..13: non-constant value
+// >>>

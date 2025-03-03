@@ -523,16 +523,16 @@ impl Evaluator {
             | Expr::IntrinsicCall { span, .. }
             | Expr::Range { span, .. }
             | Expr::Generator { span, .. }
-            | Expr::Map { span, .. } => Err(handler.emit_err(Error::Compile {
+            | Expr::Map { span, .. }
+            | Expr::Nil(span) => Err(handler.emit_err(Error::Compile {
                 error: CompileError::InvalidConst { span: span.clone() },
             })),
 
-            Expr::Error(_) | Expr::Nil(_) | Expr::MacroCall { .. } | Expr::AsmBlock { .. } => {
-                Err(handler.emit_internal_err(
+            Expr::Error(_) | Expr::MacroCall { .. } | Expr::AsmBlock { .. } => Err(handler
+                .emit_internal_err(
                     "unexpected expression during compile-time evaluation",
                     empty_span(),
-                ))
-            }
+                )),
         }
     }
 }
