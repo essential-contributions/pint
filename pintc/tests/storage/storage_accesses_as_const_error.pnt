@@ -19,6 +19,8 @@ union G = A(int) | B(int[storage::t.0]);
 
 const C = storage::t.1;
 
+const D = Foo@[0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE]::storage::a;
+
 predicate Test(
     x: b256,
     addr: b256,
@@ -52,6 +54,7 @@ predicate Test(
 
 // parsed <<<
 // const ::C = storage::t.1;
+// const ::D = ::Foo@[0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE]::storage::a;
 // union ::G = A(int) | B(int[storage::t.0]);
 // type ::MyType = {int, int[storage::t.0]};
 // storage {
@@ -96,5 +99,8 @@ predicate Test(
 // >>>
 
 // typecheck_failure <<<
-// compiler internal error: unexpected expression during compile-time evaluation
+// attempt to use a non-constant value in a constant
+// @316..326: non-constant value
+// attempt to use a non-constant value in a constant
+// @341..425: non-constant value
 // >>>

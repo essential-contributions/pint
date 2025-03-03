@@ -1,0 +1,16 @@
+const address = __this_address();
+
+predicate Test() {}
+
+// parsed <<<
+// const ::address = __this_address();
+//
+// predicate ::Test(
+// ) {
+// }
+// >>>
+
+// typecheck_failure <<<
+// attempt to use a non-constant value in a constant
+// @16..32: non-constant value
+// >>>
