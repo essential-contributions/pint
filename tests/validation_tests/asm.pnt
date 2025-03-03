@@ -1,0 +1,156 @@
+// db <<<
+// 0, 69
+// 1, 42
+// >>>
+
+storage {
+    s1: int,
+    s2: int,
+}
+
+predicate foo() {
+    let y = 5555;
+    let z = 3333;
+    let w = 2222;
+
+    let sum: int = asm(w, y, z) {
+        0x00 // store back result at this memory location
+
+        0x00
+        LOD // load w
+        0x01
+        LOD // load y
+        ADD
+        0x02
+        LOD // load z
+        ADD
+       
+        1 
+        FREE // keep only 1 word
+        STO
+    };
+
+    constraint sum == w + y + z;
+
+    let equal: bool = asm({ w, y, z }, w, y, z) {
+        0x00 // store back result at this memory location
+
+        0x00
+        0x03
+        LODR // load { w, y, z }
+        0x03
+        LOD // load w
+        0x04
+        LOD // load y
+        0x05
+        LOD // load z
+        0x03
+        EQRA
+
+        0x01 
+        FREE // keep only 1 word
+        STO
+    };
+
+    constraint equal;
+
+    let load_s: int = asm(storage::s2'!) {
+        0x00 // store back result at this memory location
+
+        // Memory starts with [ <storage::s2'!> ]
+
+        0x00 // storage key for `s1`
+        0x01 // key len for `s1`
+        0x01 // num keys for `s1`
+        0x03 
+        ALOC   // allocate 3 words mem_addr for `s1`: addr, len, value
+        KRNG
+        // Now the memory looks like: [ <storage::s2'!>, 3, 1, 69 ]
+
+        0x03 
+        LOD    // load from mem index 3 wat this memory location the data lives
+                
+        0x00
+        LOD    // load storage::s2'!
+        
+        ADD
+
+        0x01 
+        FREE // keep only 1 word
+        STO
+    };
+
+    constraint load_s == mut storage::s1! + mut storage::s2'!;
+    constraint load_s' == mut storage::s1'! + mut storage::s2'!;
+}
+
+// Diamond-shaped dependency graph 
+predicate bar(z: int) {
+    // i.e. let y = z_ * x + z;
+    let y: int = asm(z_, x, z, w) {
+        0x00 // store back result at this memory location
+
+        0x00
+        LOD // load z_
+        0x01
+        LOD // load x
+        MUL // z_ * x
+        0x02
+        LOD // load z
+        ADD // z_ * x + z
+        0x03
+        LOD // load w
+        MUL // (z_ * x + z) * w
+
+        0x01 
+        FREE // keep only 1 word
+        STO
+    };
+
+    // i.e. let x = z + 1;
+    let x: int = asm(z_) {
+        0x00 // store back result at this memory location
+
+        0x00
+        LOD // load z_
+        0x01
+        ADD // z_ + 1
+
+        0x01 
+        FREE // keep only 1 word
+        STO
+    };
+
+    let w: int = asm(z_) {
+        0x00 // store back result at this memory location
+
+        0x00
+        LOD // load z_
+        0x02
+        MUL // z_ * 2
+
+        0x01 
+        FREE // keep only 1 word
+        STO
+    };
+
+    // i.e. let z_ = z;
+    let z_: int =  asm() {
+        0x00 // store back result at this memory location
+
+        0x00
+        0x00
+        0x01
+        DATA // load z
+
+        0x01 
+        ALOC  // allocate memory for the returned data
+        POP
+        STO
+    };
+
+    constraint y == (z_ * x + z ) * w;
+
+    // More expressively 
+    constraint y == (z * (z + 1) + z ) * (z * 2);
+}

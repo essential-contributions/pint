@@ -527,11 +527,12 @@ impl Evaluator {
                 error: CompileError::InvalidConst { span: span.clone() },
             })),
 
-            Expr::Error(_) | Expr::Nil(_) | Expr::MacroCall { .. } => Err(handler
-                .emit_internal_err(
+            Expr::Error(_) | Expr::Nil(_) | Expr::MacroCall { .. } | Expr::AsmBlock { .. } => {
+                Err(handler.emit_internal_err(
                     "unexpected expression during compile-time evaluation",
                     empty_span(),
-                )),
+                ))
+            }
         }
     }
 }
@@ -622,6 +623,14 @@ impl ExprKey {
                     value: value.clone(),
                     span,
                 })
+            }
+            Expr::AsmBlock { args, ops, span } => {
+                let args = args
+                    .into_iter()
+                    .map(|arg| arg.plug_in(contract, values_map))
+                    .collect::<Vec<_>>();
+
+                Expr::AsmBlock { args, ops, span }
             }
             Expr::ExternalStorageAccess {
                 interface,

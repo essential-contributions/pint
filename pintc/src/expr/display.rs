@@ -58,6 +58,17 @@ impl DisplayWithContract for &super::Expr {
 
             super::Expr::Path(p, _) => write!(f, "{p}"),
 
+            super::Expr::AsmBlock { args, ops, .. } => {
+                write!(f, "asm(")?;
+                write_many_with_ctrct!(f, args, ", ", contract);
+                writeln!(f, ") {{")?;
+                for op in ops {
+                    // TODO: do not hardcode the indentation here.
+                    writeln!(f, "        {op}")?;
+                }
+                write!(f, "    }}")
+            }
+
             super::Expr::LocalStorageAccess { name, mutable, .. } => {
                 if *mutable {
                     write!(f, "mut ")?;
@@ -340,6 +351,15 @@ impl DisplayWithContract for super::Immediate {
 impl Display for super::Ident {
     fn fmt(&self, f: &mut Formatter) -> Result {
         write!(f, "{}", self.name)
+    }
+}
+
+impl Display for super::AsmOp {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        match self {
+            super::AsmOp::Imm(imm, _) => write!(f, "{imm}"),
+            super::AsmOp::Op(op) => write!(f, "{op}"),
+        }
     }
 }
 

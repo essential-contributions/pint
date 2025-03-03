@@ -44,9 +44,18 @@ impl Contract {
 
         // Infer each expr type, or their dependencies.
         while let Some(next_key) = queue.last().cloned() {
-            // We may already know this expr type, in which case we can pop it from the queue,
-            // or we can infer it.
-            if !next_key.get_ty(self).is_unknown() {
+            if let Expr::AsmBlock { args, .. } = next_key.get(self) {
+                // Types of asm blocks are already known after `type_check_asm_blocks`. However,
+                // their arguments still need to be handled.
+                queue.pop();
+                for arg in args {
+                    if arg.get_ty(self).is_unknown() {
+                        queue.push(*arg);
+                    }
+                }
+            } else if !next_key.get_ty(self).is_unknown() {
+                // We may already know this expr type, in which case we can pop it from the queue,
+                // or we can infer it.
                 queue.pop();
             } else {
                 match self.infer_expr_key_type(
@@ -158,6 +167,11 @@ impl Contract {
             Expr::Nil(span) => Ok(Inference::Type(Type::Nil(span.clone()))),
 
             Expr::Path(path, span) => Ok(self.infer_path_by_name(handler, pred, path, span)),
+
+            Expr::AsmBlock { .. } => {
+                // All asm blocks must already have a type after `type_check_asm_blocks`
+                Ok(Inference::Type(expr_key.get_ty(self).clone()))
+            }
 
             Expr::LocalStorageAccess { name, span, .. } => {
                 Ok(self.infer_local_storage_access(handler, name, span))

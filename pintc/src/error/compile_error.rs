@@ -385,6 +385,10 @@ pub enum CompileError {
     },
     #[error("invalid map range type")]
     InvalidMapRangeType { found_ty: String, span: Span },
+    #[error("bad `PUSH` instruction")]
+    BadPushInstruction { span: Span },
+    #[error("unrecognized instruction")]
+    UnregonizedInstruction { span: Span },
     #[error("attempt to use a non-constant value in a constant")]
     InvalidConst { span: Span },
 }
@@ -1284,6 +1288,18 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
+            BadPushInstruction { span } => vec![ErrorLabel {
+                message: "`PUSH` is not a valid instruction in an asm block ".to_string(),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
+            UnregonizedInstruction { span } => vec![ErrorLabel {
+                message: "this instruction is not a valid EssentialVM instruction ".to_string(),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
             InvalidConst { span } => vec![ErrorLabel {
                 message: "non-constant value".to_string(),
                 span: span.clone(),
@@ -1486,6 +1502,8 @@ impl ReportableError for CompileError {
             | UnionVariantTypeMismatch { .. }
             | VarsDependencyCycle { .. }
             | InvalidMapRangeType { .. }
+            | BadPushInstruction { .. }
+            | UnregonizedInstruction { .. }
             | InvalidConst { .. } => None,
         }
     }
@@ -1565,6 +1583,10 @@ impl ReportableError for CompileError {
                 if missing_variants.len() > 1 { "s" } else { "" },
                 pretty_join_strings(missing_variants),
             )),
+
+            BadPushInstruction { .. } => {
+                Some("try directly inserting an integer immediate instead".to_string())
+            }
 
             _ => None,
         }
@@ -1714,7 +1736,9 @@ impl Spanned for CompileError {
             | InvalidStorageAccess { span, .. }
             | IdenticalPredicates { span, .. }
             | InvalidMapRangeType { span, .. }
-            | InvalidConst { span, .. } => span,
+            | InvalidConst { span, .. }
+            | BadPushInstruction { span }
+            | UnregonizedInstruction { span } => span,
 
             DependencyCycle { spans } => &spans[0],
             VarsDependencyCycle { spans } => &spans[0],

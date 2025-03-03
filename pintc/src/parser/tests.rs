@@ -895,6 +895,48 @@ interface Foo {
 }
 
 #[test]
+fn asm_blocks() {
+    let pint = (yp::PintParser::new(), "");
+
+    check(
+        &run_parser!(pint, r#"predicate test() { let x: int = asm() {}; }"#),
+        expect_test::expect![[r#"
+
+            predicate ::test(
+            ) {
+                let ::x: int = asm() {
+                };
+            }"#]],
+    );
+
+    check(
+        &run_parser!(
+            pint,
+            r#"predicate test() { let w: int = asm(x, y, 1 + z,) {1 pop 2 foo}; }"#
+        ),
+        expect_test::expect![[r#"
+
+            predicate ::test(
+            ) {
+                let ::w: int = asm(::x, ::y, (1 + ::z)) {
+                    1
+                    pop
+                    2
+                    foo
+                };
+            }"#]],
+    );
+
+    check(
+        &run_parser!(pint, r#"predicate test() { let w = asm() {}; }"#),
+        expect_test::expect![[r#"
+            expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `map`, `match`, `mut`, `storage`, or `{`, found `asm`
+            @27..30: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `exists`, `forall`, `intrinsic_name`, `macro_name`, `map`, `match`, `mut`, `storage`, or `{`
+        "#]],
+    );
+}
+
+#[test]
 fn local_storage_access() {
     let expr = (yp::TestDelegateParser::new(), "expr");
 

@@ -1,0 +1,29 @@
+{
+  "solutions": [
+    {
+      "predicate_to_solve": {
+        "contract": "<>",
+        "predicate": "<::foo>"
+      },
+      "predicate_data": [],
+      "state_mutations": [
+        {
+          "key": [0],
+          "value": [169]
+        },
+        {
+          "key": [1],
+          "value": [142]
+        }
+      ]
+    },
+    {
+      "predicate_to_solve": {
+        "contract": "<>",
+        "predicate": "<::bar>"
+      },
+      "predicate_data": [[99]],
+      "state_mutations": []
+    }
+  ]
+}

@@ -8,7 +8,7 @@ use super::Inference;
 use crate::{
     error::{CompileError, Error, ErrorEmitted, Handler, LargeTypeError},
     predicate::{Const, ConstraintDecl, Contract, Expr, ExprKey, Ident, VisitorKind},
-    span::{Span, Spanned},
+    span::{empty_span, Span, Spanned},
     types::Type,
 };
 use fxhash::{FxHashMap, FxHashSet};
@@ -222,5 +222,30 @@ impl Contract {
 
         // If we get this far then there was an error.
         Err(handler.cancel())
+    }
+
+    pub(super) fn type_check_asm_blocks(&mut self, handler: &Handler) -> Result<(), ErrorEmitted> {
+        let mut asm_blocks_types = FxHashMap::default();
+        for pred_key in self.preds.keys().collect::<Vec<_>>() {
+            for (variable_key, variable) in self.preds[pred_key].variables() {
+                if variable.expr.get(self).is_asm_block() {
+                    let variable_ty = variable_key.get_ty(&self.preds[pred_key]);
+                    if !variable_ty.is_unknown() {
+                        asm_blocks_types.insert(variable.expr, variable_ty.clone());
+                    } else {
+                        return Err(handler.emit_internal_err(
+                            "vars initalized to asm blocks must have a user-specified type",
+                            empty_span(),
+                        ));
+                    }
+                }
+            }
+        }
+
+        for (expr, ty) in asm_blocks_types {
+            expr.set_ty(ty, self);
+        }
+
+        Ok(())
     }
 }

@@ -1,8 +1,8 @@
 use crate::{
     asm_gen::ComputeNode,
-    error::{ErrorEmitted, Handler},
+    error::{CompileError, Error, ErrorEmitted, Handler},
     expr::{
-        BinaryOp, Expr, ExternalIntrinsic, Immediate, InternalIntrinsic, IntrinsicKind,
+        AsmOp, BinaryOp, Expr, ExternalIntrinsic, Immediate, InternalIntrinsic, IntrinsicKind,
         TupleAccess, UnaryOp,
     },
     predicate::{Contract, ExprKey, Predicate},
@@ -134,34 +134,38 @@ impl<'a> AsmBuilder<'a> {
             Ok(total_alloc_size + alloc_size)
         })?;
 
-        if alloc_size_for_storage_accesses > 0 {
-            asm.extend([PUSH(alloc_size_for_storage_accesses), ALOC, POP]);
-        }
-
-        if node.is_leaf() {
+        if expr.get(contract).is_asm_block() {
             self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
         } else {
-            // Allocate enough memory for the returned data, if needed
-            if total_memory_size < expr_size {
-                asm.extend([PUSH(expr_size - total_memory_size), ALOC, POP]);
+            if alloc_size_for_storage_accesses > 0 {
+                asm.extend([PUSH(alloc_size_for_storage_accesses), ALOC, POP]);
             }
 
-            // Reserve scratch space at the bottom of the stack. Currently used by morphisms.
-            // TODO: check if this expr contains morphisms and omit this if not.
-            asm.extend([PUSH(2), RES]);
+            if node.is_leaf() {
+                self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
+            } else {
+                // Allocate enough memory for the returned data, if needed
+                if total_memory_size < expr_size {
+                    asm.extend([PUSH(expr_size - total_memory_size), ALOC, POP]);
+                }
 
-            // Compile and store the data to memory
-            asm.push(PUSH(0)); // mem idx where the data will be stored
-            self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
-            asm.extend([PUSH(expr_size), STOR]);
+                // Reserve scratch space at the bottom of the stack. Currently used by morphisms.
+                // TODO: check if this expr contains morphisms and omit this if not.
+                asm.extend([PUSH(2), RES]);
 
-            // Free the scratch. (Need an 'unreserve' opcode?)
-            asm.extend([POP, POP]);
+                // Compile and store the data to memory
+                asm.push(PUSH(0)); // mem idx where the data will be stored
+                self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
+                asm.extend([PUSH(expr_size), STOR]);
 
-            // While compiling the expr we may have allocated more buffers in memory.  We need to
-            // shrink memory down to just the result.
-            // TODO: have compile_expr() return whether this is necessary.
-            asm.extend([PUSH(expr_size), FREE]);
+                // Free the scratch. (Need an 'unreserve' opcode?)
+                asm.extend([POP, POP]);
+
+                // While compiling the expr we may have allocated more buffers in memory.  We need to
+                // shrink memory down to just the result.
+                // TODO: have compile_expr() return whether this is necessary.
+                asm.extend([PUSH(expr_size), FREE]);
+            }
         }
 
         Ok(asm)
@@ -342,6 +346,7 @@ impl<'a> AsmBuilder<'a> {
                 Ok(Location::Stack)
             }
             Expr::Path(path, _) => self.compile_path(handler, asm, path, Reads::Pre, pred),
+            Expr::AsmBlock { ops, .. } => self.compile_asm_block(handler, asm, ops, pred),
             Expr::UnionVariant { path, value, .. } => {
                 self.compile_union_expr(handler, asm, expr, path, value, contract, pred)
             }
@@ -447,6 +452,99 @@ impl<'a> AsmBuilder<'a> {
                 empty_span(),
             ));
         }
+    }
+
+    /// Given an assembly block, convert each instruction in it into its corresponding op in
+    /// `essential_asm::short` and append it to `asm`.
+    ///
+    /// TODO: we should really auto-generate this from the `essential-asm-spec` crate using a proc
+    /// macro
+    fn compile_asm_block(
+        &mut self,
+        handler: &Handler,
+        asm: &mut Asm,
+        ops: &[AsmOp],
+        _pred: &Predicate,
+    ) -> Result<Location, ErrorEmitted> {
+        asm.extend(
+            ops.iter()
+                .map(|op| match op {
+                    AsmOp::Imm(imm, ..) => Ok(PUSH(*imm)),
+                    AsmOp::Op(op) => match op.name.as_str() {
+                        "ADD" => Ok(ADD),
+                        "ALOC" => Ok(ALOC),
+                        "AND" => Ok(AND),
+                        "BAND" => Ok(BAND),
+                        "BOR" => Ok(BOR),
+                        "DATA" => Ok(DATA),
+                        "DIV" => Ok(DIV),
+                        "DLEN" => Ok(DLEN),
+                        "DSLT" => Ok(DSLT),
+                        "DUP" => Ok(DUP),
+                        "DUPF" => Ok(DUPF),
+                        "EQ" => Ok(EQ),
+                        "EQRA" => Ok(EQRA),
+                        "EQST" => Ok(EQST),
+                        "FREE" => Ok(FREE),
+                        "GT" => Ok(GT),
+                        "GTE" => Ok(GTE),
+                        "HLT" => Ok(HLT),
+                        "HLTIF" => Ok(HLTIF),
+                        "JMPIF" => Ok(JMPIF),
+                        "KREX" => Ok(KREX),
+                        "KRNG" => Ok(KRNG),
+                        "LOD" => Ok(LOD),
+                        "LODR" => Ok(LODR),
+                        "LODS" => Ok(LODS),
+                        "LT" => Ok(LT),
+                        "LTE" => Ok(LTE),
+                        "MKEYS" => Ok(MKEYS),
+                        "MOD" => Ok(MOD),
+                        "MUL" => Ok(MUL),
+                        "NOT" => Ok(NOT),
+                        "OR" => Ok(OR),
+                        "PEX" => Ok(PEX),
+                        "PNCIF" => Ok(PNCIF),
+                        "POP" => Ok(POP),
+                        "PUSH" => Err(handler.emit_err(Error::Compile {
+                            // While `PUSH` is an actual instruction, we still error out here
+                            // because we expect the immediate to be pushed to be inserted directly
+                            // without the `PUSH`
+                            error: CompileError::BadPushInstruction {
+                                span: op.span.clone(),
+                            },
+                        })),
+                        "REP" => Ok(REP),
+                        "REPC" => Ok(REPC),
+                        "REPE" => Ok(REPE),
+                        "RES" => Ok(RES),
+                        "RSECP" => Ok(RSECP),
+                        "SEL" => Ok(SEL),
+                        "SHA2" => Ok(SHA2),
+                        "SHL" => Ok(SHL),
+                        "SHR" => Ok(SHR),
+                        "SHRI" => Ok(SHRI),
+                        "SLTR" => Ok(SLTR),
+                        "STO" => Ok(STO),
+                        "STOR" => Ok(STOR),
+                        "STOS" => Ok(STOS),
+                        "SUB" => Ok(SUB),
+                        "SWAP" => Ok(SWAP),
+                        "SWAPI" => Ok(SWAPI),
+                        "THIS" => Ok(THIS),
+                        "THISC" => Ok(THISC),
+                        "VRFYED" => Ok(VRFYED),
+                        _ => Err(handler.emit_err(Error::Compile {
+                            error: CompileError::UnregonizedInstruction {
+                                span: op.span.clone(),
+                            },
+                        })),
+                    },
+                })
+                .collect::<Result<Vec<_>, _>>()?,
+        );
+
+        Ok(Location::Stack)
     }
 
     fn compile_morphism_param(
