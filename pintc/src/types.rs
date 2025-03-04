@@ -521,7 +521,7 @@ impl Type {
             }
             Type::Vector { ty, .. } => {
                 // We only support vectors of these types for now
-                ty.is_bool() || ty.is_int() || ty.is_b256()
+                ty.is_bool() || ty.is_int() || ty.is_b256() || ty.is_vector()
             }
             Type::Array { ty, .. } => ty.is_allowed_in_storage(contract),
             Type::Tuple { fields, .. } => fields.iter().fold(true, |acc, (_, field)| {

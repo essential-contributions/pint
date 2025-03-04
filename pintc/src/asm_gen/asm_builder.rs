@@ -907,6 +907,8 @@ impl<'a> AsmBuilder<'a> {
                 }
 
                 match kind {
+                    ExternalIntrinsic::PanicIf => asm.push(PNCIF),
+
                     ExternalIntrinsic::RecoverSECP256k1 => asm.push(RSECP),
 
                     ExternalIntrinsic::Sha256 => asm.extend([PUSH(3), SHL, SHA2]),

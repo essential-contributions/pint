@@ -1,0 +1,39 @@
+// db <<<
+// 1, 2
+// 1 0, 3
+// 1 0 0, 100
+// 1 0 1, 101
+// 1 0 2, 102
+// 1 1, 3
+// 1 1 0, 110
+// 1 1 1, 111
+// 1 1 2, 112
+// >>>
+
+storage {
+    x: int,
+    v0: int[][],
+}
+
+predicate foo() {
+    let v0_00 = storage::v0[0][0];
+    let v0_01 = storage::v0[0][1];
+    let v0_02 = storage::v0[0][2];
+    let v0_10 = storage::v0[1][0];
+    let v0_11 = storage::v0[1][1];
+    let v0_12 = storage::v0[1][2];
+    
+    constraint v0_00! == 100;
+    constraint v0_01! == 101;
+    constraint v0_02! == 102;
+    constraint v0_10! == 110;
+    constraint v0_11! == 111;
+    constraint v0_12! == 112;
+
+    constraint storage::v0[0][0]'! == 100;
+    constraint storage::v0[0][1]'! == 101;
+    constraint storage::v0[0][2]'! == 102;
+    constraint storage::v0[1][0]'! == 110;
+    constraint storage::v0[1][1]'! == 111;
+    constraint storage::v0[1][2]'! == 112;
+}

@@ -67,7 +67,7 @@ predicate Foo() {
 //     let ::y_2: {b256, int}? = __pre_state({2, (0 + 2)});
 //     let ::z: int[3][2]? = __pre_state({3, 0});
 //     let ::w_1: bool[3]? = __pre_state({4, (0 + (1 * 3))});
-//     let ::v_3: b256? = __pre_state({5, 3});
+//     let ::v_3: b256? = ((3 < __pre_state({5})!) ? __pre_state({5, 3}) : __panic_if(true));
 //     let ::map_69: {b256, int}? = __pre_state({6, 69, 0});
 //     let ::map_42_1: int? = __pre_state({6, 42, (0 + 1)});
 //     let ::vec_len: int? = __pre_state({5});

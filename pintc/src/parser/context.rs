@@ -495,6 +495,7 @@ impl<'a> ParserContext<'a> {
             kind: (
                 match &name.name[..] {
                     "__address_of" => IntrinsicKind::External(ExternalIntrinsic::AddressOf),
+                    "__panic_if" => IntrinsicKind::External(ExternalIntrinsic::PanicIf),
                     "__recover_secp256k1" => {
                         IntrinsicKind::External(ExternalIntrinsic::RecoverSECP256k1)
                     }

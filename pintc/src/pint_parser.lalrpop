@@ -557,11 +557,12 @@ MapType: Type = {
     }
 }
 
-// This only allows single dimensional vectors for the time being
 VectorType: Type = {
-    <l:@L> <ty:TypeAtom> "[" "]" <r:@R> => Type::Vector {
-        ty: Box::new(ty),
-        span: (context.span_from)(l, r),
+    <l:@L> <ty:TypeAtom> <ranges: ("[" "]")+> <r:@R> => {
+        ranges.iter().rev().fold(ty, |acc, _| Type::Vector {
+            ty: Box::new(acc),
+            span: (context.span_from)(l, r),
+        })
     }
 }
 
