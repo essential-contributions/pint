@@ -30,7 +30,7 @@ predicate Foo() {
 //     y: {int, bool, {b256, int}},
 //     z: int[3][2],
 //     w: bool[3][2],
-//     vec: b256[],
+//     vec: b256[_],
 //     m: ( int => {b256, int} ),
 // }
 //

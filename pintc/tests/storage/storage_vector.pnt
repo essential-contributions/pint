@@ -42,15 +42,15 @@ predicate Foo() {
 
 // parsed <<<
 // storage {
-//     v0: int[],
-//     v1: bool[],
-//     v2: b256[],
+//     v0: int[_],
+//     v1: bool[_],
+//     v2: b256[_],
 // }
 // interface ::Bar {
 //     storage {
-//         u0: int[],
-//         u1: bool[],
-//         u2: b256[],
+//         u0: int[_],
+//         u1: bool[_],
+//         u2: b256[_],
 //     }
 // }
 //

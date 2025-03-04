@@ -1,0 +1,10 @@
+type a = int[][5];
+
+predicate test() {
+    constraint __len(a) > 0;
+}
+
+// parse_failure <<<
+// expected `;`, or `?`, found `[`
+// @14..15: expected `;`, or `?`
+// >>>

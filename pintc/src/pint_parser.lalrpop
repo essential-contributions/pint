@@ -464,7 +464,6 @@ Type: Type = {
 
 NonOptionalType: Type = {
     <ArrayType>,
-    <VectorType>,
     <TypeAtom>,
 }
 
@@ -511,12 +510,20 @@ ArrayType: Type = {
         // right. Hence, we need to reverse the iterator.
         // For example, `int[3][5]` is actually an array of size 3 that
         // contains arrays of size 5 of `int`s.
-        ranges.iter().rev().fold(ty, |acc, range| Type::Array {
+        ranges.iter().rev().fold(ty, |acc, range| Type::FixedArray {
             ty: Box::new(acc),
             range: Some(*range),
             size: None,
             span: (context.span_from)(l, r),
         })
+    },
+
+    <l:@L> <ty:TypeAtom> "[" "]" <r:@R> => {
+        // Unsized arrays may not be multi-dimensional.
+        Type::UnsizedArray {
+            ty: Box::new(ty),
+            span: (context.span_from)(l, r),
+        }
     },
 }
 
@@ -553,14 +560,6 @@ MapType: Type = {
     <l:@L> "(" <ty_from:Type> "=>" <ty_to:Type> ")" <r:@R> => Type::Map {
         ty_from: Box::new(ty_from),
         ty_to: Box::new(ty_to),
-        span: (context.span_from)(l, r),
-    }
-}
-
-// This only allows single dimensional vectors for the time being
-VectorType: Type = {
-    <l:@L> <ty:TypeAtom> "[" "]" <r:@R> => Type::Vector {
-        ty: Box::new(ty),
         span: (context.span_from)(l, r),
     }
 }

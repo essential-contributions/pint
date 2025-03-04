@@ -8,6 +8,7 @@ use std::io::Write;
 mod asm_blocks;
 mod external_calls;
 mod intrinsics;
+mod morphisms;
 mod multi_predicates;
 mod storage_accesses;
 
@@ -3942,16 +3943,13 @@ predicate test(k: int, l: outer, m: outer) {
 }
 
 #[test]
-fn map_fixed_a() {
+fn unsized_arrays() {
     check(
         &compile(
             r#"
-predicate test(ary: int[10]) {
-    let evens: int[10] = map x in ary {
-        x % 2 == 1 ? x + 1 : x
-    };
-
-    constraint evens[4] + evens[0] == 10;
+predicate test(ary: int[]) {
+    constraint ary[0] == 11;
+    constraint __len(ary) < 22;
 }
 "#,
         )
@@ -3959,542 +3957,260 @@ predicate test(ary: int[10]) {
         expect_test::expect![[r#"
             predicate ::test {
                 --- Nodes ---
-                node 0 (pre)
-                  Stack(Push(10))
-                  Memory(Alloc)
-                  Stack(Pop)
-                  Stack(Push(2))
-                  Stack(Reserve)
-                  Stack(Push(0))
-                  Stack(Push(0))
-                  Stack(Push(0))
-                  Stack(Pop)
-                  Stack(Push(0))
-                  Stack(Swap)
-                  Stack(Store)
-                  Stack(Push(10))
-                  Stack(Push(1))
-                  Stack(Repeat)
-                  Stack(Push(0))
-                  Stack(Load)
-                  Stack(Push(1))
-                  Access(RepeatCounter)
-                  Alu(Mul)
-                  Stack(Push(1))
-                  Access(PredicateData)
-                  Stack(Push(0))
-                  Stack(Load)
-                  Stack(Push(1))
-                  Access(RepeatCounter)
-                  Alu(Mul)
-                  Stack(Push(1))
-                  Access(PredicateData)
-                  Stack(Push(1))
-                  Alu(Add)
-                  Stack(Push(0))
-                  Stack(Load)
-                  Stack(Push(1))
-                  Access(RepeatCounter)
-                  Alu(Mul)
-                  Stack(Push(1))
-                  Access(PredicateData)
-                  Stack(Push(2))
-                  Alu(Mod)
-                  Stack(Push(1))
-                  Pred(Eq)
-                  Stack(Select)
-                  Stack(RepeatEnd)
-                  Stack(Push(10))
-                  Memory(StoreRange)
-                  Stack(Pop)
-                  Stack(Pop)
-                  Stack(Push(10))
-                  Memory(Free)
-                node 1 (pre,leaf)
+                node 0 (pre,leaf)
                   Access(MutKeys)
                   Stack(Push(0))
                   Pred(EqSet)
-                node 2 (pre,leaf)
-                  Stack(Push(0))
-                  Stack(Push(4))
-                  Stack(Push(1))
-                  Alu(Mul)
-                  Alu(Add)
-                  Memory(Load)
+                node 1 (pre,leaf)
                   Stack(Push(0))
                   Stack(Push(0))
-                  Stack(Push(1))
-                  Alu(Mul)
-                  Alu(Add)
-                  Memory(Load)
-                  Alu(Add)
-                  Stack(Push(10))
-                  Pred(Eq)
-            }
-
-        "#]],
-    );
-}
-
-#[test]
-fn map_fixed_b() {
-    check(
-        &compile(
-            r#"
-predicate test(ary: int[10]) {
-    let zero_map: bool[10] = map y in ary { y == 0 };
-
-    constraint !zero_map[3] && zero_map[7];
-}
-"#,
-        )
-        .to_string(),
-        expect_test::expect![[r#"
-            predicate ::test {
-                --- Nodes ---
-                node 0 (pre)
-                  Stack(Push(10))
-                  Memory(Alloc)
-                  Stack(Pop)
-                  Stack(Push(2))
-                  Stack(Reserve)
-                  Stack(Push(0))
-                  Stack(Push(0))
-                  Stack(Push(0))
-                  Stack(Pop)
-                  Stack(Push(0))
-                  Stack(Swap)
-                  Stack(Store)
-                  Stack(Push(10))
-                  Stack(Push(1))
-                  Stack(Repeat)
-                  Stack(Push(0))
-                  Stack(Load)
-                  Stack(Push(1))
-                  Access(RepeatCounter)
-                  Alu(Mul)
                   Stack(Push(1))
                   Access(PredicateData)
-                  Stack(Push(0))
-                  Pred(Eq)
-                  Stack(RepeatEnd)
-                  Stack(Push(10))
-                  Memory(StoreRange)
-                  Stack(Pop)
-                  Stack(Pop)
-                  Stack(Push(10))
-                  Memory(Free)
-                node 1 (pre,leaf)
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
+                  Stack(Push(22))
+                  Pred(Lt)
                 node 2 (pre,leaf)
                   Stack(Push(0))
-                  Stack(Push(8))
-                  Stack(Push(0))
-                  Stack(Push(3))
-                  Stack(Push(1))
-                  Alu(Mul)
-                  Alu(Add)
-                  Memory(Load)
-                  Pred(Not)
-                  Pred(Not)
-                  TotalControlFlow(JumpForwardIf)
-                  Stack(Pop)
-                  Stack(Push(0))
-                  Stack(Push(7))
-                  Stack(Push(1))
-                  Alu(Mul)
-                  Alu(Add)
-                  Memory(Load)
-            }
-
-        "#]],
-    );
-}
-
-#[test]
-fn map_fixed_c() {
-    check(
-        &compile(
-            r#"
-predicate test() {
-    let ary = [5, 4, 3, 2, 1];
-    let dbls = map x in ary { x + x };
-    constraint dbls[1] == 8;
-}
-"#,
-        )
-        .to_string(),
-        expect_test::expect![[r#"
-            predicate ::test {
-                --- Nodes ---
-                node 0 (pre)
-                  Stack(Push(5))
-                  Memory(Alloc)
-                  Stack(Pop)
-                  Stack(Push(2))
-                  Stack(Reserve)
-                  Stack(Push(0))
-                  Stack(Push(5))
-                  Memory(Alloc)
-                  Stack(Dup)
-                  Stack(Push(0))
-                  Stack(Swap)
-                  Stack(Store)
-                  Stack(Push(5))
-                  Stack(Push(4))
-                  Stack(Push(3))
-                  Stack(Push(2))
-                  Stack(Push(1))
-                  Stack(Push(5))
-                  Memory(StoreRange)
-                  Stack(Push(5))
-                  Stack(Push(1))
-                  Stack(Repeat)
-                  Stack(Push(0))
-                  Stack(Load)
-                  Access(RepeatCounter)
-                  Alu(Add)
-                  Memory(Load)
-                  Stack(Push(0))
-                  Stack(Load)
-                  Access(RepeatCounter)
-                  Alu(Add)
-                  Memory(Load)
-                  Alu(Add)
-                  Stack(RepeatEnd)
-                  Stack(Push(5))
-                  Memory(StoreRange)
-                  Stack(Pop)
-                  Stack(Pop)
-                  Stack(Push(5))
-                  Memory(Free)
-                node 1 (pre,leaf)
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                node 2 (pre,leaf)
-                  Stack(Push(0))
-                  Stack(Push(1))
-                  Stack(Push(1))
-                  Alu(Mul)
-                  Alu(Add)
-                  Memory(Load)
-                  Stack(Push(8))
-                  Pred(Eq)
-            }
-
-        "#]],
-    );
-}
-
-#[test]
-fn map_fixed_d() {
-    check(
-        &compile(
-            r#"
-storage {
-    ary: int[3],
-}
-
-predicate test() {
-    let a = storage::ary!;
-    let b = map x in a { x * x };
-
-    constraint b[0] + b[1] == b[2];
-}
-"#,
-        )
-        .to_string(),
-        expect_test::expect![[r#"
-            predicate ::test {
-                --- Nodes ---
-                node 0 (pre)
-                  Stack(Push(10))
-                  Memory(Alloc)
-                  Stack(Pop)
-                  Stack(Push(2))
-                  Stack(Reserve)
-                  Stack(Push(0))
                   Stack(Push(0))
                   Stack(Push(0))
                   Stack(Push(2))
-                  Stack(Push(3))
-                  Stack(Push(0))
-                  StateRead(KeyRange)
-                  Stack(Push(0))
+                  Stack(DupFrom)
+                  Stack(Push(2))
+                  Stack(DupFrom)
                   Stack(Push(1))
-                  Memory(Load)
-                  Alu(Add)
-                  Stack(Push(3))
-                  Memory(Load)
-                  Alu(Add)
-                  Stack(Push(5))
-                  Memory(Load)
-                  Alu(Add)
-                  Stack(Push(3))
-                  Pred(Eq)
-                  Pred(Not)
+                  Access(PredicateData)
+                  Stack(Push(1))
+                  Stack(DupFrom)
+                  Pred(Lte)
                   TotalControlFlow(PanicIf)
-                  Stack(Push(6))
-                  Stack(Push(3))
-                  Memory(LoadRange)
-                  Stack(Push(3))
-                  Memory(StoreRange)
-                  Stack(Pop)
-                  Stack(Pop)
-                  Stack(Push(3))
-                  Memory(Free)
-                node 1 (pre)
-                  Stack(Push(2))
-                  Stack(Reserve)
-                  Stack(Push(0))
-                  Stack(Push(0))
-                  Stack(Push(0))
-                  Stack(Swap)
-                  Stack(Store)
-                  Stack(Push(3))
+                  Alu(Add)
                   Stack(Push(1))
-                  Stack(Repeat)
-                  Stack(Push(0))
-                  Stack(Load)
-                  Access(RepeatCounter)
-                  Alu(Add)
-                  Memory(Load)
-                  Stack(Push(0))
-                  Stack(Load)
-                  Access(RepeatCounter)
-                  Alu(Add)
-                  Memory(Load)
-                  Alu(Mul)
-                  Stack(RepeatEnd)
-                  Stack(Push(3))
-                  Memory(StoreRange)
-                  Stack(Pop)
-                  Stack(Pop)
-                  Stack(Push(3))
-                  Memory(Free)
-                node 2 (pre,leaf)
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                node 3 (pre,leaf)
-                  Stack(Push(0))
-                  Stack(Push(0))
-                  Stack(Push(1))
-                  Alu(Mul)
-                  Alu(Add)
-                  Memory(Load)
-                  Stack(Push(0))
-                  Stack(Push(1))
-                  Stack(Push(1))
-                  Alu(Mul)
-                  Alu(Add)
-                  Memory(Load)
-                  Alu(Add)
-                  Stack(Push(0))
-                  Stack(Push(2))
-                  Stack(Push(1))
-                  Alu(Mul)
-                  Alu(Add)
-                  Memory(Load)
-                  Pred(Eq)
-            }
-
-        "#]],
-    );
-}
-
-#[test]
-fn map_fixed_e() {
-    check(
-        &compile(
-            r#"
-storage {
-    ary: int[3],
-}
-
-predicate test() {
-    let a = map x in storage::ary! { x * x };
-
-    constraint a[0] + a[1] == a[2];
-}
-"#,
-        )
-        .to_string(),
-        expect_test::expect![[r#"
-            predicate ::test {
-                --- Nodes ---
-                node 0 (pre)
-                  Stack(Push(10))
-                  Memory(Alloc)
-                  Stack(Pop)
-                  Stack(Push(2))
-                  Stack(Reserve)
-                  Stack(Push(0))
-                  Stack(Push(3))
-                  Memory(Alloc)
-                  Stack(Dup)
-                  Stack(Push(0))
-                  Stack(Swap)
-                  Stack(Store)
-                  Stack(Push(0))
-                  Stack(Push(0))
-                  Stack(Push(2))
-                  Stack(Push(3))
-                  Stack(Push(0))
-                  StateRead(KeyRange)
-                  Stack(Push(0))
-                  Stack(Push(1))
-                  Memory(Load)
-                  Alu(Add)
-                  Stack(Push(3))
-                  Memory(Load)
-                  Alu(Add)
-                  Stack(Push(5))
-                  Memory(Load)
-                  Alu(Add)
-                  Stack(Push(3))
-                  Pred(Eq)
-                  Pred(Not)
-                  TotalControlFlow(PanicIf)
-                  Stack(Push(6))
-                  Stack(Push(3))
-                  Memory(LoadRange)
-                  Stack(Push(3))
-                  Memory(StoreRange)
-                  Stack(Push(3))
-                  Stack(Push(1))
-                  Stack(Repeat)
-                  Stack(Push(0))
-                  Stack(Load)
-                  Access(RepeatCounter)
-                  Alu(Add)
-                  Memory(Load)
-                  Stack(Push(0))
-                  Stack(Load)
-                  Access(RepeatCounter)
-                  Alu(Add)
-                  Memory(Load)
-                  Alu(Mul)
-                  Stack(RepeatEnd)
-                  Stack(Push(3))
-                  Memory(StoreRange)
-                  Stack(Pop)
-                  Stack(Pop)
-                  Stack(Push(3))
-                  Memory(Free)
-                node 1 (pre,leaf)
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                node 2 (pre,leaf)
-                  Stack(Push(0))
-                  Stack(Push(0))
-                  Stack(Push(1))
-                  Alu(Mul)
-                  Alu(Add)
-                  Memory(Load)
-                  Stack(Push(0))
-                  Stack(Push(1))
-                  Stack(Push(1))
-                  Alu(Mul)
-                  Alu(Add)
-                  Memory(Load)
-                  Alu(Add)
-                  Stack(Push(0))
-                  Stack(Push(2))
-                  Stack(Push(1))
-                  Alu(Mul)
-                  Alu(Add)
-                  Memory(Load)
-                  Pred(Eq)
-            }
-
-        "#]],
-    );
-}
-
-#[test]
-fn map_fixed_f() {
-    check(
-        &compile(
-            r#"
-predicate test_int_array(ary: int[5][2]) {
-    let sums = map x in ary {
-        x[0] + x[1]
-    };
-
-    constraint sums[4] == 11;
-}
-"#,
-        )
-        .to_string(),
-        expect_test::expect![[r#"
-            predicate ::test_int_array {
-                --- Nodes ---
-                node 0 (pre)
-                  Stack(Push(5))
-                  Memory(Alloc)
-                  Stack(Pop)
-                  Stack(Push(2))
-                  Stack(Reserve)
-                  Stack(Push(0))
-                  Stack(Push(0))
-                  Stack(Push(0))
-                  Stack(Pop)
-                  Stack(Push(0))
-                  Stack(Swap)
-                  Stack(Store)
-                  Stack(Push(5))
-                  Stack(Push(1))
-                  Stack(Repeat)
-                  Stack(Push(0))
-                  Stack(Load)
-                  Stack(Push(2))
-                  Access(RepeatCounter)
-                  Alu(Mul)
-                  Stack(Push(0))
-                  Stack(Push(1))
-                  Alu(Mul)
                   Alu(Add)
                   Stack(Push(1))
                   Access(PredicateData)
-                  Stack(Push(0))
-                  Stack(Load)
-                  Stack(Push(2))
-                  Access(RepeatCounter)
-                  Alu(Mul)
-                  Stack(Push(1))
-                  Stack(Push(1))
-                  Alu(Mul)
-                  Alu(Add)
-                  Stack(Push(1))
-                  Access(PredicateData)
-                  Alu(Add)
-                  Stack(RepeatEnd)
-                  Stack(Push(5))
-                  Memory(StoreRange)
-                  Stack(Pop)
-                  Stack(Pop)
-                  Stack(Push(5))
-                  Memory(Free)
-                node 1 (pre,leaf)
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                node 2 (pre,leaf)
-                  Stack(Push(0))
-                  Stack(Push(4))
-                  Stack(Push(1))
-                  Alu(Mul)
-                  Alu(Add)
-                  Memory(Load)
                   Stack(Push(11))
                   Pred(Eq)
             }
 
+        "#]],
+    );
+
+    check(
+        &compile(
+            r#"
+predicate test(ary: {int, bool}[]) {
+    constraint !ary[1].1;
+    constraint __len(ary) == 2;
+}
+"#,
+        )
+        .to_string(),
+        expect_test::expect![[r#"
+            predicate ::test {
+                --- Nodes ---
+                node 0 (pre,leaf)
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
+                node 1 (pre,leaf)
+                  Stack(Push(0))
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Access(PredicateData)
+                  Stack(Push(2))
+                  Pred(Eq)
+                node 2 (pre,leaf)
+                  Stack(Push(0))
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Stack(Push(2))
+                  Stack(DupFrom)
+                  Stack(Push(2))
+                  Stack(DupFrom)
+                  Stack(Push(1))
+                  Access(PredicateData)
+                  Stack(Push(1))
+                  Stack(DupFrom)
+                  Pred(Lte)
+                  TotalControlFlow(PanicIf)
+                  Stack(Push(2))
+                  Alu(Mul)
+                  Alu(Add)
+                  Stack(Push(1))
+                  Alu(Add)
+                  Stack(Push(1))
+                  Alu(Add)
+                  Stack(Push(1))
+                  Access(PredicateData)
+                  Pred(Not)
+            }
+
+        "#]],
+    );
+
+    check(
+        &compile(
+            r#"
+union X = x | y(int) | z(bool);
+
+predicate test(ary: X[]) {
+    constraint match ary[1] {
+        X::x => true,
+        X::y(n) => n < 11,
+        X::z(b) => !b,
+    };
+    constraint __len(ary) > 1;
+}
+"#,
+        )
+        .to_string(),
+        expect_test::expect![[r#"
+            predicate ::test {
+                --- Nodes ---
+                node 0 (pre,leaf)
+                  Access(MutKeys)
+                  Stack(Push(0))
+                  Pred(EqSet)
+                node 1 (pre,leaf)
+                  Stack(Push(0))
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Access(PredicateData)
+                  Stack(Push(1))
+                  Pred(Gt)
+                node 2 (pre,leaf)
+                  Stack(Push(0))
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Stack(Push(2))
+                  Stack(DupFrom)
+                  Stack(Push(2))
+                  Stack(DupFrom)
+                  Stack(Push(1))
+                  Access(PredicateData)
+                  Stack(Push(1))
+                  Stack(DupFrom)
+                  Pred(Lte)
+                  TotalControlFlow(PanicIf)
+                  Stack(Push(2))
+                  Alu(Mul)
+                  Alu(Add)
+                  Stack(Push(1))
+                  Alu(Add)
+                  Stack(Push(1))
+                  Alu(Add)
+                  Stack(Push(1))
+                  Access(PredicateData)
+                  Pred(Not)
+                  Stack(Push(0))
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Stack(Push(2))
+                  Stack(DupFrom)
+                  Stack(Push(2))
+                  Stack(DupFrom)
+                  Stack(Push(1))
+                  Access(PredicateData)
+                  Stack(Push(1))
+                  Stack(DupFrom)
+                  Pred(Lte)
+                  TotalControlFlow(PanicIf)
+                  Stack(Push(2))
+                  Alu(Mul)
+                  Alu(Add)
+                  Stack(Push(1))
+                  Alu(Add)
+                  Stack(Push(1))
+                  Alu(Add)
+                  Stack(Push(1))
+                  Access(PredicateData)
+                  Stack(Push(11))
+                  Pred(Lt)
+                  Stack(Push(0))
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Stack(Push(2))
+                  Stack(DupFrom)
+                  Stack(Push(2))
+                  Stack(DupFrom)
+                  Stack(Push(1))
+                  Access(PredicateData)
+                  Stack(Push(1))
+                  Stack(DupFrom)
+                  Pred(Lte)
+                  TotalControlFlow(PanicIf)
+                  Stack(Push(2))
+                  Alu(Mul)
+                  Alu(Add)
+                  Stack(Push(1))
+                  Alu(Add)
+                  Stack(Push(1))
+                  Access(PredicateData)
+                  Stack(Push(1))
+                  Pred(Eq)
+                  Stack(Select)
+                  Stack(Push(1))
+                  Stack(Push(0))
+                  Stack(Push(0))
+                  Stack(Push(1))
+                  Stack(Push(2))
+                  Stack(DupFrom)
+                  Stack(Push(2))
+                  Stack(DupFrom)
+                  Stack(Push(1))
+                  Access(PredicateData)
+                  Stack(Push(1))
+                  Stack(DupFrom)
+                  Pred(Lte)
+                  TotalControlFlow(PanicIf)
+                  Stack(Push(2))
+                  Alu(Mul)
+                  Alu(Add)
+                  Stack(Push(1))
+                  Alu(Add)
+                  Stack(Push(1))
+                  Access(PredicateData)
+                  Stack(Push(0))
+                  Pred(Eq)
+                  Stack(Select)
+            }
+
+        "#]],
+    );
+}
+
+#[test]
+fn disallowed_unsized_arrays() {
+    check(
+        &compile_with_error(
+            r#"
+predicate test(p: { int, bool[] }) {
+    let f: bool[] = p.1;
+    constraint __len(f) == __len(p.1);
+}
+"#,
+        )
+        .to_string(),
+        expect_test::expect![[r#"
+            compiler internal error: cannot use or refer to dynamic arrays here (yet)
+            @26..32: cannot use or refer to dynamic arrays here (yet)
+        "#]],
+    );
+
+    check(
+        &compile_with_error(
+            r#"
+type b = { int, int[3], int[] };
+
+predicate test(x: int[]) {
+    let a: b = { 11, [22, 33, 44], x };
+    constraint a.0 == 11;
+}
+    "#,
+        )
+        .to_string(),
+        expect_test::expect![[r#"
+            compiler internal error: cannot use or refer to dynamic arrays here (yet)
+            @53..58: cannot use or refer to dynamic arrays here (yet)
         "#]],
     );
 }

@@ -298,7 +298,7 @@ impl Contract {
 
             // Get the assumed type.
             let ary_ty = imm.get_ty(Some(span));
-            let Type::Array { ty: el0_ty, .. } = &ary_ty else {
+            let Type::FixedArray { ty: el0_ty, .. } = &ary_ty else {
                 handler.emit_internal_err(
                     "array immediate does NOT have an array type?",
                     span.clone(),
@@ -1409,7 +1409,7 @@ impl Contract {
             });
 
             // Return an array of Error, which is still an array.
-            return Inference::Type(Type::Array {
+            return Inference::Type(Type::FixedArray {
                 ty: Box::new(Type::Error(span.clone())),
                 range: Some(range_expr_key),
                 size: Some(0),
@@ -1448,7 +1448,7 @@ impl Contract {
             }
 
             if deps.is_empty() {
-                Inference::Type(Type::Array {
+                Inference::Type(Type::FixedArray {
                     ty: Box::new(el0_ty.clone()),
                     range: Some(range_expr_key),
                     size: Some(element_exprs.len() as i64),
@@ -1958,7 +1958,7 @@ impl Contract {
                     }))
                 }
             } else {
-                Ok(Inference::Type(Type::Array {
+                Ok(Inference::Type(Type::FixedArray {
                     ty: Box::new(body_ty.clone()),
                     range: range_ty.get_array_range_expr(),
                     size: range_ty.get_array_size(),

@@ -317,6 +317,7 @@ mod e2e {
     e2e_test!(basic_tests);
     e2e_test!(consts);
     e2e_test!(contracts);
+    e2e_test!(dyn_arrays);
     e2e_test!(evaluator);
     e2e_test!(generators);
     e2e_test!(interfaces);

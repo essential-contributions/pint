@@ -19,12 +19,12 @@ predicate test() {
 
 // parsed <<<
 // storage {
-//     v: int[],
+//     v: int[_],
 //     x: int,
 // }
 // interface ::Foo {
 //     storage {
-//         v: int[],
+//         v: int[_],
 //     }
 // }
 //

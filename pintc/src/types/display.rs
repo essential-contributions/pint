@@ -26,7 +26,7 @@ impl DisplayWithContract for super::Type {
 
             super::Type::Primitive { kind, .. } => write!(f, "{kind}"),
 
-            super::Type::Array { ty, range, .. } => {
+            super::Type::FixedArray { ty, range, .. } => {
                 write!(
                     f,
                     "{}[{}]",
@@ -35,6 +35,10 @@ impl DisplayWithContract for super::Type {
                         .map(|range| contract.with_ctrct(range).to_string())
                         .unwrap_or("_".to_owned())
                 )
+            }
+
+            super::Type::UnsizedArray { ty, .. } => {
+                write!(f, "{}[_]", contract.with_ctrct(ty.as_ref()),)
             }
 
             super::Type::Tuple { fields, .. } => {

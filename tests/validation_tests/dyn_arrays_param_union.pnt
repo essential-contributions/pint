@@ -1,0 +1,10 @@
+union X = x | y(int) | z(bool);
+
+predicate test(ary: X[]) {
+    constraint match ary[1] {
+        X::x => true,
+        X::y(n) => n < 11,
+        X::z(b) => !b,
+    };
+    constraint __len(ary) > 1;
+}

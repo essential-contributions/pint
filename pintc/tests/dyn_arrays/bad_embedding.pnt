@@ -1,0 +1,35 @@
+type b = { int, int[3], int[] };
+
+union c = x(bool) | y(bool[2]) | z(bool[]);
+
+predicate test(p: { int, bool[] }) {
+
+    let f: bool[] = p.1;
+
+    constraint __len(f) == __len(p.1);
+}
+
+// parsed <<<
+// union ::c = x(bool) | y(bool[2]) | z(bool[_]);
+// type ::b = {int, int[3], int[_]};
+//
+// predicate ::test(
+//     ::p: {int, bool[_]},
+// ) {
+//     let ::f: bool[_] = ::p.1;
+//     constraint (__len(::f) == __len(::p.1));
+// }
+// >>>
+
+// flattened <<<
+// union ::c = x(bool) | y(bool[2]) | z(bool[_]);
+// type ::b = {int, int[3], int[_]};
+//
+// predicate ::test(
+//     ::p: {int, bool[_]},
+// ) {
+//     let ::f: bool[_] = ::p.1;
+//     constraint (__len(::f) == __len(::p.1));
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>

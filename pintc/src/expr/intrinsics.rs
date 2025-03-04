@@ -1,4 +1,6 @@
-use crate::types::{any, b256, error, int, optional, r#bool, string, tuple, vector, Type};
+use crate::types::{
+    any, b256, dyn_array, error, int, optional, r#bool, string, tuple, vector, Type,
+};
 use std::fmt::{Display, Formatter, Result};
 
 ///////////////////
@@ -49,6 +51,9 @@ pub enum ExternalIntrinsic {
     // Returns the address of a predicate in the same contract
     AddressOf,
 
+    // Determines the length of an array.
+    ArrayLen,
+
     // Recovers the public key from a secp256k1 signature.
     RecoverSECP256k1,
 
@@ -75,6 +80,7 @@ impl Display for ExternalIntrinsic {
     fn fmt(&self, f: &mut Formatter) -> Result {
         match self {
             Self::AddressOf => write!(f, "__address_of"),
+            Self::ArrayLen => write!(f, "__len"),
             Self::RecoverSECP256k1 => write!(f, "__recover_secp256k1"),
             Self::Sha256 => write!(f, "__sha256"),
             Self::SizeOf => write!(f, "__size_of"),
@@ -92,6 +98,7 @@ impl ExternalIntrinsic {
             Self::AddressOf => vec![
                 string(), // path to a predicate in the contract
             ],
+            Self::ArrayLen => vec![dyn_array(any())],
             Self::RecoverSECP256k1 => vec![
                 b256(),                             // data hash
                 tuple(vec![b256(), b256(), int()]), // signature
@@ -116,6 +123,7 @@ impl ExternalIntrinsic {
     pub fn ty(&self) -> Type {
         match self {
             Self::AddressOf => b256(),
+            Self::ArrayLen => int(),
             Self::RecoverSECP256k1 => tuple(vec![b256(), int()]),
             Self::Sha256 => b256(),
             Self::SizeOf => int(),
