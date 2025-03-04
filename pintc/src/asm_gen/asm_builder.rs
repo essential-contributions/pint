@@ -879,6 +879,19 @@ impl<'a> AsmBuilder<'a> {
                 }
             }
 
+            ExternalIntrinsic::ArrayLen => {
+                match self.compile_expr_pointer(handler, asm, &args[0], contract, pred)? {
+                    Location::PredicateData => {
+                        // The length of the array is at the start.
+                        asm.extend([PUSH(1), DATA]);
+                    }
+
+                    Location::Memory => todo!("__len() of array in memory"),
+                    Location::Storage(_) => todo!("__len() of array in stack"),
+                    Location::Stack => todo!("__len() of array on stack"),
+                }
+            }
+
             ExternalIntrinsic::SizeOf => {
                 asm.push(PUSH(
                     args[0].get_ty(contract).size(handler, contract)? as i64
@@ -916,6 +929,7 @@ impl<'a> AsmBuilder<'a> {
                     ExternalIntrinsic::ThisContractAddress => asm.push(THISC),
 
                     ExternalIntrinsic::AddressOf
+                    | ExternalIntrinsic::ArrayLen
                     | ExternalIntrinsic::SizeOf
                     | ExternalIntrinsic::VerifyEd25519 => {
                         return Err(handler.emit_internal_err(
@@ -1121,19 +1135,72 @@ impl<'a> AsmBuilder<'a> {
             ));
         }
 
-        // Grab the element ty of the array
-        let Type::Array { ty, .. } = expr.get_ty(contract) else {
-            return Err(
-                handler.emit_internal_err("type must exist and be an array type", empty_span())
-            );
-        };
-
         // Compile the index
         self.compile_expr(handler, asm, index, contract, pred)?;
 
-        // Multiply the index by the size of `ty` to get the offset, then add the result to the
-        // base key
-        asm.extend([PUSH(ty.size(handler, contract)? as i64), MUL, ADD]);
+        // Grab the element ty of the array
+        match expr.get_ty(contract) {
+            Type::FixedArray { ty, .. } => {
+                let el_size = ty.size(handler, contract)? as i64;
+                if el_size > 1 {
+                    // Multiply the index by the size of `ty`.
+                    asm.extend([PUSH(el_size), MUL]);
+                }
+
+                // Add it to the base index.
+                asm.push(ADD);
+            }
+
+            Type::UnsizedArray { ty, .. } => {
+                // Panic if the index is out of bounds.  Get the length from the front (since we
+                // only support PredicateData or Memory) and check it.
+                match location {
+                    Location::PredicateData => {
+                        asm.extend([
+                            PUSH(2), //
+                            DUPF,    // Dupe the slot idx.
+                            PUSH(2), //
+                            DUPF,    // Dupe the base idx.
+                            PUSH(1), // Length of 1.
+                            DATA,
+                        ]);
+                    }
+
+                    Location::Memory => {
+                        asm.extend([
+                            PUSH(1), //
+                            DUPF,    // Dupe the mem idx.
+                            LOD,     //
+                        ]);
+                    }
+
+                    Location::Storage(_) | Location::Stack => unreachable!("already checked above"),
+                }
+
+                // Dupe the array index and compare to the length.
+                asm.extend([
+                    PUSH(1), //
+                    DUPF,    // Dupe the array idx.
+                    LTE,     // Length is <= idx?
+                    PNCIF,   // Panic if so.
+                ]);
+
+                let el_size = ty.size(handler, contract)? as i64;
+                if el_size > 1 {
+                    // Multiply the index by the size of `ty`.
+                    asm.extend([PUSH(el_size), MUL]);
+                }
+
+                // Add it to the base index and skip the length.
+                asm.extend([ADD, PUSH(1), ADD]);
+            }
+
+            _ => {
+                return Err(
+                    handler.emit_internal_err("type must exist and be an array type", empty_span())
+                );
+            }
+        }
 
         Ok(location)
     }

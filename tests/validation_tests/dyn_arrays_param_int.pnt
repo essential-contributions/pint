@@ -1,0 +1,4 @@
+predicate test(ary: int[]) {
+    constraint __len(ary) < 5;
+    constraint ary[0] == 11;
+}

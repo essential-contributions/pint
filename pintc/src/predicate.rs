@@ -493,7 +493,7 @@ impl Contract {
             .flat_map(|(storage_vars, _)| {
                 storage_vars
                     .iter()
-                    .flat_map(|StorageVar { ty, .. }| ty.get_all_array_range_exprs())
+                    .flat_map(|StorageVar { ty, .. }| ty.get_all_array_range_exprs(self))
             })
             .chain(
                 self.interfaces
@@ -516,12 +516,12 @@ impl Contract {
                                 ))
                         },
                     )
-                    .flat_map(|ty| ty.get_all_array_range_exprs()),
+                    .flat_map(|ty| ty.get_all_array_range_exprs(self)),
             )
             .chain(
                 self.new_types
                     .iter()
-                    .flat_map(|NewTypeDecl { ty, .. }| ty.get_all_array_range_exprs()),
+                    .flat_map(|NewTypeDecl { ty, .. }| ty.get_all_array_range_exprs(self)),
             )
             .chain(
                 self.unions
@@ -529,7 +529,7 @@ impl Contract {
                     .flat_map(|(_key, UnionDecl { variants, .. })| {
                         variants.iter().flat_map(|UnionVariant { ty, .. }| ty)
                     })
-                    .flat_map(|ty| ty.get_all_array_range_exprs()),
+                    .flat_map(|ty| ty.get_all_array_range_exprs(self)),
             )
             .chain(
                 self.consts
