@@ -1958,12 +1958,36 @@ impl Contract {
                     }))
                 }
             } else {
-                Ok(Inference::Type(Type::FixedArray {
-                    ty: Box::new(body_ty.clone()),
-                    range: range_ty.get_array_range_expr(),
-                    size: range_ty.get_array_size(),
-                    span: span.clone(),
-                }))
+                match range_ty {
+                    Type::FixedArray { .. } => Ok(Inference::Type(Type::FixedArray {
+                        ty: Box::new(body_ty.clone()),
+                        range: range_ty.get_array_range_expr(),
+                        size: range_ty.get_array_size(),
+                        span: span.clone(),
+                    })),
+
+                    Type::UnsizedArray { .. } => Ok(Inference::Type(Type::UnsizedArray {
+                        ty: Box::new(body_ty.clone()),
+                        span: span.clone(),
+                    })),
+
+                    // Should be unreachable.
+                    Type::Error(_)
+                    | Type::Unknown(_)
+                    | Type::Any(_)
+                    | Type::Nil(_)
+                    | Type::Primitive { .. }
+                    | Type::Tuple { .. }
+                    | Type::Union { .. }
+                    | Type::Optional { .. }
+                    | Type::Custom { .. }
+                    | Type::Alias { .. }
+                    | Type::Map { .. }
+                    | Type::Vector { .. } => Err(handler.emit_internal_err(
+                        "unsupported type still found for mapped range",
+                        span.clone(),
+                    )),
+                }
             }
         }
     }

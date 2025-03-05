@@ -1,0 +1,7 @@
+predicate test(ary: int[]) {
+    let dbls: int[] = map x in ary {
+        x + x
+    };
+
+    constraint dbls[1] == 22;
+}
