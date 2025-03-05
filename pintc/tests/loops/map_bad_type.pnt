@@ -2,6 +2,9 @@ predicate test(ary: bool[4]) {
     let b = map x in ary { x + 11 };
 
     let c: int[4] = map x in ary { !x };
+
+    let d = 22 + 33;
+    let e = map x in d { x * 0 };
 }
 
 // parsed <<<
