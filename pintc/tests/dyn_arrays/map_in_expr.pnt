@@ -1,0 +1,20 @@
+predicate test(ary: int[]) {
+    constraint map x in ary { x + x }[1] == 22;
+}
+
+// parsed <<<
+// predicate ::test(
+//     ::ary: int[_],
+// ) {
+//     constraint (map x in ::ary { (::x + ::x) }[1] == 22);
+// }
+// >>>
+
+// flattened <<<
+// predicate ::test(
+//     ::ary: int[_],
+// ) {
+//     constraint (map x in ::ary { (::x + ::x) }[1] == 22);
+//     constraint __eq_set(__mut_keys(), {0});
+// }
+// >>>

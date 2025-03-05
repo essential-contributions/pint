@@ -176,10 +176,12 @@ pub(crate) fn splice_args(
                     });
                 }
             } else {
-                handler.emit_internal_err(
-                    "type is array but failed to get range expr.",
-                    Span::new(call.span.context(), range),
-                );
+                handler.emit_err(Error::Compile {
+                    error: CompileError::MacroSpliceUnsizedArray {
+                        var_name: array_path,
+                        span: Span::new(call.span.context(), range),
+                    },
+                });
             }
         } else {
             handler.emit_err(Error::Compile {

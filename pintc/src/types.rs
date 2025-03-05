@@ -312,7 +312,27 @@ impl Type {
     }
 
     pub fn is_array(&self) -> bool {
-        check_alias!(self, is_array, matches!(self, Type::FixedArray { .. }))
+        check_alias!(
+            self,
+            is_array,
+            matches!(self, Type::FixedArray { .. } | Type::UnsizedArray { .. })
+        )
+    }
+
+    pub fn is_fixed_array(&self) -> bool {
+        check_alias!(
+            self,
+            is_fixed_array,
+            matches!(self, Type::FixedArray { .. })
+        )
+    }
+
+    pub fn is_unsized_array(&self) -> bool {
+        check_alias!(
+            self,
+            is_unsized_array,
+            matches!(self, Type::UnsizedArray { .. })
+        )
     }
 
     pub fn get_array_el_type(&self) -> Option<&Type> {
