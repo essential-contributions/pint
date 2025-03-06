@@ -1,23 +1,29 @@
 use serde::{Deserialize, Serialize};
 
+/// A contract that consists of a set of predicates and a set of storage variables
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ContractABI {
     pub predicates: Vec<PredicateABI>,
-    pub storage: Vec<ParamABI>,
+    pub storage: Vec<StorageVarABI>,
 }
 
+/// A predicate in a contract that has a name and a list of parameters
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct PredicateABI {
     pub name: String,
     pub params: Vec<ParamABI>,
 }
 
-////////////////////////////////////////
-// Decision Variables and their Types //
-////////////////////////////////////////
-
+/// A predicate parameter
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ParamABI {
+    pub name: String,
+    pub ty: TypeABI,
+}
+
+/// A storage variable
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct StorageVarABI {
     pub name: String,
     pub ty: TypeABI,
 }

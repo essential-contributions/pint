@@ -37,8 +37,8 @@ async fn test_solution_foo() {
     assert_eq!(contract_ca, exhaustive_storage::ADDRESS);
     assert_eq!(pred_addr, exhaustive_storage::Foo::ADDRESS);
 
-    // Decision variables.
-    let vars = exhaustive_storage::Foo::Vars {
+    // Predicate arguments.
+    let args = exhaustive_storage::Foo::Args {
         v0: true,
         v1: 42,
         v2: [0x1111111100000000; 4],
@@ -95,20 +95,20 @@ async fn test_solution_foo() {
         assert_eq!(key, &mutation.key);
     }
 
-    // Check Encoding/Decoding roundtrip for decision vars.
-    let words = pint_abi::encode(&vars);
-    let vars2: exhaustive_storage::Foo::Vars = pint_abi::decode(&words[..]).unwrap();
-    assert_eq!(&vars, &vars2);
+    // Check Encoding/Decoding roundtrip for decision args.
+    let words = pint_abi::encode(&args);
+    let args2: exhaustive_storage::Foo::Args = pint_abi::decode(&words[..]).unwrap();
+    assert_eq!(&args, &args2);
 
     // Check To/From Vec<Value> roundtrip.
-    let values: Vec<Value> = vars.clone().into();
-    let vars3 = exhaustive_storage::Foo::Vars::try_from(&values[..]).unwrap();
-    assert_eq!(&vars, &vars3);
+    let values: Vec<Value> = args.clone().into();
+    let args3 = exhaustive_storage::Foo::Args::try_from(&values[..]).unwrap();
+    assert_eq!(&args, &args3);
 
     // Create the solution for predicate `Foo`.
     let solution = Solution {
         predicate_to_solve: exhaustive_storage::Foo::ADDRESS,
-        predicate_data: vars.into(),
+        predicate_data: args.into(),
         state_mutations,
     };
 

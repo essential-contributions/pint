@@ -37,8 +37,8 @@ async fn test_solution_foo() {
     assert_eq!(contract_ca, unions::ADDRESS);
     assert_eq!(pred_addr, unions::Foo::ADDRESS);
 
-    // Decision variables.
-    let vars = unions::Foo::Vars {
+    // Predicate arguments.
+    let args = unions::Foo::Args {
         v_u1: unions::UU::A(69),
         v_u2: unions::UU::B,
         v_u3: unions::UU::C([0x6969696969696969; 4]),
@@ -106,20 +106,20 @@ async fn test_solution_foo() {
         assert_eq!(key, &mutation.key);
     }
 
-    // Check Encoding/Decoding roundtrip for decision vars.
-    let words = pint_abi::encode(&vars);
-    let vars2: unions::Foo::Vars = pint_abi::decode(&words[..]).unwrap();
-    assert_eq!(&vars, &vars2);
+    // Check Encoding/Decoding roundtrip for predicate arguments.
+    let words = pint_abi::encode(&args);
+    let args2: unions::Foo::Args = pint_abi::decode(&words[..]).unwrap();
+    assert_eq!(&args, &args2);
 
     // Check To/From Vec<Value> roundtrip.
-    let values: Vec<Value> = vars.clone().into();
-    let vars3 = unions::Foo::Vars::try_from(&values[..]).unwrap();
-    assert_eq!(&vars, &vars3);
+    let values: Vec<Value> = args.clone().into();
+    let args3 = unions::Foo::Args::try_from(&values[..]).unwrap();
+    assert_eq!(&args, &args3);
 
     // Create the solution for predicate `Foo`.
     let solution = Solution {
         predicate_to_solve: unions::Foo::ADDRESS,
-        predicate_data: vars.into(),
+        predicate_data: args.into(),
         state_mutations,
     };
 

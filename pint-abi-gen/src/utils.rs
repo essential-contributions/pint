@@ -4,7 +4,7 @@ use crate::{field_name_from_var_name, ty_from_pint_ty};
 use pint_abi_types::ParamABI;
 use proc_macro2::Span;
 
-/// A named field for each of the decision variables.
+/// A named field for each of the predicate parameter.
 pub(super) fn fields(vars: &[ParamABI], mod_level: usize) -> Vec<syn::Field> {
     vars.iter()
         .map(|var| {
