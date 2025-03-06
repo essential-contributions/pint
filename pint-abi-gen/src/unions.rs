@@ -75,7 +75,14 @@ fn items_from_module(module: &PintModule) -> Vec<syn::Item> {
             }
         });
 
-        // implement `Encode` for the `enum` declaration
+        // Manually implement `Default` for the `enum` declaration
+        items.push(impl_default_from_union(
+            &enum_name,
+            union_variants,
+            module.level,
+        ));
+
+        // Implement `Encode` for the `enum` declaration
         items.push(impl_encode_from_union(&enum_name, union_variants));
 
         // Decode error struct
@@ -90,7 +97,7 @@ fn items_from_module(module: &PintModule) -> Vec<syn::Item> {
         // Decode error `impl Error`
         items.push(decode_error_impl_error(&enum_name).into());
 
-        // implement `Decode` for the `enum` declaration
+        // Implement `Decode` for the `enum` declaration
         items.push(impl_decode_from_union(
             &enum_name,
             union_variants,
@@ -170,6 +177,46 @@ fn variants_from_union_variants(variants: &[UnionVariant], mod_level: usize) -> 
             }
         })
         .collect()
+}
+
+/// Generates an implementation of the `Default` trait for an `enum`.
+fn impl_default_from_union(
+    enum_name: &syn::Ident,
+    variants: &[UnionVariant],
+    mod_level: usize,
+) -> syn::Item {
+    let default_variant = variants
+        .first()
+        .expect("every union in Pint has at least one variant!");
+    let default_variant_name = variant_name_from_full_path(&default_variant.name);
+
+    let default_expr: syn::Expr = match &default_variant.ty {
+        Some(TypeABI::Optional(ref wrapped_ty)) => {
+            // Need the turbofish operator here
+            let wrapped_ty = ty_from_pint_ty(wrapped_ty, mod_level);
+            syn::parse_quote! {
+                #enum_name::#default_variant_name(Option::<#wrapped_ty>::default())
+            }
+        }
+        Some(ty) => {
+            // None of the other types are generic (so far)
+            let ty = ty_from_pint_ty(ty, mod_level);
+            syn::parse_quote! {
+                #enum_name::#default_variant_name(#ty::default())
+            }
+        }
+        None => syn::parse_quote! {
+            #enum_name::#default_variant_name
+        },
+    };
+
+    syn::parse_quote! {
+        impl std::default::Default for #enum_name {
+            fn default() -> Self {
+                #default_expr
+            }
+        }
+    }
 }
 
 /// Given an `enum` and its variants, produce an implementation of the `Encode` trait for it

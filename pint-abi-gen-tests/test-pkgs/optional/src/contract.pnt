@@ -1,4 +1,4 @@
-union E = A(int?) | B | C(int[3]);
+union E = A(int?) | B | C(int[3]) | D(int??);
 
 storage {
     x: int?, 
@@ -10,6 +10,8 @@ storage {
     a2: int?[2][3],
     e1: E?,
     e2: E?,
+    e3: E??,
+    e4: E??,
 }
 
 predicate Foo(
@@ -22,6 +24,8 @@ predicate Foo(
     a2: int?[2][3],
     e1: E?,
     e2: E?,
+    e3: E??,
+    e4: E??,
 ) {
     constraint x! == 42;
     constraint y! == 69;
@@ -51,6 +55,17 @@ predicate Foo(
 
     constraint e2! == E::C([9, 10, 11]);
 
+    match e3!! {
+        E::D(val) => {
+            constraint val!! == 420;
+        },
+        else => {
+            constraint false;
+        }
+    }
+
+    constraint e4 == nil;
+
     constraint mut storage::x'!! == x!;
     constraint storage::x'! == x;
 
@@ -79,4 +94,10 @@ predicate Foo(
 
     constraint mut storage::e2'!! == e2!;
     constraint storage::e2'! == e2;
+
+    constraint mut storage::e3'!!! == e3!!;
+    constraint mut storage::e3'!! == e3!;
+    constraint storage::e3'! == e3;
+
+    constraint mut storage::e4'! == nil;
 }

@@ -48,6 +48,8 @@ async fn test_solution_foo() {
         a2: [[Some(1), Some(2), Some(3)], [Some(4), Some(5), Some(6)]],
         e1: Some(optional::E::A(Some(98))),
         e2: Some(optional::E::C([9, 10, 11])),
+        e3: Some(Some(optional::E::D(Some(Some(420))))),
+        e4: None,
     };
 
     // State mutations.
@@ -73,6 +75,8 @@ async fn test_solution_foo() {
         })
         .e1(Some(optional::E::A(Some(98))))
         .e2(Some(optional::E::C([9, 10, 11])))
+        .e3(Some(Some(optional::E::D(Some(Some(420))))))
+        .e4(None)
         .into();
 
     // Build the same set of keys, so we can ensure they match the mutations.
@@ -93,6 +97,8 @@ async fn test_solution_foo() {
         })
         .e1()
         .e2()
+        .e3()
+        .e4()
         .into();
 
     // Check keys match the mutation keys.
