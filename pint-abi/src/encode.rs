@@ -18,6 +18,22 @@ impl Encode for bool {
     }
 }
 
+impl<T: Encode> Encode for Option<T> {
+    fn encode<W: Write>(&self, w: &mut W) -> Result<(), W::Error> {
+        match self {
+            Some(val) => {
+                val.encode(w)?; // data
+                w.write_word(1) // tag
+            }
+            None => {
+                let zeroed: T = unsafe { std::mem::zeroed() };
+                zeroed.encode(w)?; // data
+                w.write_word(0) // tag
+            }
+        }
+    }
+}
+
 impl<T: Encode> Encode for [T] {
     fn encode<W: Write>(&self, w: &mut W) -> Result<(), W::Error> {
         for elem in self {

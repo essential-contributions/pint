@@ -421,12 +421,18 @@ pub(crate) fn collect_unions(
     unions: &mut BTreeSet<(Vec<String>, Vec<UnionVariant>)>,
 ) {
     match ty {
+        TypeABI::Bool | TypeABI::Int | TypeABI::Real | TypeABI::String | TypeABI::B256 => {}
+
+        TypeABI::Optional(ty) => collect_unions(ty, unions),
+
         TypeABI::Tuple(fields) => {
             fields
                 .iter()
                 .for_each(|field| collect_unions(&field.ty, unions));
         }
+
         TypeABI::Array { ty, .. } => collect_unions(ty, unions),
+
         TypeABI::Union { name, variants } => {
             unions.insert((
                 strip_colons_prefix(name)
@@ -440,10 +446,10 @@ pub(crate) fn collect_unions(
                 .filter_map(|variant| variant.ty.as_ref())
                 .for_each(|ty| collect_unions(ty, unions));
         }
+
         TypeABI::Map { ty_from, ty_to } => {
             collect_unions(ty_from, unions);
             collect_unions(ty_to, unions);
         }
-        _ => {}
     }
 }

@@ -116,6 +116,7 @@ fn key_method(tree: &KeyedVarTree, elem: NodeIx, elem_ty: &TypeABI) -> syn::Impl
         | TypeABI::Real
         | TypeABI::String
         | TypeABI::B256
+        | TypeABI::Optional(_)
         | TypeABI::Union { .. } => (),
         TypeABI::Array { .. } => return key_method_for_array(&elem_nesting),
         TypeABI::Tuple { .. } => {
@@ -266,6 +267,7 @@ fn mutation_method(tree: &KeyedVarTree, elem: NodeIx, elem_ty: &TypeABI) -> syn:
         TypeABI::Real => SingleKeyTy::Real,
         TypeABI::String => SingleKeyTy::String,
         TypeABI::B256 => SingleKeyTy::B256,
+        TypeABI::Optional(ty) => SingleKeyTy::Optional(ty.clone()),
         TypeABI::Array { .. } => return mutation_method_for_array(&elem_nesting),
         TypeABI::Tuple { .. } => {
             return mutation_method_for_tuple(&elem_nesting);

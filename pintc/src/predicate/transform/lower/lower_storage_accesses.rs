@@ -318,6 +318,7 @@ fn get_base_storage_key(
                 *mutable,
                 false, // pre-state
                 if storage_var.ty.is_any_primitive()
+                    || storage_var.ty.is_optional()
                     || storage_var.ty.is_union()
                     || storage_var.ty.is_map()
                     || storage_var.ty.is_vector()
@@ -350,6 +351,7 @@ fn get_base_storage_key(
                 false, // non-mutable (not owned by this contract)
                 false, // pre-state
                 if storage_var.ty.is_any_primitive()
+                    || storage_var.ty.is_optional()
                     || storage_var.ty.is_union()
                     || storage_var.ty.is_map()
                     || storage_var.ty.is_vector()
@@ -387,6 +389,7 @@ fn get_base_storage_key(
                 };
 
                 if !(expr_ty.is_any_primitive()
+                    || expr_ty.is_optional()
                     || expr_ty.is_union()
                     || expr_ty.is_map()
                     || expr_ty.is_vector())

@@ -1,0 +1,82 @@
+union E = A(int?) | B | C(int[3]);
+
+storage {
+    x: int?, 
+    y: int?, 
+    z: bool?, 
+    t: { int?, bool }?, 
+    t_nil: { int?, bool }?,
+    a1: int[2][3]?,
+    a2: int?[2][3],
+    e1: E?,
+    e2: E?,
+}
+
+predicate Foo(
+    x: int?, 
+    y: int?, 
+    z: bool?, 
+    t: { int?, bool }?, 
+    t_nil: { int?, bool }?,
+    a1: int[2][3]?,
+    a2: int?[2][3],
+    e1: E?,
+    e2: E?,
+) {
+    constraint x! == 42;
+    constraint y! == 69;
+    constraint z == nil;
+
+    constraint t!.0! == 99;
+    constraint t!.1 == true;
+
+    constraint t_nil == nil;
+
+    constraint a1! == [[1, 2, 3], [4, 5, 6]];
+    constraint a2[0][0]! == 1;
+    constraint a2[0][1]! == 2;
+    constraint a2[0][2]! == 3;
+    constraint a2[1][0]! == 4;
+    constraint a2[1][1]! == 5;
+    constraint a2[1][2]! == 6;
+
+    match e1! {
+        E::A(val) => {
+            constraint val! == 98;
+        },
+        else => {
+            constraint false;
+        }
+    }
+
+    constraint e2! == E::C([9, 10, 11]);
+
+    constraint mut storage::x'!! == x!;
+    constraint storage::x'! == x;
+
+    constraint mut storage::y'!! == y!;
+    constraint storage::y'! == y;
+    constraint mut storage::z'! == z;
+    constraint storage::z'! == z;
+
+    constraint mut storage::t'!! == t!;
+    constraint storage::t'! == t;
+
+    // TODO: These do not work yet. They require tuple accesses on the stack.
+    // constraint storage::t!!.0! == t!.0!;
+    // constraint storage::t!!.1 == t!.1;
+
+    constraint mut storage::t_nil'! == nil;
+    constraint storage::t_nil'! == t_nil;
+
+    constraint mut storage::a1'!! == a1!;
+    constraint storage::a1'! == a1;
+
+    constraint mut storage::a2'! == a2;
+
+    constraint mut storage::e1'!! == e1!;
+    constraint storage::e1'! == e1;
+
+    constraint mut storage::e2'!! == e2!;
+    constraint storage::e2'! == e2;
+}

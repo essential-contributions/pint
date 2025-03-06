@@ -110,6 +110,23 @@ impl Decode for bool {
     }
 }
 
+impl<T> Decode for Option<T>
+where
+    T: Decode,
+{
+    type Error = PairError<T::Error, SizedError>;
+
+    fn decode<R: Read>(r: &mut R) -> Result<Self, Self::Error> {
+        T::decode(r) // Decode the inner value of Option<T>
+            .map_err(PairError::Left)
+            .and_then(|val| {
+                read_exact(r) // Read the tag
+                    .map_err(PairError::Right)
+                    .map(|[tag]| if tag == 0 { None } else { Some(val) }) // Match the tag
+            })
+    }
+}
+
 impl<const N: usize, T> Decode for [T; N]
 where
     T: Decode,
@@ -135,9 +152,9 @@ macro_rules! impl_decode_for_tuple {
         impl<A: Decode, $($T: Decode),+> Decode for (A, $($T),+) {
             type Error = PairError<A::Error, <($($T),+) as Decode>::Error>;
             fn decode<R: Read>(r: &mut R) -> Result<Self, Self::Error> {
-                let a: A = <_>::decode(r).map_err(|e| PairError::Left(e))?;
+                let a: A = <_>::decode(r).map_err(PairError::Left)?;
                 #[allow(non_snake_case)]
-                let ($($T),+): ($($T),+) = <_>::decode(r).map_err(|e| PairError::Right(e))?;
+                let ($($T),+): ($($T),+) = <_>::decode(r).map_err(PairError::Right)?;
                 Ok((a, $($T),+))
             }
         }

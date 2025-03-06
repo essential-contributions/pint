@@ -8,12 +8,11 @@ use pint_abi_types::{StorageVarABI, TupleField, TypeABI};
 
 /// The [`TypeABI`] rose tree represented as a graph.
 ///
-/// By flattening the [`StorageVarABI`]s into an indexable tree type, we gain
-/// more flexibility around inspecting both parent and child nodes during
-/// traversal.
+/// By flattening the [`StorageVarABI`]s into an indexable tree type, we gain more flexibility
+/// around inspecting both parent and child nodes during traversal.
 ///
-/// This is particularly useful for generating both types and implementations
-/// (that may refer to child nodes) when visiting a single node.
+/// This is particularly useful for generating both types and implementations (that may refer to
+/// child nodes) when visiting a single node.
 pub struct KeyedVarTree<'a> {
     graph: KeyedVarGraph<'a>,
     /// The root keyed var variables.
@@ -213,6 +212,7 @@ pub fn ty_size(ty: &TypeABI) -> usize {
         TypeABI::Bool | TypeABI::Int | TypeABI::Real => 1,
         TypeABI::B256 => 4,
         TypeABI::String => panic!("unknown size of type `string`"),
+        TypeABI::Optional(ty) => ty_size(ty) + 1,
         TypeABI::Tuple(fields) => fields.iter().map(|f| ty_size(&f.ty)).sum(),
         TypeABI::Array { ty, size } => {
             ty_size(ty) * usize::try_from(*size).expect("size out of range")
@@ -240,6 +240,7 @@ fn add_children<'a>(graph: &mut KeyedVarGraph<'a>, a: NodeIx, ty: &'a TypeABI) {
         | TypeABI::Real
         | TypeABI::String
         | TypeABI::B256
+        | TypeABI::Optional { .. }
         | TypeABI::Union { .. } => {}
 
         // Recurse for nested tuple types.
@@ -325,6 +326,7 @@ fn flattened_key_count(ty: &TypeABI) -> usize {
         | TypeABI::Int
         | TypeABI::String
         | TypeABI::B256
+        | TypeABI::Optional { .. }
         | TypeABI::Union { .. }
         | TypeABI::Map { .. } => 1,
     }

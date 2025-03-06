@@ -25,6 +25,7 @@ fn nested_items_from_node(tree: &KeyedVarTree, n: NodeIx) -> Vec<syn::Item> {
         | TypeABI::Real
         | TypeABI::String
         | TypeABI::B256
+        | TypeABI::Optional(_)
         | TypeABI::Union { .. } => (),
     }
     items
@@ -140,6 +141,7 @@ pub(crate) fn method_from_node(tree: &KeyedVarTree, n: NodeIx, name: &str) -> sy
         TypeABI::Real => SingleKeyTy::Real,
         TypeABI::String => SingleKeyTy::String,
         TypeABI::B256 => SingleKeyTy::B256,
+        TypeABI::Optional(ty) => SingleKeyTy::Optional(ty.clone()),
         TypeABI::Array { ty: _, size: _ } => {
             return method_for_array(name, &nesting);
         }
