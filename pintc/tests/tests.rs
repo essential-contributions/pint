@@ -13,19 +13,29 @@ use yansi::Paint;
 
 mod cli;
 
-fn run_tests(sub_dir: &str) -> anyhow::Result<()> {
+fn run_tests(sub_dir: &str, test_name: Option<&str>) -> anyhow::Result<()> {
     let mut failed_tests = vec![];
 
-    // Loop for each file or directory in the `sub_dir`.
+    // Loop for each file or directory in the `sub_dir`, unless an individual test name has been specified.
     let dir: PathBuf = format!("tests/{sub_dir}").into();
-    for entry in read_dir(dir)? {
-        let entry = entry?;
-        println!("Testing {}.", entry.path().display());
+    let entries = match test_name {
+        Some(test_name) => {
+            let mut full_path = dir;
+            full_path.push(test_name);
+            vec![full_path]
+        }
+        None => read_dir(dir)?
+            .filter_map(|entry| entry.ok().map(|e| e.path()))
+            .collect(),
+    };
+
+    for entry in entries {
+        println!("Testing {}.", entry.display());
 
         // If it's a file it's expected to be a self contained pint script.  If it's a directory
         // then `main.pnt` must exist within and will be used.
-        let mut path = entry.path();
-        if entry.file_type()?.is_dir() {
+        let mut path = entry;
+        if path.is_dir() {
             path.push("main.pnt");
         }
 
@@ -304,7 +314,9 @@ mod e2e {
         ($name: ident) => {
             #[test]
             fn $name() {
-                if let Err(err) = run_tests(stringify!($name)) {
+                let test_name = std::env::var("TEST_NAME").ok();
+
+                if let Err(err) = run_tests(stringify!($name), test_name.as_deref()) {
                     eprintln!("{err}");
                 }
             }
