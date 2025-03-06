@@ -1,0 +1,3 @@
+predicate test(ary: int[]) {
+    constraint map x in ary { x + x }[1] == 22;
+}

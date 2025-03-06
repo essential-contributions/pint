@@ -80,6 +80,15 @@ impl<'a> AsmBuilder<'a> {
     ) -> Result<Asm, ErrorEmitted> {
         let expr = node.expr();
         let expr_ty = expr.get_ty(contract);
+
+        if let Type::UnsizedArray { .. } = expr_ty {
+            // Special error for unsized arrays, preempting the expr_ty.size() failure below.
+            return Err(handler.emit_internal_err(
+                "Cannot create a node with an unsized array yet.",
+                node.span(contract),
+            ));
+        }
+
         let expr_size = expr_ty.size(handler, contract)? as i64;
 
         // Produce a map from input variables to this nodes to their indices in the concatinated
@@ -150,6 +159,10 @@ impl<'a> AsmBuilder<'a> {
                 }
 
                 // Reserve scratch space at the bottom of the stack. Currently used by morphisms.
+                // @0 - index to morphism array, depending on location.
+                // @1 - length of morphism array.
+                // XXX: Nested morphisms will clobber each other with this setup; need to use local
+                // `RES` which returns the base, coming soon to the VM.
                 // TODO: check if this expr contains morphisms and omit this if not.
                 asm.extend([PUSH(2), RES]);
 
@@ -1408,19 +1421,34 @@ impl<'a> AsmBuilder<'a> {
         let in_el_size = in_el_ty.size(handler, contract)?;
 
         // Compile the array into separate Asm, so we may prepend some stuff if need be.  See below.
+        // NOTE: The STOR op is changing in the VM soon where this separate ASM won't be needed.
         let mut array_asm = Asm::default();
         let mut in_ary_location =
             self.compile_expr_pointer(handler, &mut array_asm, range_key, contract, pred)?;
 
+        // NOTE: Currently we store the index and length, i.e., number of elements, of the array in
+        // 'scratch' space at the bottom of the stack, at offsets 0 and 1 respectively.  Nested
+        // loops will clobber each other.
+
+        // Put the array length onto the stack and store it at scratch offset 1.
+        self.compile_array_num_entries(
+            handler,
+            &mut array_asm,
+            range_ty,
+            in_ary_location,
+            contract,
+        )?;
+        asm.extend([PUSH(1), STOS]);
+
         match in_ary_location {
             Location::PredicateData => {
                 // When compiling these there's a slot index and a zero (index) pushed to the
-                // stack. We need to store the slot index in the global area so it can be resolved
-                // by the iterator.
+                // stack. We need to store the slot index in scratch so it can be resolved by the
+                // iterator.
                 asm.append(&mut array_asm);
                 asm.extend([
                     POP,     // We don't need the index.
-                    PUSH(0), // Scratch address at bottom of stack.
+                    PUSH(0), // Scratch address for the offset.
                     SWAP,
                     STOS,
                 ]);
@@ -1450,9 +1478,9 @@ impl<'a> AsmBuilder<'a> {
                     PUSH(num_keys),
                     PUSH(access_mem_idx),
                     if is_extern { KREX } else { KRNG }, // Read the keys and values.
-                    PUSH(0),
+                    PUSH(0),                             //
                     PUSH(access_mem_idx + num_keys * 2), // Offset to values.
-                    STOS, // Store address in scratch space at bottom of stack.
+                    STOS,                                // Store address at scratch offset 0.
                 ]);
 
                 // We've moved the location of the array.
@@ -1460,9 +1488,16 @@ impl<'a> AsmBuilder<'a> {
             }
 
             Location::Stack => {
+                if range_ty.is_unsized_array() {
+                    return Err(handler.emit_internal_err(
+                        "can't do morphisms on unsized arrays on the stack yet",
+                        range_ty.span().clone(),
+                    ));
+                }
+
                 // We need to move input array off the stack and into a new heap buffer.  Put the
                 // array length onto the stack in the original Asm.
-                self.compile_array_size(handler, asm, range_ty, in_el_size, contract)?;
+                self.compile_fixed_array_size(handler, asm, range_ty, in_el_size, contract)?;
 
                 // Allocate a buffer, dupe the address and store it in the scratch space.
                 asm.extend([ALOC, DUP, PUSH(0), SWAP, STOS]);
@@ -1471,7 +1506,7 @@ impl<'a> AsmBuilder<'a> {
                 asm.append(&mut array_asm);
 
                 // Get the size again.
-                self.compile_array_size(handler, asm, range_ty, in_el_size, contract)?;
+                self.compile_fixed_array_size(handler, asm, range_ty, in_el_size, contract)?;
 
                 // Save it to the buffer.
                 asm.push(STOR);
@@ -1485,11 +1520,11 @@ impl<'a> AsmBuilder<'a> {
         // iterator.  The slot index is stored in the global area.
         self.morphism_param = Some((param_name.to_string(), in_ary_location, in_el_size));
 
-        // Put the array length onto the stack.
-        self.compile_array_num_entries(handler, asm, range_ty, contract)?;
-
-        // Start the loop, counting up.
+        // Put the array length onto the stack by getting it from scratch offset 1, and start the
+        // loop, counting up.
         asm.extend([
+            PUSH(1), // element count index
+            LODS,    // load len
             PUSH(1), // 1 == 0..len
             REP,
         ]);
@@ -1517,12 +1552,55 @@ impl<'a> AsmBuilder<'a> {
         handler: &Handler,
         asm: &mut Asm,
         array_ty: &Type,
+        array_loc: Location,
         contract: &Contract,
     ) -> Result<(), ErrorEmitted> {
-        self.compile_array_size(handler, asm, array_ty, 1, contract)
+        if array_ty.is_unsized_array() {
+            // For unsized arrays we obviously can't get the element count from the type.  We need
+            // to fetch it from the array itself, which must be at `array_loc`.
+            match array_loc {
+                Location::PredicateData => {
+                    // The slot-idx and inner-idx are at the top of the stack.  Read the length
+                    // from them at the front of the array.
+                    asm.extend([
+                        PUSH(1), //
+                        DUPF,    // OVER; dupe the slot-idx.
+                        PUSH(1), //
+                        DUPF,    // OVER; dupe the inner-idx.
+                        PUSH(1), // data length
+                        DATA,    // read it
+                    ]);
+                }
+
+                Location::Memory => {
+                    // Read the length from the front of the array.
+                    asm.extend([
+                        DUP, // Copy index.
+                        LOD, // Load it.
+                    ]);
+                }
+
+                Location::Storage(_) => {
+                    todo!("getting the element count for unsized arrays in storage")
+                }
+
+                Location::Stack => {
+                    // Not sure about this yet, but assuming that unsized arrays on the stack will
+                    // put the element count last, at the top of the stack.  So we merely need to
+                    // dupe it.
+                    asm.push(DUP);
+                }
+            }
+
+            Ok(())
+        } else {
+            // For fixed sized arrays we can just calculate the element count by getting the size
+            // with an element size of 1.
+            self.compile_fixed_array_size(handler, asm, array_ty, 1, contract)
+        }
     }
 
-    fn compile_array_size(
+    fn compile_fixed_array_size(
         &mut self,
         handler: &Handler,
         asm: &mut Asm,
@@ -1530,10 +1608,6 @@ impl<'a> AsmBuilder<'a> {
         el_size: usize,
         contract: &Contract,
     ) -> Result<(), ErrorEmitted> {
-        // Currently only supporting fixed size arrays, where the size may be extracted from the
-        // type.  Will need to support variable sized arrays using a `len()` operation of some
-        // sort, depending on the array location.
-
         let Some(array_size) = array_ty
             .get_array_size()
             .map(Ok)
