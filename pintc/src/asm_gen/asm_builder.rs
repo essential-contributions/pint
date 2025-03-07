@@ -151,18 +151,19 @@ impl<'a> AsmBuilder<'a> {
 
                 // Reserve scratch space at the bottom of the stack. Currently used by morphisms.
                 // TODO: check if this expr contains morphisms and omit this if not.
-                asm.extend([PUSH(2), RES]);
+                asm.extend([PUSH(2), RES, POP]);
 
-                // Compile and store the data to memory
-                asm.push(PUSH(0)); // mem idx where the data will be stored
+                // Compile result to the stack.
                 self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
-                asm.extend([PUSH(expr_size), STOR]);
 
-                // Free the scratch. (Need an 'unreserve' opcode?)
-                asm.extend([POP, POP]);
+                // Stash it to the start of memory.
+                asm.extend([PUSH(expr_size), PUSH(0), STOR]);
 
-                // While compiling the expr we may have allocated more buffers in memory.  We need to
-                // shrink memory down to just the result.
+                // Free the scratch.
+                asm.extend([PUSH(2), DROP]);
+
+                // While compiling the expr we may have allocated more buffers in memory.  We need
+                // to shrink memory down to just the result.
                 // TODO: have compile_expr() return whether this is necessary.
                 asm.extend([PUSH(expr_size), FREE]);
             }
@@ -479,6 +480,7 @@ impl<'a> AsmBuilder<'a> {
                         "DATA" => Ok(DATA),
                         "DIV" => Ok(DIV),
                         "DLEN" => Ok(DLEN),
+                        "DROP" => Ok(DROP),
                         "DSLT" => Ok(DSLT),
                         "DUP" => Ok(DUP),
                         "DUPF" => Ok(DUPF),
@@ -1295,7 +1297,7 @@ impl<'a> AsmBuilder<'a> {
     ) -> Result<Location, ErrorEmitted> {
         // tag and value are both zeros
         asm.push(PUSH(expr.get_ty(contract).size(handler, contract)? as i64));
-        asm.push(RES);
+        asm.extend([RES, POP]);
         Ok(Location::Stack)
     }
 
@@ -1407,29 +1409,27 @@ impl<'a> AsmBuilder<'a> {
         };
         let in_el_size = in_el_ty.size(handler, contract)?;
 
-        // Compile the array into separate Asm, so we may prepend some stuff if need be.  See below.
-        let mut array_asm = Asm::default();
-        let mut in_ary_location =
-            self.compile_expr_pointer(handler, &mut array_asm, range_key, contract, pred)?;
+        let in_ary_location = self.compile_expr_pointer(handler, asm, range_key, contract, pred)?;
 
-        match in_ary_location {
+        let out_ary_location = match in_ary_location {
             Location::PredicateData => {
                 // When compiling these there's a slot index and a zero (index) pushed to the
                 // stack. We need to store the slot index in the global area so it can be resolved
                 // by the iterator.
-                asm.append(&mut array_asm);
                 asm.extend([
                     POP,     // We don't need the index.
                     PUSH(0), // Scratch address at bottom of stack.
-                    SWAP,
                     STOS,
                 ]);
+
+                Location::PredicateData
             }
 
             Location::Memory => {
                 // Just store the array address at the scratch space at bottom of stack.
-                asm.append(&mut array_asm);
-                asm.extend([PUSH(0), SWAP, STOS]);
+                asm.extend([PUSH(0), STOS]);
+
+                Location::Memory
             }
 
             Location::Storage(is_extern) => {
@@ -1445,45 +1445,42 @@ impl<'a> AsmBuilder<'a> {
 
                 let access_mem_idx = self.storage_expr_to_mem_idx[range_key];
 
-                asm.append(&mut array_asm);
                 asm.extend([
                     PUSH(num_keys),
                     PUSH(access_mem_idx),
-                    if is_extern { KREX } else { KRNG }, // Read the keys and values.
-                    PUSH(0),
+                    if is_extern { KREX } else { KRNG }, // Read the keys and values into memory.
                     PUSH(access_mem_idx + num_keys * 2), // Offset to values.
-                    STOS, // Store address in scratch space at bottom of stack.
+                    PUSH(0),
+                    STOS, // Store offset in scratch space at bottom of stack.
                 ]);
 
                 // We've moved the location of the array.
-                in_ary_location = Location::Memory;
+                Location::Memory
             }
 
             Location::Stack => {
-                // We need to move input array off the stack and into a new heap buffer.  Put the
-                // array length onto the stack in the original Asm.
+                // We need to move input array off the stack and into a new heap buffer.  Get the
+                // array length.
                 self.compile_array_size(handler, asm, range_ty, in_el_size, contract)?;
 
-                // Allocate a buffer, dupe the address and store it in the scratch space.
-                asm.extend([ALOC, DUP, PUSH(0), SWAP, STOS]);
-
-                // Add all the array generation ASM.
-                asm.append(&mut array_asm);
-
-                // Get the size again.
-                self.compile_array_size(handler, asm, range_ty, in_el_size, contract)?;
-
-                // Save it to the buffer.
-                asm.push(STOR);
+                // Allocate a buffer, move array to it.
+                asm.extend([
+                    DUP,     // Dupe the size.
+                    ALOC,    // Allocate; now buf idx and size are on the stack.
+                    DUP,     // Dupe the buf idx.
+                    PUSH(0), //
+                    STOS,    // Store buf idx to scratch space.
+                    STOR,    // Now move entire array to memory buffer.
+                ]);
 
                 // We've moved the location of the array.
-                in_ary_location = Location::Memory;
+                Location::Memory
             }
-        }
+        };
 
         // Depending on which type of location the array lives we need to bind the
         // iterator.  The slot index is stored in the global area.
-        self.morphism_param = Some((param_name.to_string(), in_ary_location, in_el_size));
+        self.morphism_param = Some((param_name.to_string(), out_ary_location, in_el_size));
 
         // Put the array length onto the stack.
         self.compile_array_num_entries(handler, asm, range_ty, contract)?;
