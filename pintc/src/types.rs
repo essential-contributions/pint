@@ -319,6 +319,14 @@ impl Type {
         )
     }
 
+    pub fn is_fixed_array(&self) -> bool {
+        check_alias!(
+            self,
+            is_fixed_array,
+            matches!(self, Type::FixedArray { .. })
+        )
+    }
+
     pub fn is_unsized_array(&self) -> bool {
         check_alias!(
             self,

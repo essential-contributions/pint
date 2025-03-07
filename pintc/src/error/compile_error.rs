@@ -70,6 +70,8 @@ pub enum CompileError {
     MacroUnrecognizedSpliceVar { var_name: String, span: Span },
     #[error("spliced variable `{var_name}` must be an array")]
     MacroSpliceVarNotArray { var_name: String, span: Span },
+    #[error("spliced variable `{var_name}` must not be a dynamic array")]
+    MacroSpliceUnsizedArray { var_name: String, span: Span },
     #[error("unable to determine spliced array size")]
     MacroSpliceArrayUnknownSize { var_name: String, span: Span },
     #[error("macro call is not an expression")]
@@ -595,6 +597,14 @@ impl ReportableError for CompileError {
             MacroSpliceVarNotArray { var_name, span } => {
                 vec![ErrorLabel {
                     message: format!("unable to splice non-array variable `{var_name}`"),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
+            MacroSpliceUnsizedArray { var_name, span } => {
+                vec![ErrorLabel {
+                    message: format!("unable to splice dynamic array variable `{var_name}`"),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -1459,6 +1469,7 @@ impl ReportableError for CompileError {
             | MacroNonUniqueParamCounts { .. }
             | MacroUnrecognizedSpliceVar { .. }
             | MacroSpliceVarNotArray { .. }
+            | MacroSpliceUnsizedArray { .. }
             | UnknownType { .. }
             | UndefinedType { .. }
             | UninferrableType { .. }
@@ -1669,6 +1680,7 @@ impl Spanned for CompileError {
             }
             | MacroUnrecognizedSpliceVar { span, .. }
             | MacroSpliceVarNotArray { span, .. }
+            | MacroSpliceUnsizedArray { span, .. }
             | MacroSpliceArrayUnknownSize { span, .. }
             | MacroCallWasNotExpression { span }
             | DuplicateGeneratorIndex { span, .. }

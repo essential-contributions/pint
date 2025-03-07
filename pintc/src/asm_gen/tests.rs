@@ -4192,8 +4192,8 @@ predicate test(p: { int, bool[] }) {
         )
         .to_string(),
         expect_test::expect![[r#"
-            compiler internal error: cannot use or refer to dynamic arrays here (yet)
-            @26..32: cannot use or refer to dynamic arrays here (yet)
+            compiler internal error: Cannot create a node with an unsized array yet.
+            @42..61: Cannot create a node with an unsized array yet.
         "#]],
     );
 
