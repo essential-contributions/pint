@@ -153,4 +153,20 @@ predicate bar(z: int) {
 
     // More expressively 
     constraint y == (z * (z + 1) + z ) * (z * 2);
+
+    let negatives: int = asm() {
+        0x00 // store back result at this memory location
+
+        -0x01
+        -5
+        ADD
+        -0b111
+        ADD
+
+        0x01 
+        ALOC  // allocate memory for the returned data
+        POP
+        STO
+    };
+    constraint negatives == -13;
 }

@@ -1264,15 +1264,15 @@ AsmBlockExpr: ExprKey = {
 }
 
 AsmOp: AsmOp = {
-    <l:@L> <imm:"int_lit"> <r:@R> => {
+    <l:@L> <minus:"-"?> <imm:"int_lit"> <r:@R> => {
         let span = (context.span_from)(l, r);
         match context.parse_int_immediate(handler, imm, (l, r)) {
-            Immediate::Int(val) => AsmOp::Imm(val, span.clone()),
+            Immediate::Int(val) => {
+                AsmOp::Imm(if minus.is_some() { -val } else { val }, span.clone())
+            }
             _ => {
                 handler.emit_err(Error::Parse {
-                    error: ParseError::ExpectedIntegerLiteral {
-                        span: span.clone(),
-                    },
+                    error: ParseError::ExpectedIntegerLiteral { span: span.clone() },
                 });
                 AsmOp::Imm(0, span)
             }
