@@ -14,6 +14,10 @@ use test_util::{hex_to_bytes, parse_test_data, unwrap_or_continue};
 use utils::*;
 use yansi::Paint;
 
+/// Optionally, to run a specific test file:
+/// ```sh
+/// TEST_NAME=<filename.pnt> Cargo test
+/// ``````
 #[tokio::test]
 async fn validation_e2e() -> anyhow::Result<()> {
     let args = std::env::var("TEST_NAME").unwrap_or_default();
