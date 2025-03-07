@@ -1,8 +1,6 @@
 use super::{Contract, PredKey, Predicate};
 use crate::{
-    expr::{
-        Expr, ExternalIntrinsic, InternalIntrinsic, IntrinsicKind, MatchBranch, MatchElse, UnaryOp,
-    },
+    expr::{Expr, InternalIntrinsic, IntrinsicKind, MatchBranch, MatchElse, UnaryOp},
     predicate::Immediate,
     span::empty_span,
     types::{PrimitiveKind, Type},
@@ -164,7 +162,7 @@ impl ExprKey {
                             | InternalIntrinsic::PostState
                             | InternalIntrinsic::PreStateExtern
                             | InternalIntrinsic::PostStateExtern
-                    ) | IntrinsicKind::External(ExternalIntrinsic::VecLen)
+                    ) // TODO: fix this: | IntrinsicKind::External(ExternalIntrinsic::VecLen)
                 ) || args.iter().any(|arg| arg.can_panic(contract, pred))
             }
 
@@ -317,8 +315,8 @@ impl ExprKey {
 
                 Expr::IntrinsicCall { kind, args, .. } => {
                     if let (
-                        IntrinsicKind::External(ExternalIntrinsic::VecLen)
-                        | IntrinsicKind::Internal(
+                        // TODO: fix this: IntrinsicKind::External(ExternalIntrinsic::VecLen) |
+                        IntrinsicKind::Internal(
                             InternalIntrinsic::PostState
                             | InternalIntrinsic::PreState
                             | InternalIntrinsic::PostStateExtern

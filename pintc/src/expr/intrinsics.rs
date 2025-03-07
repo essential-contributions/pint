@@ -1,6 +1,4 @@
-use crate::types::{
-    any, b256, dyn_array, error, int, optional, r#bool, string, tuple, vector, Type,
-};
+use crate::types::{any, b256, dyn_array, error, int, r#bool, string, tuple, Type};
 use std::fmt::{Display, Formatter, Result};
 
 ///////////////////
@@ -69,9 +67,6 @@ pub enum ExternalIntrinsic {
     // Returns the content hash of the contract that this predicate belongs to.
     ThisContractAddress,
 
-    // Returns the length of a storage vector.
-    VecLen,
-
     // Validates an Ed25519 signature against a public key.
     VerifyEd25519,
 }
@@ -86,7 +81,6 @@ impl Display for ExternalIntrinsic {
             Self::SizeOf => write!(f, "__size_of"),
             Self::ThisAddress => write!(f, "__this_address"),
             Self::ThisContractAddress => write!(f, "__this_contract_address"),
-            Self::VecLen => write!(f, "__vec_len"),
             Self::VerifyEd25519 => write!(f, "__verify_ed25519"),
         }
     }
@@ -109,9 +103,6 @@ impl ExternalIntrinsic {
             Self::SizeOf => vec![any()],
             Self::ThisAddress => vec![],
             Self::ThisContractAddress => vec![],
-            Self::VecLen => vec![
-                optional(vector(any())), // storage vector to find the length of
-            ],
             Self::VerifyEd25519 => vec![
                 any(),                       // data
                 tuple(vec![b256(), b256()]), // signature
@@ -129,7 +120,6 @@ impl ExternalIntrinsic {
             Self::SizeOf => int(),
             Self::ThisAddress => b256(),
             Self::ThisContractAddress => b256(),
-            Self::VecLen => optional(int()),
             Self::VerifyEd25519 => r#bool(),
         }
     }

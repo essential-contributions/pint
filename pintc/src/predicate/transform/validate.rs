@@ -124,7 +124,6 @@ fn check_expr(
         | Type::Primitive { .. }
         | Type::Optional { .. }
         | Type::Map { .. }
-        | Type::Vector { .. }
         | Type::Union { .. } => {}
     }
 

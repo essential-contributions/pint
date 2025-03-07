@@ -32,7 +32,6 @@ impl Contract {
                     check_custom_type(ty_from, handler);
                     check_custom_type(ty_to, handler);
                 }
-                Type::Vector { ty, .. } => check_custom_type(ty, handler),
                 Type::Error(_)
                 | Type::Unknown(_)
                 | Type::Any(_)
@@ -144,68 +143,12 @@ impl Contract {
         handler.result(())
     }
 
-    /// Find any `Type::UnsizedArray`s in the root storage vars and convert them to equivalent
-    /// `Type::Vector`s.
-    pub(in crate::predicate::analyse) fn convert_storage_vector_types(&mut self) {
-        // Collect the indices to any storage var which is an unsized array.
-        let update_idcs = self
-            .storage
-            .as_ref()
-            .map(|(storage_vars, _)| {
-                storage_vars
-                    .iter()
-                    .enumerate()
-                    .filter_map(|(idx, storage_var)| {
-                        if let Type::UnsizedArray { ty, span } = &storage_var.ty {
-                            Some((idx, ty.clone(), span.clone()))
-                        } else {
-                            None
-                        }
-                    })
-                    .collect::<Vec<_>>()
-            })
-            .unwrap_or_default();
-
-        // Update each var type.
-        for (var_idx, el_ty, span) in update_idcs {
-            self.storage.as_mut().unwrap().0[var_idx].ty = Type::Vector { ty: el_ty, span };
-        }
-
-        // Do the same for interfaces to external storage.
-        let update_idcs =
-            self.interfaces
-                .iter()
-                .filter_map(|iface| iface.storage.as_ref())
-                .enumerate()
-                .flat_map(|(iface_idx, (storage_vars, _))| {
-                    storage_vars.iter().enumerate().filter_map(
-                        move |(storage_var_idx, storage_var)| {
-                            if let Type::UnsizedArray { ty, span } = &storage_var.ty {
-                                Some((iface_idx, storage_var_idx, ty.clone(), span.clone()))
-                            } else {
-                                None
-                            }
-                        },
-                    )
-                })
-                .collect::<Vec<_>>();
-
-        // Update each var type in respective interfaces.
-        for (iface_idx, var_idx, el_ty, span) in update_idcs {
-            self.interfaces[iface_idx].storage.as_mut().unwrap().0[var_idx].ty =
-                Type::Vector { ty: el_ty, span };
-        }
-    }
-
     /// Check that all types used in storage are allowed. This should be removed as soon as all
     /// types are supported in storage.
     pub(in crate::predicate::analyse) fn check_storage_types(
         &mut self,
         handler: &Handler,
     ) -> Result<(), ErrorEmitted> {
-        // Convert unsized arrays in storage to vectors first.
-        self.convert_storage_vector_types();
-
         if let Some((storage_vars, _)) = self.storage.as_ref() {
             storage_vars.iter().for_each(|StorageVar { ty, .. }| {
                 if !ty.is_allowed_in_storage(self) {
@@ -222,8 +165,8 @@ impl Contract {
         handler.result(())
     }
 
-    /// Check that all predicate parameters and variable variables do not have storage only types like
-    /// storage maps and storage vectors
+    /// Check that all predicate parameters and variable variables do not have storage only types
+    /// like storage maps
     pub(in crate::predicate::analyse) fn check_types_of_variables(
         &self,
         handler: &Handler,
@@ -320,7 +263,6 @@ impl Contract {
                     check_any_type(ty_from, handler);
                     check_any_type(ty_to, handler);
                 }
-                Type::Vector { ty, .. } => check_any_type(ty, handler),
                 Type::Error(_)
                 | Type::Any(_)
                 | Type::Unknown(_)

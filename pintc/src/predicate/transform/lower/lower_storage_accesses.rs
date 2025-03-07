@@ -271,11 +271,12 @@ fn get_base_storage_key(
             .map(|(addr, mutable, _, key)| (addr, mutable, true /* post-state */, key)),
 
         Expr::IntrinsicCall { kind, args, .. } => {
-            if let (IntrinsicKind::External(ExternalIntrinsic::VecLen), _) = kind {
-                assert_eq!(args.len(), 1);
+            if let (IntrinsicKind::External(ExternalIntrinsic::ArrayLen), _) = kind {
+                // TODO: fix
+                /*assert_eq!(args.len(), 1);
                 match args[0].try_get(contract) {
                     Some(Expr::LocalStorageAccess { name, .. }) => {
-                        if !contract.storage_var(name).1.ty.is_vector() {
+                        if !contract.storage_var(name).1.ty.is_unsized_array() {
                             return Err(handler.emit_internal_err(
                                 "argument to __vec_len must be of type storage vector",
                                 empty_span(),
@@ -289,7 +290,7 @@ fn get_base_storage_key(
                             .external_storage_var(interface, name)
                             .1
                             .ty
-                            .is_vector()
+                            .is_unsized_array()
                         {
                             return Err(handler.emit_internal_err(
                                 "argument to __vec_len must be of type storage vector",
@@ -303,7 +304,7 @@ fn get_base_storage_key(
                             empty_span(),
                         ));
                     }
-                };
+                };*/
 
                 get_base_storage_key(handler, &args[0], contract)
             } else {
@@ -321,7 +322,7 @@ fn get_base_storage_key(
                     || storage_var.ty.is_optional()
                     || storage_var.ty.is_union()
                     || storage_var.ty.is_map()
-                    || storage_var.ty.is_vector()
+                    || storage_var.ty.is_unsized_array()
                 {
                     vec![contract.exprs.insert_int(storage_index as i64)]
                 } else {
@@ -354,7 +355,7 @@ fn get_base_storage_key(
                     || storage_var.ty.is_optional()
                     || storage_var.ty.is_union()
                     || storage_var.ty.is_map()
-                    || storage_var.ty.is_vector()
+                    || storage_var.ty.is_unsized_array()
                 {
                     vec![contract.exprs.insert_int(storage_index as i64)]
                 } else {
@@ -376,7 +377,7 @@ fn get_base_storage_key(
                     .emit_internal_err("storage accesses must be of type optional", empty_span()));
             };
 
-            if inner_expr_ty.is_map() || inner_expr_ty.is_vector() {
+            if inner_expr_ty.is_map() || inner_expr_ty.is_unsized_array() {
                 // next key element is the index itself
                 key.push(*index);
 
@@ -392,7 +393,7 @@ fn get_base_storage_key(
                     || expr_ty.is_optional()
                     || expr_ty.is_union()
                     || expr_ty.is_map()
-                    || expr_ty.is_vector())
+                    || expr_ty.is_unsized_array())
                 {
                     key.push(contract.exprs.insert_int(0)); // placeholder for offsets
                 }

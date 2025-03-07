@@ -964,13 +964,6 @@ impl<'a> AsmBuilder<'a> {
                             empty_span(),
                         ))
                     }
-
-                    ExternalIntrinsic::VecLen => {
-                        return Err(handler.emit_internal_err(
-                            "__vec_len should have been lowered to something else by now",
-                            empty_span(),
-                        ))
-                    }
                 }
             }
         }
