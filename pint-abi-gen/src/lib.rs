@@ -45,6 +45,7 @@ enum SingleKeyTy {
     Real,
     String,
     B256,
+    Optional(Box<TypeABI>),
     Union(String /* Pint path to the union*/),
 }
 
@@ -57,6 +58,7 @@ impl SingleKeyTy {
             SingleKeyTy::Real => syn::parse_quote!(f64),
             SingleKeyTy::String => syn::parse_quote!(String),
             SingleKeyTy::B256 => syn::parse_quote!([i64; 4]),
+            SingleKeyTy::Optional(ty) => ty_from_optional(ty, mod_level),
             SingleKeyTy::Union(name) => unions::ty_from_union(name, mod_level),
         }
     }
@@ -92,6 +94,14 @@ fn ty_from_array(ty: &TypeABI, size: i64, mod_level: usize) -> syn::Type {
     }
 }
 
+/// Convert the given pint tuple to an equivalent Rust tuple type.
+fn ty_from_optional(ty: &TypeABI, mod_level: usize) -> syn::Type {
+    let syn_ty = ty_from_pint_ty(ty, mod_level);
+    syn::parse_quote! {
+        Option<#syn_ty>
+    }
+}
+
 /// Convert the given pint ABI type to an equivalent Rust type.
 fn ty_from_pint_ty(ty: &TypeABI, mod_level: usize) -> syn::Type {
     match ty {
@@ -100,6 +110,7 @@ fn ty_from_pint_ty(ty: &TypeABI, mod_level: usize) -> syn::Type {
         TypeABI::Real => syn::parse_quote!(f64),
         TypeABI::String => syn::parse_quote!(String),
         TypeABI::B256 => syn::parse_quote!([i64; 4]),
+        TypeABI::Optional(ty) => ty_from_optional(ty, mod_level),
         TypeABI::Union { name, .. } => unions::ty_from_union(name, mod_level),
         TypeABI::Tuple(tuple) => ty_from_tuple(tuple, mod_level),
         TypeABI::Array { ty, size } => ty_from_array(ty, *size, mod_level),

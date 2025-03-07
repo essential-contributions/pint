@@ -47,6 +47,7 @@ pub enum TypeABI {
     Real,
     String,
     B256,
+    Optional(Box<Self>),
     Tuple(Vec<TupleField>),
     Array {
         ty: Box<Self>,

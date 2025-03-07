@@ -48,10 +48,10 @@ type Asm = Vec<essential_asm::Op>;
 /// 4. `Stack` expressions are at the top of the stack.
 #[derive(Clone, Copy, Debug)]
 enum Location {
-    PredicateData,
     Memory,
-    Storage(bool),
+    PredicateData,
     Stack,
+    Storage(bool),
 }
 
 impl<'a> AsmBuilder<'a> {
@@ -646,6 +646,39 @@ impl<'a> AsmBuilder<'a> {
         let expr_size = expr.get_ty(contract).size(handler, contract)? as i64;
         let location = self.compile_expr_pointer(handler, asm, expr, contract, pred)?;
         match location {
+            Location::PredicateData => {
+                // Load the tag as the last word in the predicate data for `expr`. Panic if the tag
+                // is 0. Otherwise, nothing to be done with the base address where the unwrapped
+                // data lives.
+                asm.extend([
+                    PUSH(1),
+                    DUPF, // duplicate `slot_ix
+                    PUSH(1),
+                    DUPF, // duplicate `value_ix`
+                    PUSH(expr_size - 1),
+                    ADD,     // Calculate the index of the tag (last word)
+                    PUSH(1), // tag len
+                    DATA,
+                    NOT,
+                    PNCIF,
+                ]);
+                Ok(location)
+            }
+            Location::Memory => {
+                // Load the tag as the last word in the allocated memory for `expr`. Panic
+                // if the tag is 0. Otherwise, nothing to be done with the base address
+                // where the unwrapped data lives.
+                asm.extend([DUP, PUSH(expr_size - 1), ADD, LOD, NOT, PNCIF]);
+                Ok(location)
+            }
+
+            Location::Stack => {
+                // Panic if the tag is 0. The tag is at the top of the stack. What remains
+                // is the unwrapped data.
+                asm.extend([NOT, PNCIF]);
+                Ok(Location::Stack)
+            }
+
             Location::Storage(is_extern) => {
                 let num_keys = expr
                     .get_ty(contract)
@@ -693,21 +726,6 @@ impl<'a> AsmBuilder<'a> {
                 ]);
 
                 Ok(Location::Stack)
-            }
-
-            Location::Stack => {
-                // Panic if the tag is 0. The tag is at the top of the stack. What remains
-                // is the unwrapped data.
-                asm.extend([NOT, PNCIF]);
-                Ok(Location::Stack)
-            }
-
-            Location::Memory | Location::PredicateData => {
-                // Load the tag as the last word in the allocated memory for `expr`. Panic
-                // if the tag is 0. Otherwise, nothing to be done with the base address
-                // where the unwrapped data lives.
-                asm.extend([DUP, PUSH(expr_size - 1), ADD, LOD, NOT, PNCIF]);
-                Ok(location)
             }
         }
     }

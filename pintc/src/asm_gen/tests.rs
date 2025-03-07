@@ -10,6 +10,7 @@ mod external_calls;
 mod intrinsics;
 mod morphisms;
 mod multi_predicates;
+mod optional;
 mod storage_accesses;
 
 #[cfg(test)]
