@@ -22,8 +22,6 @@ predicate Foo(
 ) {
     // Here we write a bunch of arbitrary constraints to check encoding/decoding
     // of the different types etc.
-
-    // Start with the decision variables.
     constraint v0;
     constraint v1 == 42;
     constraint v2 == 0x1111111100000000111111110000000011111111000000001111111100000000;

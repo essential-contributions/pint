@@ -14,11 +14,11 @@ pub enum Elem {
     ArrayIx(usize),
 }
 
-/// Represents statically provided information about a storage or pub var's type
-/// nesting to assist with key construction.
+/// Represents statically provided information about a storage var's type nesting to assist with
+/// key construction.
 ///
-/// This is similar to the `pint_abi_visit::Nesting` type, but only contains
-/// nesting information relevant to key construction.
+/// This is similar to the `pint_abi_visit::Nesting` type, but only contains nesting information
+/// relevant to key construction.
 #[derive(Debug)]
 pub enum Nesting {
     Var { ix: usize },
@@ -35,7 +35,7 @@ pub fn construct(nesting: &[Nesting], key_elems: &[Elem]) -> Key {
     let mut words = vec![];
     while let Some(nesting) = nesting_iter.next() {
         match nesting {
-            // Push the storage/pub-var index directly. This is always the first nesting.
+            // Push the storage var index directly. This is always the first nesting.
             Nesting::Var { ix } => {
                 let word = Word::try_from(*ix).expect("out of `Word` range");
                 words.push(word);

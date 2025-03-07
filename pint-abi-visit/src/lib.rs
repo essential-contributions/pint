@@ -1,19 +1,18 @@
 //! Items to assist traversal of Pint ABI Keyed Vars.
 //!
-//! This assists in traversal of the `storage` and `pub_vars` sections of the Pint ABI.
+//! This assists in traversal of the `storage` section of the Pint ABI.
 
 use essential_types::Word;
 use petgraph::visit::EdgeRef;
-use pint_abi_types::{ParamABI, TupleField, TypeABI};
+use pint_abi_types::{StorageVarABI, TupleField, TypeABI};
 
 /// The [`TypeABI`] rose tree represented as a graph.
 ///
-/// By flattening the [`ParamABI`]s into an indexable tree type, we gain
-/// more flexibility around inspecting both parent and child nodes during
-/// traversal.
+/// By flattening the [`StorageVarABI`]s into an indexable tree type, we gain more flexibility
+/// around inspecting both parent and child nodes during traversal.
 ///
-/// This is particularly useful for generating both types and implementations
-/// (that may refer to child nodes) when visiting a single node.
+/// This is particularly useful for generating both types and implementations (that may refer to
+/// child nodes) when visiting a single node.
 pub struct KeyedVarTree<'a> {
     graph: KeyedVarGraph<'a>,
     /// The root keyed var variables.
@@ -38,21 +37,21 @@ pub struct Keyed<'a> {
     pub name: Option<&'a str>,
     /// The type of the var.
     pub ty: &'a TypeABI,
-    /// Describes how the keyed var is nested within `storage` or `pub vars`.
+    /// Describes how the keyed var is nested within `storage`.
     ///
-    /// The first element is always a `Var` representing the keyed var's
-    /// top-level index within `storage` or pub vars.
+    /// The first element is always a `Var` representing the keyed var's top-level index within
+    /// `storage`.
     pub nesting: Nesting,
 }
 
 /// Describes how a [`TypeABI`] is nested within the tree.
 #[derive(Clone, Debug)]
 pub enum Nesting {
-    /// A top-level storage field of pub var.
+    /// A top-level storage field of storage var.
     ///
     /// This is always the first element in a `Keyed`'s `nesting: [Nesting]` field.
     Var {
-        /// Represents the index of the storage field or pub var.
+        /// Represents the index of the storage var.
         ix: usize,
     },
     /// The `Keyed` var is within a tuple field.
@@ -63,8 +62,8 @@ pub enum Nesting {
         ///
         /// If this is the first field in the tuple, it will always be `0`.
         ///
-        /// For all other fields, this will be the sum of the
-        /// `flattened_key_count` of all prior fields.
+        /// For all other fields, this will be the sum of the `flattened_key_count` of all prior
+        /// fields.
         flat_ix: usize,
     },
     /// An entry within a map.
@@ -84,9 +83,8 @@ pub enum Nesting {
 }
 
 impl<'a> KeyedVarTree<'a> {
-    /// Construct a new tree from the given list of `ParamABI`s from a
-    /// `storage` or `pub_vars`instance.
-    pub fn from_keyed_vars(vars: &'a [ParamABI]) -> Self {
+    /// Construct a new tree from the given list of `StorageVarABI`s from a `storage` instance
+    pub fn from_keyed_vars(vars: &'a [StorageVarABI]) -> Self {
         // Construct the graph.
         let mut graph = KeyedVarGraph::default();
 
@@ -138,7 +136,7 @@ impl<'a> KeyedVarTree<'a> {
         nesting(&self.graph, n)
     }
 
-    /// The root nodes, representing the top-level storage or pub vars.
+    /// The root nodes, representing the top-level storage vars.
     pub fn roots(&self) -> &[NodeIx] {
         &self.roots
     }
@@ -153,8 +151,7 @@ impl<'a> core::ops::Deref for KeyedVarTree<'a> {
 
 /// Given a type nesting, returns a partial key to the nested value.
 ///
-/// Words that are provided dynamically (via map key or array index) are
-/// represented with `None`.
+/// Words that are provided dynamically (via map key or array index) are represented with `None`.
 pub fn partial_key_from_nesting(nesting: &[Nesting]) -> Vec<Option<Word>> {
     let mut opts = vec![];
     let mut iter = nesting.iter().peekable();
@@ -215,6 +212,7 @@ pub fn ty_size(ty: &TypeABI) -> usize {
         TypeABI::Bool | TypeABI::Int | TypeABI::Real => 1,
         TypeABI::B256 => 4,
         TypeABI::String => panic!("unknown size of type `string`"),
+        TypeABI::Optional(ty) => ty_size(ty) + 1,
         TypeABI::Tuple(fields) => fields.iter().map(|f| ty_size(&f.ty)).sum(),
         TypeABI::Array { ty, size } => {
             ty_size(ty) * usize::try_from(*size).expect("size out of range")
@@ -242,6 +240,7 @@ fn add_children<'a>(graph: &mut KeyedVarGraph<'a>, a: NodeIx, ty: &'a TypeABI) {
         | TypeABI::Real
         | TypeABI::String
         | TypeABI::B256
+        | TypeABI::Optional { .. }
         | TypeABI::Union { .. } => {}
 
         // Recurse for nested tuple types.
@@ -327,6 +326,7 @@ fn flattened_key_count(ty: &TypeABI) -> usize {
         | TypeABI::Int
         | TypeABI::String
         | TypeABI::B256
+        | TypeABI::Optional { .. }
         | TypeABI::Union { .. }
         | TypeABI::Map { .. } => 1,
     }

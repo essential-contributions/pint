@@ -734,6 +734,10 @@ impl Type {
                 PrimitiveKind::B256 => TypeABI::B256,
             }),
 
+            Type::Optional { ty, .. } => {
+                Ok(TypeABI::Optional(Box::new(ty.abi(handler, contract)?)))
+            }
+
             Type::Tuple { fields, .. } => Ok(TypeABI::Tuple(
                 fields
                     .iter()

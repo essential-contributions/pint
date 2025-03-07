@@ -5,7 +5,7 @@ use crate::{
     types::{EphemeralDecl, NewTypeDecl, Type, UnionDecl, UnionVariant},
 };
 use exprs::ExprsIter;
-use pint_abi_types::{ContractABI, ParamABI, PredicateABI};
+use pint_abi_types::{ContractABI, ParamABI, PredicateABI, StorageVarABI};
 
 use std::fmt::{self, Formatter};
 
@@ -421,7 +421,7 @@ impl Contract {
                             // The key of `ty` is either the `index` if the storage type is
                             // primitive or a map, or it's `[index, 0]`. The `0` here is a
                             // placeholder for offsets.
-                            Ok(ParamABI {
+                            Ok(StorageVarABI {
                                 name: name.to_string(),
                                 ty: ty.abi(handler, self)?,
                             })

@@ -9,14 +9,14 @@
 //!
 //! - A `mod` representing `storage`.
 //! - For each `predicate`, a module with the following:
-//!     - A `Vars` struct for the predicate's decision variables.
+//!     - An `Args` struct for the predicate's arguments.
 //!
 //! The aim for the generated items is to ease the construction of solutions
 //! including the encoding of keys, values and mutations from higher-level types.
 
 use addr::Addresses;
 use essential_types::{contract::Contract, predicate::Program, PredicateAddress};
-use pint_abi_types::{ContractABI, ParamABI, PredicateABI, TupleField, TypeABI, UnionVariant};
+use pint_abi_types::{ContractABI, PredicateABI, StorageVarABI, TupleField, TypeABI, UnionVariant};
 use pint_abi_visit::Nesting;
 use proc_macro::TokenStream;
 use proc_macro2::Span;
@@ -28,12 +28,12 @@ mod addr;
 mod args;
 mod array;
 mod keys;
+mod macro_args;
 mod map;
 mod mutations;
 mod tuple;
 mod unions;
 mod utils;
-mod vars;
 
 /// The name of the root module within the predicate set produced by the compiler.
 const ROOT_MOD_NAME: &str = "";
@@ -45,6 +45,7 @@ enum SingleKeyTy {
     Real,
     String,
     B256,
+    Optional(Box<TypeABI>),
     Union(String /* Pint path to the union*/),
 }
 
@@ -57,6 +58,7 @@ impl SingleKeyTy {
             SingleKeyTy::Real => syn::parse_quote!(f64),
             SingleKeyTy::String => syn::parse_quote!(String),
             SingleKeyTy::B256 => syn::parse_quote!([i64; 4]),
+            SingleKeyTy::Optional(ty) => ty_from_optional(ty, mod_level),
             SingleKeyTy::Union(name) => unions::ty_from_union(name, mod_level),
         }
     }
@@ -92,6 +94,14 @@ fn ty_from_array(ty: &TypeABI, size: i64, mod_level: usize) -> syn::Type {
     }
 }
 
+/// Convert the given pint tuple to an equivalent Rust tuple type.
+fn ty_from_optional(ty: &TypeABI, mod_level: usize) -> syn::Type {
+    let syn_ty = ty_from_pint_ty(ty, mod_level);
+    syn::parse_quote! {
+        Option<#syn_ty>
+    }
+}
+
 /// Convert the given pint ABI type to an equivalent Rust type.
 fn ty_from_pint_ty(ty: &TypeABI, mod_level: usize) -> syn::Type {
     match ty {
@@ -100,6 +110,7 @@ fn ty_from_pint_ty(ty: &TypeABI, mod_level: usize) -> syn::Type {
         TypeABI::Real => syn::parse_quote!(f64),
         TypeABI::String => syn::parse_quote!(String),
         TypeABI::B256 => syn::parse_quote!([i64; 4]),
+        TypeABI::Optional(ty) => ty_from_optional(ty, mod_level),
         TypeABI::Union { name, .. } => unions::ty_from_union(name, mod_level),
         TypeABI::Tuple(tuple) => ty_from_tuple(tuple, mod_level),
         TypeABI::Array { ty, size } => ty_from_array(ty, *size, mod_level),
@@ -132,7 +143,7 @@ fn items_from_predicate(
         items.push(addr::predicate_const(&addr.contract, &addr.predicate).into());
     }
     if !predicate.params.is_empty() {
-        items.extend(vars::items(&predicate.params));
+        items.extend(args::items(&predicate.params));
     }
     items
 }
@@ -309,8 +320,8 @@ fn nesting_key_doc_str(nesting: &[Nesting]) -> String {
 
 /// The `mutations` and `keys` items for the given keyed vars.
 ///
-/// This is used for both `storage` and `pub_vars` mod generation.
-fn items_from_keyed_vars(vars: &[ParamABI]) -> Vec<syn::Item> {
+/// This is used for `storage` mod generation.
+fn items_from_keyed_vars(vars: &[StorageVarABI]) -> Vec<syn::Item> {
     let mut items = vec![];
 
     // The `mutations` module and re-exports.
@@ -333,7 +344,7 @@ fn items_from_keyed_vars(vars: &[ParamABI]) -> Vec<syn::Item> {
 /// Create a module with `mutations` and `keys` fns for the given keyed vars.
 ///
 /// This is used for `storage` mod generation.
-fn mod_from_keyed_vars(mod_name: &str, vars: &[ParamABI]) -> syn::ItemMod {
+fn mod_from_keyed_vars(mod_name: &str, vars: &[StorageVarABI]) -> syn::ItemMod {
     let items = items_from_keyed_vars(vars);
     let mod_ident = syn::Ident::new(mod_name, Span::call_site());
     syn::parse_quote! {
@@ -371,12 +382,13 @@ fn items_from_abi_and_addrs(abi: &ContractABI, addrs: Option<&Addresses>) -> Vec
     let mut unions: BTreeSet<(Vec<String>, Vec<UnionVariant>)> = BTreeSet::new();
     abi.storage
         .iter()
+        .map(|var| var.ty.clone())
         .chain(
             abi.predicates
                 .iter()
-                .flat_map(|predicate| predicate.params.iter()),
+                .flat_map(|predicate| predicate.params.iter().map(|param| param.ty.clone())),
         )
-        .for_each(|var| unions::collect_unions(&var.ty, &mut unions));
+        .for_each(|ty| unions::collect_unions(&ty, &mut unions));
 
     items.extend(unions::items_from_unions(&unions));
 
@@ -463,7 +475,7 @@ where
 /// to the source file in which the macro is being invoked in stable Rust.
 #[proc_macro]
 pub fn from_file(input: TokenStream) -> TokenStream {
-    let args = parse_macro_input!(input as args::FromFile);
+    let args = parse_macro_input!(input as macro_args::FromFile);
 
     // Load the contract ABI.
     let abi_path = resolve_path(args.abi.value().as_ref());

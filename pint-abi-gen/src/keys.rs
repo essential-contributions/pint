@@ -1,9 +1,8 @@
-//! Items for the `Keys` type generated for `storage` and `pub vars`, aimed
-//! at making it easier to build a set of [`Key`][essential_types::Key]s for
-//! a solution.
+//! Items for the `Keys` type generated for `storage`, aimed at making it easier to build a set of
+//! [`Key`][essential_types::Key]s for a solution.
 
 use crate::{array, map, tuple};
-use pint_abi_types::{ParamABI, TypeABI};
+use pint_abi_types::{StorageVarABI, TypeABI};
 use pint_abi_visit::{KeyedVarTree, Nesting, NodeIx};
 use proc_macro2::Span;
 
@@ -26,6 +25,7 @@ fn nested_items_from_node(tree: &KeyedVarTree, n: NodeIx) -> Vec<syn::Item> {
         | TypeABI::Real
         | TypeABI::String
         | TypeABI::B256
+        | TypeABI::Optional(_)
         | TypeABI::Union { .. } => (),
     }
     items
@@ -33,7 +33,7 @@ fn nested_items_from_node(tree: &KeyedVarTree, n: NodeIx) -> Vec<syn::Item> {
 
 /// Recursively traverse the given keyed vars and create a builder structs and
 /// impls for each tuple, map and array.
-fn nested_items_from_keyed_vars(vars: &[ParamABI]) -> Vec<syn::Item> {
+fn nested_items_from_keyed_vars(vars: &[StorageVarABI]) -> Vec<syn::Item> {
     let mut items = vec![];
     let tree = KeyedVarTree::from_keyed_vars(vars);
     tree.dfs(|n| {
@@ -138,6 +138,7 @@ pub(crate) fn method_from_node(tree: &KeyedVarTree, n: NodeIx, name: &str) -> sy
         | TypeABI::Real
         | TypeABI::String
         | TypeABI::B256
+        | TypeABI::Optional(_)
         | TypeABI::Union { .. } => (),
         TypeABI::Array { ty: _, size: _ } => {
             return method_for_array(name, &nesting);
@@ -153,7 +154,7 @@ pub(crate) fn method_from_node(tree: &KeyedVarTree, n: NodeIx, name: &str) -> sy
 }
 
 /// All builder methods for the `Keys` builder type.
-fn impl_keys_methods(vars: &[ParamABI]) -> Vec<syn::ImplItemFn> {
+fn impl_keys_methods(vars: &[StorageVarABI]) -> Vec<syn::ImplItemFn> {
     let tree = KeyedVarTree::from_keyed_vars(vars);
     tree.roots()
         .iter()
@@ -165,7 +166,7 @@ fn impl_keys_methods(vars: &[ParamABI]) -> Vec<syn::ImplItemFn> {
 }
 
 /// The implementation for the `Keys` builder type.
-fn impl_keys(vars: &[ParamABI]) -> syn::ItemImpl {
+fn impl_keys(vars: &[StorageVarABI]) -> syn::ItemImpl {
     let methods = impl_keys_methods(vars);
     syn::parse_quote! {
         impl Keys {
@@ -232,7 +233,7 @@ pub(crate) fn impl_deref_for_nested(struct_name: &str) -> Vec<syn::ItemImpl> {
 }
 
 /// All items for the `Keys` type, nested keys builder types and their impls.
-fn items(vars: &[ParamABI]) -> Vec<syn::Item> {
+fn items(vars: &[StorageVarABI]) -> Vec<syn::Item> {
     let mut items = vec![
         keys_struct().into(),
         keys_fn().into(),
@@ -244,7 +245,7 @@ fn items(vars: &[ParamABI]) -> Vec<syn::Item> {
 }
 
 /// A `keys` module for all `Keys`-related items.
-pub(crate) fn module(vars: &[ParamABI]) -> syn::ItemMod {
+pub(crate) fn module(vars: &[StorageVarABI]) -> syn::ItemMod {
     let items = items(vars);
 
     syn::parse_quote! {

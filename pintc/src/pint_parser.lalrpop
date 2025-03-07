@@ -458,12 +458,8 @@ MacroBodyInnerDecls: () = {
 /////////////
 
 Type: Type = {
-    <NonOptionalType>,
-    <OptionalType>,
-}
-
-NonOptionalType: Type = {
     <ArrayType>,
+    <OptionalType>,
     <TypeAtom>,
 }
 
@@ -525,6 +521,27 @@ ArrayType: Type = {
             span: (context.span_from)(l, r),
         }
     },
+
+    <l:@L> <ty:OptionalType> <ranges: ("[" <Expr> "]")+ > <r:@R> => {
+        // Multi-dimensional arrays have their innermost dimension on the far
+        // right. Hence, we need to reverse the iterator.
+        // For example, `int[3][5]` is actually an array of size 3 that
+        // contains arrays of size 5 of `int`s.
+        ranges.iter().rev().fold(ty, |acc, range| Type::FixedArray {
+            ty: Box::new(acc),
+            range: Some(*range),
+            size: None,
+            span: (context.span_from)(l, r),
+        })
+    },
+
+    <l:@L> <ty:OptionalType> "[" "]" <r:@R> => {
+        // Unsized arrays may not be multi-dimensional.
+        Type::UnsizedArray {
+            ty: Box::new(ty),
+            span: (context.span_from)(l, r),
+        }
+    }
 }
 
 PrimitiveType: PrimitiveKind = {
@@ -713,7 +730,7 @@ MultOpOp: BinaryOp = {
 }
 
 AsOp: ExprKey = {
-     <l:@L> <value:AsOp> "as" <ty:NonOptionalType> <r:@R> => {
+     <l:@L> <value:AsOp> "as" <ty:TypeAtom> <r:@R> => {
         let span = (context.span_from)(l, r);
         context.contract.exprs.insert(
             Expr::Cast {
@@ -1264,15 +1281,15 @@ AsmBlockExpr: ExprKey = {
 }
 
 AsmOp: AsmOp = {
-    <l:@L> <imm:"int_lit"> <r:@R> => {
+    <l:@L> <minus:"-"?> <imm:"int_lit"> <r:@R> => {
         let span = (context.span_from)(l, r);
         match context.parse_int_immediate(handler, imm, (l, r)) {
-            Immediate::Int(val) => AsmOp::Imm(val, span.clone()),
+            Immediate::Int(val) => {
+                AsmOp::Imm(if minus.is_some() { -val } else { val }, span.clone())
+            }
             _ => {
                 handler.emit_err(Error::Parse {
-                    error: ParseError::ExpectedIntegerLiteral {
-                        span: span.clone(),
-                    },
+                    error: ParseError::ExpectedIntegerLiteral { span: span.clone() },
                 });
                 AsmOp::Imm(0, span)
             }

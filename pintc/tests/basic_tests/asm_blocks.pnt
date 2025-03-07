@@ -22,6 +22,22 @@ predicate foo(w: int) {
         ALOC
         BAND
     };
+
+    let negatives: int = asm() {
+        0x00 // store back result at this memory location
+
+        -0x01
+        -5
+        ADD
+        -0b111
+        ADD
+
+        0x01 
+        ALOC  // allocate memory for the returned data
+        POP
+        STO
+    };
+    constraint negatives == -13;
 }
 
 // parsed <<<
@@ -49,6 +65,19 @@ predicate foo(w: int) {
 //         ALOC
 //         BAND
 //     };
+//     let ::negatives: int = asm() {
+//         0
+//         -1
+//         -5
+//         ADD
+//         -7
+//         ADD
+//         1
+//         ALOC
+//         POP
+//         STO
+//     };
+//     constraint (::negatives == -13);
 // }
 // >>>
 
@@ -77,6 +106,19 @@ predicate foo(w: int) {
 //         ALOC
 //         BAND
 //     };
+//     let ::negatives: int = asm() {
+//         0
+//         -1
+//         -5
+//         ADD
+//         -7
+//         ADD
+//         1
+//         ALOC
+//         POP
+//         STO
+//     };
+//     constraint (::negatives == -13);
 //     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

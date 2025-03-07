@@ -130,6 +130,7 @@ fn key_method(
         | TypeABI::Real
         | TypeABI::String
         | TypeABI::B256
+        | TypeABI::Optional { .. }
         | TypeABI::Union { .. } => (),
         TypeABI::Array { ty: _, size: _ } => {
             return key_method_for_array(ty_from, &nesting);
@@ -316,6 +317,7 @@ fn mutation_method(
         TypeABI::Tuple(_) => {
             return mutation_method_for_tuple(ty_from, &nesting);
         }
+        TypeABI::Optional(ty) => SingleKeyTy::Optional(ty.clone()),
         TypeABI::Union { name, .. } => SingleKeyTy::Union(name.clone()),
         TypeABI::Map { .. } => {
             return mutation_method_for_map(ty_from, &nesting);
