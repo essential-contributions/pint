@@ -45,7 +45,7 @@ async fn test_abi_gen_example() {
     assert_eq!(pred_addr, my_predicate_address);
 
     // ANCHOR: predicate_data
-    let predicate_data = MyPredicate::Vars {
+    let predicate_data = MyPredicate::Args {
         x: 42,
         y: true,
         z: (2, [0x1111111100000000; 4]),
