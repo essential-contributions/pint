@@ -226,7 +226,7 @@ solutions <strong>directly using Rust types</strong> without having to do the en
 syntax:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>    let predicate_data = MyPredicate::Vars {
+</span>    let predicate_data = MyPredicate::Args {
         x: 42,
         y: true,
         z: (2, [0x1111111100000000; 4]),
