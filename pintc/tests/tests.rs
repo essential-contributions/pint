@@ -306,6 +306,14 @@ fn optimize(pred: Contract, test_data: &TestData, path: &Path) -> Contract {
     optimized
 }
 
+/// Optionally, to run a specific test file:
+/// ```sh
+/// TEST_NAME=<filename.pnt> Cargo test <directory>
+/// ```
+/// ex
+/// ```sh
+/// TEST_NAME=golf_array.pnt Cargo test arrays
+/// ```
 #[cfg(test)]
 mod e2e {
     use crate::run_tests;
