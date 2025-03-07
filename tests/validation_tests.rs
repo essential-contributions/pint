@@ -17,7 +17,11 @@ use yansi::Paint;
 /// Optionally, to run a specific test file:
 /// ```sh
 /// TEST_NAME=<filename.pnt> Cargo test
-/// ``````
+/// ```
+/// ex
+/// ```sh
+/// TEST_NAME=unions_in_storage.pnt Cargo test
+/// ```
 #[tokio::test]
 async fn validation_e2e() -> anyhow::Result<()> {
     let args = std::env::var("TEST_NAME").unwrap_or_default();
