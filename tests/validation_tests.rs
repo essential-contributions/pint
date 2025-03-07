@@ -16,6 +16,8 @@ use yansi::Paint;
 
 #[tokio::test]
 async fn validation_e2e() -> anyhow::Result<()> {
+    let args = std::env::var("TEST_NAME").unwrap_or_default();
+
     let dir: PathBuf = "validation_tests".to_string().into();
     let mut failed_tests = vec![];
     let re = Regex::new(r"<([^>]+)>").unwrap();
@@ -31,6 +33,11 @@ async fn validation_e2e() -> anyhow::Result<()> {
 
         // Only go over pint file
         if path.extension().unwrap() != "pnt" {
+            continue;
+        }
+
+        // If specified, only run the desired test
+        if !&args.is_empty() && !path.ends_with(&args) {
             continue;
         }
 
