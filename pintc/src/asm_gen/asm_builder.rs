@@ -1438,7 +1438,7 @@ impl<'a> AsmBuilder<'a> {
             in_ary_location,
             contract,
         )?;
-        asm.extend([PUSH(1), STOS]);
+        array_asm.extend([PUSH(1), SWAP, STOS]);
 
         match in_ary_location {
             Location::PredicateData => {
