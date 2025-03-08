@@ -53,7 +53,7 @@ async fn validation_e2e() -> anyhow::Result<()> {
         let handle = File::open(path.clone())?;
         if let Some(Ok(first_line)) = BufReader::new(handle).lines().next() {
             // Skip disabled tests.
-            if first_line.contains("<disabled>") {
+            if !first_line.contains("<enabled>") {
                 continue;
             }
         }

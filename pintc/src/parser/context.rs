@@ -505,7 +505,6 @@ impl<'a> ParserContext<'a> {
                     "__this_contract_address" => {
                         IntrinsicKind::External(ExternalIntrinsic::ThisContractAddress)
                     }
-                    "__vec_len" => IntrinsicKind::External(ExternalIntrinsic::VecLen),
                     "__verify_ed25519" => IntrinsicKind::External(ExternalIntrinsic::VerifyEd25519),
                     _ => {
                         handler.emit_err(Error::Parse {
