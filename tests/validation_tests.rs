@@ -14,8 +14,18 @@ use test_util::{hex_to_bytes, parse_test_data, unwrap_or_continue};
 use utils::*;
 use yansi::Paint;
 
+/// Optionally, to run a specific test file:
+/// ```sh
+/// TEST_NAME=<filename.pnt> Cargo test
+/// ```
+/// ex
+/// ```sh
+/// TEST_NAME=unions_in_storage.pnt Cargo test
+/// ```
 #[tokio::test]
 async fn validation_e2e() -> anyhow::Result<()> {
+    let args = std::env::var("TEST_NAME").unwrap_or_default();
+
     let dir: PathBuf = "validation_tests".to_string().into();
     let mut failed_tests = vec![];
     let re = Regex::new(r"<([^>]+)>").unwrap();
@@ -31,6 +41,11 @@ async fn validation_e2e() -> anyhow::Result<()> {
 
         // Only go over pint file
         if path.extension().unwrap() != "pnt" {
+            continue;
+        }
+
+        // If specified, only run the desired test
+        if !&args.is_empty() && !path.ends_with(&args) {
             continue;
         }
 
