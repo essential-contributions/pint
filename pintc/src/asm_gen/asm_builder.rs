@@ -906,9 +906,20 @@ impl<'a> AsmBuilder<'a> {
                         asm.extend([PUSH(1), DATA]);
                     }
 
-                    Location::Memory => todo!("__len() of array in memory"),
+                    Location::Memory => {
+                        if args[0].is_storage_access(contract) {
+                            asm.push(LOD);
+                        } else {
+                            todo!("__len() of array in memory")
+                        }
+                    }
                     Location::Storage(_) => todo!("__len() of array in stack"),
-                    Location::Stack => todo!("__len() of array on stack"),
+                    Location::Stack => {
+                        if args[0].is_storage_access(contract) {
+                        } else {
+                            todo!("")
+                        }
+                    }
                 }
             }
 
