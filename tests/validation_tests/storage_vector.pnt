@@ -16,16 +16,24 @@ storage {
 }
 
 predicate Bar() {
+    let v = storage::v0!;
+    constraint v[0] == 1;
+
     // v0 starts empty
-    let v0_0 = mut storage::v0[0];
-    let v0_1 = mut storage::v0[1];
-    let v0_2 = mut storage::v0[2];
-    let x = mut storage::v0!;
+//    let v0_0 = mut storage::v0[0];
+//    let v0_1 = mut storage::v0[1];
+//    let v0_2 = mut storage::v0[2];
+
+//    let length = __len(mut storage::v0!);
+
+    // let foo: int[] = storage::v0!;
+
+//    constraint length' == 3;
 
 //    constraint v0_len == 0;
 //    constraint v0_len' == 3;
-    constraint v0_0'! == 42;
-    constraint v0_1'! == 43;
-    constraint v0_2'! == 44;
+//    constraint v0_0'! == 42;
+//    constraint v0_1'! == 43;
+//    constraint v0_2'! == 44;
 
 }

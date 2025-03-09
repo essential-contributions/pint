@@ -616,10 +616,11 @@ impl Type {
             // of the type.  In the future we should special case them out into different ASM gen
             // which will handle them with __len() or equivalent.  Giving it a unique error here,
             // but still Internal.
-            Self::UnsizedArray { span, .. } => Err(handler.emit_internal_err(
-                "cannot use or refer to dynamic arrays here (yet)",
-                span.clone(),
-            )),
+            Self::UnsizedArray { span: _span, .. } => panic!(), //Ok(1),
+            //            Err(handler.emit_internal_err(
+            //                "cannot use or refer to dynamic arrays here (yet)",
+            //                span.clone(),
+            //            )),
 
             // Not expecting any of these types at this stage. These are either unsupported types
             // (like `String` and `Real`) or types that should have been resolved by the time we

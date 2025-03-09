@@ -402,7 +402,7 @@ impl Expr {
                 Expr::TupleFieldAccess { tuple, .. } => tuple.is_storage_access(contract),
                 Expr::Index { expr, .. } => expr.is_storage_access(contract),
                 Expr::UnaryOp {
-                    op: UnaryOp::NextState,
+                    op: UnaryOp::NextState | UnaryOp::Unwrap,
                     expr,
                     ..
                 } => expr.is_storage_access(contract),

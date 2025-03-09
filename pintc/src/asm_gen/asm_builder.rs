@@ -907,15 +907,39 @@ impl<'a> AsmBuilder<'a> {
             }
 
             ExternalIntrinsic::ArrayLen => {
-                match self.compile_expr_pointer(handler, asm, &args[0], contract, pred)? {
+                let Some(arg) = args.first() else {
+                    return Err(handler
+                        .emit_internal_err("__len intrinsic must have one arg", empty_span()));
+                };
+
+                if !arg.get_ty(contract).is_unsized_array() {
+                    return Err(handler.emit_internal_err(
+                        "__len intrinsic arg must be an unsized array",
+                        empty_span(),
+                    ));
+                }
+
+                match self.compile_expr_pointer(handler, asm, &arg, contract, pred)? {
                     Location::PredicateData => {
                         // The length of the array is at the start.
                         asm.extend([PUSH(1), DATA]);
                     }
 
-                    Location::Memory => todo!("__len() of array in memory"),
-                    Location::Storage(_) => todo!("__len() of array in stack"),
-                    Location::Stack => todo!("__len() of array on stack"),
+                    Location::Memory => {
+                        if arg.is_storage_access(contract) {
+                            asm.push(LOD);
+                        } else {
+                            todo!("__len() of array in memory")
+                        }
+                    }
+
+                    Location::Storage(_) => todo!("__len() of array in storage"),
+
+                    Location::Stack => {
+                        if !arg.is_storage_access(contract) {
+                            todo!("__len() of array in stack")
+                        }
+                    }
                 }
             }
 
