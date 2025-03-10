@@ -906,9 +906,20 @@ impl<'a> AsmBuilder<'a> {
                         asm.extend([PUSH(1), DATA]);
                     }
 
-                    Location::Memory => todo!("__len() of array in memory"),
+                    Location::Memory => {
+                        if args[0].is_storage_access(contract) {
+                            asm.push(LOD);
+                        } else {
+                            todo!("__len() of array in memory")
+                        }
+                    }
                     Location::Storage(_) => todo!("__len() of array in stack"),
-                    Location::Stack => todo!("__len() of array on stack"),
+                    Location::Stack => {
+                        if args[0].is_storage_access(contract) {
+                        } else {
+                            todo!("")
+                        }
+                    }
                 }
             }
 
@@ -954,13 +965,6 @@ impl<'a> AsmBuilder<'a> {
                     | ExternalIntrinsic::VerifyEd25519 => {
                         return Err(handler.emit_internal_err(
                             "SizeOf and AddressOf have already been handled!",
-                            empty_span(),
-                        ))
-                    }
-
-                    ExternalIntrinsic::VecLen => {
-                        return Err(handler.emit_internal_err(
-                            "__vec_len should have been lowered to something else by now",
                             empty_span(),
                         ))
                     }

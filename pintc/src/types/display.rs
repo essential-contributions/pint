@@ -89,10 +89,6 @@ impl DisplayWithContract for super::Type {
                     contract.with_ctrct(ty_to.as_ref())
                 )
             }
-
-            super::Type::Vector { ty, .. } => {
-                write!(f, "{}[]", contract.with_ctrct(ty.as_ref()),)
-            }
         }
     }
 }
