@@ -1,6 +1,6 @@
 # Hybrid Pint
 
-## Current Design Pint
+## Current Design of Pint
 
 A Pint program is a contract that contains a set of predicates. Each predicate can be written as a
 Boolean function `P`:
