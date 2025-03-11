@@ -25,6 +25,9 @@ pub struct Args {
 
     #[arg(long = "skip-optimize", hide = true)]
     pub skip_optimize: bool,
+
+    #[arg(long = "no-output", hide = true)]
+    pub no_output: bool,
 }
 
 /// Parses a `&str` that represents a 256-bit unsigned integer in hexadecimal format and converts
