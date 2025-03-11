@@ -147,12 +147,14 @@ fn main() -> anyhow::Result<()> {
                 println!("         {pipe} {:<name_col_w$} {}", name, ca);
             }
 
-            // Write ABI and contract
-            serde_json::to_writer_pretty(File::create(json_abi_path)?, &abi)?;
-            serde_json::to_writer(
-                File::create(output_file_path)?,
-                &(compiled_contract.contract, compiled_contract.programs),
-            )?;
+            // Write ABI and contract (unless output is suppressed).
+            if !args.no_output && std::env::var("PINTC_NO_OUTPUT").is_err() {
+                serde_json::to_writer_pretty(File::create(json_abi_path)?, &abi)?;
+                serde_json::to_writer(
+                    File::create(output_file_path)?,
+                    &(compiled_contract.contract, compiled_contract.programs),
+                )?;
+            }
 
             // Report any warnings
             if handler.has_warnings() && !cfg!(test) {
