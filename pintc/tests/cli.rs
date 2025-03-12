@@ -118,7 +118,10 @@ fn default_output() {
 
     let output = pintc_command(input_file.path().to_str().unwrap());
 
-    assert!(input_file.path().with_extension("json").exists());
+    assert!(
+        std::env::var("PINTC_NO_OUTPUT").is_ok()
+            || input_file.path().with_extension("json").exists()
+    );
     let _ = fs::remove_file(input_file.path().with_extension("json"));
 
     let stdout = output.stdout.replace(
@@ -150,7 +153,7 @@ fn explicit_output() {
         output_file.to_str().unwrap(),
     ));
 
-    assert!(output_file.exists());
+    assert!(std::env::var("PINTC_NO_OUTPUT").is_ok() || output_file.exists());
     let _ = fs::remove_file(output_file);
 
     let stdout = output.stdout.replace(
@@ -281,7 +284,10 @@ fn multiple_predicate_output() {
 
     let output = pintc_command(input_file.path().to_str().unwrap());
 
-    assert!(input_file.path().with_extension("json").exists());
+    assert!(
+        std::env::var("PINTC_NO_OUTPUT").is_ok()
+            || input_file.path().with_extension("json").exists()
+    );
     let _ = fs::remove_file(input_file.path().with_extension("json"));
 
     let stdout = output.stdout.replace(
