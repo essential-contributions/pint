@@ -225,9 +225,6 @@ impl<'a> AsmBuilder<'a> {
                     ]);
                 }
 
-                // We can now free the memory used by KRNG OR KREX
-                asm.extend([PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC), LODS, FREE]);
-
                 // This computes the tag on the stack. If the total size read from storage is
                 // equal to the size of the value in the optional, then the tag should be 1.
                 // Otherwise, it should be 0.
@@ -735,12 +732,6 @@ impl<'a> AsmBuilder<'a> {
                     ADD,                 // where the actual datalives
                     PUSH(expr_size - 1), // size of the data (excluding the tag)
                     LODR,
-                ]);
-
-                asm.extend([
-                    PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
-                    LODS,
-                    FREE, // We can now free the memory used by KRNG OR KREX
                 ]);
 
                 Ok(Location::Stack)
@@ -1477,9 +1468,6 @@ impl<'a> AsmBuilder<'a> {
                     ADD, // Offset to values.
                     PUSH(0),
                     STOS, // Store offset in scratch space at bottom of stack.
-                    PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
-                    LODS,
-                    FREE, // We can now free the memory used by KRNG OR KREX
                 ]);
 
                 // We've moved the location of the array.
