@@ -25,9 +25,6 @@ pub struct AsmBuilder<'a> {
     // A map from names of variables to their memory indices.
     var_to_mem_idx: fxhash::FxHashMap<(String, Reads), i64>,
 
-    // A map from storage access expressions to their memory indices.
-    storage_expr_to_mem_idx: fxhash::FxHashMap<ExprKey, i64>,
-
     // A map from pre-computed expressions to their memory indices.
     precomputed_expr_to_mem_idx: fxhash::FxHashMap<ExprKey, i64>,
 
@@ -55,6 +52,10 @@ enum Location {
 }
 
 impl<'a> AsmBuilder<'a> {
+    // This is the index of the stack location reserved for the memory index of where `KRNG` and
+    // `KREX` store their result. This is just 0 for now but we may have to change it.
+    const KEY_RANGE_MEM_IDX_STACK_LOC: i64 = 0;
+
     /// Creates a new `AsmBuilder` given a set of compiled predicates and their addresses.
     pub fn new(
         compiled_predicates: &'a fxhash::FxHashMap<String, (CompiledPredicate, ContentAddress)>,
@@ -63,7 +64,6 @@ impl<'a> AsmBuilder<'a> {
             compiled_predicates,
             var_to_mem_idx: fxhash::FxHashMap::default(),
             precomputed_expr_to_mem_idx: fxhash::FxHashMap::default(),
-            storage_expr_to_mem_idx: fxhash::FxHashMap::default(),
             morphism_param: Default::default(),
         }
     }
@@ -84,89 +84,57 @@ impl<'a> AsmBuilder<'a> {
 
         // Produce a map from input variables to this nodes to their indices in the concatinated
         // memory. Also compute the total amount of memory used so far.
-        let mut total_memory_size = parents.iter().try_fold(0i64, |base, node| match node {
-            ComputeNode::Var { var, reads, .. } => {
-                self.var_to_mem_idx.insert((var.name.clone(), *reads), base);
-                let size = var.expr.get_ty(contract).size(handler, contract)?;
-                Ok(base + size as i64)
-            }
-            ComputeNode::Constraint { .. } => Ok(base),
-            ComputeNode::Expr { expr, .. } => {
-                self.precomputed_expr_to_mem_idx.insert(*expr, base);
-                let size = expr.get_ty(contract).size(handler, contract)?;
-                Ok(base + size as i64)
-            }
-        })?;
+        let pre_initialied_memory_size =
+            parents.iter().try_fold(0i64, |base, node| match node {
+                ComputeNode::Var { var, reads, .. } => {
+                    self.var_to_mem_idx.insert((var.name.clone(), *reads), base);
+                    let size = var.expr.get_ty(contract).size(handler, contract)?;
+                    Ok(base + size as i64)
+                }
+                ComputeNode::Constraint { .. } => Ok(base),
+                ComputeNode::Expr { expr, .. } => {
+                    self.precomputed_expr_to_mem_idx.insert(*expr, base);
+                    let size = expr.get_ty(contract).size(handler, contract)?;
+                    Ok(base + size as i64)
+                }
+            })?;
 
         let mut asm = Vec::new();
 
-        // First, collect all storage accesses used in the node expression, and allocate enough
-        // memory for all of them. We do this ahead of time so that we know exactly how the size of
-        // memory allocated. Due to short-circuting, this also means that some allocations may not
-        // be used, but this is okay for now.
-        let alloc_size_for_storage_accesses: i64 = expr
-            .collect_storage_accesses(contract)
-            .iter()
-            .try_fold(0, |total_alloc_size, access| {
-            let num_keys = access
-                .get_ty(contract)
-                .get_optional_ty()
-                .ok_or_else(|| {
-                    handler.emit_internal_err(
-                        "storage accesses must be of type optional",
-                        empty_span(),
-                    )
-                })?
-                .storage_keys(handler, contract)? as i64;
-
-            let access_size = (access.get_ty(contract).size(handler, contract)?) as i64;
-
-            let alloc_size = 2 * num_keys // for each key, add the data address then its length
-                + access_size; // then lay out the data read from each key, sequentiallly
-
-            // Keep track of the mem index for this access
-            self.storage_expr_to_mem_idx
-                .insert(*access, total_memory_size);
-
-            total_memory_size += alloc_size;
-
-            // Accumulate the allocation size
-            Ok(total_alloc_size + alloc_size)
-        })?;
-
         if expr.get(contract).is_asm_block() {
             self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
-        } else {
-            if alloc_size_for_storage_accesses > 0 {
-                asm.extend([PUSH(alloc_size_for_storage_accesses), ALOC, POP]);
-            }
-
-            if node.is_leaf() {
+        } else if node.is_leaf() {
+            if expr.collect_storage_accesses(contract).is_empty() {
                 self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
             } else {
-                // Allocate enough memory for the returned data, if needed
-                if total_memory_size < expr_size {
-                    asm.extend([PUSH(expr_size - total_memory_size), ALOC, POP]);
-                }
-
-                // Reserve scratch space at the bottom of the stack. Currently used by morphisms.
-                // TODO: check if this expr contains morphisms and omit this if not.
-                asm.extend([PUSH(2), RES, POP]);
-
-                // Compile result to the stack.
+                asm.extend([PUSH(1), RES, POP]);
                 self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
-
-                // Stash it to the start of memory.
-                asm.extend([PUSH(expr_size), PUSH(0), STOR]);
-
-                // Free the scratch.
-                asm.extend([PUSH(2), DROP]);
-
-                // While compiling the expr we may have allocated more buffers in memory.  We need
-                // to shrink memory down to just the result.
-                // TODO: have compile_expr() return whether this is necessary.
-                asm.extend([PUSH(expr_size), FREE]);
+                asm.extend([SWAP, PUSH(1), DROP]);
             }
+        } else {
+            // Allocate enough memory for the returned data, if needed
+            if pre_initialied_memory_size < expr_size {
+                asm.extend([PUSH(expr_size - pre_initialied_memory_size), ALOC, POP]);
+            }
+
+            // Reserve scratch space at the bottom of the stack. Currently used by morphisms and
+            // storage accesses.
+            // TODO: Check if this expr contains morphisms or storage accesses. Omit this if not.
+            asm.extend([PUSH(2), RES, POP]);
+
+            // Compile result to the stack.
+            self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
+
+            // Stash it to the start of memory.
+            asm.extend([PUSH(expr_size), PUSH(0), STOR]);
+
+            // Free the scratch.
+            asm.extend([PUSH(2), DROP]);
+
+            // While compiling the expr we may have allocated more buffers in memory.  We need
+            // to shrink memory down to just the result.
+            // TODO: have compile_expr() return whether this is necessary.
+            asm.extend([PUSH(expr_size), FREE]);
         }
 
         Ok(asm)
@@ -200,30 +168,38 @@ impl<'a> AsmBuilder<'a> {
             }
 
             Location::Storage(is_extern) => {
-                let num_keys = expr
-                    .get_ty(contract)
-                    .get_optional_ty()
-                    .ok_or_else(|| {
-                        handler.emit_internal_err(
+                let (num_keys, access_size) = expr_ty.get_optional_ty().map_or_else(
+                    || {
+                        Err(handler.emit_internal_err(
                             "storage accesses must be of type optional",
                             empty_span(),
-                        )
-                    })?
-                    .storage_keys(handler, contract)? as i64;
+                        ))
+                    },
+                    |ty| {
+                        Ok((
+                            ty.storage_keys(handler, contract)? as i64,
+                            ty.size(handler, contract)? as i64,
+                        ))
+                    },
+                )?;
 
-                let access_mem_idx = self.storage_expr_to_mem_idx[expr];
-
-                // Read the storage keys into memory
                 asm.extend([
+                    // Allocate enough memory for KREX or KRNG
+                    PUSH(access_size + 2 * num_keys),
+                    ALOC,
+                    PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
+                    STOS,
+                    // Read the storage keys into memory
                     PUSH(num_keys),
-                    PUSH(access_mem_idx), // mem idx for the output of KREX or KRNG
+                    PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
+                    LODS,
                     if is_extern { KREX } else { KRNG },
-                ]);
-
-                // Now read the actual data
-                asm.extend([
-                    PUSH(access_mem_idx + num_keys * 2), // where the actual data lives
-                    PUSH(expr_size - 1),                 // size of the data (excluding the tag)
+                    // Read the actual data
+                    PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
+                    LODS,
+                    PUSH(num_keys * 2),
+                    ADD,                 // where the actual datalives
+                    PUSH(expr_size - 1), // size of the data (excluding the tag)
                     LODR,
                 ]);
 
@@ -231,12 +207,22 @@ impl<'a> AsmBuilder<'a> {
                 // memory:
                 // `[a_addr, a_len, b_addr, b_len, a_value, b_value, ...]`
                 if num_keys > 1 {
-                    asm.push(PUSH(0));
-                    asm.extend(
-                        (0..num_keys).flat_map(|i| [PUSH(access_mem_idx + 2 * i + 1), LOD, ADD]),
-                    );
+                    asm.extend([
+                        PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
+                        LODS,
+                        PUSH(num_keys * 2),
+                        LODR,
+                        PUSH(0),
+                    ]);
+                    asm.extend((0..num_keys).flat_map(|_| [ADD, SWAP, POP]));
                 } else {
-                    asm.extend([PUSH(access_mem_idx + 1), LOD]);
+                    asm.extend([
+                        PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
+                        LODS,
+                        PUSH(1),
+                        ADD,
+                        LOD,
+                    ]);
                 }
 
                 // This computes the tag on the stack. If the total size read from storage is
@@ -682,23 +668,31 @@ impl<'a> AsmBuilder<'a> {
             }
 
             Location::Storage(is_extern) => {
-                let num_keys = expr
-                    .get_ty(contract)
-                    .get_optional_ty()
-                    .ok_or_else(|| {
-                        handler.emit_internal_err(
+                let (num_keys, access_size) = expr.get_ty(contract).get_optional_ty().map_or_else(
+                    || {
+                        Err(handler.emit_internal_err(
                             "storage accesses must be of type optional",
                             empty_span(),
-                        )
-                    })?
-                    .storage_keys(handler, contract)? as i64;
+                        ))
+                    },
+                    |ty| {
+                        Ok((
+                            ty.storage_keys(handler, contract)? as i64,
+                            ty.size(handler, contract)? as i64,
+                        ))
+                    },
+                )?;
 
-                let access_mem_idx = self.storage_expr_to_mem_idx[expr];
-
-                // Read the storage keys into memory
                 asm.extend([
+                    // Allocate enough memory for KREX or KRNG
+                    PUSH(access_size + 2 * num_keys),
+                    ALOC,
+                    PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
+                    STOS,
+                    // Read the storage keys into memory
                     PUSH(num_keys),
-                    PUSH(access_mem_idx), // mem idx for the output of KREX or KRNG
+                    PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
+                    LODS,
                     if is_extern { KREX } else { KRNG },
                 ]);
 
@@ -706,12 +700,22 @@ impl<'a> AsmBuilder<'a> {
                 // memory:
                 // `[a_addr, a_len, b_addr, b_len, a_value, b_value, ...]`
                 if num_keys > 1 {
-                    asm.push(PUSH(0));
-                    asm.extend(
-                        (0..num_keys).flat_map(|i| [PUSH(access_mem_idx + 2 * i + 1), LOD, ADD]),
-                    );
+                    asm.extend([
+                        PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
+                        LODS,
+                        PUSH(num_keys * 2),
+                        LODR,
+                        PUSH(0),
+                    ]);
+                    asm.extend((0..num_keys).flat_map(|_| [ADD, SWAP, POP]));
                 } else {
-                    asm.extend([PUSH(access_mem_idx + 1), LOD]);
+                    asm.extend([
+                        PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
+                        LODS,
+                        PUSH(1),
+                        ADD,
+                        LOD,
+                    ]);
                 }
 
                 // This computes the tag on the stack and panics if the tag is 0.
@@ -722,8 +726,11 @@ impl<'a> AsmBuilder<'a> {
 
                 // Now read the actual unwrapped data
                 asm.extend([
-                    PUSH(access_mem_idx + num_keys * 2), // where the actual data lives
-                    PUSH(expr_size - 1),                 // size of the data (excluding the tag)
+                    PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
+                    LODS,
+                    PUSH(num_keys * 2),
+                    ADD,                 // where the actual datalives
+                    PUSH(expr_size - 1), // size of the data (excluding the tag)
                     LODR,
                 ]);
 
@@ -1433,23 +1440,32 @@ impl<'a> AsmBuilder<'a> {
             }
 
             Location::Storage(is_extern) => {
-                let num_keys = range_ty
-                    .get_optional_ty()
-                    .ok_or_else(|| {
-                        handler.emit_internal_err(
+                let (num_keys, access_size) = range_ty.get_optional_ty().map_or_else(
+                    || {
+                        Err(handler.emit_internal_err(
                             "storage accesses must be of type optional",
                             empty_span(),
-                        )
-                    })?
-                    .storage_keys(handler, contract)? as i64;
+                        ))
+                    },
+                    |ty| {
+                        Ok((
+                            ty.storage_keys(handler, contract)? as i64,
+                            ty.size(handler, contract)? as i64,
+                        ))
+                    },
+                )?;
 
-                let access_mem_idx = self.storage_expr_to_mem_idx[range_key];
+                asm.extend([PUSH(access_size + 2 * num_keys), ALOC, PUSH(2), STOS]);
 
                 asm.extend([
                     PUSH(num_keys),
-                    PUSH(access_mem_idx),
+                    PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
+                    LODS,
                     if is_extern { KREX } else { KRNG }, // Read the keys and values into memory.
-                    PUSH(access_mem_idx + num_keys * 2), // Offset to values.
+                    PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
+                    LODS,
+                    PUSH(num_keys * 2),
+                    ADD, // Offset to values.
                     PUSH(0),
                     STOS, // Store offset in scratch space at bottom of stack.
                 ]);
