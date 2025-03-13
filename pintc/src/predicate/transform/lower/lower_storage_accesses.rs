@@ -241,10 +241,10 @@ fn lower_storage_accesses_in_predicate(
 
     // Finally, insert the `__eq_set` expression above in a new constraint
     if let Some(pred) = contract.preds.get_mut(pred_key) {
-        pred.constraints.push(ConstraintDecl {
-            expr: eq_set_intrinsic,
-            span: empty_span(),
-        });
+        //        pred.constraints.push(ConstraintDecl {
+        //            expr: eq_set_intrinsic,
+        //            span: empty_span(),
+        //        });
     }
 
     Ok(())

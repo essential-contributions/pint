@@ -1,5 +1,10 @@
 // <enabled>
 // db <<<
+// 1, 4
+// 1 0, 99
+// 1 1, 100
+// 1 2, 101
+// 1 3, 102
 // 2, 3
 // 2 0, 13
 // 2 1, 14
@@ -16,8 +21,7 @@ storage {
 }
 
 predicate Bar() {
-    let v = storage::v0!;
-    constraint v[0] == 1;
+    constraint __len(storage::v0'!) == 3;
 
     // v0 starts empty
 //    let v0_0 = mut storage::v0[0];
@@ -32,8 +36,7 @@ predicate Bar() {
 
 //    constraint v0_len == 0;
 //    constraint v0_len' == 3;
-//    constraint v0_0'! == 42;
-//    constraint v0_1'! == 43;
-//    constraint v0_2'! == 44;
-
+    constraint v0_0'! == 42;
+    constraint v0_1'! == 43;
+    constraint v0_2'! == 44;
 }

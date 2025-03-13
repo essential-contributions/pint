@@ -55,6 +55,7 @@ impl<'a> AsmBuilder<'a> {
     // This is the index of the stack location reserved for the memory index of where `KRNG` and
     // `KREX` store their result. This is just 0 for now but we may have to change it.
     const KEY_RANGE_MEM_IDX_STACK_LOC: i64 = 0;
+    const ARRAY_LEN_STACK_LOC: i64 = 1;
 
     /// Creates a new `AsmBuilder` given a set of compiled predicates and their addresses.
     pub fn new(
@@ -84,7 +85,7 @@ impl<'a> AsmBuilder<'a> {
 
         // Produce a map from input variables to this nodes to their indices in the concatinated
         // memory. Also compute the total amount of memory used so far.
-        let pre_initialied_memory_size =
+        let pre_initialized_memory_size =
             parents.iter().try_fold(0i64, |base, node| match node {
                 ComputeNode::Var { var, reads, .. } => {
                     self.var_to_mem_idx.insert((var.name.clone(), *reads), base);
@@ -107,14 +108,14 @@ impl<'a> AsmBuilder<'a> {
             if expr.collect_storage_accesses(contract).is_empty() {
                 self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
             } else {
-                asm.extend([PUSH(1), RES, POP]);
+                asm.extend([PUSH(2), RES, POP]);
                 self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
-                asm.extend([SWAP, PUSH(1), DROP]);
+                asm.extend([PUSH(2), SWAPI, PUSH(2), DROP]);
             }
         } else {
             // Allocate enough memory for the returned data, if needed
-            if pre_initialied_memory_size < expr_size {
-                asm.extend([PUSH(expr_size - pre_initialied_memory_size), ALOC, POP]);
+            if pre_initialized_memory_size < expr_size {
+                asm.extend([PUSH(expr_size - pre_initialized_memory_size), ALOC, POP]);
             }
 
             // Reserve scratch space at the bottom of the stack. Currently used by morphisms and
@@ -683,56 +684,122 @@ impl<'a> AsmBuilder<'a> {
                     },
                 )?;
 
-                asm.extend([
-                    // Allocate enough memory for KREX or KRNG
-                    PUSH(access_size + 2 * num_keys),
-                    ALOC,
-                    PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
-                    STOS,
-                    // Read the storage keys into memory
-                    PUSH(num_keys),
-                    PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
-                    LODS,
-                    if is_extern { KREX } else { KRNG },
-                ]);
+                if let Some(Type::UnsizedArray { ty: el_ty, .. }) =
+                    expr.get_ty(contract).get_optional_ty()
+                {
+                    let el_ty_size = el_ty.size(handler, contract)? as i64;
+                    asm.extend([
+                        // Allocate enough memory for KREX or KRNG
+                        PUSH(3),
+                        ALOC,
+                        PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
+                        STOS,
+                        // Read the storage keys into memory
+                        PUSH(1),
+                        PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
+                        LODS,
+                        if is_extern { KREX } else { KRNG },
+                    ]);
 
-                // Sum the sizes of all the values read. These are laid out as follows in
-                // memory:
-                // `[a_addr, a_len, b_addr, b_len, a_value, b_value, ...]`
-                if num_keys > 1 {
+                    asm.extend([
+                        PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
+                        LODS,
+                        PUSH(2),
+                        ADD, // where the actual datalives
+                        LOD,
+                        PUSH(Self::ARRAY_LEN_STACK_LOC),
+                        STOS,
+                    ]);
+
+                    asm.extend([
+                        PUSH(el_ty_size), // ty_size
+                        PUSH(2),
+                        ADD, // ty_size + 2
+                        PUSH(Self::ARRAY_LEN_STACK_LOC),
+                        LODS,
+                        MUL, // ( ty_size + 2) * len
+                        ALOC,
+                        PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
+                        STOS,
+                    ]);
+
+                    // Compute the key and key_len again
+                    self.compile_expr_pointer(handler, asm, expr, contract, pred)?;
+
+                    asm.extend([
+                        PUSH(0),
+                        SWAP,
+                        PUSH(1),
+                        ADD,
+                        PUSH(Self::ARRAY_LEN_STACK_LOC),
+                        LODS, // num keys to read
+                        PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
+                        LODS, // mem_idx
+                        if is_extern { KREX } else { KRNG },
+                        PUSH(Self::ARRAY_LEN_STACK_LOC),
+                        LODS,
+                        PUSH(2),
+                        MUL, // 2 * len
+                        PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
+                        LODS,
+                        ADD,              // mem_idx + 2 * len
+                        PUSH(el_ty_size), // ty_size
+                        PUSH(Self::ARRAY_LEN_STACK_LOC),
+                        LODS,
+                        MUL, // ty_size * len
+                    ]);
+                } else {
+                    asm.extend([
+                        // Allocate enough memory for KREX or KRNG
+                        PUSH(access_size + 2 * num_keys),
+                        ALOC,
+                        PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
+                        STOS,
+                        // Read the storage keys into memory
+                        PUSH(num_keys),
+                        PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
+                        LODS,
+                        if is_extern { KREX } else { KRNG },
+                    ]);
+
+                    // Sum the sizes of all the values read. These are laid out as follows in
+                    // memory:
+                    // `[a_addr, a_len, b_addr, b_len, a_value, b_value, ...]`
+                    if num_keys > 1 {
+                        asm.extend([
+                            PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
+                            LODS,
+                            PUSH(num_keys * 2),
+                            LODR,
+                            PUSH(0),
+                        ]);
+                        asm.extend((0..num_keys).flat_map(|_| [ADD, SWAP, POP]));
+                    } else {
+                        asm.extend([
+                            PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
+                            LODS,
+                            PUSH(1),
+                            ADD,
+                            LOD,
+                        ]);
+                    }
+
+                    // This computes the tag on the stack and panics if the tag is 0.
+                    //
+                    // If the total size read from storage is equal to the size of the value in
+                    // the optional, then the tag should be 1.  Otherwise, it should be 0.
+                    asm.extend([PUSH(expr_size - 1), EQ, NOT, PNCIF]);
+
+                    // Now read the actual unwrapped data
                     asm.extend([
                         PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
                         LODS,
                         PUSH(num_keys * 2),
+                        ADD,                 // where the actual datalives
+                        PUSH(expr_size - 1), // size of the data (excluding the tag)
                         LODR,
-                        PUSH(0),
-                    ]);
-                    asm.extend((0..num_keys).flat_map(|_| [ADD, SWAP, POP]));
-                } else {
-                    asm.extend([
-                        PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
-                        LODS,
-                        PUSH(1),
-                        ADD,
-                        LOD,
                     ]);
                 }
-
-                // This computes the tag on the stack and panics if the tag is 0.
-                //
-                // If the total size read from storage is equal to the size of the value in
-                // the optional, then the tag should be 1.  Otherwise, it should be 0.
-                asm.extend([PUSH(expr_size - 1), EQ, NOT, PNCIF]);
-
-                // Now read the actual unwrapped data
-                asm.extend([
-                    PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
-                    LODS,
-                    PUSH(num_keys * 2),
-                    ADD,                 // where the actual datalives
-                    PUSH(expr_size - 1), // size of the data (excluding the tag)
-                    LODR,
-                ]);
 
                 Ok(Location::Stack)
             }
@@ -936,9 +1003,8 @@ impl<'a> AsmBuilder<'a> {
                     Location::Storage(_) => todo!("__len() of array in storage"),
 
                     Location::Stack => {
-                        if !arg.is_storage_access(contract) {
-                            todo!("__len() of array in stack")
-                        }
+                        // Just SWAP and POP since a vector on the stack is just [ mem_idx, len ]
+                        asm.extend([SWAP, POP]);
                     }
                 }
             }
