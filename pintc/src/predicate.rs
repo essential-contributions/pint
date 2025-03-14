@@ -70,7 +70,7 @@ impl Contract {
     }
 
     /// Visit expression and every sub-expression with a function.
-    fn visitor_from_key(
+    pub(crate) fn visitor_from_key(
         &self,
         kind: VisitorKind,
         expr_key: ExprKey,

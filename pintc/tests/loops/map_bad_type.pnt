@@ -2,6 +2,9 @@ predicate test(ary: bool[4]) {
     let b = map x in ary { x + 11 };
 
     let c: int[4] = map x in ary { !x };
+
+    let d = 22 + 33;
+    let e = map x in d { x * 0 };
 }
 
 // parsed <<<
@@ -10,12 +13,16 @@ predicate test(ary: bool[4]) {
 // ) {
 //     let ::b = map x in ::ary { (::x + 11) };
 //     let ::c: int[4] = map x in ::ary { !::x };
+//     let ::d = (22 + 33);
+//     let ::e = map x in ::d { (::x * 0) };
 // }
 // >>>
 
 // typecheck_failure <<<
 // operator invalid type error
 // @58..64: invalid non-numeric type `bool` for operator `+`
+// invalid map range type
+// @123..125: expecting either array or range, found `int`
 // variable initialization type error
 // @89..108: initializing expression has unexpected type `bool[4]`
 // @80..86: expecting type `int[4]`

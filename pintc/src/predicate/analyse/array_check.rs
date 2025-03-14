@@ -29,7 +29,7 @@ impl Contract {
             ty: &Type,
             init: Option<ExprKey>,
         ) {
-            if ty.is_array() {
+            if ty.is_fixed_array() {
                 if let Ok(n) = get_array_size_from_type(contract, handler, ty) {
                     if n < 1 {
                         handler.emit_err(Error::Compile {
@@ -88,7 +88,9 @@ impl Contract {
                 expr_key.try_get(self).and_then(|expr| {
                     if let Expr::Index { expr, index, .. } = expr {
                         let indexed_ty = expr.get_ty(self);
-                        indexed_ty.is_array().then(|| (indexed_ty.clone(), *index))
+                        indexed_ty
+                            .is_fixed_array()
+                            .then(|| (indexed_ty.clone(), *index))
                     } else {
                         None
                     }
@@ -149,7 +151,7 @@ impl Contract {
                     let lhs_ty = lhs.get_ty(self);
                     let rhs_ty = rhs.get_ty(self);
 
-                    if lhs_ty.is_array() && rhs_ty.is_array() {
+                    if lhs_ty.is_fixed_array() && rhs_ty.is_fixed_array() {
                         // We're comparing arrays.  Now compare their sizes.
                         let lhs_size = get_array_size_from_type(self, handler, lhs_ty);
                         let rhs_size = get_array_size_from_type(self, handler, rhs_ty);
