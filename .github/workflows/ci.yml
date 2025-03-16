@@ -7,8 +7,8 @@ on:
   pull_request: null
 
 env:
-  RUST_VERSION: 1.84.1
-  NIGHTLY_RUST_VERSION: nightly-2025-02-04
+  RUST_VERSION: 1.85.0
+  NIGHTLY_RUST_VERSION: nightly-2025-03-14
   SCIP_VERSION: 8.0.3
   CARGO_NET_GIT_FETCH_WITH_CLI: "true"
 

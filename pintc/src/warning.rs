@@ -155,15 +155,13 @@ where
         report_builder
             .finish()
             .eprint(
-                FnCache::new(|id: &&str| {
-                    Err(Box::new(format!("Failed to fetch source '{id}'")) as _)
-                })
-                .with_sources(
-                    filepaths_and_sources
-                        .iter()
-                        .map(|(id, s)| (&id[..], Source::from(s)))
-                        .collect(),
-                ),
+                FnCache::new(|id: &&str| Err(Box::new(format!("Failed to fetch source '{id}'"))))
+                    .with_sources(
+                        filepaths_and_sources
+                            .iter()
+                            .map(|(id, s)| (&id[..], Source::from(s)))
+                            .collect(),
+                    ),
             )
             .unwrap();
     }

@@ -66,7 +66,7 @@ fn compile_errors() {
             .replace(input_file.path().to_str().unwrap(), "filepath"),
         expect_test::expect![[r#"
             Error: 
-               ╭─[filepath:1:6]
+               ╭─[ filepath:1:6 ]
                │
              1 │ let t
                │      │ 

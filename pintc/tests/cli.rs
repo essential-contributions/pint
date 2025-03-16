@@ -84,21 +84,21 @@ fn compile_errors() {
             .replace(input_file.path().to_str().unwrap(), "filepath"),
         expect_test::expect![[r#"
             Error: empty tuple types are not allowed
-               ╭─[filepath:1:19]
+               ╭─[ filepath:1:19 ]
                │
              1 │ predicate test(t: {}, a: int) { constraint t == {}; constraint a == a[]; }
                │                   ─┬  
                │                    ╰── empty tuple type found
             ───╯
             Error: empty tuple expressions are not allowed
-               ╭─[filepath:1:49]
+               ╭─[ filepath:1:49 ]
                │
              1 │ predicate test(t: {}, a: int) { constraint t == {}; constraint a == a[]; }
                │                                                 ─┬  
                │                                                  ╰── empty tuple expression found
             ───╯
             Error: missing array or map index
-               ╭─[filepath:1:69]
+               ╭─[ filepath:1:69 ]
                │
              1 │ predicate test(t: {}, a: int) { constraint t == {}; constraint a == a[]; }
                │                                                                     ─┬─  
