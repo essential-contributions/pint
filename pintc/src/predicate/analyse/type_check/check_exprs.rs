@@ -1564,21 +1564,6 @@ impl Contract {
 
                 Inference::Type(Type::Error(span.clone()))
             }
-        } else if let Some(el_ty) = ary_ty.get_vector_element_ty() {
-            if !index_ty.is_int() {
-                handler.emit_err(Error::Compile {
-                    error: CompileError::ArrayAccessWithWrongType {
-                        found_ty: self.with_ctrct(index_ty).to_string(),
-                        expected_ty: "int".to_string(),
-                        span: self.expr_key_to_span(index_expr_key),
-                    },
-                });
-            }
-
-            Inference::Type(Type::Optional {
-                ty: Box::new(el_ty.clone()),
-                span: el_ty.span().clone(),
-            })
         } else {
             handler.emit_err(Error::Compile {
                 error: CompileError::IndexExprNonIndexable {
