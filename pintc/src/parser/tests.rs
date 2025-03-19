@@ -946,8 +946,8 @@ fn local_storage_access() {
     );
 
     check(
-        &run_parser!(expr, r#"mut storage::foo.0.3"#),
-        expect_test::expect!["mut storage::foo.0.3"],
+        &run_parser!(expr, r#"storage::foo.0.3"#),
+        expect_test::expect!["storage::foo.0.3"],
     );
 
     check(
@@ -958,9 +958,9 @@ fn local_storage_access() {
     check(
         &run_parser!(
             expr,
-            r#"mut storage::balances[0x111][__this_address()][t[3].5].2"#
+            r#"storage::balances[0x111][__this_address()][t[3].5].2"#
         ),
-        expect_test::expect!["mut storage::balances[273][__this_address()][::t[3].5].2"],
+        expect_test::expect!["storage::balances[273][__this_address()][::t[3].5].2"],
     );
 
     check(

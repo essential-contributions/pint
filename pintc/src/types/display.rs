@@ -24,6 +24,8 @@ impl DisplayWithContract for super::Type {
 
             super::Type::Nil(..) => write!(f, "_?"), // Basicaly an unknonw optional
 
+            super::Type::KeyValue(..) => write!(f, "(:=)"),
+
             super::Type::Primitive { kind, .. } => write!(f, "{kind}"),
 
             super::Type::FixedArray { ty, range, .. } => {

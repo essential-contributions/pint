@@ -268,11 +268,6 @@ fn r#use() {
 }
 
 #[test]
-fn r#mut() {
-    assert_eq!(lex_one_success("mut"), Token::Mut);
-}
-
-#[test]
 fn self_tok() {
     assert_eq!(lex_one_success("self"), Token::SelfTok);
 }

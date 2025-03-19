@@ -89,7 +89,9 @@ impl<'a> AsmBuilder<'a> {
             ));
         }
 
-        let expr_size = expr_ty.size(handler, contract)? as i64;
+        dbg!(&expr.get(contract));
+        let expr_size = expr.size(handler, contract)? as i64;
+        dbg!(expr_size);
 
         // Produce a map from input variables to this nodes to their indices in the concatinated
         // memory. Also compute the total amount of memory used so far.
@@ -97,13 +99,13 @@ impl<'a> AsmBuilder<'a> {
             parents.iter().try_fold(0i64, |base, node| match node {
                 ComputeNode::Var { var, reads, .. } => {
                     self.var_to_mem_idx.insert((var.name.clone(), *reads), base);
-                    let size = var.expr.get_ty(contract).size(handler, contract)?;
+                    let size = var.expr.size(handler, contract)?;
                     Ok(base + size as i64)
                 }
                 ComputeNode::Constraint { .. } => Ok(base),
                 ComputeNode::Expr { expr, .. } => {
                     self.precomputed_expr_to_mem_idx.insert(*expr, base);
-                    let size = expr.get_ty(contract).size(handler, contract)?;
+                    let size = expr.size(handler, contract)?;
                     Ok(base + size as i64)
                 }
             })?;
@@ -113,6 +115,8 @@ impl<'a> AsmBuilder<'a> {
         if expr.get(contract).is_asm_block() {
             self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
         } else {
+            let is_key_value = expr.get_ty(contract).is_key_value();
+
             // Search this expression for nested storage accesses, and if not found search for
             // nested morphisms.
             let mut scratch_needed = !expr.collect_storage_accesses(contract).is_empty();
@@ -136,11 +140,40 @@ impl<'a> AsmBuilder<'a> {
             }
 
             if node.is_leaf() {
-                self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
+                if !is_key_value {
+                    self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
 
-                if scratch_needed {
-                    // Stash the node result and drop the remaining scratch.
-                    asm.extend([PUSH(0), STOS, POP, POP]);
+                    if scratch_needed {
+                        // Stash the node result and drop the remaining scratch.
+                        asm.extend([PUSH(0), STOS, POP, POP]);
+                    }
+                } else {
+                    // Allocate enough memory for the returned data, if needed
+                    if pre_initialied_memory_size < 1 + expr_size {
+                        asm.extend([PUSH(1 + expr_size - pre_initialied_memory_size), ALOC, POP]);
+                    }
+
+                    // Compile result to the stack.
+                    self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
+
+                    // Stash it to the start of memory.
+                    asm.extend([PUSH(expr_size), PUSH(1), STOR]);
+
+                    // Store the number of keys here
+                    asm.extend([PUSH(1), PUSH(0), STO]);
+
+                    // drop the scratch space if needed
+                    if scratch_needed {
+                        asm.extend([PUSH(3), DROP]);
+                    }
+
+                    // While compiling the expr we may have allocated more buffers in memory.  We
+                    // need to shrink memory down to just the result.
+                    // TODO: have compile_expr() return whether this is necessary.
+                    asm.extend([PUSH(expr_size + 1), FREE]);
+
+                    // Finally just push 2 on the stack to indicate the type of this node
+                    asm.push(PUSH(2));
                 }
             } else {
                 // Allocate enough memory for the returned data, if needed
@@ -181,7 +214,7 @@ impl<'a> AsmBuilder<'a> {
     ) -> Result<usize, ErrorEmitted> {
         let old_asm_len = asm.len();
         let expr_ty = expr.get_ty(contract);
-        let expr_size = expr_ty.size(handler, contract)? as i64;
+        let expr_size = expr.size(handler, contract)? as i64;
 
         match self.compile_expr_pointer(handler, asm, expr, contract, pred)? {
             Location::PredicateData => {
@@ -365,6 +398,24 @@ impl<'a> AsmBuilder<'a> {
             Expr::AsmBlock { ops, .. } => self.compile_asm_block(handler, asm, ops, pred),
             Expr::UnionVariant { path, value, .. } => {
                 self.compile_union_expr(handler, asm, expr, path, value, contract, pred)
+            }
+            Expr::KeyValue { lhs, rhs, .. } => {
+                // WIP
+                if let Expr::IntrinsicCall {
+                    kind: (IntrinsicKind::Internal(InternalIntrinsic::State), _),
+                    args,
+                    ..
+                } = lhs.get(contract)
+                {
+                    // key size followed by the key
+                    asm.push(PUSH(args[0].size(handler, contract)? as i64));
+                    self.compile_expr(handler, asm, &args[0], contract, pred)?;
+
+                    // value size followed by the value
+                    asm.push(PUSH(rhs.get_ty(contract).size(handler, contract)? as i64));
+                    self.compile_expr(handler, asm, rhs, contract, pred)?;
+                }
+                Ok(Location::Stack)
             }
             Expr::Nil(_) => self.compile_nil_expr(handler, asm, expr, contract),
             Expr::UnaryOp { op, expr, .. } => {
@@ -633,16 +684,6 @@ impl<'a> AsmBuilder<'a> {
                 self.compile_expr(handler, asm, expr, contract, pred)?;
                 asm.push(NOT);
                 Ok(Location::Stack)
-            }
-            UnaryOp::NextState => {
-                if let Expr::Path(path, _) = expr.get(contract) {
-                    self.compile_path(handler, asm, path, Reads::Post, pred)
-                } else {
-                    Err(handler.emit_internal_err(
-                        "unexpected next state op for non-path".to_string(),
-                        empty_span(),
-                    ))
-                }
             }
             UnaryOp::Neg => {
                 // Push `0` (i.e. `lhs`) before the `expr` (i.e. `rhs`) opcodes. Then subtract
@@ -1032,26 +1073,14 @@ impl<'a> AsmBuilder<'a> {
             //
             // The only exception is set types since they are not very well specified yet. The
             // length of a set currently lives in the set itself.
-            if !matches!(kind, InternalIntrinsic::EqSet) && kind.args()[i].is_any() {
+            if kind.args()[i].is_any() {
                 asm.push(PUSH(arg.get_ty(contract).size(handler, contract)? as i64));
             }
         }
 
         match kind {
-            InternalIntrinsic::EqSet => {
-                asm.push(EQST);
-                Ok(Location::Stack)
-            }
-            InternalIntrinsic::MutKeys => {
-                asm.push(MKEYS);
-                Ok(Location::Stack)
-            }
-            InternalIntrinsic::PreState | InternalIntrinsic::PostState => {
-                Ok(Location::Storage(false))
-            }
-            InternalIntrinsic::PreStateExtern | InternalIntrinsic::PostStateExtern => {
-                Ok(Location::Storage(true))
-            }
+            InternalIntrinsic::State => Ok(Location::Storage(false)),
+            InternalIntrinsic::StateExtern => Ok(Location::Storage(true)),
         }
     }
 

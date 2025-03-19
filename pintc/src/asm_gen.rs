@@ -241,12 +241,6 @@ pub fn compile_predicate(
         });
         vars_to_nodes.insert((variable.name.clone(), Reads::Pre), var_node_pre);
 
-        let var_node_post = data_flow_graph.add_node(ComputeNode::Var {
-            var: variable.clone(),
-            reads: Reads::Post,
-        });
-        vars_to_nodes.insert((variable.name.clone(), Reads::Post), var_node_post);
-
         // Variables that are initialized with an asm block depend on the arguments of the asm
         // block. Pull those arguments into their own and add the appropriate dependencies.
         if let Expr::AsmBlock { args, .. } = variable.expr.get(contract) {
@@ -261,27 +255,8 @@ pub fn compile_predicate(
 
                     asm_args_to_nodes.insert(*arg, arg_node);
 
-                    // If the argument has post accesses, they get their own nodes that the arg
-                    // node depends on
-                    let post_accesses = arg
-                        .collect_storage_accesses(contract)
-                        .into_iter()
-                        .filter(|access| access.is_post_storage_access_intrinsic(contract))
-                        .collect::<Vec<_>>();
-
-                    for access in post_accesses {
-                        // Create an `Expr` node for each post access
-                        let post_access_node = data_flow_graph.add_node(ComputeNode::Expr {
-                            expr: access,
-                            reads: Reads::Post,
-                        });
-                        data_flow_graph.add_edge(post_access_node, arg_node, ());
-                        data_flow_graph.add_edge(post_access_node, arg_node, ());
-                    }
-
                     // Finally, the var nodes themselves depend on the arg node
                     data_flow_graph.add_edge(arg_node, var_node_pre, ());
-                    data_flow_graph.add_edge(arg_node, var_node_post, ());
 
                     arg_node
                 })
@@ -295,25 +270,6 @@ pub fn compile_predicate(
             arg_nodes.windows(2).for_each(|window| {
                 data_flow_graph.add_edge(window[0], window[1], ());
             });
-        } else {
-            // For var initializers that are not asm blocks, just pull out post accesses into their
-            // own nodes
-            let post_accesses = variable
-                .expr
-                .collect_storage_accesses(contract)
-                .into_iter()
-                .filter(|access| access.is_post_storage_access_intrinsic(contract))
-                .collect::<Vec<_>>();
-
-            for access in post_accesses {
-                // create an `Expr` node for each post access
-                let expr_node = data_flow_graph.add_node(ComputeNode::Expr {
-                    expr: access,
-                    reads: Reads::Post,
-                });
-                data_flow_graph.add_edge(expr_node, var_node_pre, ());
-                data_flow_graph.add_edge(expr_node, var_node_post, ());
-            }
         }
     }
 
@@ -338,52 +294,16 @@ pub fn compile_predicate(
                     vars_to_nodes[&(variable.name.clone(), Reads::Pre)],
                     (),
                 );
-                data_flow_graph.add_edge(
-                    vars_to_nodes[&(var_name.clone(), reads)],
-                    vars_to_nodes[&(variable.name.clone(), Reads::Post)],
-                    (),
-                );
             }
         }
     }
 
     // Insert leaf nodes and edges to them
     for ConstraintDecl { expr, .. } in pred.constraints.iter() {
-        // Collect pre accesses and post accesses separately.
-        //
-        // Note that we only expect storage intrinsics at this point. All other storage expressions
-        // should have been lowered by now.
-        let (post_accesses, pre_accesses): (Vec<_>, Vec<_>) = expr
-            .collect_storage_accesses(contract)
-            .into_iter()
-            .partition::<Vec<_>, _>(|access| access.is_post_storage_access_intrinsic(contract));
-
-        // 1. If all accesses are pre-accesses, then just add a constraint node that reads `Pre`.
-        // 2. If all accesses are post-accesses, then just add a constraint node that reads `Post`.
-        // 3. If the accesses are mixed, then add a constraint node that reads `Pre`, and "pull
-        //    out" post accesses into their own nodes
-        //
         let constraint_node = data_flow_graph.add_node(ComputeNode::Constraint {
             expr: *expr,
-            reads: if !pre_accesses.is_empty() && post_accesses.is_empty() {
-                Reads::Pre
-            } else if pre_accesses.is_empty() && !post_accesses.is_empty() {
-                Reads::Post
-            } else {
-                Reads::Pre
-            },
+            reads: Reads::Pre,
         });
-
-        if !pre_accesses.is_empty() && !post_accesses.is_empty() {
-            for access in post_accesses {
-                // create an `Expr` node for each post access
-                let expr_node = data_flow_graph.add_node(ComputeNode::Expr {
-                    expr: access,
-                    reads: Reads::Post,
-                });
-                data_flow_graph.add_edge(expr_node, constraint_node, ());
-            }
-        }
 
         for (var_name, reads) in expr.collect_path_to_var_exprs(contract, pred) {
             data_flow_graph.add_edge(vars_to_nodes[&(var_name, reads)], constraint_node, ());

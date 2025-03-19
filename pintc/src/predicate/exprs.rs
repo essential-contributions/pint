@@ -1,10 +1,9 @@
 use super::{Contract, PredKey, Predicate};
 use crate::{
-    expr::{
-        Expr, ExternalIntrinsic, InternalIntrinsic, IntrinsicKind, MatchBranch, MatchElse, UnaryOp,
-    },
+    error::{ErrorEmitted, Handler},
+    expr::{Expr, ExternalIntrinsic, InternalIntrinsic, IntrinsicKind, MatchBranch, MatchElse},
     predicate::Immediate,
-    span::empty_span,
+    span::{empty_span, Spanned},
     types::{PrimitiveKind, Type},
 };
 use essential_types::predicate::Reads;
@@ -122,6 +121,30 @@ impl ExprKey {
         contract.exprs.expr_types.insert(*self, ty);
     }
 
+    /// Get the size of an expression
+    pub fn size(&self, handler: &Handler, contract: &Contract) -> Result<usize, ErrorEmitted> {
+        match self.get(contract) {
+            Expr::KeyValue { lhs, rhs, .. } => {
+                let key_size = if let Expr::IntrinsicCall {
+                    kind: (IntrinsicKind::Internal(InternalIntrinsic::State), _),
+                    args,
+                    ..
+                } = lhs.get(contract)
+                {
+                    args[0].size(handler, contract)?
+                } else {
+                    return Err(handler.emit_internal_err(
+                        "lhs for KeyValue has to be a __state intrinsic",
+                        lhs.get(contract).span().clone(),
+                    ));
+                };
+
+                Ok(1 + key_size + 1 + rhs.size(handler, contract)?)
+            }
+            _ => self.get_ty(contract).size(handler, contract),
+        }
+    }
+
     /// Return whether this expression can panic (typically related to storage).
     pub fn can_panic(&self, contract: &Contract, pred: &Predicate) -> bool {
         contract.exprs.get(*self).is_some_and(|expr| match expr {
@@ -148,6 +171,10 @@ impl ExprKey {
                 .map(|value| value.can_panic(contract, pred))
                 .unwrap_or(false),
 
+            Expr::KeyValue { lhs, rhs, .. } => {
+                lhs.can_panic(contract, pred) || rhs.can_panic(contract, pred)
+            }
+
             Expr::Nil(_) => false,
 
             Expr::UnaryOp { expr, .. } => expr.can_panic(contract, pred),
@@ -160,10 +187,7 @@ impl ExprKey {
                 matches!(
                     kind.0,
                     IntrinsicKind::Internal(
-                        InternalIntrinsic::PreState
-                            | InternalIntrinsic::PostState
-                            | InternalIntrinsic::PreStateExtern
-                            | InternalIntrinsic::PostStateExtern
+                        InternalIntrinsic::State | InternalIntrinsic::StateExtern
                     ) | IntrinsicKind::External(ExternalIntrinsic::VecLen)
                 ) || args.iter().any(|arg| arg.can_panic(contract, pred))
             }
@@ -290,20 +314,13 @@ impl ExprKey {
                     }
                 }
 
-                Expr::LocalStorageAccess { .. } | Expr::ExternalStorageAccess { .. } => {
-                    storage_accesses.insert(*self);
+                Expr::KeyValue { lhs, rhs, .. } => {
+                    storage_accesses.extend(lhs.collect_storage_accesses(contract));
+                    storage_accesses.extend(rhs.collect_storage_accesses(contract));
                 }
 
-                Expr::UnaryOp {
-                    op: UnaryOp::NextState,
-                    expr,
-                    ..
-                } => {
-                    if expr.is_storage_access(contract) {
-                        storage_accesses.insert(*self);
-                    } else {
-                        storage_accesses.extend(expr.collect_storage_accesses(contract));
-                    }
+                Expr::LocalStorageAccess { .. } | Expr::ExternalStorageAccess { .. } => {
+                    storage_accesses.insert(*self);
                 }
 
                 Expr::UnaryOp { expr, .. } => {
@@ -319,10 +336,7 @@ impl ExprKey {
                     if let (
                         IntrinsicKind::External(ExternalIntrinsic::VecLen)
                         | IntrinsicKind::Internal(
-                            InternalIntrinsic::PostState
-                            | InternalIntrinsic::PreState
-                            | InternalIntrinsic::PostStateExtern
-                            | InternalIntrinsic::PreStateExtern,
+                            InternalIntrinsic::State | InternalIntrinsic::StateExtern,
                         ),
                         _,
                     ) = kind
@@ -477,6 +491,11 @@ impl ExprKey {
                     }
                 }
 
+                Expr::KeyValue { lhs, rhs, .. } => {
+                    rhs.collect_path_to_var_exprs(contract, pred);
+                    lhs.collect_path_to_var_exprs(contract, pred);
+                }
+
                 Expr::Path(path, _) => {
                     // collect paths to variables
                     if pred.variables().any(|(_, var)| &var.name == path) {
@@ -488,17 +507,8 @@ impl ExprKey {
                     path_to_var_exprs.extend(address.collect_path_to_var_exprs(contract, pred))
                 }
 
-                Expr::UnaryOp { op, expr, .. } => {
-                    if *op == UnaryOp::NextState {
-                        // collect "next state" paths to variables
-                        if let Expr::Path(path, _) = expr.get(contract) {
-                            if pred.variables().any(|(_, var)| &var.name == path) {
-                                path_to_var_exprs.insert((path.to_owned(), Reads::Post));
-                            }
-                        }
-                    } else {
-                        path_to_var_exprs.extend(expr.collect_path_to_var_exprs(contract, pred));
-                    }
+                Expr::UnaryOp { expr, .. } => {
+                    path_to_var_exprs.extend(expr.collect_path_to_var_exprs(contract, pred));
                 }
 
                 Expr::BinaryOp { lhs, rhs, .. } => {
@@ -617,10 +627,6 @@ impl ExprKey {
 
     pub fn is_storage_access_intrinsic(&self, contract: &Contract) -> bool {
         self.get(contract).is_storage_access_intrinsic()
-    }
-
-    pub fn is_post_storage_access_intrinsic(&self, contract: &Contract) -> bool {
-        self.get(contract).is_post_storage_access_intrinsic()
     }
 
     pub fn is_storage_access(&self, contract: &Contract) -> bool {
@@ -743,6 +749,11 @@ impl Iterator for ExprsIter<'_> {
                 if let Some(value) = value {
                     queue_if_new!(self, value);
                 }
+            }
+
+            Expr::KeyValue { lhs, rhs, .. } => {
+                queue_if_new!(self, lhs);
+                queue_if_new!(self, rhs);
             }
 
             Expr::ExternalStorageAccess { address, .. } => queue_if_new!(self, address),

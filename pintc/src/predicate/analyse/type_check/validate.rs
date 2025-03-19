@@ -37,6 +37,7 @@ impl Contract {
                 | Type::Unknown(_)
                 | Type::Any(_)
                 | Type::Nil(_)
+                | Type::KeyValue(_)
                 | Type::Primitive { .. }
                 | Type::Union { .. } => {}
             }
@@ -121,7 +122,7 @@ impl Contract {
             // type bool
             pred.constraints.iter().for_each(|constraint_decl| {
                 let expr_type = constraint_decl.expr.get_ty(self);
-                if !expr_type.is_bool() {
+                if !expr_type.is_bool() && !expr_type.is_key_value() {
                     handler.emit_err(Error::Compile {
                         error: CompileError::ConstraintExpressionTypeError {
                             large_err: Box::new(LargeTypeError::ConstraintExpressionTypeError {
@@ -324,6 +325,7 @@ impl Contract {
                 Type::Error(_)
                 | Type::Any(_)
                 | Type::Unknown(_)
+                | Type::KeyValue(_)
                 | Type::Custom { .. }
                 | Type::Primitive { .. }
                 | Type::Union { .. } => {}

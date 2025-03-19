@@ -52,6 +52,15 @@ impl DisplayWithContract for &super::Expr {
                 Ok(())
             }
 
+            super::Expr::KeyValue { lhs, rhs, .. } => {
+                write!(
+                    f,
+                    "{} := {}",
+                    contract.with_ctrct(lhs),
+                    contract.with_ctrct(rhs)
+                )
+            }
+
             super::Expr::Nil(_) => {
                 write!(f, "nil")
             }
@@ -69,12 +78,7 @@ impl DisplayWithContract for &super::Expr {
                 write!(f, "    }}")
             }
 
-            super::Expr::LocalStorageAccess { name, mutable, .. } => {
-                if *mutable {
-                    write!(f, "mut ")?;
-                }
-                write!(f, "storage::{name}")
-            }
+            super::Expr::LocalStorageAccess { name, .. } => write!(f, "storage::{name}"),
 
             super::Expr::ExternalStorageAccess {
                 interface,
@@ -88,16 +92,14 @@ impl DisplayWithContract for &super::Expr {
             ),
 
             super::Expr::UnaryOp { op, expr, .. } => {
-                if matches!(op, super::UnaryOp::NextState) {
-                    write!(f, "{}'", contract.with_ctrct(expr))
-                } else if matches!(op, super::UnaryOp::Unwrap) {
+                if matches!(op, super::UnaryOp::Unwrap) {
                     write!(f, "{}!", contract.with_ctrct(expr))
                 } else {
                     match op {
                         super::UnaryOp::Error => write!(f, "error"),
                         super::UnaryOp::Neg => write!(f, "-"),
                         super::UnaryOp::Not => write!(f, "!"),
-                        super::UnaryOp::NextState | super::UnaryOp::Unwrap => unreachable!(),
+                        super::UnaryOp::Unwrap => unreachable!(),
                     }?;
                     expr.fmt(f, contract)
                 }

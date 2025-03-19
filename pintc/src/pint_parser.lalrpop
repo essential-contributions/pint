@@ -585,7 +585,22 @@ MapType: Type = {
 /// Expressions ///
 ///////////////////
 
-Expr: ExprKey = SelectExpr;
+Expr: ExprKey = KeyValue;
+
+KeyValue: ExprKey = {
+    <l:@L> <lhs:KeyValue> ":=" <rhs:SelectExpr> <r:@R> => {
+        let span = (context.span_from)(l, r);
+        context.contract.exprs.insert(
+            Expr::KeyValue {
+                lhs,
+                rhs,
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        )
+    },
+    <SelectExpr>,
+}
 
 SelectExpr: ExprKey = {
     <l:@L> <condition:LogicalOrOp> "?" <then_expr:SelectExpr> ":" <else_expr:SelectExpr> <r:@R> => {
@@ -804,17 +819,6 @@ PostfixOp: ExprKey = {
     },
     <l:@L> <tuple:PostfixOp> "." <m:@L> <num_str:"real_lit"> <r:@R> => {
         context.parse_tuple_field_op_with_real(handler, tuple, num_str, (l, m, r))
-    },
-    <l:@L> <expr:PostfixOp> "'" <r:@R> => {
-        let span = (context.span_from)(l, r);
-        context.contract.exprs.insert(
-            Expr::UnaryOp {
-                op: UnaryOp::NextState,
-                expr,
-                span: span.clone(),
-            },
-            Type::Unknown(span),
-        )
     },
     <l:@L> <expr:PostfixOp> "!" <r:@R> => {
         let span = (context.span_from)(l, r);
@@ -1198,7 +1202,7 @@ PathWithLast<Last>: String = {
 }
 
 StoragePath: Expr = {
-    <l:@L> <mutable: "mut"?> "storage" "::" <name:Ident> <r:@R> => {
+    <l:@L> "storage" "::" <name:Ident> <r:@R> => {
         let span = (context.span_from)(l, r);
         if !context.mod_path.is_empty() {
             // `storage` blocks in sub-modules are not allowed
@@ -1209,7 +1213,6 @@ StoragePath: Expr = {
         } else {
             Expr::LocalStorageAccess {
                 name: name.to_string(),
-                mutable: mutable.is_some(),
                 span,
             }
         }
@@ -1357,6 +1360,7 @@ extern {
         "," => lexer::Token::Comma,
         "=" => lexer::Token::Eq,
         "?" => lexer::Token::QuestionMark,
+        ":=" => lexer::Token::ColonEqual,
 
         "==" => lexer::Token::EqEq,
         "!=" => lexer::Token::NotEq,
@@ -1410,7 +1414,6 @@ extern {
         "match" => lexer::Token::Match,
         "asm" => lexer::Token::Asm,
 
-        "mut" => lexer::Token::Mut,
         "use" => lexer::Token::Use,
         "self" => lexer::Token::SelfTok,
         "let" => lexer::Token::Let,
