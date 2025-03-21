@@ -1934,7 +1934,7 @@ impl Contract {
 
     fn infer_key_value_expr(
         &self,
-        _handler: &Handler,
+        handler: &Handler,
         lhs: ExprKey,
         rhs: ExprKey,
         span: &Span,
@@ -1943,18 +1943,27 @@ impl Contract {
         let rhs_ty = rhs.get_ty(self);
         if !lhs_ty.is_unknown() {
             if !rhs_ty.is_unknown() {
-                // TODO
-                /*if !value_ty.eq(self, collection_ty) {
-                    handler.emit_err(Error::Compile {
-                        error: CompileError::InExprTypesMismatch {
-                            val_ty: self.with_ctrct(value_ty).to_string(),
-                            range_ty: self.with_ctrct(collection_ty).to_string(),
-                            span: collection_ty.span().clone(),
-                        },
-                    });
-                }*/
-
-                Inference::Type(Type::KeyValue(span.clone()))
+                if let Some(lhs_inner_ty) = lhs.get_ty(self).get_optional_ty() {
+                    if !lhs_inner_ty.eq(self, rhs_ty) && !rhs_ty.is_nil() {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::KeyValueExprTypesMismatch {
+                                lhs_ty: self.with_ctrct(lhs_inner_ty).to_string(),
+                                rhs_ty: self.with_ctrct(rhs_ty).to_string(),
+                                span: rhs.get(self).span().clone(),
+                            },
+                        });
+                    }
+                }
+                if rhs_ty.is_nil() {
+                    Inference::Types {
+                        // Type of the key-value expression
+                        ty: Type::KeyValue(span.clone()),
+                        // Type of the `rhs`
+                        others: vec![(rhs, lhs_ty.clone())],
+                    }
+                } else {
+                    Inference::Type(Type::KeyValue(span.clone()))
+                }
             } else {
                 Inference::Dependant(rhs)
             }

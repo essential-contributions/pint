@@ -391,6 +391,12 @@ pub enum CompileError {
     UnregonizedInstruction { span: Span },
     #[error("attempt to use a non-constant value in a constant")]
     InvalidConst { span: Span },
+    #[error("storage key-value expression type error")]
+    KeyValueExprTypesMismatch {
+        lhs_ty: String,
+        rhs_ty: String,
+        span: Span,
+    },
 }
 
 // This is here purely at the suggestion of Clippy, who pointed out that these error variants are
@@ -1304,6 +1310,18 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
+            KeyValueExprTypesMismatch {
+                lhs_ty,
+                rhs_ty,
+                span,
+            } => vec![ErrorLabel {
+                message: format!(
+                    "storage key-value type mismatch; expecting `{lhs_ty}` type, found `{rhs_ty}` type"
+                ),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
             FileIO { .. } => Vec::new(),
         }
     }
@@ -1502,7 +1520,8 @@ impl ReportableError for CompileError {
             | InvalidMapRangeType { .. }
             | BadPushInstruction { .. }
             | UnregonizedInstruction { .. }
-            | InvalidConst { .. } => None,
+            | InvalidConst { .. }
+            | KeyValueExprTypesMismatch { .. } => None,
         }
     }
 
@@ -1735,6 +1754,7 @@ impl Spanned for CompileError {
             | IdenticalPredicates { span, .. }
             | InvalidMapRangeType { span, .. }
             | InvalidConst { span, .. }
+            | KeyValueExprTypesMismatch { span, .. }
             | BadPushInstruction { span }
             | UnregonizedInstruction { span } => span,
 

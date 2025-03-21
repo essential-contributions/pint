@@ -122,7 +122,12 @@ impl ExprKey {
     }
 
     /// Get the size of an expression
-    pub fn size(&self, handler: &Handler, contract: &Contract) -> Result<usize, ErrorEmitted> {
+    pub fn size(
+        &self,
+        handler: &Handler,
+        contract: &Contract,
+        pred: &Predicate,
+    ) -> Result<usize, ErrorEmitted> {
         match self.get(contract) {
             Expr::KeyValue { lhs, rhs, .. } => {
                 let key_size = if let Expr::IntrinsicCall {
@@ -131,7 +136,7 @@ impl ExprKey {
                     ..
                 } = lhs.get(contract)
                 {
-                    args[0].size(handler, contract)?
+                    args[0].size(handler, contract, pred)?
                 } else {
                     return Err(handler.emit_internal_err(
                         "lhs for KeyValue has to be a __state intrinsic",
@@ -139,8 +144,26 @@ impl ExprKey {
                     ));
                 };
 
-                Ok(1 + key_size + 1 + rhs.size(handler, contract)?)
+                let sizes = rhs.get_ty(contract).sizes(handler, contract)?;
+                if rhs.get(contract).is_nil() {
+                    Ok(1 + (1 + key_size) * sizes.len() + sizes.len())
+                } else {
+                    Ok(1 + (1 + key_size) * sizes.len()
+                        + sizes.len()
+                        + rhs.size(handler, contract, pred)?)
+                }
             }
+
+            Expr::Path(path, _) if self.get_ty(contract).is_key_value() => {
+                let Some((_, var)) = pred
+                    .variables()
+                    .find(|(_, variable)| &variable.name == path)
+                else {
+                    panic!()
+                };
+                var.expr.size(handler, contract, pred)
+            }
+
             _ => self.get_ty(contract).size(handler, contract),
         }
     }
@@ -492,8 +515,8 @@ impl ExprKey {
                 }
 
                 Expr::KeyValue { lhs, rhs, .. } => {
-                    rhs.collect_path_to_var_exprs(contract, pred);
-                    lhs.collect_path_to_var_exprs(contract, pred);
+                    path_to_var_exprs.extend(lhs.collect_path_to_var_exprs(contract, pred));
+                    path_to_var_exprs.extend(rhs.collect_path_to_var_exprs(contract, pred));
                 }
 
                 Expr::Path(path, _) => {

@@ -312,8 +312,8 @@ pub fn compile_predicate(
 
     // Remove all non-leaf nodes that have no children. That is, these are dead internal nodes that
     // **are not constraints**. These can be ignored and should not be compiled.
-    data_flow_graph
-        .retain_nodes(|graph, node| graph[node].is_leaf() || graph.edges(node).next().is_some());
+    //    data_flow_graph
+    //        .retain_nodes(|graph, node| graph[node].is_leaf() || graph.edges(node).next().is_some());
 
     // Detect dependency cycles between nodes.
     // TODO: move this check to semantic analysis and only emit an internal error here if

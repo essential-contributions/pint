@@ -89,9 +89,7 @@ impl<'a> AsmBuilder<'a> {
             ));
         }
 
-        dbg!(&expr.get(contract));
-        let expr_size = expr.size(handler, contract)? as i64;
-        dbg!(expr_size);
+        let expr_size = expr.size(handler, contract, pred)? as i64;
 
         // Produce a map from input variables to this nodes to their indices in the concatinated
         // memory. Also compute the total amount of memory used so far.
@@ -99,13 +97,13 @@ impl<'a> AsmBuilder<'a> {
             parents.iter().try_fold(0i64, |base, node| match node {
                 ComputeNode::Var { var, reads, .. } => {
                     self.var_to_mem_idx.insert((var.name.clone(), *reads), base);
-                    let size = var.expr.size(handler, contract)?;
+                    let size = var.expr.size(handler, contract, pred)?;
                     Ok(base + size as i64)
                 }
                 ComputeNode::Constraint { .. } => Ok(base),
                 ComputeNode::Expr { expr, .. } => {
                     self.precomputed_expr_to_mem_idx.insert(*expr, base);
-                    let size = expr.size(handler, contract)?;
+                    let size = expr.size(handler, contract, pred)?;
                     Ok(base + size as i64)
                 }
             })?;
@@ -149,18 +147,18 @@ impl<'a> AsmBuilder<'a> {
                     }
                 } else {
                     // Allocate enough memory for the returned data, if needed
-                    if pre_initialied_memory_size < 1 + expr_size {
-                        asm.extend([PUSH(1 + expr_size - pre_initialied_memory_size), ALOC, POP]);
+                    if pre_initialied_memory_size < expr_size {
+                        asm.extend([PUSH(expr_size - pre_initialied_memory_size), ALOC, POP]);
                     }
 
                     // Compile result to the stack.
                     self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
 
                     // Stash it to the start of memory.
-                    asm.extend([PUSH(expr_size), PUSH(1), STOR]);
+                    asm.extend([PUSH(expr_size), PUSH(0), STOR]);
 
-                    // Store the number of keys here
-                    asm.extend([PUSH(1), PUSH(0), STO]);
+                    // Store the number of mutations here
+                    // asm.extend([PUSH(1), PUSH(0), STO]);
 
                     // drop the scratch space if needed
                     if scratch_needed {
@@ -170,7 +168,7 @@ impl<'a> AsmBuilder<'a> {
                     // While compiling the expr we may have allocated more buffers in memory.  We
                     // need to shrink memory down to just the result.
                     // TODO: have compile_expr() return whether this is necessary.
-                    asm.extend([PUSH(expr_size + 1), FREE]);
+                    asm.extend([PUSH(expr_size), FREE]);
 
                     // Finally just push 2 on the stack to indicate the type of this node
                     asm.push(PUSH(2));
@@ -214,7 +212,7 @@ impl<'a> AsmBuilder<'a> {
     ) -> Result<usize, ErrorEmitted> {
         let old_asm_len = asm.len();
         let expr_ty = expr.get_ty(contract);
-        let expr_size = expr.size(handler, contract)? as i64;
+        let expr_size = expr.size(handler, contract, pred)? as i64;
 
         match self.compile_expr_pointer(handler, asm, expr, contract, pred)? {
             Location::PredicateData => {
@@ -407,13 +405,48 @@ impl<'a> AsmBuilder<'a> {
                     ..
                 } = lhs.get(contract)
                 {
-                    // key size followed by the key
-                    asm.push(PUSH(args[0].size(handler, contract)? as i64));
-                    self.compile_expr(handler, asm, &args[0], contract, pred)?;
+                    if rhs.get(contract).is_nil() {
+                        let sizes = rhs.get_ty(contract).sizes(handler, contract)?;
+                        asm.push(PUSH(sizes.len() as i64));
+                        for (idx, _) in sizes.iter().enumerate() {
+                            asm.push(PUSH(args[0].size(handler, contract, pred)? as i64));
+                            self.compile_expr(handler, asm, &args[0], contract, pred)?;
+                            asm.extend([PUSH(idx as i64), ADD]);
+                            asm.extend([PUSH(0)]);
+                        }
+                    } else {
+                        self.compile_expr(handler, asm, rhs, contract, pred)?;
+                        asm.extend([
+                            PUSH(rhs.size(handler, contract, pred)? as i64),
+                            ALOC,
+                            PUSH(0), // scratch space
+                            STOS,
+                            PUSH(rhs.size(handler, contract, pred)? as i64),
+                            PUSH(0), // scratch space
+                            LODS,
+                            STOR,
+                        ]);
 
-                    // value size followed by the value
-                    asm.push(PUSH(rhs.get_ty(contract).size(handler, contract)? as i64));
-                    self.compile_expr(handler, asm, rhs, contract, pred)?;
+                        let sizes = rhs.get_ty(contract).sizes(handler, contract)?;
+
+                        let mut current = 0;
+                        asm.push(PUSH(sizes.len() as i64));
+                        for (idx, size) in sizes.iter().enumerate() {
+                            asm.push(PUSH(args[0].size(handler, contract, pred)? as i64));
+                            self.compile_expr(handler, asm, &args[0], contract, pred)?;
+                            asm.extend([PUSH(idx as i64), ADD]);
+                            asm.extend([
+                                PUSH(*size as i64),
+                                PUSH(0),
+                                LODS,
+                                PUSH(current),
+                                ADD,
+                                PUSH(*size as i64),
+                                LODR,
+                            ]);
+                            current += *size as i64;
+                        }
+                    }
                 }
                 Ok(Location::Stack)
             }

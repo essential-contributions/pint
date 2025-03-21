@@ -366,6 +366,10 @@ impl Expr {
         matches!(self, Expr::AsmBlock { .. })
     }
 
+    pub fn is_nil(&self) -> bool {
+        matches!(self, Expr::Nil(_))
+    }
+
     pub fn is_storage_access_intrinsic(&self) -> bool {
         matches!(
             self,
