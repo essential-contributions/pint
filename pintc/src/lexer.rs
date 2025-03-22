@@ -48,6 +48,8 @@ pub enum Token {
     SingleQuote,
     #[token("?")]
     QuestionMark,
+    #[token(":=")]
+    ColonEqual,
 
     #[token(";")]
     Semi,
@@ -134,8 +136,6 @@ pub enum Token {
     #[token("constraint")]
     Constraint,
 
-    #[token("mut")]
-    Mut,
     #[token("use")]
     Use,
     #[token("self")]
@@ -232,7 +232,6 @@ pub(super) static KEYWORDS: &[Token] = &[
     Token::Map,
     Token::Match,
     Token::Asm,
-    Token::Mut,
     Token::Predicate,
     Token::Real,
     Token::SelfTok,
@@ -268,6 +267,7 @@ impl fmt::Display for Token {
             Token::DoublePipe => write!(f, "||"),
             Token::SingleQuote => write!(f, "'"),
             Token::QuestionMark => write!(f, "?"),
+            Token::ColonEqual => write!(f, ":="),
             Token::Semi => write!(f, ";"),
             Token::Comma => write!(f, ","),
             Token::Star => write!(f, "*"),
@@ -335,7 +335,6 @@ impl fmt::Display for Token {
             Token::Type => write!(f, "type"),
             Token::Union => write!(f, "union"),
             Token::Constraint => write!(f, "constraint"),
-            Token::Mut => write!(f, "mut"),
             Token::Use => write!(f, "use"),
             Token::SelfTok => write!(f, "self"),
             Token::As => write!(f, "as"),

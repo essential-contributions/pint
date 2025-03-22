@@ -524,6 +524,7 @@ impl Evaluator {
             | Expr::Range { span, .. }
             | Expr::Generator { span, .. }
             | Expr::Map { span, .. }
+            | Expr::KeyValue { span, .. }
             | Expr::Nil(span) => Err(handler.emit_err(Error::Compile {
                 error: CompileError::InvalidConst { span: span.clone() },
             })),
@@ -611,6 +612,13 @@ impl ExprKey {
                     value,
                     span,
                 }
+            }
+
+            Expr::KeyValue { lhs, rhs, span } => {
+                let lhs = lhs.plug_in(contract, values_map);
+                let rhs = rhs.plug_in(contract, values_map);
+
+                Expr::KeyValue { lhs, rhs, span }
             }
 
             Expr::LocalStorageAccess { .. }

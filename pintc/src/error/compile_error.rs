@@ -117,8 +117,6 @@ pub enum CompileError {
     StorageSymbolNotFound { name: String, span: Span },
     #[error("cannot find storage variable `{name}`")]
     MissingStorageBlock { name: String, span: Span },
-    #[error("`next state` access must be bound to a variable or to a storage access")]
-    InvalidNextStateAccess { span: Span },
     #[error("cannot find interface declaration `{name}`")]
     MissingInterface { name: String, span: Span },
     #[error("cannot find predicate `{pred_name}` in {}",
@@ -393,6 +391,12 @@ pub enum CompileError {
     UnregonizedInstruction { span: Span },
     #[error("attempt to use a non-constant value in a constant")]
     InvalidConst { span: Span },
+    #[error("storage key-value expression type error")]
+    KeyValueExprTypesMismatch {
+        lhs_ty: String,
+        rhs_ty: String,
+        span: Span,
+    },
 }
 
 // This is here purely at the suggestion of Clippy, who pointed out that these error variants are
@@ -695,16 +699,6 @@ impl ReportableError for CompileError {
             MissingStorageBlock { span, .. } => {
                 vec![ErrorLabel {
                     message: "no storage declaration found".to_string(),
-                    span: span.clone(),
-                    color: Color::Red,
-                }]
-            }
-
-            InvalidNextStateAccess { span } => {
-                vec![ErrorLabel {
-                    message:
-                        "`next state` access must be bound to a variable or to a storage access"
-                            .to_string(),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -1316,6 +1310,18 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
+            KeyValueExprTypesMismatch {
+                lhs_ty,
+                rhs_ty,
+                span,
+            } => vec![ErrorLabel {
+                message: format!(
+                    "storage key-value type mismatch; expecting `{lhs_ty}` type, found `{rhs_ty}` type"
+                ),
+                span: span.clone(),
+                color: Color::Red,
+            }],
+
             FileIO { .. } => Vec::new(),
         }
     }
@@ -1453,7 +1459,6 @@ impl ReportableError for CompileError {
             | SymbolNotFound { .. }
             | StorageSymbolNotFound { .. }
             | MissingStorageBlock { .. }
-            | InvalidNextStateAccess { .. }
             | MissingInterface { .. }
             | MissingPredicate { .. }
             | SelfReferencialPredicate { .. }
@@ -1515,7 +1520,8 @@ impl ReportableError for CompileError {
             | InvalidMapRangeType { .. }
             | BadPushInstruction { .. }
             | UnregonizedInstruction { .. }
-            | InvalidConst { .. } => None,
+            | InvalidConst { .. }
+            | KeyValueExprTypesMismatch { .. } => None,
         }
     }
 
@@ -1690,7 +1696,6 @@ impl Spanned for CompileError {
             | NonBoolGeneratorBody { span, .. }
             | SymbolNotFound { span, .. }
             | StorageSymbolNotFound { span, .. }
-            | InvalidNextStateAccess { span, .. }
             | MissingStorageBlock { span, .. }
             | MissingInterface { span, .. }
             | MissingPredicate { span, .. }
@@ -1749,6 +1754,7 @@ impl Spanned for CompileError {
             | IdenticalPredicates { span, .. }
             | InvalidMapRangeType { span, .. }
             | InvalidConst { span, .. }
+            | KeyValueExprTypesMismatch { span, .. }
             | BadPushInstruction { span }
             | UnregonizedInstruction { span } => span,
 

@@ -1,5 +1,6 @@
 mod utils;
 
+use essential_check::solution::DataOutput;
 use essential_vm::types::{solution::SolutionSet, ContentAddress};
 use pintc::predicate::CompileOptions;
 use regex::Regex;
@@ -215,7 +216,21 @@ async fn validation_e2e() -> anyhow::Result<()> {
             )
             .await
             {
-                Ok(_) => {}
+                Ok((_, output)) => {
+                    for data in output {
+                        match data {
+                            DataOutput::Memory(memory) => {
+                                for mutation in
+                                    essential_types::solution::decode::decode_mutations(&memory)?
+                                {
+                                    assert!(solution_set.solutions[idx]
+                                        .state_mutations
+                                        .contains(&mutation));
+                                }
+                            }
+                        }
+                    }
+                }
                 Err(err) => {
                     println!(
                         "{}",

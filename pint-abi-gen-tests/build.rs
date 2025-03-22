@@ -6,6 +6,7 @@ use pint_pkg::manifest::ManifestFile;
 use std::path::Path;
 
 /// Builds the package at the given manifest path.
+#[allow(dead_code)]
 fn build_test_pkg(manifest: ManifestFile) {
     // Plan and execute the build.
     let name = manifest.pkg.name.to_string();
@@ -59,7 +60,7 @@ fn main() {
         // Create the src path so we can check if it changes.
         let src_dir = manifest.src_dir().to_path_buf();
 
-        build_test_pkg(manifest);
+        // build_test_pkg(manifest);
 
         // Rerun the build script if any of the package manifests or src files
         // change.

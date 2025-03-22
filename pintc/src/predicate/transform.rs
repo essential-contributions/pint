@@ -1,14 +1,11 @@
-mod legalize;
 mod lower;
 mod unroll;
 mod validate;
 
 use crate::error::{ErrorEmitted, Handler};
-use legalize::legalize_vector_accesses;
 use lower::{
-    coalesce_prime_ops, lower_aliases, lower_array_ranges, lower_casts, lower_ifs,
-    lower_imm_accesses, lower_ins, lower_matches, lower_storage_accesses,
-    lower_union_variant_paths, replace_const_refs,
+    lower_aliases, lower_array_ranges, lower_casts, lower_ifs, lower_imm_accesses, lower_ins,
+    lower_matches, lower_storage_accesses, lower_union_variant_paths, replace_const_refs,
 };
 use unroll::unroll_generators;
 use validate::validate;
@@ -64,9 +61,6 @@ impl super::Contract {
         // Lower indexing or field access into immediates to the actual element or field.
         let _ = lower_imm_accesses(handler, &mut self);
 
-        // Coalesce all prime ops back down to the lowest path expression.
-        coalesce_prime_ops(&mut self);
-
         // This could be done straight after type checking but any error which prints the
         // type until now will have the more informative aliased description.  e.g.,
         // `Height (int)` rather than just `int`.
@@ -80,11 +74,7 @@ impl super::Contract {
         // (e.g., `option::none`) from Expr::Path to Expr::UnionVariant.
         lower_union_variant_paths(&mut self);
 
-        // Insert OOB checks for storage vector accesses
-        let _ = legalize_vector_accesses(handler, &mut self);
-
-        // Lower all storage accesses to __storage_get and __storage_get_extern intrinsics. Also
-        // add constraints on mutable keys
+        // Lower all storage accesses to __state and __state_extern intrinsics.
         let _ = lower_storage_accesses(handler, &mut self);
 
         // Ensure that the final contract is indeed final

@@ -14,24 +14,21 @@ const E = 0x0000000000000009000000000000000900000000000000090000000000000009;
 const F = 0x000000000000000F000000000000000F000000000000000F000000000000000F;
 
 predicate Foo() {
-    let address = mut storage::address!;
-    let address2 = mut storage::address2!;
-    let map_entry = mut storage::imap[69]!;
-    let map_in_map_entry = mut storage::map_in_map[9][A]!;
-    let map_in_map_in_map_entry = mut storage::map_in_map_in_map[88][B][999]!;
+    let kv1 = storage::address := C;                      
+    let kv2 = storage::address2 := D;                     
+    let kv3 = storage::imap[69] := E;                     
+    let kv4 = storage::map_in_map[9][A] := 42;            
+    let kv5 = storage::map_in_map_in_map[88][B][999] := F;
 
-    constraint address' == C;
-    constraint address2' == D;
-    constraint map_entry' == E;
-    constraint map_in_map_entry' == 42;
-    constraint map_in_map_in_map_entry' == F;
+    constraint kv1;
+    constraint kv2;
+    constraint kv3;
+    constraint kv4;
+    constraint kv5;
 
-    constraint storage::address'! == C; 
-    constraint storage::address2'! == D;
-    constraint storage::imap'[69]! == E;
-    constraint storage::imap[69]'! == E;
-    constraint storage::map_in_map'[9][A]! == 42;
-    constraint storage::map_in_map[9][A]'! == 42;
-    constraint storage::map_in_map_in_map'[88][B][999]! == F;
-    constraint storage::map_in_map_in_map[88][B][999]'! == F;
+    constraint storage::address := C; 
+    constraint storage::address2 := D;
+    constraint storage::imap[69] := E;
+    constraint storage::map_in_map[9][A] := 42;
+    constraint storage::map_in_map_in_map[88][B][999] := F;
 }

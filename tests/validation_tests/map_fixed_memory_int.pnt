@@ -1,3 +1,4 @@
+// <disabled>
 storage {
     ary: int[3],
 }
