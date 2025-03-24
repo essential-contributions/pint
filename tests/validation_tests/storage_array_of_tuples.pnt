@@ -15,7 +15,7 @@ interface Foo {
 
 
 predicate Bar() {
-    let a = mut storage::a!;
+    let a = storage::a!;
 
     let addr = 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE;
 
@@ -51,14 +51,14 @@ predicate Bar() {
         ],
     ];
 
-    let a_1_2_0 = mut storage::a[1][2].0;
-    let a_1_2_1_0 = mut storage::a[1][2].1.0;
-    let a_1_2_1_1 = mut storage::a[1][2].1.1;
+    let a_1_2_0 = storage::a[1][2].0;
+    let a_1_2_1_0 = storage::a[1][2].1.0;
+    let a_1_2_1_1 = storage::a[1][2].1.1;
     constraint a_1_2_0'! == 6;
     constraint a_1_2_1_0'! == 6;
     constraint a_1_2_1_1'! == 0x0000000000000006000000000000000600000000000000060000000000000006;
 
-    let a_1_2 = mut storage::a[1][2];
+    let a_1_2 = storage::a[1][2];
     constraint a_1_2'! == { 6, { 6, 0x0000000000000006000000000000000600000000000000060000000000000006
     }};
 

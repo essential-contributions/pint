@@ -6,9 +6,9 @@ storage {
 }
 
 predicate Simple() {
-//    let supply = mut storage::supply;
-//    let x = mut storage::map1[69];
-//    let y = mut storage::map2[0x0000000000000001000000000000000200000000000000030000000000000004];
+//    let supply = storage::supply;
+//    let x = storage::map1[69];
+//    let y = storage::map2[0x0000000000000001000000000000000200000000000000030000000000000004];
 
     constraint storage::supply := 42;
     constraint storage::map1[69] := 98;

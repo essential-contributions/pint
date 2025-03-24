@@ -92,14 +92,16 @@ impl DisplayWithContract for &super::Expr {
             ),
 
             super::Expr::UnaryOp { op, expr, .. } => {
-                if matches!(op, super::UnaryOp::Unwrap) {
+                if matches!(op, super::UnaryOp::NextState) {
+                    write!(f, "{}'", contract.with_ctrct(expr))
+                } else if matches!(op, super::UnaryOp::Unwrap) {
                     write!(f, "{}!", contract.with_ctrct(expr))
                 } else {
                     match op {
                         super::UnaryOp::Error => write!(f, "error"),
                         super::UnaryOp::Neg => write!(f, "-"),
                         super::UnaryOp::Not => write!(f, "!"),
-                        super::UnaryOp::Unwrap => unreachable!(),
+                        super::UnaryOp::NextState | super::UnaryOp::Unwrap => unreachable!(),
                     }?;
                     expr.fmt(f, contract)
                 }

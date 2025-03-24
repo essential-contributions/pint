@@ -26,9 +26,9 @@ predicate Simple(
     e_new: int,
     a: int[5],
 ) {
-    let x: int? = mut storage::x;
-    let y: int? = mut storage::y;
-    let z: int? = mut storage::z;
+    let x: int? = storage::x;
+    let y: int? = storage::y;
+    let z: int? = storage::z;
 
     let external_1 
         = Foo@[0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE]::storage::y; // 69

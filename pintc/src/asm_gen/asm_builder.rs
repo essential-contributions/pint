@@ -400,7 +400,7 @@ impl<'a> AsmBuilder<'a> {
             Expr::KeyValue { lhs, rhs, .. } => {
                 // WIP
                 if let Expr::IntrinsicCall {
-                    kind: (IntrinsicKind::Internal(InternalIntrinsic::State), _),
+                    kind: (IntrinsicKind::Internal(InternalIntrinsic::PreState), _),
                     args,
                     ..
                 } = lhs.get(contract)
@@ -717,6 +717,16 @@ impl<'a> AsmBuilder<'a> {
                 self.compile_expr(handler, asm, expr, contract, pred)?;
                 asm.push(NOT);
                 Ok(Location::Stack)
+            }
+            UnaryOp::NextState => {
+                if let Expr::Path(path, _) = expr.get(contract) {
+                    self.compile_path(handler, asm, path, Reads::Post, pred)
+                } else {
+                    Err(handler.emit_internal_err(
+                        "unexpected next state op for non-path".to_string(),
+                        empty_span(),
+                    ))
+                }
             }
             UnaryOp::Neg => {
                 // Push `0` (i.e. `lhs`) before the `expr` (i.e. `rhs`) opcodes. Then subtract
@@ -1112,8 +1122,12 @@ impl<'a> AsmBuilder<'a> {
         }
 
         match kind {
-            InternalIntrinsic::State => Ok(Location::Storage(false)),
-            InternalIntrinsic::StateExtern => Ok(Location::Storage(true)),
+            InternalIntrinsic::PreState | InternalIntrinsic::PostState => {
+                Ok(Location::Storage(false))
+            }
+            InternalIntrinsic::PreStateExtern | InternalIntrinsic::PostStateExtern => {
+                Ok(Location::Storage(true))
+            }
         }
     }
 

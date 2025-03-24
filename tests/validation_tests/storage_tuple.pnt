@@ -18,9 +18,9 @@ predicate Bar() {
     let addr = 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE;
 
     let w = storage::w!;
-    let w0 = mut storage::w.addr!;
-    let w10 = mut storage::w.inner.x!;
-    let w11 = mut storage::w.inner.1!;
+    let w0 = storage::w.addr!;
+    let w10 = storage::w.inner.x!;
+    let w11 = storage::w.inner.1!;
 
     let foo_w = Foo@[addr]::storage::w!;
     let foo_w0 = Foo@[addr]::storage::w.addr!;
@@ -28,9 +28,9 @@ predicate Bar() {
     let foo_w11 = Foo@[addr]::storage::w.inner.1!;
 
     let map_to_tuples_69 = storage::map_to_tuples[69]!;
-    let map_to_tuples_69_0 =  mut storage::map_to_tuples[69].0!;
-    let map_to_tuples_69_1_0 = mut storage::map_to_tuples[69].1.0!;
-    let map_to_tuples_69_1_1 = mut storage::map_to_tuples[69].1.1!;
+    let map_to_tuples_69_0 =  storage::map_to_tuples[69].0!;
+    let map_to_tuples_69_1_0 = storage::map_to_tuples[69].1.0!;
+    let map_to_tuples_69_1_1 = storage::map_to_tuples[69].1.1!;
 
     let foo_map_to_tuples_69 = Foo@[addr]::storage::map_to_tuples[69]!;
     let foo_map_to_tuples_69_0 = Foo@[addr]::storage::map_to_tuples[69].0!;

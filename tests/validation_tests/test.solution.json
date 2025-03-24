@@ -5,7 +5,7 @@
         "contract": "<>",
         "predicate": "<::foo>"
       },
-      "predicate_data": [],
+      "predicate_data": [[1]],
       "state_mutations": [
         {
           "key": [0, 0],

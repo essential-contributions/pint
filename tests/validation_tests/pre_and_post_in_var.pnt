@@ -10,4 +10,8 @@ predicate foo() {
     constraint storage::x == nil;
     constraint storage::x := 3;
     constraint storage::y := storage::y! + 1;
+
+    let x = storage::x'! + storage::y!;
+    constraint x == 3 + 5;
+    constraint x' == 3 + 6;
 }

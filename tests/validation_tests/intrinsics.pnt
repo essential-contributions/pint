@@ -25,9 +25,9 @@ predicate Foo(
     // These addresses can be verified by compiling this contract using the `pint` CLI tool which
     // produces the address of every predicate.
     constraint __address_of("::First") ==
-        0x0F39815C68106D04F66D62AAE15C9CB7AB917182075D8A183970CDB6397ED227;
+        0x903B6E8EC1A5B69E5951BB80900849A5C0F7198D2862E10EFC5A636FBAB40DA5;
     constraint __address_of("::Bar") ==
-        0xC89890A919484591D418986326F4438B2D4B6F9484DEE05907E5C8190939A50D;
+        0xEC17ED988BA809A88C204BA012AF0FC22C2D539E42E94BE94E573CFBCEA74032;
 
     constraint __sha256(0) == 0xAF5570F5A1810B7AF78CAF4BC70A660F0DF51E42BAF91D4DE5B2328DE0E83DFC;
 
@@ -65,10 +65,10 @@ predicate Foo(
             13
         };
 
-    let x = mut storage::x;
-    let y = mut storage::y;
-    let z = mut storage::z;
-    let w = mut storage::w;
+    let x = storage::x;
+    let y = storage::y;
+    let z = storage::z;
+    let w = storage::w;
 
     // `x` is set in the pre let db and in the solution
     // `x` is an optional

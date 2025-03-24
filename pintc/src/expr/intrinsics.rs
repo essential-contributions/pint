@@ -142,17 +142,25 @@ impl ExternalIntrinsic {
 #[derive(Clone, Debug, PartialEq)]
 pub enum InternalIntrinsic {
     // Reads local pre state.
-    State,
+    PreState,
 
     // Reads external pre state.
-    StateExtern,
+    PreStateExtern,
+
+    // Reads local post state.
+    PostState,
+
+    // Reads external post state.
+    PostStateExtern,
 }
 
 impl Display for InternalIntrinsic {
     fn fmt(&self, f: &mut Formatter) -> Result {
         match self {
-            Self::State => write!(f, "__state"),
-            Self::StateExtern => write!(f, "__state_extern"),
+            Self::PreState => write!(f, "__pre_state"),
+            Self::PreStateExtern => write!(f, "__pre_state_extern"),
+            Self::PostState => write!(f, "__post_state"),
+            Self::PostStateExtern => write!(f, "__post_state_extern"),
         }
     }
 }
@@ -160,10 +168,17 @@ impl Display for InternalIntrinsic {
 impl InternalIntrinsic {
     pub fn args(&self) -> Vec<Type> {
         match self {
-            Self::State => vec![
+            Self::PreState => vec![
                 any(), // storage key
             ],
-            Self::StateExtern => vec![
+            Self::PreStateExtern => vec![
+                b256(), // external contract address
+                any(),  // storage key
+            ],
+            Self::PostState => vec![
+                any(), // storage key
+            ],
+            Self::PostStateExtern => vec![
                 b256(), // external contract address
                 any(),  // storage key
             ],
@@ -172,8 +187,10 @@ impl InternalIntrinsic {
 
     pub fn ty(&self) -> Type {
         match self {
-            Self::State => any(),
-            Self::StateExtern => any(),
+            Self::PreState => any(),
+            Self::PreStateExtern => any(),
+            Self::PostState => any(),
+            Self::PostStateExtern => any(),
         }
     }
 }

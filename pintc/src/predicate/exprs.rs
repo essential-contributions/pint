@@ -1,7 +1,9 @@
 use super::{Contract, PredKey, Predicate};
 use crate::{
     error::{ErrorEmitted, Handler},
-    expr::{Expr, ExternalIntrinsic, InternalIntrinsic, IntrinsicKind, MatchBranch, MatchElse},
+    expr::{
+        Expr, ExternalIntrinsic, InternalIntrinsic, IntrinsicKind, MatchBranch, MatchElse, UnaryOp,
+    },
     predicate::Immediate,
     span::{empty_span, Spanned},
     types::{PrimitiveKind, Type},
@@ -131,7 +133,7 @@ impl ExprKey {
         match self.get(contract) {
             Expr::KeyValue { lhs, rhs, .. } => {
                 let key_size = if let Expr::IntrinsicCall {
-                    kind: (IntrinsicKind::Internal(InternalIntrinsic::State), _),
+                    kind: (IntrinsicKind::Internal(InternalIntrinsic::PreState), _),
                     args,
                     ..
                 } = lhs.get(contract)
@@ -210,7 +212,10 @@ impl ExprKey {
                 matches!(
                     kind.0,
                     IntrinsicKind::Internal(
-                        InternalIntrinsic::State | InternalIntrinsic::StateExtern
+                        InternalIntrinsic::PreState
+                            | InternalIntrinsic::PostState
+                            | InternalIntrinsic::PreStateExtern
+                            | InternalIntrinsic::PostStateExtern
                     ) | IntrinsicKind::External(ExternalIntrinsic::VecLen)
                 ) || args.iter().any(|arg| arg.can_panic(contract, pred))
             }
@@ -346,6 +351,18 @@ impl ExprKey {
                     storage_accesses.insert(*self);
                 }
 
+                Expr::UnaryOp {
+                    op: UnaryOp::NextState,
+                    expr,
+                    ..
+                } => {
+                    if expr.is_storage_access(contract) {
+                        storage_accesses.insert(*self);
+                    } else {
+                        storage_accesses.extend(expr.collect_storage_accesses(contract));
+                    }
+                }
+
                 Expr::UnaryOp { expr, .. } => {
                     storage_accesses.extend(expr.collect_storage_accesses(contract));
                 }
@@ -359,7 +376,10 @@ impl ExprKey {
                     if let (
                         IntrinsicKind::External(ExternalIntrinsic::VecLen)
                         | IntrinsicKind::Internal(
-                            InternalIntrinsic::State | InternalIntrinsic::StateExtern,
+                            InternalIntrinsic::PostState
+                            | InternalIntrinsic::PreState
+                            | InternalIntrinsic::PostStateExtern
+                            | InternalIntrinsic::PreStateExtern,
                         ),
                         _,
                     ) = kind
@@ -530,8 +550,17 @@ impl ExprKey {
                     path_to_var_exprs.extend(address.collect_path_to_var_exprs(contract, pred))
                 }
 
-                Expr::UnaryOp { expr, .. } => {
-                    path_to_var_exprs.extend(expr.collect_path_to_var_exprs(contract, pred));
+                Expr::UnaryOp { op, expr, .. } => {
+                    if *op == UnaryOp::NextState {
+                        // collect "next state" paths to variables
+                        if let Expr::Path(path, _) = expr.get(contract) {
+                            if pred.variables().any(|(_, var)| &var.name == path) {
+                                path_to_var_exprs.insert((path.to_owned(), Reads::Post));
+                            }
+                        }
+                    } else {
+                        path_to_var_exprs.extend(expr.collect_path_to_var_exprs(contract, pred));
+                    }
                 }
 
                 Expr::BinaryOp { lhs, rhs, .. } => {
@@ -650,6 +679,10 @@ impl ExprKey {
 
     pub fn is_storage_access_intrinsic(&self, contract: &Contract) -> bool {
         self.get(contract).is_storage_access_intrinsic()
+    }
+
+    pub fn is_post_storage_access_intrinsic(&self, contract: &Contract) -> bool {
+        self.get(contract).is_post_storage_access_intrinsic()
     }
 
     pub fn is_storage_access(&self, contract: &Contract) -> bool {

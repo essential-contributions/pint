@@ -820,6 +820,17 @@ PostfixOp: ExprKey = {
     <l:@L> <tuple:PostfixOp> "." <m:@L> <num_str:"real_lit"> <r:@R> => {
         context.parse_tuple_field_op_with_real(handler, tuple, num_str, (l, m, r))
     },
+    <l:@L> <expr:PostfixOp> "'" <r:@R> => {
+        let span = (context.span_from)(l, r);
+        context.contract.exprs.insert(
+            Expr::UnaryOp {
+                op: UnaryOp::NextState,
+                expr,
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        )
+    },
     <l:@L> <expr:PostfixOp> "!" <r:@R> => {
         let span = (context.span_from)(l, r);
         context.contract.exprs.insert(

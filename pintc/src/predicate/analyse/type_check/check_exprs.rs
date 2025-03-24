@@ -192,7 +192,7 @@ impl Contract {
                 op,
                 expr: op_expr_key,
                 span,
-            } => Ok(self.infer_unary_op(handler, *op, *op_expr_key, span)),
+            } => Ok(self.infer_unary_op(handler, pred, *op, *op_expr_key, span)),
 
             Expr::BinaryOp { op, lhs, rhs, span } => {
                 Ok(self.infer_binary_op(handler, *op, *lhs, *rhs, span))
@@ -424,14 +424,78 @@ impl Contract {
     fn infer_unary_op(
         &self,
         handler: &Handler,
+        pred: Option<&Predicate>,
         op: UnaryOp,
         rhs_expr_key: ExprKey,
         span: &Span,
     ) -> Inference {
+        fn drill_down_to_path(
+            contract: &Contract,
+            pred: Option<&Predicate>,
+            expr_key: &ExprKey,
+            span: &Span,
+        ) -> Result<(), Error> {
+            match expr_key.try_get(contract) {
+                Some(Expr::Path(name, span)) => {
+                    if pred
+                        .map(|pred| pred.variables().any(|(_, variable)| variable.name == *name))
+                        .unwrap_or(false)
+                    {
+                        Ok(())
+                    } else {
+                        Err(Error::Compile {
+                            error: CompileError::InvalidNextStateAccess { span: span.clone() },
+                        })
+                    }
+                }
+
+                Some(Expr::LocalStorageAccess { .. } | Expr::ExternalStorageAccess { .. }) => {
+                    Ok(())
+                }
+
+                // We recurse in three cases:
+                // - a'' is equivalent to a'.
+                // - a[x]' is equivalent to a'[x].
+                // - a.0' is equivalent to a'.0.
+                Some(Expr::UnaryOp {
+                    op: UnaryOp::NextState,
+                    expr,
+                    ..
+                })
+                | Some(Expr::Index { expr, .. })
+                | Some(Expr::TupleFieldAccess { tuple: expr, .. }) => {
+                    drill_down_to_path(contract, pred, expr, span)
+                }
+
+                _ => Err(Error::Compile {
+                    error: CompileError::InvalidNextStateAccess { span: span.clone() },
+                }),
+            }
+        }
+
         match op {
             UnaryOp::Error => {
                 handler.emit_internal_err("unable to type check unary op error", span.clone());
                 Inference::Type(Type::Error(span.clone()))
+            }
+
+            UnaryOp::NextState => {
+                // Next state access must be a path that resolves to a variable.  It _may_ be
+                // via array indices or tuple fields or even other prime ops.
+                match drill_down_to_path(self, pred, &rhs_expr_key, span) {
+                    Ok(()) => {
+                        let ty = rhs_expr_key.get_ty(self);
+                        if !ty.is_unknown() {
+                            Inference::Type(ty.clone())
+                        } else {
+                            Inference::Dependant(rhs_expr_key)
+                        }
+                    }
+                    Err(err) => {
+                        handler.emit_err(err);
+                        Inference::Type(Type::Error(span.clone()))
+                    }
+                }
             }
 
             UnaryOp::Neg => {

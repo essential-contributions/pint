@@ -834,6 +834,8 @@ impl Type {
             (Self::Nil(_), _) => false,
             (_, Self::Nil(_)) => false,
 
+            (Self::KeyValue(_), Self::KeyValue(_)) => true,
+
             (Self::Alias { ty: lhs_ty, .. }, rhs) => lhs_ty.eq(contract, rhs),
             (lhs, Self::Alias { ty: rhs_ty, .. }) => lhs.eq(contract, rhs_ty.as_ref()),
 

@@ -17,8 +17,8 @@ predicate foo(a: int, b: bool) {
     constraint v5 == 88 + 12 + v4 + v6.1;
     constraint v6 == { 12, 13 };
 
-    let v6 = mut storage::y!;
-    let v5 = mut storage::x! + mut storage::y.0! + v4 + v6.1;
+    let v6 = storage::y!;
+    let v5 = storage::x! + storage::y.0! + v4 + v6.1;
     let v1 = a;
     let v2 = v1 + a;
     let v3 = v1 + v2;

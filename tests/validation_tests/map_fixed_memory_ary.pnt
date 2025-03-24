@@ -3,7 +3,7 @@ storage {
 }
 
 predicate test() {
-    let a = mut storage::ary!;
+    let a = storage::ary!;
     let b = map x in a' { x[0] * x[1] };
 
     constraint b[0] > 0;

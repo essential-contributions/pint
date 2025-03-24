@@ -271,6 +271,7 @@ pub enum UnaryOp {
     Error,
     Neg,
     Not,
+    NextState,
     Unwrap,
 }
 
@@ -376,7 +377,25 @@ impl Expr {
             Expr::IntrinsicCall {
                 kind: (
                     IntrinsicKind::Internal(
-                        InternalIntrinsic::State | InternalIntrinsic::StateExtern
+                        InternalIntrinsic::PostState
+                            | InternalIntrinsic::PreState
+                            | InternalIntrinsic::PostStateExtern
+                            | InternalIntrinsic::PreStateExtern
+                    ),
+                    _
+                ),
+                ..
+            }
+        )
+    }
+
+    pub fn is_post_storage_access_intrinsic(&self) -> bool {
+        matches!(
+            self,
+            Expr::IntrinsicCall {
+                kind: (
+                    IntrinsicKind::Internal(
+                        InternalIntrinsic::PostState | InternalIntrinsic::PostStateExtern
                     ),
                     _
                 ),
@@ -391,6 +410,11 @@ impl Expr {
                 Expr::LocalStorageAccess { .. } | Expr::ExternalStorageAccess { .. } => true,
                 Expr::TupleFieldAccess { tuple, .. } => tuple.is_storage_access(contract),
                 Expr::Index { expr, .. } => expr.is_storage_access(contract),
+                Expr::UnaryOp {
+                    op: UnaryOp::NextState,
+                    expr,
+                    ..
+                } => expr.is_storage_access(contract),
                 _ => false,
             }
     }

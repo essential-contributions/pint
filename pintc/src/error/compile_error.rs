@@ -117,6 +117,8 @@ pub enum CompileError {
     StorageSymbolNotFound { name: String, span: Span },
     #[error("cannot find storage variable `{name}`")]
     MissingStorageBlock { name: String, span: Span },
+    #[error("`next state` access must be bound to a variable or to a storage access")]
+    InvalidNextStateAccess { span: Span },
     #[error("cannot find interface declaration `{name}`")]
     MissingInterface { name: String, span: Span },
     #[error("cannot find predicate `{pred_name}` in {}",
@@ -699,6 +701,16 @@ impl ReportableError for CompileError {
             MissingStorageBlock { span, .. } => {
                 vec![ErrorLabel {
                     message: "no storage declaration found".to_string(),
+                    span: span.clone(),
+                    color: Color::Red,
+                }]
+            }
+
+            InvalidNextStateAccess { span } => {
+                vec![ErrorLabel {
+                    message:
+                        "`next state` access must be bound to a variable or to a storage access"
+                            .to_string(),
                     span: span.clone(),
                     color: Color::Red,
                 }]
@@ -1459,6 +1471,7 @@ impl ReportableError for CompileError {
             | SymbolNotFound { .. }
             | StorageSymbolNotFound { .. }
             | MissingStorageBlock { .. }
+            | InvalidNextStateAccess { .. }
             | MissingInterface { .. }
             | MissingPredicate { .. }
             | SelfReferencialPredicate { .. }
@@ -1696,6 +1709,7 @@ impl Spanned for CompileError {
             | NonBoolGeneratorBody { span, .. }
             | SymbolNotFound { span, .. }
             | StorageSymbolNotFound { span, .. }
+            | InvalidNextStateAccess { span, .. }
             | MissingStorageBlock { span, .. }
             | MissingInterface { span, .. }
             | MissingPredicate { span, .. }

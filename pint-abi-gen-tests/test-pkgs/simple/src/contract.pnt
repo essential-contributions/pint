@@ -36,16 +36,16 @@ predicate Foo(
     };
 
     // Declare some local variables.
-    let s0: bool? = mut storage::s0;
-    let s1: int? = mut storage::s1;
-    let s2: b256? = mut storage::s2;
-    let s3: { int, int }? = mut storage::s3;
-    let s4: { int, int, { int, int } }? = mut storage::s4;
-    let my_map0_key42: int? = mut storage::my_map0[42];
-    let my_map1_key1: { int, { b256, int } }? = mut storage::my_map1[1];
-    let my_nested_map0_key1_2: int? = mut storage::my_nested_map0[1][2];
-    let my_nested_map1_key2_3: { int, { b256, int } }? = mut storage::my_nested_map1[2][0x3333333333333333333333333333333333333333333333333333333333333333];
-    let my_array: int[5]? = mut storage::my_array;
+    let s0: bool? = storage::s0;
+    let s1: int? = storage::s1;
+    let s2: b256? = storage::s2;
+    let s3: { int, int }? = storage::s3;
+    let s4: { int, int, { int, int } }? = storage::s4;
+    let my_map0_key42: int? = storage::my_map0[42];
+    let my_map1_key1: { int, { b256, int } }? = storage::my_map1[1];
+    let my_nested_map0_key1_2: int? = storage::my_nested_map0[1][2];
+    let my_nested_map1_key2_3: { int, { b256, int } }? = storage::my_nested_map1[2][0x3333333333333333333333333333333333333333333333333333333333333333];
+    let my_array: int[5]? = storage::my_array;
 
     // Check the let.
     constraint s0'! == true;
