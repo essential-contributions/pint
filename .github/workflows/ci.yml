@@ -32,13 +32,6 @@ jobs:
     name: Clippy Check
     runs-on: ubuntu-latest
     steps:
-      - name: Provide Access to Private Repos
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: |
-            ${{ secrets.SSH_PRIVATE_KEY }}
-            ${{ secrets.SSH_PRIVATE_KEY_BASE }}
-
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
         with:
@@ -55,13 +48,6 @@ jobs:
     name: Cargo Build and Test Workspace
     runs-on: ubuntu-latest
     steps:
-      - name: Provide Access to Private Repos
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: |
-            ${{ secrets.SSH_PRIVATE_KEY }}
-            ${{ secrets.SSH_PRIVATE_KEY_BASE }}
-
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -91,13 +77,6 @@ jobs:
     name: Cargo Build and Test Workspace With Solver
     runs-on: ubuntu-latest
     steps:
-      - name: Provide Access to Private Repos
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: |
-            ${{ secrets.SSH_PRIVATE_KEY }}
-            ${{ secrets.SSH_PRIVATE_KEY_BASE }}
-
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -135,13 +114,6 @@ jobs:
     name: Cargo Unused Dependencies Check
     runs-on: ubuntu-latest
     steps:
-      - name: Provide Access to Private Repos
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: |
-            ${{ secrets.SSH_PRIVATE_KEY }}
-            ${{ secrets.SSH_PRIVATE_KEY_BASE }}
-
       - name: Checkout
         uses: actions/checkout@v4
 
