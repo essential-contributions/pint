@@ -32,17 +32,17 @@ predicate Foo() {
     constraint storage::map_in_map[9][A] := 42;
     constraint storage::map_in_map_in_map[88][B][999] := F;
 
-    let address = storage::address!;
-    let address2 = storage::address2!;
-    let map_entry = storage::imap[69]!;
-    let map_in_map_entry = storage::map_in_map[9][A]!;
-    let map_in_map_in_map_entry = storage::map_in_map_in_map[88][B][999]!;
+    let address = storage::address'!;
+    let address2 = storage::address2'!;
+    let map_entry = storage::imap[69]'!;
+    let map_in_map_entry = storage::map_in_map[9][A]'!;
+    let map_in_map_in_map_entry = storage::map_in_map_in_map[88][B][999]'!;
 
-    constraint address' == C;
-    constraint address2' == D;
-    constraint map_entry' == E;
-    constraint map_in_map_entry' == 42;
-    constraint map_in_map_in_map_entry' == F;
+    constraint address == C;
+    constraint address2 == D;
+    constraint map_entry == E;
+    constraint map_in_map_entry == 42;
+    constraint map_in_map_in_map_entry == F;
 
     constraint storage::address'! == C; 
     constraint storage::address2'! == D;

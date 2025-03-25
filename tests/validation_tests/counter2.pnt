@@ -14,21 +14,24 @@ predicate Initialize(value: int) {
     constraint storage::counter := value;
 
     let counter: int? = storage::counter;
-    constraint counter'! == value;
+    let counter_post: int? = storage::counter';
+    constraint counter_post! == value;
 
     // redundant but showcases a different syntax
     constraint storage::counter'! == value;
 }
 
 predicate Increment(amount: int) {
-    let counter: int? = storage::counter;
     let kv = storage::counter := counter! + amount;
     constraint kv;
 
     // redundant but showcases a different syntax
     constraint storage::counter := storage::counter! + amount; 
 
-    constraint counter'! == counter! + amount;
+    let counter: int? = storage::counter;
+    let counter_post: int? = storage::counter';
+
+    constraint counter_post! == counter! + amount;
 
     // redundant but showcases a different syntax
     constraint storage::counter'! == storage::counter! + amount; 

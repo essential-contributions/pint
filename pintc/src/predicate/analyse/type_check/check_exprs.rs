@@ -436,19 +436,6 @@ impl Contract {
             span: &Span,
         ) -> Result<(), Error> {
             match expr_key.try_get(contract) {
-                Some(Expr::Path(name, span)) => {
-                    if pred
-                        .map(|pred| pred.variables().any(|(_, variable)| variable.name == *name))
-                        .unwrap_or(false)
-                    {
-                        Ok(())
-                    } else {
-                        Err(Error::Compile {
-                            error: CompileError::InvalidNextStateAccess { span: span.clone() },
-                        })
-                    }
-                }
-
                 Some(Expr::LocalStorageAccess { .. } | Expr::ExternalStorageAccess { .. }) => {
                     Ok(())
                 }

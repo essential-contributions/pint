@@ -13,21 +13,21 @@ predicate Test() {
     constraint storage::w[{ 10, 11 }].0 := false;
     constraint storage::w[{ 10, 11 }].1 := 4;
 
-    let t = storage::t.0[0];
-    constraint t'! == 1;
+    let t = storage::t.0[0]';
+    constraint t! == 1;
     
-    let u = storage::u.1.0[false];
-    constraint u'! == 3;
+    let u = storage::u.1.0[false]';
+    constraint u! == 3;
 
-    let v_0_0 = storage::v[6].1[2].0;
-    constraint v_0_0'! == 12;
-    let v_0_1 = storage::v[6].1[2].1;
-    constraint v_0_1'! == 13;
+    let v_0_0 = storage::v[6].1[2].0';
+    constraint v_0_0! == 12;
+    let v_0_1 = storage::v[6].1[2].1';
+    constraint v_0_1! == 13;
 
-    let w_0_0 = storage::w[{ 10, 11 }].0;
-    constraint w_0_0'! == false;
-    let w_0_1 = storage::w[{ 10, 11 }].1;
-    constraint w_0_1'! == 4;
+    let w_0_0 = storage::w[{ 10, 11 }].0';
+    constraint w_0_0! == false;
+    let w_0_1 = storage::w[{ 10, 11 }].1';
+    constraint w_0_1! == 4;
 
     constraint storage::t.0[0]'! == 1;
     constraint storage::u.1.0[false]'! == 3;

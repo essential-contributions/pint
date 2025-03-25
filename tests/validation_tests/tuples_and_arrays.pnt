@@ -18,27 +18,12 @@ predicate test() {
         }
     };
 
-    let a = storage::a!;
+    let a = storage::a'!;
 
-    constraint a.1[1]' == true;
-    constraint a.1'[1]' == true;
-    constraint a'.1[1]' == true;
-    constraint a.1'[1] == true;
-
-    constraint a.2.0' == 1;
-    constraint a.2'.0' == 1;
-    constraint a'.2.0' == 1;
- 
-    constraint a.2.1[0]' == { B, 3 };
-    constraint a.2.1'[0]' == { B, 3 };
-    constraint a.2'.1[0]' == { B, 3 };
-    constraint a'.2'.1[0]' == { B, 3 };
-    constraint a.2'.1[0] == { B, 3 };
-
-    constraint a.2.1[0].1' == 3;
-    constraint a.2'.1'[0]'.1' == 3;
-    constraint a.2.1'[0].1 == 3;
-    constraint a.2'.1[0].1 == 3;
+    constraint a.1[1] == true;
+    constraint a.2.0 == 1;
+    constraint a.2.1[0] == { B, 3 };
+    constraint a.2.1[0].1 == 3;
 
     constraint storage::a.1[1]'! == true;
     constraint storage::a.1'[1]'! == true;

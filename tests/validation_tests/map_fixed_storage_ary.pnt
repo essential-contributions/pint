@@ -5,8 +5,8 @@ storage {
 predicate test() {
     constraint storage::ary := [[3, 4], [5, 3], [6, 2]];
 
-    let a = map x in storage::ary! { x[0] * x[1] };
+    let a_post = map x in storage::ary'! { x[0] * x[1] };
 
-    constraint a[0]' > 0;
-    constraint a[0]' == a[2]';
+    constraint a_post[0] > 0;
+    constraint a_post[0] == a_post[2];
 }

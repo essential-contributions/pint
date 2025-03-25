@@ -18,17 +18,24 @@ storage {
 // Constraint set with address `0x0000000000000000000000000000000000000000000000000000000000000000`
 predicate Foo() {
     let x = storage::x;
+    let x_post = storage::x';
     let y = storage::y;
+    let y_post = storage::y';
     let z = storage::z;
+    let z_post = storage::z';
     let w = storage::w;
+    let w_post = storage::w';
     let t = storage::t;
+    let t_post = storage::t';
     let a = storage::a;
+    let a_post = storage::a';
     let t2 = storage::t2;
+    let t2_post = storage::t2';
 
     // `x` is set in the pre let db and in the solution
     constraint x != nil;
     constraint storage::x := 42;
-    constraint nil != x';
+    constraint nil != x_post;
     constraint storage::x != nil;
     constraint nil != storage::x';
 
@@ -36,21 +43,21 @@ predicate Foo() {
     constraint nil != y;
     constraint nil != storage::y;
     constraint storage::y := 98;
-    constraint y' != nil;
+    constraint y_post != nil;
     constraint storage::y' != nil;
 
     // `z` is not set in the pre let db but is set in the solution
     constraint z == nil;
     constraint storage::z == nil;
     constraint storage::z := 44;
-    constraint z'! != 1;
+    constraint z_post! != 1;
     constraint storage::z'! != 1;
 
     // `w` is set in the pre let db but unset in the solution
     constraint w != nil;
     constraint storage::w != nil;
     constraint storage::w := nil;
-    constraint nil == w';
+    constraint nil == w_post;
     constraint nil == storage::w';
 
     // `t` is not set in the pre let db but is set in the solution
@@ -59,20 +66,20 @@ predicate Foo() {
     constraint storage::t := {
         0x0000000000000004000000000000000500000000000000060000000000000007, 8
     };
-    constraint t' != nil;
+    constraint t_post != nil;
     constraint storage::a' != nil;
 
     // `a` is not set in the pre let db and is partially set in the solution.
     constraint a == nil;
     constraint storage::a == nil;
     constraint storage::a := [[0, 1, 2], [3, 4, 5]];
-    constraint a' != nil;
+    constraint a_post != nil;
     constraint storage::a' != nil;
 
     // `t2` is partially set in the pre let db and is set to nil in the solution.
     constraint t2 != nil;
     constraint storage::t2 != nil;
     constraint storage::t2 := nil;
-    constraint t2' == nil;
+    constraint t2_post == nil;
     constraint storage::t2' == nil;
 }

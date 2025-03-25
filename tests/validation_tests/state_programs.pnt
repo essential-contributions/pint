@@ -27,22 +27,23 @@ predicate Simple(p: int, q: { int, b256[2] }) {
     constraint p == 69;
     
     let e1 = p / (- storage::x! * storage::y! + storage::t.0! + storage::a[0]!);
+    let e1_post = p / (- storage::x'! * storage::y'! + storage::t.0'! + storage::a[0]'!);
     constraint e1 == p / (-1 * 2 + 3 + 5);
-    constraint e1' == p / (-11 * 12 + 13 + 15);
+    constraint e1_post == p / (-11 * 12 + 13 + 15);
 
     let e2 = @unwrap_or(storage::t.1; 69) * @unwrap_or(storage::a[1]; 70);
+    let e2_post = @unwrap_or(storage::t.1'; 69) * @unwrap_or(storage::a[1]'; 70);
 
     // t.1 is nil then becomes non-nil
     // a[1] is non-nil then becomes nil
     constraint e2 == 69 * 6; 
-    constraint e2' == 14 * 70; 
+    constraint e2_post == 14 * 70; 
 
     constraint @unwrap_or(storage::t.1; 69) * @unwrap_or(storage::a[1]; 70) == 69 * 6;
     constraint @unwrap_or(storage::t.1'; 69) * @unwrap_or(storage::a[1]'; 70) == 14 * 70;
 
     let e3 = (true as int + 3) in -5..(3*3 + p); // no storage accesses
     constraint e3;
-    constraint e3';
 
     let e4 = q.1[1];
     constraint e4 == 0x0000000000000001000000000000000100000000000000010000000000000001;

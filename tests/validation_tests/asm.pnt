@@ -67,7 +67,9 @@ predicate foo() {
     };
 
     constraint load_s == storage::s1! + storage::s2'!;
-    constraint load_s' == storage::s1'! + storage::s2'!;
+   
+    // TODO: re-enable when we have dedicated post state opcodes
+    // constraint load_s' == storage::s1'! + storage::s2'!;
 }
 
 // Diamond-shaped dependency graph
