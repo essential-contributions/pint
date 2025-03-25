@@ -65,6 +65,11 @@ predicate Foo(
             13
         };
 
+    constraint storage::x := 42;
+    constraint storage::y := 98;
+    constraint storage::z := 44;
+    constraint storage::w := nil;
+
     let x = storage::x;
     let y = storage::y;
     let z = storage::z;

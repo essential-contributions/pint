@@ -6,6 +6,13 @@ storage {
 }
 
 predicate Test() {
+    constraint storage::t.0[0] := 1;
+    constraint storage::u.1.0[false] := 3;
+    constraint storage::v[6].1[2].0 := 12;
+    constraint storage::v[6].1[2].1 := 13;
+    constraint storage::w[{ 10, 11 }].0 := false;
+    constraint storage::w[{ 10, 11 }].1 := 4;
+
     let t = storage::t.0[0];
     constraint t'! == 1;
     

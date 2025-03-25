@@ -26,6 +26,10 @@ predicate Simple(
     e_new: int,
     a: int[5],
 ) {
+    constraint storage::x := 43; 
+    constraint storage::y := 47; 
+    constraint storage::z := 44; 
+
     let x: int? = storage::x;
     let y: int? = storage::y;
     let z: int? = storage::z;

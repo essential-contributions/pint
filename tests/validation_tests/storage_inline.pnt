@@ -5,12 +5,21 @@ storage {
 }
 
 predicate test() {
-    let a = storage::a := 11;
-    constraint a;
+    let kva = storage::a := 11;
+    constraint kva;
 
-    let b = storage::b[1] := 22;
-    constraint b;
+    let kvb = storage::b[1] := 22;
+    constraint kvb;
 
-    let c = storage::c.0 := 33;
-    constraint c;
+    let kvc = storage::c.0 := 33;
+    constraint kvc;
+
+    let a = storage::a';
+    constraint a! == 11;
+
+    let b = storage::b[1]';
+    constraint b! == 22;
+
+    let c = storage::c.0';
+    constraint c! == 33;
 }

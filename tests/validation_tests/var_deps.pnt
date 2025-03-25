@@ -13,6 +13,9 @@ const ZEROS = 0x0000000000000000000000000000000000000000000000000000000000000000
 const ONES = 0x1111111111111111111111111111111111111111111111111111111111111111;
 
 predicate foo(a: int, b: bool) {
+    constraint storage::x := 98;
+    constraint storage::y := {22, 23};
+
     constraint v4 == 2 * v1 * v2;
     constraint v5 == 88 + 12 + v4 + v6.1;
     constraint v6 == { 12, 13 };

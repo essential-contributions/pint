@@ -28,4 +28,22 @@ predicate Foo() {
     constraint storage::m[5] := { U::A(3), 69 };
     constraint storage::v0 := V::C({10, 12});
     constraint storage::v1 := V::D([[1, 2], [3, 4], [5, 6]]);
+
+    let u0 = storage::u0;
+    let u1 = storage::u1;
+    let m = storage::m[5];
+    let v0 = storage::v0;
+    let v1 = storage::v1;
+
+    constraint u0'! == U::A(5);
+    constraint u1'! == U::B(0x0000000000000002000000000000000200000000000000020000000000000002);
+    constraint m'! == { U::A(3), 69 };
+    constraint v0'! == V::C({10, 12});
+    constraint v1'! == V::D([[1, 2], [3, 4], [5, 6]]);
+
+    constraint storage::u0'! == U::A(5);
+    constraint storage::u1'! == U::B(0x0000000000000002000000000000000200000000000000020000000000000002);
+    constraint storage::m[5]'! == { U::A(3), 69 };
+    constraint storage::v0'! == V::C({10, 12});
+    constraint storage::v1'! == V::D([[1, 2], [3, 4], [5, 6]]);
 }

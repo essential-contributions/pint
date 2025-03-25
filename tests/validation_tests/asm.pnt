@@ -45,6 +45,9 @@ predicate foo() {
 
     constraint equal;
 
+    constraint storage::s1 := 169;
+    constraint storage::s2 := 142;
+
     let load_s: int = asm(storage::s2'!) {
         // Memory starts with [ <storage::s2'!> ]
 

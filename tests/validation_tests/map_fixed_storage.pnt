@@ -3,6 +3,8 @@ storage {
 }
 
 predicate test() {
+    constraint storage::ary := [3, 4, 5];
+
     let a = map x in storage::ary'! { x * x };
 
     constraint a[0] + a[1] == a[2];

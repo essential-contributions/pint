@@ -18,6 +18,12 @@ macro @unwrap_or($a, $b) {
 }
 
 predicate Simple(p: int, q: { int, b256[2] }) {
+    constraint storage::x := 11;
+    constraint storage::y := 12;
+    constraint storage::t := { 13, 14 };
+    constraint storage::a[0] := 15;
+    constraint storage::a[1] := nil;
+
     constraint p == 69;
     
     let e1 = p / (- storage::x! * storage::y! + storage::t.0! + storage::a[0]!);
