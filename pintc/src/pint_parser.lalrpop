@@ -585,7 +585,23 @@ MapType: Type = {
 /// Expressions ///
 ///////////////////
 
-Expr: ExprKey = KeyValue;
+Expr: ExprKey = Concat;
+
+Concat: ExprKey = {
+    <l:@L> <lhs:Concat> "++" <rhs:KeyValue> <r:@R> => {
+        let span = (context.span_from)(l, r);
+        context.contract.exprs.insert(
+            Expr::BinaryOp {
+                op: BinaryOp::Concat,
+                lhs,
+                rhs,
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        )
+    },
+    <KeyValue>,
+}
 
 KeyValue: ExprKey = {
     <l:@L> <lhs:KeyValue> ":=" <rhs:SelectExpr> <r:@R> => {
@@ -1371,7 +1387,7 @@ extern {
         "," => lexer::Token::Comma,
         "=" => lexer::Token::Eq,
         "?" => lexer::Token::QuestionMark,
-        ":=" => lexer::Token::ColonEqual,
+        ":=" => lexer::Token::ColonEq,
 
         "==" => lexer::Token::EqEq,
         "!=" => lexer::Token::NotEq,
@@ -1388,6 +1404,7 @@ extern {
         "%" => lexer::Token::Mod,
 
         "+" => lexer::Token::Plus,
+        "++" => lexer::Token::PlusPlus,
         "-" => lexer::Token::Minus,
         "!" => lexer::Token::Bang,
         "'" => lexer::Token::SingleQuote,

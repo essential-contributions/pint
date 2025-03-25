@@ -2,7 +2,8 @@ use super::{Contract, PredKey, Predicate};
 use crate::{
     error::{ErrorEmitted, Handler},
     expr::{
-        Expr, ExternalIntrinsic, InternalIntrinsic, IntrinsicKind, MatchBranch, MatchElse, UnaryOp,
+        BinaryOp, Expr, ExternalIntrinsic, InternalIntrinsic, IntrinsicKind, MatchBranch,
+        MatchElse, UnaryOp,
     },
     predicate::Immediate,
     span::{empty_span, Spanned},
@@ -164,6 +165,14 @@ impl ExprKey {
                     panic!()
                 };
                 var.expr.size(handler, contract, pred)
+            }
+
+            Expr::BinaryOp { op, lhs, rhs, .. }
+                if *op == BinaryOp::Concat
+                    && lhs.get_ty(contract).is_key_value()
+                    && rhs.get_ty(contract).is_key_value() =>
+            {
+                Ok(lhs.size(handler, contract, pred)? + rhs.size(handler, contract, pred)? - 1)
             }
 
             _ => self.get_ty(contract).size(handler, contract),
@@ -687,6 +696,10 @@ impl ExprKey {
 
     pub fn is_storage_access(&self, contract: &Contract) -> bool {
         self.get(contract).is_storage_access(contract)
+    }
+
+    pub fn is_pre_storage_access(&self, contract: &Contract) -> bool {
+        self.get(contract).is_pre_storage_access(contract)
     }
 }
 

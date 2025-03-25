@@ -117,7 +117,7 @@ pub enum CompileError {
     StorageSymbolNotFound { name: String, span: Span },
     #[error("cannot find storage variable `{name}`")]
     MissingStorageBlock { name: String, span: Span },
-    #[error("`next state` access must be bound to a variable or to a storage access")]
+    #[error("`next state` access must be bound to a storage access")]
     InvalidNextStateAccess { span: Span },
     #[error("cannot find interface declaration `{name}`")]
     MissingInterface { name: String, span: Span },
@@ -399,6 +399,8 @@ pub enum CompileError {
         rhs_ty: String,
         span: Span,
     },
+    #[error("storage key-value expression error")]
+    KeyValueExprBadLHS(Span),
 }
 
 // This is here purely at the suggestion of Clippy, who pointed out that these error variants are
@@ -709,7 +711,7 @@ impl ReportableError for CompileError {
             InvalidNextStateAccess { span } => {
                 vec![ErrorLabel {
                     message:
-                        "`next state` access must be bound to a variable or to a storage access"
+                        "`next state` access must be bound to a storage access"
                             .to_string(),
                     span: span.clone(),
                     color: Color::Red,
@@ -1334,6 +1336,12 @@ impl ReportableError for CompileError {
                 color: Color::Red,
             }],
 
+            KeyValueExprBadLHS(span)
+             => vec![ErrorLabel {
+                message: "expecting a storage access here".to_string(), 
+                span: span.clone(),
+                color: Color::Red,
+            }],
             FileIO { .. } => Vec::new(),
         }
     }
@@ -1534,7 +1542,8 @@ impl ReportableError for CompileError {
             | BadPushInstruction { .. }
             | UnregonizedInstruction { .. }
             | InvalidConst { .. }
-            | KeyValueExprTypesMismatch { .. } => None,
+            | KeyValueExprTypesMismatch { .. }
+            | KeyValueExprBadLHS(_) => None,
         }
     }
 
@@ -1769,6 +1778,7 @@ impl Spanned for CompileError {
             | InvalidMapRangeType { span, .. }
             | InvalidConst { span, .. }
             | KeyValueExprTypesMismatch { span, .. }
+            | KeyValueExprBadLHS(span)
             | BadPushInstruction { span }
             | UnregonizedInstruction { span } => span,
 

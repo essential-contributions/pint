@@ -19,6 +19,8 @@ pub enum Token {
     Pipe,
     #[token("+")]
     Plus,
+    #[token("++")]
+    PlusPlus,
     #[token("-")]
     Minus,
     #[token("/")]
@@ -49,7 +51,7 @@ pub enum Token {
     #[token("?")]
     QuestionMark,
     #[token(":=")]
-    ColonEqual,
+    ColonEq,
 
     #[token(";")]
     Semi,
@@ -253,6 +255,7 @@ impl fmt::Display for Token {
             Token::Bang => write!(f, "!"),
             Token::Pipe => write!(f, "|"),
             Token::Plus => write!(f, "+"),
+            Token::PlusPlus => write!(f, "++"),
             Token::Minus => write!(f, "-"),
             Token::Div => write!(f, "/"),
             Token::Mod => write!(f, "%"),
@@ -267,7 +270,7 @@ impl fmt::Display for Token {
             Token::DoublePipe => write!(f, "||"),
             Token::SingleQuote => write!(f, "'"),
             Token::QuestionMark => write!(f, "?"),
-            Token::ColonEqual => write!(f, ":="),
+            Token::ColonEq => write!(f, ":="),
             Token::Semi => write!(f, ";"),
             Token::Comma => write!(f, ","),
             Token::Star => write!(f, "*"),

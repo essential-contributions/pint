@@ -295,6 +295,8 @@ pub enum BinaryOp {
     // Logical
     LogicalAnd,
     LogicalOr,
+
+    Concat,
 }
 
 impl BinaryOp {
@@ -313,6 +315,7 @@ impl BinaryOp {
             BinaryOp::GreaterThan => ">",
             BinaryOp::LogicalAnd => "&&",
             BinaryOp::LogicalOr => "||",
+            BinaryOp::Concat => "++",
         }
     }
 }
@@ -389,6 +392,21 @@ impl Expr {
         )
     }
 
+    pub fn is_pre_storage_access_intrinsic(&self) -> bool {
+        matches!(
+            self,
+            Expr::IntrinsicCall {
+                kind: (
+                    IntrinsicKind::Internal(
+                        InternalIntrinsic::PreState | InternalIntrinsic::PreStateExtern
+                    ),
+                    _
+                ),
+                ..
+            }
+        )
+    }
+
     pub fn is_post_storage_access_intrinsic(&self) -> bool {
         matches!(
             self,
@@ -415,6 +433,16 @@ impl Expr {
                     expr,
                     ..
                 } => expr.is_storage_access(contract),
+                _ => false,
+            }
+    }
+
+    pub fn is_pre_storage_access(&self, contract: &Contract) -> bool {
+        self.is_pre_storage_access_intrinsic()
+            || match self {
+                Expr::LocalStorageAccess { .. } | Expr::ExternalStorageAccess { .. } => true,
+                Expr::TupleFieldAccess { tuple, .. } => tuple.is_storage_access(contract),
+                Expr::Index { expr, .. } => expr.is_storage_access(contract),
                 _ => false,
             }
     }
@@ -1130,6 +1158,8 @@ pub fn binary_op_eq(
                 && lhs_lhs.get(contract).eq(contract, rhs_lhs.get(contract))
                 && lhs_rhs.get(contract).eq(contract, rhs_rhs.get(contract))
         }
+
+        BinaryOp::Concat => todo!(),
     }
 }
 

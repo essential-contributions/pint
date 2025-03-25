@@ -750,6 +750,40 @@ impl Contract {
                             span: span.clone(),
                         })
                     }
+
+                    BinaryOp::Concat => {
+                        if !lhs_ty.is_key_value() {
+                            if !lhs_ty.is_error() {
+                                handler.emit_err(Error::Compile {
+                                    error: CompileError::OperatorTypeError {
+                                        arity: "binary",
+                                        large_err: Box::new(LargeTypeError::OperatorTypeError {
+                                            op: op.as_str(),
+                                            expected_ty: "KeyValue".to_string(),
+                                            found_ty: self.with_ctrct(lhs_ty).to_string(),
+                                            span: self.expr_key_to_span(lhs_expr_key),
+                                            expected_span: Some(span.clone()),
+                                        }),
+                                    },
+                                });
+                            }
+                        } else if !rhs_ty.is_key_value() && !rhs_ty.is_error() {
+                            handler.emit_err(Error::Compile {
+                                error: CompileError::OperatorTypeError {
+                                    arity: "binary",
+                                    large_err: Box::new(LargeTypeError::OperatorTypeError {
+                                        op: op.as_str(),
+                                        expected_ty: "KeyValue".to_string(),
+                                        found_ty: self.with_ctrct(rhs_ty).to_string(),
+                                        span: self.expr_key_to_span(rhs_expr_key),
+                                        expected_span: Some(span.clone()),
+                                    }),
+                                },
+                            });
+                        }
+
+                        Inference::Type(Type::KeyValue(span.clone()))
+                    }
                 }
             } else {
                 Inference::Dependant(rhs_expr_key)
@@ -2005,34 +2039,43 @@ impl Contract {
     ) -> Inference {
         let lhs_ty = lhs.get_ty(self);
         let rhs_ty = rhs.get_ty(self);
-        if !lhs_ty.is_unknown() {
-            if !rhs_ty.is_unknown() {
-                if let Some(lhs_inner_ty) = lhs.get_ty(self).get_optional_ty() {
-                    if !lhs_inner_ty.eq(self, rhs_ty) && !rhs_ty.is_nil() {
-                        handler.emit_err(Error::Compile {
-                            error: CompileError::KeyValueExprTypesMismatch {
-                                lhs_ty: self.with_ctrct(lhs_inner_ty).to_string(),
-                                rhs_ty: self.with_ctrct(rhs_ty).to_string(),
-                                span: rhs.get(self).span().clone(),
-                            },
-                        });
+
+        if !lhs.is_pre_storage_access(self) {
+            handler.emit_err(Error::Compile {
+                error: CompileError::KeyValueExprBadLHS(lhs.get(self).span().clone()),
+            });
+            // Recover anyways
+            Inference::Type(Type::KeyValue(span.clone()))
+        } else {
+            if !lhs_ty.is_unknown() {
+                if !rhs_ty.is_unknown() {
+                    if let Some(lhs_inner_ty) = lhs.get_ty(self).get_optional_ty() {
+                        if !lhs_inner_ty.eq(self, rhs_ty) && !rhs_ty.is_nil() {
+                            handler.emit_err(Error::Compile {
+                                error: CompileError::KeyValueExprTypesMismatch {
+                                    lhs_ty: self.with_ctrct(lhs_inner_ty).to_string(),
+                                    rhs_ty: self.with_ctrct(rhs_ty).to_string(),
+                                    span: rhs.get(self).span().clone(),
+                                },
+                            });
+                        }
                     }
-                }
-                if rhs_ty.is_nil() {
-                    Inference::Types {
-                        // Type of the key-value expression
-                        ty: Type::KeyValue(span.clone()),
-                        // Type of the `rhs`
-                        others: vec![(rhs, lhs_ty.clone())],
+                    if rhs_ty.is_nil() {
+                        Inference::Types {
+                            // Type of the key-value expression
+                            ty: Type::KeyValue(span.clone()),
+                            // Type of the `rhs`
+                            others: vec![(rhs, lhs_ty.clone())],
+                        }
+                    } else {
+                        Inference::Type(Type::KeyValue(span.clone()))
                     }
                 } else {
-                    Inference::Type(Type::KeyValue(span.clone()))
+                    Inference::Dependant(rhs)
                 }
             } else {
-                Inference::Dependant(rhs)
+                Inference::Dependant(lhs)
             }
-        } else {
-            Inference::Dependant(lhs)
         }
     }
 }

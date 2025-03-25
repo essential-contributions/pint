@@ -55,7 +55,7 @@ impl DisplayWithContract for &super::Expr {
             super::Expr::KeyValue { lhs, rhs, .. } => {
                 write!(
                     f,
-                    "{} := {}",
+                    "({} := {})",
                     contract.with_ctrct(lhs),
                     contract.with_ctrct(rhs)
                 )
@@ -383,6 +383,7 @@ impl Display for super::BinaryOp {
             super::BinaryOp::Mul => write!(f, "*"),
             super::BinaryOp::NotEqual => write!(f, "!="),
             super::BinaryOp::Sub => write!(f, "-"),
+            super::BinaryOp::Concat => write!(f, "++"),
         }
     }
 }

@@ -233,8 +233,10 @@ fn r#types() {
 #[test]
 fn operators() {
     assert_eq!(lex_one_success("!"), Token::Bang);
+    assert_eq!(lex_one_success("?"), Token::QuestionMark);
     assert_eq!(lex_one_success("|"), Token::Pipe);
     assert_eq!(lex_one_success("+"), Token::Plus);
+    assert_eq!(lex_one_success("++"), Token::PlusPlus);
     assert_eq!(lex_one_success("-"), Token::Minus);
     assert_eq!(lex_one_success("*"), Token::Star);
     assert_eq!(lex_one_success("/"), Token::Div);
@@ -245,6 +247,7 @@ fn operators() {
     assert_eq!(lex_one_success(">="), Token::GtEq);
     assert_eq!(lex_one_success("=="), Token::EqEq);
     assert_eq!(lex_one_success("!="), Token::NotEq);
+    assert_eq!(lex_one_success(":="), Token::ColonEq);
     assert_eq!(lex_one_success("&&"), Token::DoubleAmpersand);
     assert_eq!(lex_one_success("||"), Token::DoublePipe);
 }

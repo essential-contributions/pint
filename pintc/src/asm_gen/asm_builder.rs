@@ -154,11 +154,11 @@ impl<'a> AsmBuilder<'a> {
                     // Compile result to the stack.
                     self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
 
-                    // Stash it to the start of memory.
-                    asm.extend([PUSH(expr_size), PUSH(0), STOR]);
+                    // Stach the total number of keys at the start of memory
+                    asm.extend([PUSH(0), STO]);
 
-                    // Store the number of mutations here
-                    // asm.extend([PUSH(1), PUSH(0), STO]);
+                    // Store the rest after it
+                    asm.extend([PUSH(expr_size - 1), PUSH(1), STOR]);
 
                     // drop the scratch space if needed
                     if scratch_needed {
@@ -430,7 +430,6 @@ impl<'a> AsmBuilder<'a> {
                         let sizes = rhs.get_ty(contract).sizes(handler, contract)?;
 
                         let mut current = 0;
-                        asm.push(PUSH(sizes.len() as i64));
                         for (idx, size) in sizes.iter().enumerate() {
                             asm.push(PUSH(args[0].size(handler, contract, pred)? as i64));
                             self.compile_expr(handler, asm, &args[0], contract, pred)?;
@@ -446,6 +445,8 @@ impl<'a> AsmBuilder<'a> {
                             ]);
                             current += *size as i64;
                         }
+                        // Lastly, push the total number of keys mutated
+                        asm.push(PUSH(sizes.len() as i64));
                     }
                 }
                 Ok(Location::Stack)
@@ -872,6 +873,14 @@ impl<'a> AsmBuilder<'a> {
         contract: &Contract,
         pred: &Predicate,
     ) -> Result<Location, ErrorEmitted> {
+        if *op == BinaryOp::Concat {
+            self.compile_expr(handler, asm, lhs, contract, pred)?;
+            asm.extend([PUSH(0), STOS]);
+            self.compile_expr(handler, asm, rhs, contract, pred)?;
+            asm.extend([PUSH(0), LODS, ADD]);
+            return Ok(Location::Stack);
+        }
+
         let lhs_len = self.compile_expr(handler, asm, lhs, contract, pred)?;
         let rhs_len = self.compile_expr(handler, asm, rhs, contract, pred)?;
 
@@ -958,6 +967,7 @@ impl<'a> AsmBuilder<'a> {
                 // is false, then we want to remove the `true` we push on the stack above.
                 asm.insert(rhs_position + 3, POP);
             }
+            BinaryOp::Concat => unreachable!(),
         }
         Ok(Location::Stack)
     }

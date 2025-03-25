@@ -9,9 +9,8 @@ predicate foo() {
     constraint storage::x.1 := 42;
     constraint storage::x.2 := 0x0000000000000005000000000000000600000000000000070000000000000008;
     constraint storage::x.3 := 43;
-}
 
-// keys
-//2 0 0 1 42
-//2 0 1 1 60
-//2 0 2 1 99
+    constraint    storage::x.0 := 41
+               ++ storage::x.1 := 42
+               ++ storage::x.2 := 0x0000000000000005000000000000000600000000000000070000000000000008;
+}
