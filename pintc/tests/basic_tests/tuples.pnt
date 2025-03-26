@@ -166,6 +166,5 @@ predicate test() {
 //     let ::t14_z_1: bool = ::t14.z.1;
 //     let ::t14_z_2: b256 = ::t14.z.2;
 //     let ::t14_z_w: b256 = ::t14.z.w;
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

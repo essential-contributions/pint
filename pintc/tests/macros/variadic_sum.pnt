@@ -28,6 +28,5 @@ predicate test(a: int, b: int) {
 // ) {
 //     constraint (::a == 4);
 //     constraint (::b == (((1 + 2) + 3) + ::a));
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

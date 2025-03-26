@@ -17,15 +17,15 @@ let receiver_balance = storage::balances[receiver_address];
 // ANCHOR_END: storage_access_1
 
 // ANCHOR: next_state
-let my_bal = mut storage::balances[my_address];
-constraint my_bal'! == my_bal! + 1_000_000;
+let my_bal = storage::balances[my_address];
+constraint storage::balances[my_address] := my_bal! + 1_000_000;
 // ANCHOR_END: next_state
 
 // ANCHOR: next_state_with_check
 if my_bal != nil {
-    constraint my_bal'! == my_bal! + 1_000_000;
+    constraint storage::balances[my_address] := my_bal! + 1_000_000;
 } else {
-    constraint my_bal'! == 1_000_000;
+    constraint storage::balances[my_address] := 1_000_000;
 }
 // ANCHOR_END: next_state_with_check
 }

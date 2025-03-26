@@ -603,6 +603,8 @@ impl<'a> AsmBuilder<'a> {
                         "JMPIF" => Ok(JMPIF),
                         "KREX" => Ok(KREX),
                         "KRNG" => Ok(KRNG),
+                        "PKREX" => Ok(PKREX),
+                        "PKRNG" => Ok(PKRNG),
                         "LOD" => Ok(LOD),
                         "LODR" => Ok(LODR),
                         "LODS" => Ok(LODS),

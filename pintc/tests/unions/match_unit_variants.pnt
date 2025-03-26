@@ -55,7 +55,6 @@ predicate decl_test(e: Union) {
 //     ::e: ::Union,
 // ) {
 //     constraint (0 == ((UnTag(::e) == 0) ? 0 : ((UnTag(::e) == 1) ? 1 : 2)));
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 //
 // predicate ::decl_test(
@@ -64,6 +63,5 @@ predicate decl_test(e: Union) {
 //     constraint (!(UnTag(::e) == 0) || (0 == 0));
 //     constraint ((UnTag(::e) == 0) || (!(UnTag(::e) == 1) || (0 == 1)));
 //     constraint ((UnTag(::e) == 0) || ((UnTag(::e) == 1) || (!(UnTag(::e) == 2) || (0 == 2))));
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

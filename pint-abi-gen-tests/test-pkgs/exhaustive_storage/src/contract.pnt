@@ -37,24 +37,24 @@ predicate Foo(
     };
 
     // Declare some local variables.
-    let my_map0_key0: int? = storage::my_map0[true];
-    let my_map1_key4: bool? = storage::my_map1[0x4444444444444444444444444444444444444444444444444444444444444444];
-    let my_map2_key1_30: b256? = storage::my_map2[{ true, 30 }];
-    let my_map3_key490_1: bool? = storage::my_map3[{ 490, 0x1111111111111111111111111111111111111111111111111111111111111111}];
-    let my_map4_key01234: int? = storage::my_map4[[0, 1, 2, 3, 4]];
-    let my_map5: int? = storage::my_map5[[[{ false, 2 }, { true, 40 }, { false, 24 }], [{ true, 42 }, { false, 21 }, { false, 25 }]]];
-    let my_map6: int? = storage::my_map6[UU::A(81)];
-    let my_tuple_map0: int? = storage::my_tuple_map0.0[25];
-    let my_tuple_map1_key6_2: int? = storage::my_tuple_map1[6].1[2].1;
+    let my_map0_key0: int? = storage::my_map0[true]';
+    let my_map1_key4: bool? = storage::my_map1[0x4444444444444444444444444444444444444444444444444444444444444444]';
+    let my_map2_key1_30: b256? = storage::my_map2[{ true, 30 }]';
+    let my_map3_key490_1: bool? = storage::my_map3[{ 490, 0x1111111111111111111111111111111111111111111111111111111111111111}]';
+    let my_map4_key01234: int? = storage::my_map4[[0, 1, 2, 3, 4]]';
+    let my_map5: int? = storage::my_map5[[[{ false, 2 }, { true, 40 }, { false, 24 }], [{ true, 42 }, { false, 21 }, { false, 25 }]]]';
+    let my_map6: int? = storage::my_map6[UU::A(81)]';
+    let my_tuple_map0: int? = storage::my_tuple_map0.0[25]';
+    let my_tuple_map1_key6_2: int? = storage::my_tuple_map1[6].1[2].1';
 
     // Check the let.
-    constraint my_map0_key0'! == 111;
-    constraint my_map1_key4'! == false;
-    constraint my_map2_key1_30'! == 0x0000000000000001000000000000000100000000000000010000000000000001;
-    constraint my_map3_key490_1'! == true;
-    constraint my_map4_key01234'! == 720;
-    constraint my_map5'! == 49;
-    constraint my_map6'! == 82;
-    constraint my_tuple_map0'! == 26;
-    constraint my_tuple_map1_key6_2'! == 13;
+    constraint my_map0_key0! == 111;
+    constraint my_map1_key4! == false;
+    constraint my_map2_key1_30! == 0x0000000000000001000000000000000100000000000000010000000000000001;
+    constraint my_map3_key490_1! == true;
+    constraint my_map4_key01234! == 720;
+    constraint my_map5! == 49;
+    constraint my_map6! == 82;
+    constraint my_tuple_map0! == 26;
+    constraint my_tuple_map1_key6_2! == 13;
 }

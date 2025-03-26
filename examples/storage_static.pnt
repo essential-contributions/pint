@@ -27,38 +27,40 @@ constraint incremented == x! + 1; // always true!
 // ANCHOR_END: storage_access_1
 
 // ANCHOR: next_state
-let bal = mut storage::bal;
-constraint bal'! >= bal! + 42;
+let bal = storage::bal;
+let bal_post = storage::bal';
+constraint bal_post! >= bal! + 42;
 // ANCHOR_END: next_state
 
 // ANCHOR: next_state_arbitrary_expr
-let bal_in_dollars: int = price * mut storage::bal!;
-constraint bal_in_dollars' == price * bal'!; // always true!
+let bal_in_dollars: int = price * storage::bal!;
+let bal_in_dollars_post: int = price * storage::bal!;
+constraint bal_in_dollars_post == price * bal_post!; // always true!
 // ANCHOR_END: next_state_arbitrary_expr
 
 // ANCHOR: next_state_no_op
 let z = 42;
-constraint z' == z; // always true
+constraint z == z; // always true
 // ANCHOR_END: next_state_no_op
 
 
 // ANCHOR: mut 
-let inner: { bool, b256 }? = mut storage::v.1;
+let inner: { bool, b256 }? = storage::v.1;
 // ANCHOR_END: mut 
 
 // ANCHOR: nil 
-let w = mut storage::w;
+let w = storage::w;
 let value_1 = (w == nil ? 0 : w!);
 // ANCHOR_END: nil 
 
 // ANCHOR: nil_in_storage_expr
-let value_2 = (mut storage::w == nil) ? 0 : storage::w!;
+let value_2 = (storage::w == nil) ? 0 : storage::w!;
 constraint value_2 == value_1; // always true!
 // ANCHOR_END: nil_in_storage_expr
 
 // ANCHOR: update_to_nil 
 if w != nil {
-    constraint w' == nil;
+    constraint storage::w := nil;
 }
 // ANCHOR_END: update_to_nil 
 }

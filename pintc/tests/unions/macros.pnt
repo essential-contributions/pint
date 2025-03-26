@@ -47,6 +47,5 @@ predicate test(thing: value) {
 // ) {
 //     constraint (((UnTag(::thing) == 1) ? (UnVal(::thing, int) + 22) : 1) < 33);
 //     constraint (!(UnTag(::thing) == 1) || (UnVal(::thing, int) < 11));
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

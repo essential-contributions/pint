@@ -67,6 +67,5 @@ predicate test(
 //     constraint (::sa != ::v);
 //     constraint (::q != ::nsw);
 //     constraint (::nsw != ::v);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

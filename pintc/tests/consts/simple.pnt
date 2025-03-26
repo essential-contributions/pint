@@ -84,6 +84,5 @@ predicate test(q: int, r: b256, s: int, t: int, u: bool, v: JacketColour) {
 //     constraint (::t == 99);
 //     constraint ((::u == false) && (::u != true));
 //     constraint ((::v != ::JacketColour::Beige) && (::v != ::JacketColour::Bone));
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

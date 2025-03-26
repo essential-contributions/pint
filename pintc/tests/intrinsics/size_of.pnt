@@ -73,6 +73,5 @@ predicate test(
 //     constraint (::b_len == __size_of(::b));
 //     constraint (::c_len == __size_of(::c));
 //     constraint (::d_len == __size_of(::d));
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

@@ -53,7 +53,6 @@ predicate decl_test(x: either) {
 // ) {
 //     constraint (::x == ::either::right);
 //     constraint ((UnTag(::x) == 0) ? true : false);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 //
 // predicate ::decl_test(
@@ -62,6 +61,5 @@ predicate decl_test(x: either) {
 //     constraint (::x == ::either::right);
 //     constraint (!(UnTag(::x) == 0) || true);
 //     constraint ((UnTag(::x) == 0) || (!(UnTag(::x) == 1) || false));
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

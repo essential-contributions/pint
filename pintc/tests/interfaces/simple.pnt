@@ -197,6 +197,5 @@ predicate Simple(
 //     constraint (::x1 == ::foo_i1_1.x1);
 //     constraint (::x2 == ::bar_i2_2.x2);
 //     constraint (::x3 == ::bar_i2_3.x3);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

@@ -29,6 +29,5 @@ predicate test(x: int, y: int, z: int) {
 //     constraint ((::y >= 3) && (::y <= 10));
 //     constraint ((::z >= 3) && (::z <= 10));
 //     constraint ((::x / ::y) > (::y / ::z));
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

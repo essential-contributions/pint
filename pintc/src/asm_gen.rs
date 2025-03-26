@@ -221,8 +221,8 @@ impl ComputeNode {
     }
 }
 
-/// Converts a `crate::Predicate` into a `CompiledPredicate` which
-/// includes generating assembly for the constraints and for variable reads.
+/// Converts a `Predicate` into a `CompiledPredicate` which includes generating assembly for the
+/// constraints and for variable reads.
 pub fn compile_predicate(
     handler: &Handler,
     contract: &Contract,

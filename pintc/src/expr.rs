@@ -1136,7 +1136,7 @@ pub fn binary_op_eq(
 ) -> bool {
     match lhs_op {
         // These ops are commutative
-        BinaryOp::Add | BinaryOp::Mul | BinaryOp::Equal | BinaryOp::NotEqual => {
+        BinaryOp::Add | BinaryOp::Mul | BinaryOp::Equal | BinaryOp::NotEqual | BinaryOp::Concat => {
             lhs_op == rhs_op
                 && (lhs_lhs.get(contract).eq(contract, rhs_lhs.get(contract))
                     && lhs_rhs.get(contract).eq(contract, rhs_rhs.get(contract))
@@ -1158,8 +1158,6 @@ pub fn binary_op_eq(
                 && lhs_lhs.get(contract).eq(contract, rhs_lhs.get(contract))
                 && lhs_rhs.get(contract).eq(contract, rhs_rhs.get(contract))
         }
-
-        BinaryOp::Concat => todo!(),
     }
 }
 

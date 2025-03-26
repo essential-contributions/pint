@@ -67,7 +67,6 @@ predicate test(
 //     constraint (::f == (2 < 1));
 //     constraint (::g == (::f ? 1 : 2));
 //     constraint (::z == ((::y > 0) ? 3 : 4));
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
 
@@ -91,7 +90,6 @@ predicate test(
 //     constraint (::f == false);
 //     constraint (::g == (::f ? 1 : 2));
 //     constraint (::z == ((::y > 0) ? 3 : 4));
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
 

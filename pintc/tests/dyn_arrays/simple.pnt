@@ -18,6 +18,5 @@ predicate test(ary: int[]) {
 // ) {
 //     constraint (::ary[0] == 11);
 //     constraint (__len(::ary) < 22);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

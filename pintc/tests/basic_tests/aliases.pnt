@@ -86,6 +86,5 @@ predicate test(
 //     ::t: int,
 //     ::u: {int, int},
 // ) {
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

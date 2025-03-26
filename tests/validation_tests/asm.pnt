@@ -66,10 +66,27 @@ predicate foo() {
         0x00 STO 1 FREE
     };
 
+    let load_s_post: int = asm(storage::s2'!) {
+        // Memory starts with [ <storage::s2'!> ]
+
+        0x00 // storage key for `s1`
+        0x01 // key len for `s1`
+        0x01 // num keys for `s1`
+        0x03 ALOC // allocate 3 words mem_addr for `s1`: addr, len, value
+        PKRNG // Now the memory looks like: [ <storage::s2'!>, 3, 1, 169 ]
+
+        0x03 LOD // load from mem index 3 wat this memory location the data lives
+
+        0x00 LOD // load storage::s2'!
+        ADD
+
+        // Store back to 0, free the rest of mem.
+        0x00 STO 1 FREE
+    };
+
     constraint load_s == storage::s1! + storage::s2'!;
    
-    // TODO: re-enable when we have dedicated post state opcodes
-    // constraint load_s' == storage::s1'! + storage::s2'!;
+    constraint load_s_post == storage::s1'! + storage::s2'!;
 }
 
 // Diamond-shaped dependency graph

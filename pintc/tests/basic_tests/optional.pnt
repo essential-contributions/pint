@@ -206,6 +206,5 @@ predicate foo(
 //     constraint (__pre_state({8})! == ::e2);
 //     constraint (!(UnTag(::e1!) == 0) || (UnVal(::e1!, int?)! == 98));
 //     constraint ((UnTag(::e1!) == 0) || false);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

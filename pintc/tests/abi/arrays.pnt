@@ -44,6 +44,5 @@ predicate Foo(
 //     ::b2: b256[3][2][2],
 //     ::b3: {int, {b256, int}}[5][2],
 // ) {
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

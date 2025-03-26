@@ -1,13 +1,8 @@
-#![allow(dead_code)]
-
 use essential_check::{
     types::{solution::SolutionSet, ContentAddress, Key, Word},
     vm::StateRead,
 };
-use std::{
-    collections::BTreeMap,
-    future::{self, Ready},
-};
+use std::collections::BTreeMap;
 use thiserror::Error;
 
 // A test `StateRead` implementation represented using a map.
@@ -65,7 +60,6 @@ impl State {
             None
         }
 
-        // If the predicate does not exist yet, assume `None`s as though predicate hasn't been deployed yet?
         let contract = match self.get(&contract_addr) {
             None => return Err(InvalidStateRead),
             Some(contract) => contract,
@@ -81,9 +75,9 @@ impl State {
         Ok(words)
     }
 
-    /// Apply all mutations proposed by the given solution.
-    pub fn apply_mutations(&mut self, solution_set: &SolutionSet) {
-        for solution in &solution_set.solutions {
+    /// Apply all mutations proposed by the given solution set.
+    pub fn apply_mutations(&mut self, set: &SolutionSet) {
+        for solution in &set.solutions {
             for mutation in solution.state_mutations.iter() {
                 self.set(
                     solution.predicate_to_solve.contract.clone(),
@@ -104,8 +98,12 @@ impl core::ops::Deref for State {
 
 impl StateRead for State {
     type Error = InvalidStateRead;
-    type Future = Ready<Result<Vec<Vec<Word>>, Self::Error>>;
-    fn key_range(&self, contract_addr: ContentAddress, key: Key, num_words: usize) -> Self::Future {
-        future::ready(self.key_range(contract_addr, key, num_words))
+    fn key_range(
+        &self,
+        contract_addr: ContentAddress,
+        key: Key,
+        num_words: usize,
+    ) -> Result<Vec<Vec<Word>>, Self::Error> {
+        self.key_range(contract_addr, key, num_words)
     }
 }
