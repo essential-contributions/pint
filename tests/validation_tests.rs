@@ -167,21 +167,24 @@ async fn validation_e2e() -> anyhow::Result<()> {
 
         // Pre-populate the pre-state with all the db content, but first, every solved contract has
         // to be inserted.
-        let mut pre_state = State::new(
-            solution_set
-                .solutions
-                .iter()
-                .map(|data| (data.predicate_to_solve.contract.clone(), vec![]))
-                .collect(),
+        let mut state = (
+            State::new(
+                solution_set
+                    .solutions
+                    .iter()
+                    .map(|data| (data.predicate_to_solve.contract.clone(), vec![]))
+                    .collect(),
+            ),
+            State::new(vec![]),
         );
 
-        // Parse the db section in `pre_state`. This can include internal and external storage
+        // Parse the db section in `state`. This can include internal and external storage
         // addresses.
-        parse_db_section(&path, &mut pre_state, &contract_addr)?;
+        parse_db_section(&path, &mut state.0, &contract_addr)?;
 
         // Apply the state mutations to the state to produce the post state.
-        let mut post_state = pre_state.clone();
-        post_state.apply_mutations(&solution_set);
+        state.1 = state.0.clone();
+        state.1.apply_mutations(&solution_set);
 
         let get_programs = Arc::new(
             compiled_contract
@@ -206,16 +209,13 @@ async fn validation_e2e() -> anyhow::Result<()> {
                 .expect("predicate must exist");
 
             match essential_check::solution::check_predicate(
-                &pre_state,
-                &post_state,
+                &state,
                 Arc::new(solution_set.clone()),
                 Arc::new(predicate.clone()),
-                &get_programs,
+                get_programs.clone(),
                 idx as u16, // solution index
                 &Default::default(),
-            )
-            .await
-            {
+            ) {
                 Ok((_, output)) => {
                     for data in output {
                         match data {
@@ -256,7 +256,7 @@ async fn validation_e2e() -> anyhow::Result<()> {
 
 fn parse_db_section(
     path: &std::path::Path,
-    pre_state: &mut State,
+    state: &mut State,
     contract_addr: &ContentAddress,
 ) -> anyhow::Result<()> {
     // Parse the db section. This can include internal and external storage addresses.
@@ -274,7 +274,7 @@ fn parse_db_section(
                 panic!("Error parsing db section");
             };
 
-            pre_state.set(
+            state.set(
                 contract_addr,
                 &key.split_ascii_whitespace()
                     .map(|k| k.parse::<i64>().expect("value must be a i64"))

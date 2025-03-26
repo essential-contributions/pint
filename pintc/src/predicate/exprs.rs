@@ -9,7 +9,6 @@ use crate::{
     span::{empty_span, Spanned},
     types::{PrimitiveKind, Type},
 };
-use essential_types::predicate::Reads;
 use fxhash::FxHashSet;
 use std::collections::HashSet;
 
@@ -509,18 +508,13 @@ impl ExprKey {
         storage_accesses
     }
 
-    /// Given an expression, collect all accesses to local variables including pre and post state.
-    /// For example: given the expression `x + y == z' + 1`, this method should return an
-    /// `FxHashSet` that contains:
-    /// - `("x", Reads::Pre)`
-    /// - `("y", Reads::Pre)`
-    /// - `("z", Reads::Post)`
+    /// Given an expression, collect all accesses to local variables
     ///
     pub fn collect_path_to_var_exprs(
         &self,
         contract: &Contract,
         pred: &Predicate,
-    ) -> FxHashSet<(String, Reads)> {
+    ) -> FxHashSet<String> {
         let mut path_to_var_exprs = FxHashSet::default();
 
         if let Some(expr) = self.try_get(contract) {
@@ -551,7 +545,7 @@ impl ExprKey {
                 Expr::Path(path, _) => {
                     // collect paths to variables
                     if pred.variables().any(|(_, var)| &var.name == path) {
-                        path_to_var_exprs.insert((path.clone(), Reads::Pre));
+                        path_to_var_exprs.insert(path.clone());
                     }
                 }
 
@@ -564,7 +558,7 @@ impl ExprKey {
                         // collect "next state" paths to variables
                         if let Expr::Path(path, _) = expr.get(contract) {
                             if pred.variables().any(|(_, var)| &var.name == path) {
-                                path_to_var_exprs.insert((path.to_owned(), Reads::Post));
+                                path_to_var_exprs.insert(path.to_owned());
                             }
                         }
                     } else {
