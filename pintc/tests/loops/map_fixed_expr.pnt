@@ -36,7 +36,6 @@ predicate test_ary() {
 //     let ::ary: int[5] = [5, 4, 3, 2, 1];
 //     let ::dbls: int[5] = map x in ::ary { (::x + ::x) };
 //     constraint (::dbls[1] == 8);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 //
 // predicate ::test_ary(
@@ -44,6 +43,5 @@ predicate test_ary() {
 //     let ::ary: int[2][5] = [[5, 5], [4, 4], [3, 3], [2, 2], [1, 1]];
 //     let ::dbls: int[5] = map x in ::ary { (::x[0] + ::x[1]) };
 //     constraint (::dbls[3] == 4);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

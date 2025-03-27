@@ -29,6 +29,5 @@ predicate test() {
 // ) {
 //     let ::a: int[3] = map x in __pre_state({0, 0})! { (::x * ::x) };
 //     constraint ((::a[0] + ::a[1]) == ::a[2]);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

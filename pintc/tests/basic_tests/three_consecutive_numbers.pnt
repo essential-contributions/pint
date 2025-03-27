@@ -26,6 +26,5 @@ predicate test(x0: int, x1: int, x2: int) {
 // ) {
 //     constraint ((::x1 == (::x0 + 1)) && (::x2 == (::x1 + 1)));
 //     constraint (((::x0 + ::x1) + ::x2) == ((::x0 * ::x1) * ::x2));
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

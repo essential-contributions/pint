@@ -49,6 +49,5 @@ predicate test(a: int) {
 //     constraint (true || (::a == 22));
 //     constraint (!true || (::a == 33));
 //     constraint (true || true);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

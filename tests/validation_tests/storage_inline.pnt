@@ -5,12 +5,21 @@ storage {
 }
 
 predicate test() {
-    let a = mut storage::a';
+    let kva = storage::a := 11;
+    constraint kva;
+
+    let kvb = storage::b[1] := 22;
+    constraint kvb;
+
+    let kvc = storage::c.0 := 33;
+    constraint kvc;
+
+    let a = storage::a';
     constraint a! == 11;
 
-    let b = mut storage::b[1]';
+    let b = storage::b[1]';
     constraint b! == 22;
 
-    let c = mut storage::c.0';
+    let c = storage::c.0';
     constraint c! == 33;
 }

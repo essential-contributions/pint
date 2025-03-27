@@ -27,6 +27,5 @@ predicate test(id: int, b: int) {
 //     constraint (::b > 1);
 //     constraint (::id == 1234);
 //     constraint (::b > ::id);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

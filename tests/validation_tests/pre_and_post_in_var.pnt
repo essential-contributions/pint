@@ -7,7 +7,13 @@ storage {
 }
 
 predicate foo() {
-    let x = mut storage::x'! + mut storage::y!;
-    constraint x == 3 + 5;
-    constraint x' == 3 + 6;
+    constraint storage::x := 3;
+    constraint storage::y := storage::y! + 1;
+
+    constraint storage::x == nil;
+
+    let s = storage::x'! + storage::y!;
+    let s_post = storage::x'! + storage::y'!;
+    constraint s == 3 + 5;
+    constraint s_post == 3 + 6;
 }

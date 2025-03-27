@@ -60,6 +60,5 @@ predicate test(
 //     constraint ((::e == ::Cake::Mud) || (::e == ::Cake::Crab));
 //     constraint (((::f == {false, 66}) || (::f == {true, 77})) || (::f == {true, 88}));
 //     constraint (::g == [-99, -99]);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

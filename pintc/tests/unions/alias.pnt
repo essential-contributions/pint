@@ -7,12 +7,12 @@ storage {
 }
 
 predicate Test() {
-    let a1 = mut storage::a[MyAlias1::a(true)];
-    let a2 = mut storage::a[MyAlias2::c(42)];
-    let a3 = mut storage::a[MyAlias1::x];
-    let a4 = mut storage::a[MyAlias2::x];
-    let a5 = mut storage::a[MyUnion::x];
-    let a6 = mut storage::a[MyUnion::a(false)];
+    let a1 = storage::a[MyAlias1::a(true)];
+    let a2 = storage::a[MyAlias2::c(42)];
+    let a3 = storage::a[MyAlias1::x];
+    let a4 = storage::a[MyAlias2::x];
+    let a5 = storage::a[MyUnion::x];
+    let a6 = storage::a[MyUnion::a(false)];
 
     constraint a1 == a2;
     constraint a3 == a4;
@@ -29,12 +29,12 @@ predicate Test() {
 //
 // predicate ::Test(
 // ) {
-//     let ::a1 = mut storage::a[::MyAlias1::a(true)];
-//     let ::a2 = mut storage::a[::MyAlias2::c(42)];
-//     let ::a3 = mut storage::a[::MyAlias1::x];
-//     let ::a4 = mut storage::a[::MyAlias2::x];
-//     let ::a5 = mut storage::a[::MyUnion::x];
-//     let ::a6 = mut storage::a[::MyUnion::a(false)];
+//     let ::a1 = storage::a[::MyAlias1::a(true)];
+//     let ::a2 = storage::a[::MyAlias2::c(42)];
+//     let ::a3 = storage::a[::MyAlias1::x];
+//     let ::a4 = storage::a[::MyAlias2::x];
+//     let ::a5 = storage::a[::MyUnion::x];
+//     let ::a6 = storage::a[::MyUnion::a(false)];
 //     constraint (::a1 == ::a2);
 //     constraint (::a3 == ::a4);
 //     constraint (::a5 == ::a6);
@@ -60,6 +60,5 @@ predicate Test() {
 //     constraint (::a1 == ::a2);
 //     constraint (::a3 == ::a4);
 //     constraint (::a5 == ::a6);
-//     constraint __eq_set(__mut_keys(), {{0, ::MyUnion::c(42)}, 6, {0, ::MyUnion::a(false)}, 6, {0, ::MyUnion::a(true)}, 6, {0, ::MyUnion::x}, 6, {0, ::MyUnion::x}, 6, {0, ::MyUnion::x}, 6, 42});
 // }
 // >>>

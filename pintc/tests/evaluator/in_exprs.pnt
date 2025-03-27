@@ -90,6 +90,5 @@ predicate Test(
 //     constraint (::m == ((1 >= 3) && (1 <= 2)));
 //     constraint (::n == 0);
 //     constraint ((::n >= 1) && (::n <= 2));
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

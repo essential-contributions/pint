@@ -119,6 +119,5 @@ predicate foo(w: int) {
 //         STO
 //     };
 //     constraint (::negatives == -13);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

@@ -87,7 +87,6 @@ predicate Sum(a: int, b: int) {
 // ) {
 //     constraint (4 == 4);
 //     constraint (::a == 3);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 //
 // predicate ::Bar(
@@ -95,7 +94,6 @@ predicate Sum(a: int, b: int) {
 // ) {
 //     constraint ([1, 2] == [1, 2]);
 //     constraint (::a == 4);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 //
 // predicate ::Baz(
@@ -105,7 +103,6 @@ predicate Sum(a: int, b: int) {
 //     constraint (::v == 0);
 //     constraint (::v == 0);
 //     constraint (::v == 0);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 //
 // predicate ::Sum(
@@ -114,6 +111,5 @@ predicate Sum(a: int, b: int) {
 // ) {
 //     constraint (::a == 4);
 //     constraint (::b == (((1 + 2) + 3) + ::a));
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

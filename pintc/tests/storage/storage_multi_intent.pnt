@@ -145,7 +145,6 @@ predicate Bar(
 //     constraint (::address == 0x2222222222222222222222222222222222222222222222222222222222222222);
 //     constraint (::and == ((::b1! && ::map_2_access_1!) && ::map_2_access_2!));
 //     constraint (::sum == (((::x + ::i0!) + ::map_1_access_1!) + ::map_1_access_2!));
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 //
 // predicate ::Bar(
@@ -168,6 +167,5 @@ predicate Bar(
 //     constraint (::address == 0x2222222222222222222222222222222222222222222222222222222222222222);
 //     constraint (::and == ((::b1! && ::map_2_access_1!) && ::map_2_access_2!));
 //     constraint (::sum == (((::x + ::i0!) + ::map_1_access_1!) + ::map_1_access_2!));
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

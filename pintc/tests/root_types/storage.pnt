@@ -7,8 +7,8 @@ storage {
 }
 
 predicate test() {
-    let y = storage::x[1]!;
-    constraint y' == 11;
+    let y = storage::x[1]'!;
+    constraint y == 11;
 }
 
 // parsed <<<
@@ -20,8 +20,8 @@ predicate test() {
 //
 // predicate ::test(
 // ) {
-//     let ::y = storage::x[1]!;
-//     constraint (::y' == 11);
+//     let ::y = storage::x[1]'!;
+//     constraint (::y == 11);
 // }
 // >>>
 
@@ -34,8 +34,7 @@ predicate test() {
 //
 // predicate ::test(
 // ) {
-//     let ::y: int = __pre_state({0, (0 + (1 * 1))})!;
-//     constraint (::y' == 11);
-//     constraint __eq_set(__mut_keys(), {0});
+//     let ::y: int = __post_state({0, (0 + (1 * 1))})!;
+//     constraint (::y == 11);
 // }
 // >>>

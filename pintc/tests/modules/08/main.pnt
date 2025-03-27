@@ -39,6 +39,5 @@ predicate test() {
 //     let ::c4: int = 5;
 //     let ::a_variant: ::d::MyUnion = ::d::MyUnion::A;
 //     let ::b_variant: ::d::MyUnion = ::d::MyUnion::B;
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

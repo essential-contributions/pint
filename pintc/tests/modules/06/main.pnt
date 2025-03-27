@@ -52,6 +52,5 @@ predicate test(
 //     constraint (::s2 == ::b_mod::c_mod::A::B);
 //     constraint (::s3 == ::b_mod::c_mod::A::C);
 //     constraint (::s4 == ::b_mod::c_mod::A::B);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

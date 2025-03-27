@@ -62,6 +62,5 @@ predicate test(
 //     constraint (::e == [::a, ::a, ::a]);
 //     constraint (::f == ::e[1]);
 //     constraint (::g == ::a);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

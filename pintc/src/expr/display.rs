@@ -52,6 +52,15 @@ impl DisplayWithContract for &super::Expr {
                 Ok(())
             }
 
+            super::Expr::KeyValue { lhs, rhs, .. } => {
+                write!(
+                    f,
+                    "({} := {})",
+                    contract.with_ctrct(lhs),
+                    contract.with_ctrct(rhs)
+                )
+            }
+
             super::Expr::Nil(_) => {
                 write!(f, "nil")
             }
@@ -69,12 +78,7 @@ impl DisplayWithContract for &super::Expr {
                 write!(f, "    }}")
             }
 
-            super::Expr::LocalStorageAccess { name, mutable, .. } => {
-                if *mutable {
-                    write!(f, "mut ")?;
-                }
-                write!(f, "storage::{name}")
-            }
+            super::Expr::LocalStorageAccess { name, .. } => write!(f, "storage::{name}"),
 
             super::Expr::ExternalStorageAccess {
                 interface,
@@ -379,6 +383,7 @@ impl Display for super::BinaryOp {
             super::BinaryOp::Mul => write!(f, "*"),
             super::BinaryOp::NotEqual => write!(f, "!="),
             super::BinaryOp::Sub => write!(f, "-"),
+            super::BinaryOp::Concat => write!(f, "++"),
         }
     }
 }

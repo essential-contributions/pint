@@ -119,6 +119,5 @@ predicate test(
 //     constraint ((UnTag(::x) == 0) || (!(UnTag(::x) == 1) || (UnVal(::x, int) > 0)));
 //     constraint ((UnTag(::x) == 0) || ((UnTag(::x) == 1) || (!(UnTag(::x) == 2) || (UnVal(::x, {int, int}).0 == 33))));
 //     constraint ((UnTag(::x) == 0) || ((UnTag(::x) == 1) || (!(UnTag(::x) == 2) || (UnVal(::x, {int, int}).1 != 44))));
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

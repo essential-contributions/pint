@@ -104,6 +104,5 @@ predicate test(
 //     constraint !!!!(::x == 10);
 //     constraint !(!(::x != 11) || !(::y != 21));
 //     constraint !(!(::x != 10) && !(::y != 21));
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

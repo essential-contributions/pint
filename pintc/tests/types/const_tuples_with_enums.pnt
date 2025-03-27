@@ -20,6 +20,5 @@ predicate test() {
 //
 // predicate ::test(
 // ) {
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

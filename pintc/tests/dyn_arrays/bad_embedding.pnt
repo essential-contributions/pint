@@ -30,6 +30,5 @@ predicate test(p: { int, bool[] }) {
 // ) {
 //     let ::f: bool[_] = ::p.1;
 //     constraint (__len(::f) == __len(::p.1));
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

@@ -18,7 +18,7 @@ predicate test(ary: int[10]) {
         expect_test::expect![[r#"
             predicate ::test {
                 --- Nodes ---
-                node 0 (pre)
+                node 0 ()
                   Stack(Push(3))
                   Stack(Reserve)
                   Stack(Pop)
@@ -89,11 +89,7 @@ predicate test(ary: int[10]) {
                   Stack(Drop)
                   Stack(Push(10))
                   Memory(Free)
-                node 1 (pre,leaf)
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                node 2 (pre,leaf)
+                node 1 (,leaf)
                   Stack(Push(0))
                   Stack(Push(4))
                   Alu(Add)
@@ -127,7 +123,7 @@ predicate test(ary: int[10]) {
         expect_test::expect![[r#"
             predicate ::test {
                 --- Nodes ---
-                node 0 (pre)
+                node 0 ()
                   Stack(Push(3))
                   Stack(Reserve)
                   Stack(Pop)
@@ -177,11 +173,7 @@ predicate test(ary: int[10]) {
                   Stack(Drop)
                   Stack(Push(10))
                   Memory(Free)
-                node 1 (pre,leaf)
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                node 2 (pre,leaf)
+                node 1 (,leaf)
                   Stack(Push(0))
                   Stack(Push(6))
                   Stack(Push(0))
@@ -218,7 +210,7 @@ predicate test() {
         expect_test::expect![[r#"
             predicate ::test {
                 --- Nodes ---
-                node 0 (pre)
+                node 0 ()
                   Stack(Push(3))
                   Stack(Reserve)
                   Stack(Pop)
@@ -275,11 +267,7 @@ predicate test() {
                   Stack(Drop)
                   Stack(Push(5))
                   Memory(Free)
-                node 1 (pre,leaf)
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                node 2 (pre,leaf)
+                node 1 (,leaf)
                   Stack(Push(0))
                   Stack(Push(1))
                   Alu(Add)
@@ -313,7 +301,7 @@ predicate test() {
         expect_test::expect![[r#"
             predicate ::test {
                 --- Nodes ---
-                node 0 (pre)
+                node 0 ()
                   Stack(Push(3))
                   Stack(Reserve)
                   Stack(Pop)
@@ -362,7 +350,7 @@ predicate test() {
                   Stack(Drop)
                   Stack(Push(3))
                   Memory(Free)
-                node 1 (pre)
+                node 1 ()
                   Stack(Push(3))
                   Stack(Reserve)
                   Stack(Pop)
@@ -407,11 +395,7 @@ predicate test() {
                   Stack(Drop)
                   Stack(Push(3))
                   Memory(Free)
-                node 2 (pre,leaf)
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                node 3 (pre,leaf)
+                node 2 (,leaf)
                   Stack(Push(0))
                   Stack(Push(0))
                   Alu(Add)
@@ -452,7 +436,7 @@ predicate test() {
         expect_test::expect![[r#"
             predicate ::test {
                 --- Nodes ---
-                node 0 (pre)
+                node 0 ()
                   Stack(Push(3))
                   Stack(Reserve)
                   Stack(Pop)
@@ -539,11 +523,7 @@ predicate test() {
                   Stack(Drop)
                   Stack(Push(3))
                   Memory(Free)
-                node 1 (pre,leaf)
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                node 2 (pre,leaf)
+                node 1 (,leaf)
                   Stack(Push(0))
                   Stack(Push(0))
                   Alu(Add)
@@ -582,7 +562,7 @@ predicate test_int_array(ary: int[5][2]) {
         expect_test::expect![[r#"
             predicate ::test_int_array {
                 --- Nodes ---
-                node 0 (pre)
+                node 0 ()
                   Stack(Push(3))
                   Stack(Reserve)
                   Stack(Pop)
@@ -647,11 +627,7 @@ predicate test_int_array(ary: int[5][2]) {
                   Stack(Drop)
                   Stack(Push(5))
                   Memory(Free)
-                node 1 (pre,leaf)
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                node 2 (pre,leaf)
+                node 1 (,leaf)
                   Stack(Push(0))
                   Stack(Push(4))
                   Alu(Add)

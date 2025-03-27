@@ -12,20 +12,21 @@ macro @unwrap_or($a, $b) {
 predicate Simple(p: int, q: { int, b256[2] }) {
     constraint p == 69;
     
-    let e1 = p / (- mut storage::x! * mut storage::y! + mut storage::t.0! + mut storage::a[0]!);
+    let e1 = p / (- storage::x! * storage::y! + storage::t.0! + storage::a[0]!);
+    let e1_post = p / (- storage::x'! * storage::y'! + storage::t.0'! + storage::a[0]'!);
     constraint e1 == p / (-1 * 2 + 3 + 5);
-    constraint e1' == p / (-11 * 12 + 13 + 15);
+    constraint e1_post == p / (-11 * 12 + 13 + 15);
 
-    let e2 = @unwrap_or(mut storage::t.1; 69) * @unwrap_or(mut storage::a[1]; 70);
+    let e2 = @unwrap_or(storage::t.1; 69) * @unwrap_or(storage::a[1]; 70);
+    let e2_post = @unwrap_or(storage::t.1'; 69) * @unwrap_or(storage::a[1]'; 70);
 
     // t.1 is nil then becomes non-nil
     // a[1] is non-nil then becomes nil
     constraint e2 == 69 * 6; 
-    constraint e2' == 14 * 70; 
+    constraint e2_post == 14 * 70; 
 
     let e3 = (true as int + 3) in -5..(3*3 + p); // no storage accesses
     constraint e3;
-    constraint e3';
 
     let e4 = q.1[1];
     constraint e4 == 0x0000000000000001000000000000000100000000000000010000000000000001;
@@ -43,17 +44,18 @@ predicate Simple(p: int, q: { int, b256[2] }) {
 //     ::p: int,
 //     ::q: {int, b256[2]},
 // ) {
-//     let ::e1 = (::p / (((-mut storage::x! * mut storage::y!) + mut storage::t.0!) + mut storage::a[0]!));
-//     let ::e2 = (((mut storage::t.1 == nil) ? 69 : mut storage::t.1!) * ((mut storage::a[1] == nil) ? 70 : mut storage::a[1]!));
+//     let ::e1 = (::p / (((-storage::x! * storage::y!) + storage::t.0!) + storage::a[0]!));
+//     let ::e1_post = (::p / (((-storage::x'! * storage::y'!) + storage::t.0'!) + storage::a[0]'!));
+//     let ::e2 = (((storage::t.1 == nil) ? 69 : storage::t.1!) * ((storage::a[1] == nil) ? 70 : storage::a[1]!));
+//     let ::e2_post = (((storage::t.1' == nil) ? 69 : storage::t.1'!) * ((storage::a[1]' == nil) ? 70 : storage::a[1]'!));
 //     let ::e3 = (true as int + 3) in -5..((3 * 3) + ::p);
 //     let ::e4 = ::q.1[1];
 //     constraint (::p == 69);
 //     constraint (::e1 == (::p / (((-1 * 2) + 3) + 5)));
-//     constraint (::e1' == (::p / (((-11 * 12) + 13) + 15)));
+//     constraint (::e1_post == (::p / (((-11 * 12) + 13) + 15)));
 //     constraint (::e2 == (69 * 6));
-//     constraint (::e2' == (14 * 70));
+//     constraint (::e2_post == (14 * 70));
 //     constraint ::e3;
-//     constraint ::e3';
 //     constraint (::e4 == 0x0000000000000001000000000000000100000000000000010000000000000001);
 // }
 // >>>
@@ -71,17 +73,17 @@ predicate Simple(p: int, q: { int, b256[2] }) {
 //     ::q: {int, b256[2]},
 // ) {
 //     let ::e1: int = (::p / (((-__pre_state({0})! * __pre_state({1})!) + __pre_state({2, (0 + 0)})!) + __pre_state({3, (0 + (0 * 1))})!));
+//     let ::e1_post: int = (::p / (((-__post_state({0})! * __post_state({1})!) + __post_state({2, (0 + 0)})!) + __post_state({3, (0 + (0 * 1))})!));
 //     let ::e2: int = (((__pre_state({2, (0 + 1)}) == nil) ? 69 : __pre_state({2, (0 + 1)})!) * ((__pre_state({3, (0 + (1 * 1))}) == nil) ? 70 : __pre_state({3, (0 + (1 * 1))})!));
+//     let ::e2_post: int = (((__post_state({2, (0 + 1)}) == nil) ? 69 : __post_state({2, (0 + 1)})!) * ((__post_state({3, (0 + (1 * 1))}) == nil) ? 70 : __post_state({3, (0 + (1 * 1))})!));
 //     let ::e3: bool = (((true + 3) >= -5) && ((true + 3) <= ((3 * 3) + ::p)));
 //     let ::e4: b256 = ::q.1[1];
 //     constraint (::p == 69);
 //     constraint (::e1 == (::p / (((-1 * 2) + 3) + 5)));
-//     constraint (::e1' == (::p / (((-11 * 12) + 13) + 15)));
+//     constraint (::e1_post == (::p / (((-11 * 12) + 13) + 15)));
 //     constraint (::e2 == (69 * 6));
-//     constraint (::e2' == (14 * 70));
+//     constraint (::e2_post == (14 * 70));
 //     constraint ::e3;
-//     constraint ::e3';
 //     constraint (::e4 == 0x0000000000000001000000000000000100000000000000010000000000000001);
-//     constraint __eq_set(__mut_keys(), {{3, (0 + (1 * 1))}, 2, {3, (0 + (0 * 1))}, 2, {1}, 1, {0}, 1, {2, (0 + 0)}, 2, {2, (0 + 1)}, 2, {3, (0 + (1 * 1))}, 2, {2, (0 + 1)}, 2, 22});
 // }
 // >>>

@@ -41,6 +41,5 @@ predicate test(
 //     ::m: ::outer,
 // ) {
 //     constraint ((UnTag(::l) == 1) ? ((UnTag(::m) == 0) ? ((::k == 0) ? ((UnTag(UnVal(::m, ::inner)) == 1) ? (UnVal(::l, int) == UnVal(UnVal(::m, ::inner), int)) : true) : true) : true) : true);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

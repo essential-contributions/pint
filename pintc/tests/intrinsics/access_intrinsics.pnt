@@ -39,11 +39,9 @@ predicate Foo() {
 //     constraint (::this_address == __this_address());
 //     constraint (::this_contract_address == __this_contract_address());
 //     constraint (::predicate_address == __address_of("::Foo"));
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 //
 // predicate ::Foo(
 // ) {
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

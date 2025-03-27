@@ -31,6 +31,5 @@ predicate test(y: bool) {
 //     ::y: bool,
 // ) {
 //     constraint (::y == false);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

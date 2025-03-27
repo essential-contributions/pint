@@ -25,9 +25,9 @@ predicate Foo(
     // These addresses can be verified by compiling this contract using the `pint` CLI tool which
     // produces the address of every predicate.
     constraint __address_of("::First") ==
-        0x0F39815C68106D04F66D62AAE15C9CB7AB917182075D8A183970CDB6397ED227;
+        0x2E433887AF721D4F3F5F4A7650C1FBF4A1776DC278CB7F226AFEE692995AC390;
     constraint __address_of("::Bar") ==
-        0xC89890A919484591D418986326F4438B2D4B6F9484DEE05907E5C8190939A50D;
+        0x7D1C819AA673D086A17B950EA079CCE104ADF149039F43F07AF3331A4CC67A17;
 
     constraint __sha256(0) == 0xAF5570F5A1810B7AF78CAF4BC70A660F0DF51E42BAF91D4DE5B2328DE0E83DFC;
 
@@ -65,33 +65,42 @@ predicate Foo(
             13
         };
 
-    let x = mut storage::x;
-    let y = mut storage::y;
-    let z = mut storage::z;
-    let w = mut storage::w;
+    constraint storage::x := 42;
+    constraint storage::y := 98;
+    constraint storage::z := 44;
+    constraint storage::w := nil;
+
+    let x = storage::x;
+    let x_post = storage::x';
+    let y = storage::y;
+    let y_post = storage::y';
+    let z = storage::z;
+    let z_post = storage::z';
+    let w = storage::w;
+    let w_post = storage::w';
 
     // `x` is set in the pre let db and in the solution
     // `x` is an optional
     constraint __size_of(x) == 1 + 1;
-    constraint __size_of(x') == 1 + 1;
+    constraint __size_of(x_post) == 1 + 1;
 
     // `y` is set in the pre let db and in the solution
     // `y` is an `int` 
     constraint __size_of(y!) == 1;
-    constraint __size_of(y'!) == 1;
+    constraint __size_of(y_post!) == 1;
 
     // `z` is not set in the pre let db but is set in the solution
     // `z` is an optional
     constraint __size_of(z) == 1 + 1;
-    constraint __size_of(z') == 1 + 1;
+    constraint __size_of(z_post) == 1 + 1;
 
     // `w` is set in the pre let db but unset in the solution
     // `w` is an optional
     constraint __size_of(w) == 1 + 4;
-    constraint __size_of(w') == 1 + 4;
+    constraint __size_of(w_post) == 1 + 4;
 
     // `__size_of` called on non-let vars.
     constraint __size_of(1) == 1;
     constraint __size_of(tuple) == 7;
-    constraint __size_of(__size_of(w')) == 1;
+    constraint __size_of(__size_of(w_post)) == 1;
 }

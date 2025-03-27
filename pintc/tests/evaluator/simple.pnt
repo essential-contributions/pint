@@ -50,6 +50,5 @@ predicate test(
 // ) {
 //     constraint (((true && (0 == 0)) && (1 == 1)) && (2 == 2));
 //     constraint true;
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

@@ -34,6 +34,11 @@ pub enum Expr {
         span: Span,
     },
     Nil(Span),
+    KeyValue {
+        lhs: ExprKey,
+        rhs: ExprKey,
+        span: Span,
+    },
     Path(String, Span),
     AsmBlock {
         args: Vec<ExprKey>,
@@ -42,7 +47,6 @@ pub enum Expr {
     },
     LocalStorageAccess {
         name: String,
-        mutable: bool,
         span: Span,
     },
     ExternalStorageAccess {
@@ -291,6 +295,8 @@ pub enum BinaryOp {
     // Logical
     LogicalAnd,
     LogicalOr,
+
+    Concat,
 }
 
 impl BinaryOp {
@@ -309,6 +315,7 @@ impl BinaryOp {
             BinaryOp::GreaterThan => ">",
             BinaryOp::LogicalAnd => "&&",
             BinaryOp::LogicalOr => "||",
+            BinaryOp::Concat => "++",
         }
     }
 }
@@ -328,6 +335,7 @@ impl Spanned for Expr {
             | Expr::Tuple { span, .. }
             | Expr::UnionVariant { span, .. }
             | Expr::Nil(span)
+            | Expr::KeyValue { span, .. }
             | Expr::Path(_, span)
             | Expr::AsmBlock { span, .. }
             | Expr::LocalStorageAccess { span, .. }
@@ -362,6 +370,10 @@ impl Expr {
         matches!(self, Expr::AsmBlock { .. })
     }
 
+    pub fn is_nil(&self) -> bool {
+        matches!(self, Expr::Nil(_))
+    }
+
     pub fn is_storage_access_intrinsic(&self) -> bool {
         matches!(
             self,
@@ -372,6 +384,21 @@ impl Expr {
                             | InternalIntrinsic::PreState
                             | InternalIntrinsic::PostStateExtern
                             | InternalIntrinsic::PreStateExtern
+                    ),
+                    _
+                ),
+                ..
+            }
+        )
+    }
+
+    pub fn is_pre_storage_access_intrinsic(&self) -> bool {
+        matches!(
+            self,
+            Expr::IntrinsicCall {
+                kind: (
+                    IntrinsicKind::Internal(
+                        InternalIntrinsic::PreState | InternalIntrinsic::PreStateExtern
                     ),
                     _
                 ),
@@ -406,6 +433,16 @@ impl Expr {
                     expr,
                     ..
                 } => expr.is_storage_access(contract),
+                _ => false,
+            }
+    }
+
+    pub fn is_pre_storage_access(&self, contract: &Contract) -> bool {
+        self.is_pre_storage_access_intrinsic()
+            || match self {
+                Expr::LocalStorageAccess { .. } | Expr::ExternalStorageAccess { .. } => true,
+                Expr::TupleFieldAccess { tuple, .. } => tuple.is_storage_access(contract),
+                Expr::Index { expr, .. } => expr.is_storage_access(contract),
                 _ => false,
             }
     }
@@ -464,6 +501,19 @@ impl Expr {
 
             (Expr::Nil(_), Expr::Nil(_)) => false,
 
+            (
+                Expr::KeyValue {
+                    lhs: lhs_lhs,
+                    rhs: lhs_rhs,
+                    ..
+                },
+                Expr::KeyValue {
+                    lhs: rhs_lhs,
+                    rhs: rhs_rhs,
+                    ..
+                },
+            ) => key_value_eq(contract, *lhs_lhs, *lhs_rhs, *rhs_lhs, *rhs_rhs),
+
             (Expr::Path(lhs_path, ..), Expr::Path(rhs_path, ..)) => path_eq(lhs_path, rhs_path),
             (
                 Expr::AsmBlock {
@@ -479,17 +529,9 @@ impl Expr {
             ) => asm_block_eq(contract, lhs_args, lhs_ops, rhs_args, rhs_ops),
 
             (
-                Expr::LocalStorageAccess {
-                    name: lhs_name,
-                    mutable: lhs_mutable,
-                    ..
-                },
-                Expr::LocalStorageAccess {
-                    name: rhs_name,
-                    mutable: rhs_mutable,
-                    ..
-                },
-            ) => local_storage_access_eq(lhs_name, lhs_mutable, rhs_name, rhs_mutable),
+                Expr::LocalStorageAccess { name: lhs_name, .. },
+                Expr::LocalStorageAccess { name: rhs_name, .. },
+            ) => lhs_name == rhs_name,
 
             (
                 Expr::ExternalStorageAccess {
@@ -803,6 +845,7 @@ impl Expr {
             | (Expr::Tuple { .. }, _)
             | (Expr::UnionVariant { .. }, _)
             | (Expr::Nil(_), _)
+            | (Expr::KeyValue { .. }, _)
             | (Expr::Path(..), _)
             | (Expr::AsmBlock { .. }, ..)
             | (Expr::LocalStorageAccess { .. }, _)
@@ -843,6 +886,10 @@ impl Expr {
                 if let Some(value) = value {
                     replace(value)
                 }
+            }
+            Expr::KeyValue { lhs, rhs, .. } => {
+                replace(lhs);
+                replace(rhs);
             }
             Expr::UnaryOp { expr, .. } => replace(expr),
             Expr::AsmBlock { args, .. } => args.iter_mut().for_each(replace),
@@ -1018,6 +1065,19 @@ pub fn path_eq(lhs_path: &String, rhs_path: &String) -> bool {
     lhs_path == rhs_path
 }
 
+pub fn key_value_eq(
+    contract: &Contract,
+    lhs_lhs: ExprKey,
+    lhs_rhs: ExprKey,
+    rhs_lhs: ExprKey,
+    rhs_rhs: ExprKey,
+) -> bool {
+    lhs_lhs.get(contract).eq(contract, rhs_lhs.get(contract))
+        && lhs_rhs.get(contract).eq(contract, rhs_rhs.get(contract))
+        || lhs_lhs.get(contract).eq(contract, rhs_rhs.get(contract))
+            && lhs_rhs.get(contract).eq(contract, rhs_lhs.get(contract))
+}
+
 pub fn asm_block_eq(
     contract: &Contract,
     lhs_args: &[ExprKey],
@@ -1037,15 +1097,6 @@ pub fn asm_block_eq(
                 (AsmOp::Op(lhs_op), AsmOp::Op(rhs_op)) => lhs_op.name == rhs_op.name,
                 _ => false,
             })
-}
-
-pub fn local_storage_access_eq(
-    lhs_name: &String,
-    lhs_mutable: &bool,
-    rhs_name: &String,
-    rhs_mutable: &bool,
-) -> bool {
-    lhs_name == rhs_name && lhs_mutable == rhs_mutable
 }
 
 pub fn external_storage_access_eq(
@@ -1085,7 +1136,7 @@ pub fn binary_op_eq(
 ) -> bool {
     match lhs_op {
         // These ops are commutative
-        BinaryOp::Add | BinaryOp::Mul | BinaryOp::Equal | BinaryOp::NotEqual => {
+        BinaryOp::Add | BinaryOp::Mul | BinaryOp::Equal | BinaryOp::NotEqual | BinaryOp::Concat => {
             lhs_op == rhs_op
                 && (lhs_lhs.get(contract).eq(contract, rhs_lhs.get(contract))
                     && lhs_rhs.get(contract).eq(contract, rhs_rhs.get(contract))

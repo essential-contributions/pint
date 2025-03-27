@@ -18,6 +18,5 @@ predicate test(ary: {int, bool}[]) {
 // ) {
 //     constraint !::ary[1].1;
 //     constraint (__len(::ary) == 2);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

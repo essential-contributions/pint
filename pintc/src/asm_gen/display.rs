@@ -41,14 +41,10 @@ pub fn fmt_compiled_predicate_with_indent(
             essential_asm::from_bytes(programs.get(&node.program_address).unwrap().0.clone())
                 .collect::<Result<_, _>>()
                 .unwrap();
-        let reads = match node.reads {
-            essential_types::predicate::Reads::Pre => "pre",
-            essential_types::predicate::Reads::Post => "post",
-        };
         let is_leaf = node.edge_start == essential_types::predicate::Edge::MAX;
         writeln!(
             f,
-            "{}node {idx} ({reads}{})",
+            "{}node {idx} ({})",
             indent,
             if is_leaf { ",leaf" } else { "" }
         )?;

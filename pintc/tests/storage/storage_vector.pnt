@@ -15,24 +15,28 @@ interface Bar {
 predicate Foo() {
     let addr = 0x0000000000000000000000000000000000000000000000000000000000000000;
     let v0_0 = storage::v0[0];
+    let v0_0_post = storage::v0[0]';
     let v0_1 = storage::v0[1];
+    let v0_1_post = storage::v0[1]';
     let v1_1 = storage::v1[1];
     let v2_2 = storage::v2[2];
 
     constraint v0_0! == 0;
     constraint v0_1! == 0;
-    constraint v0_0'! == 1;
-    constraint v0_1'! == 1;
+    constraint v0_0_post! == 1;
+    constraint v0_1_post! == 1;
 
     let u0_0 = Bar@[addr]::storage::u0[0];
+    let u0_0_post = Bar@[addr]::storage::u0[0]';
     let u0_1 = Bar@[addr]::storage::u0[1];
+    let u0_1_post = Bar@[addr]::storage::u0[1]';
     let u1_1 = Bar@[addr]::storage::u1[1];
     let u2_2 = Bar@[addr]::storage::u2[2];
 
     constraint u0_0! == 0;
     constraint u0_1! == 0;
-    constraint u0_0'! == 1;
-    constraint u0_1'! == 1;
+    constraint u0_0_post! == 1;
+    constraint u0_1_post! == 1;
 
     constraint u1_1! == (1 == 1);
     constraint u2_2! == 0x0000000000000000000000000000000000000000000000000000000000000000;
@@ -58,21 +62,25 @@ predicate Foo() {
 // ) {
 //     let ::addr = 0x0000000000000000000000000000000000000000000000000000000000000000;
 //     let ::v0_0 = storage::v0[0];
+//     let ::v0_0_post = storage::v0[0]';
 //     let ::v0_1 = storage::v0[1];
+//     let ::v0_1_post = storage::v0[1]';
 //     let ::v1_1 = storage::v1[1];
 //     let ::v2_2 = storage::v2[2];
 //     let ::u0_0 = ::Bar@[::addr]::storage::u0[0];
+//     let ::u0_0_post = ::Bar@[::addr]::storage::u0[0]';
 //     let ::u0_1 = ::Bar@[::addr]::storage::u0[1];
+//     let ::u0_1_post = ::Bar@[::addr]::storage::u0[1]';
 //     let ::u1_1 = ::Bar@[::addr]::storage::u1[1];
 //     let ::u2_2 = ::Bar@[::addr]::storage::u2[2];
 //     constraint (::v0_0! == 0);
 //     constraint (::v0_1! == 0);
-//     constraint (::v0_0'! == 1);
-//     constraint (::v0_1'! == 1);
+//     constraint (::v0_0_post! == 1);
+//     constraint (::v0_1_post! == 1);
 //     constraint (::u0_0! == 0);
 //     constraint (::u0_1! == 0);
-//     constraint (::u0_0'! == 1);
-//     constraint (::u0_1'! == 1);
+//     constraint (::u0_0_post! == 1);
+//     constraint (::u0_1_post! == 1);
 //     constraint (::u1_1! == (1 == 1));
 //     constraint (::u2_2! == 0x0000000000000000000000000000000000000000000000000000000000000000);
 //     constraint (::v1_1! == (1 == 1));
@@ -98,34 +106,35 @@ predicate Foo() {
 // ) {
 //     let ::addr: b256 = 0x0000000000000000000000000000000000000000000000000000000000000000;
 //     let ::v0_0: int? = __pre_state({0, 0});
+//     let ::v0_0_post: int? = __post_state({0, 0});
 //     let ::v0_1: int? = __pre_state({0, 1});
+//     let ::v0_1_post: int? = __post_state({0, 1});
 //     let ::v1_1: bool? = __pre_state({1, 1});
 //     let ::v2_2: b256? = __pre_state({2, 2});
 //     let ::u0_0: int? = __pre_state_extern(::addr, {0, 0});
+//     let ::u0_0_post: int? = __post_state_extern(::addr, {0, 0});
 //     let ::u0_1: int? = __pre_state_extern(::addr, {0, 1});
+//     let ::u0_1_post: int? = __post_state_extern(::addr, {0, 1});
 //     let ::u1_1: bool? = __pre_state_extern(::addr, {1, 1});
 //     let ::u2_2: b256? = __pre_state_extern(::addr, {2, 2});
 //     let __v0_len: int? = __pre_state({0});
-//     let __v1_len: int? = __pre_state({1});
 //     let __v2_len: int? = __pre_state({2});
+//     let __v1_len: int? = __pre_state({1});
 //     constraint (::v0_0! == 0);
 //     constraint (::v0_1! == 0);
-//     constraint (::v0_0'! == 1);
-//     constraint (::v0_1'! == 1);
+//     constraint (::v0_0_post! == 1);
+//     constraint (::v0_1_post! == 1);
 //     constraint (::u0_0! == 0);
 //     constraint (::u0_1! == 0);
-//     constraint (::u0_0'! == 1);
-//     constraint (::u0_1'! == 1);
+//     constraint (::u0_0_post! == 1);
+//     constraint (::u0_1_post! == 1);
 //     constraint (::u1_1! == (1 == 1));
 //     constraint (::u2_2! == 0x0000000000000000000000000000000000000000000000000000000000000000);
 //     constraint (::v1_1! == (1 == 1));
 //     constraint (::v2_2! == 0x0000000000000000000000000000000000000000000000000000000000000000);
-//     constraint (0 < __v0_len!);
-//     constraint (1 < __v1_len!);
-//     constraint (2 < __v2_len!);
 //     constraint (1 < __v0_len!);
-//     constraint (0 < __v0_len'!);
-//     constraint (1 < __v0_len'!);
-//     constraint __eq_set(__mut_keys(), {0});
+//     constraint (2 < __v2_len!);
+//     constraint (1 < __v1_len!);
+//     constraint (0 < __v0_len!);
 // }
 // >>>

@@ -66,38 +66,38 @@ predicate Foo(
 
     constraint e4 == nil;
 
-    constraint mut storage::x'!! == x!;
+    constraint storage::x'!! == x!;
     constraint storage::x'! == x;
 
-    constraint mut storage::y'!! == y!;
+    constraint storage::y'!! == y!;
     constraint storage::y'! == y;
-    constraint mut storage::z'! == z;
+    constraint storage::z'! == z;
     constraint storage::z'! == z;
 
-    constraint mut storage::t'!! == t!;
+    constraint storage::t'!! == t!;
     constraint storage::t'! == t;
 
     // TODO: These do not work yet. They require tuple accesses on the stack.
     // constraint storage::t!!.0! == t!.0!;
     // constraint storage::t!!.1 == t!.1;
 
-    constraint mut storage::t_nil'! == nil;
+    constraint storage::t_nil'! == nil;
     constraint storage::t_nil'! == t_nil;
 
-    constraint mut storage::a1'!! == a1!;
+    constraint storage::a1'!! == a1!;
     constraint storage::a1'! == a1;
 
-    constraint mut storage::a2'! == a2;
+    constraint storage::a2'! == a2;
 
-    constraint mut storage::e1'!! == e1!;
+    constraint storage::e1'!! == e1!;
     constraint storage::e1'! == e1;
 
-    constraint mut storage::e2'!! == e2!;
+    constraint storage::e2'!! == e2!;
     constraint storage::e2'! == e2;
 
-    constraint mut storage::e3'!!! == e3!!;
-    constraint mut storage::e3'!! == e3!;
+    constraint storage::e3'!!! == e3!!;
+    constraint storage::e3'!! == e3!;
     constraint storage::e3'! == e3;
 
-    constraint mut storage::e4'! == nil;
+    constraint storage::e4'! == nil;
 }

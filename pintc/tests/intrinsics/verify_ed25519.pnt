@@ -104,6 +104,5 @@ predicate test(
 //     constraint (::verify_ed25519_7 == __verify_ed25519(::a[1], ::sig, ::hash2));
 //     constraint (::verify_ed25519_8 == __verify_ed25519(::a[1][2], ::sig, ::hash2));
 //     constraint (::verify_ed25519_9 == __verify_ed25519(::a[1][2][3], ::sig, ::hash2));
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

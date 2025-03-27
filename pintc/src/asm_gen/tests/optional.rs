@@ -17,11 +17,7 @@ fn optional_predicate_data() {
         expect_test::expect![[r#"
             predicate ::foo {
                 --- Nodes ---
-                node 0 (pre,leaf)
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                node 1 (pre,leaf)
+                node 0 (,leaf)
                   Stack(Push(1))
                   Stack(Push(0))
                   Stack(Push(1))
@@ -40,7 +36,7 @@ fn optional_predicate_data() {
                   Stack(Push(1))
                   Stack(Push(2))
                   Pred(EqRange)
-                node 2 (pre,leaf)
+                node 1 (,leaf)
                   Stack(Push(0))
                   Stack(Push(0))
                   Stack(Push(1))
@@ -85,11 +81,7 @@ fn optional_storage() {
         expect_test::expect![[r#"
             predicate ::foo {
                 --- Nodes ---
-                node 0 (pre,leaf)
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                node 1 (pre,leaf)
+                node 0 (,leaf)
                   Stack(Push(3))
                   Stack(Reserve)
                   Stack(Pop)
@@ -128,7 +120,7 @@ fn optional_storage() {
                   Stack(Store)
                   Stack(Pop)
                   Stack(Pop)
-                node 2 (pre,leaf)
+                node 1 (,leaf)
                   Stack(Push(3))
                   Stack(Reserve)
                   Stack(Pop)

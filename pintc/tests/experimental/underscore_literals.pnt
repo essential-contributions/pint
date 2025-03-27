@@ -23,6 +23,5 @@ predicate test() {
 //     let ::y: real = 1.100500123e3;
 //     let ::z: real = 1.2e5;
 //     constraint ((::x / ::y) > ::z);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

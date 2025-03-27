@@ -118,7 +118,8 @@ fn check_expr(
         Type::Alias { span, .. } => {
             emit_illegal_type_error!(handler, span, "type alias", "expr_types");
         }
-        Type::FixedArray { .. }
+        Type::KeyValue(_)
+        | Type::FixedArray { .. }
         | Type::UnsizedArray { .. }
         | Type::Tuple { .. }
         | Type::Primitive { .. }
@@ -180,6 +181,7 @@ fn check_expr(
         | Expr::Tuple { .. }
         | Expr::UnionVariant { .. }
         | Expr::Nil(_)
+        | Expr::KeyValue { .. }
         | Expr::Path(..)
         | Expr::AsmBlock { .. }
         | Expr::LocalStorageAccess { .. }

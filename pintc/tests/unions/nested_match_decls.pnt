@@ -85,6 +85,5 @@ predicate CoinGame(coin: CoinFace, prize: int) {
 //     constraint ((UnTag(::coin) == 0) || (!(UnTag(::coin) == 1) || ((UnVal(::coin, ::Face) == ::Face::Head) || (::prize == (5 * 20)))));
 //     constraint ((UnTag(::coin) == 0) || ((UnTag(::coin) == 1) || (!(UnTag(::coin) == 2) || ((UnVal(::coin, ::Face) == ::Face::Head) ? (10 * 5) : (10 * 10)))));
 //     constraint ((UnTag(::coin) == 0) || ((UnTag(::coin) == 1) || ((UnTag(::coin) == 2) || (!(UnTag(::coin) == 3) || (::prize == (25 * ((UnTag(UnVal(::coin, ::Face)) == 0) ? 1 : 2)))))));
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

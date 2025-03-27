@@ -23,8 +23,14 @@ predicate test(
     let z: int = storage::z!;
     let external: int = Foo@[0x44e1aa05940f0a9c02572fcffc641fa7b3a8f036f07c5b87f17d276e0957cf89]
                           ::storage::external!;
+    let x_post: int = storage::x'!;
+    let y_post: int = storage::y'!;
+    let z_post: int = storage::z'!;
+    let external_post: int = Foo@[0x44e1aa05940f0a9c02572fcffc641fa7b3a8f036f07c5b87f17d276e0957cf89]
+                               ::storage::external'!;
+
     constraint e_old == external;
-    constraint e_new == external';
+    constraint e_new == external_post;
 
     constraint w == x + 99; // 141
     constraint u == y * 3;  // 129
@@ -33,12 +39,12 @@ predicate test(
     constraint forall i in 0..4 {
         a[i] == i*i
     };
-    constraint x' - x == 1; // x' == 43
-    constraint y' == y + 4; // y' == 47
-    constraint x' + y' > 89 && x' * y' > 1932;
+    constraint x_post - x == 1; // x_post == 43
+    constraint y_post == y + 4; // y_post == 47
+    constraint x_post + y_post > 89 && x_post * y_post > 1932;
     constraint x < y;
     constraint w + u + v == 2206;
-    constraint external' - external == 1;
+    constraint external_post - external == 1;
 }
 
 // parsed <<<
@@ -65,18 +71,22 @@ predicate test(
 //     let ::y: int = storage::y!;
 //     let ::z: int = storage::z!;
 //     let ::external: int = ::Foo@[0x44E1AA05940F0A9C02572FCFFC641FA7B3A8F036F07C5B87F17D276E0957CF89]::storage::external!;
+//     let ::x_post: int = storage::x'!;
+//     let ::y_post: int = storage::y'!;
+//     let ::z_post: int = storage::z'!;
+//     let ::external_post: int = ::Foo@[0x44E1AA05940F0A9C02572FCFFC641FA7B3A8F036F07C5B87F17D276E0957CF89]::storage::external'!;
 //     constraint (::e_old == ::external);
-//     constraint (::e_new == ::external');
+//     constraint (::e_new == ::external_post);
 //     constraint (::w == (::x + 99));
 //     constraint (::u == (::y * 3));
 //     constraint (::v == (::z * ::z));
 //     constraint forall i in 0..4, { (::a[::i] == (::i * ::i)) };
-//     constraint ((::x' - ::x) == 1);
-//     constraint (::y' == (::y + 4));
-//     constraint (((::x' + ::y') > 89) && ((::x' * ::y') > 1932));
+//     constraint ((::x_post - ::x) == 1);
+//     constraint (::y_post == (::y + 4));
+//     constraint (((::x_post + ::y_post) > 89) && ((::x_post * ::y_post) > 1932));
 //     constraint (::x < ::y);
 //     constraint (((::w + ::u) + ::v) == 2206);
-//     constraint ((::external' - ::external) == 1);
+//     constraint ((::external_post - ::external) == 1);
 // }
 // >>>
 
@@ -104,18 +114,21 @@ predicate test(
 //     let ::y: int = __pre_state({1})!;
 //     let ::z: int = __pre_state({2})!;
 //     let ::external: int = __pre_state_extern(0x44E1AA05940F0A9C02572FCFFC641FA7B3A8F036F07C5B87F17D276E0957CF89, {0})!;
+//     let ::x_post: int = __post_state({0})!;
+//     let ::y_post: int = __post_state({1})!;
+//     let ::z_post: int = __post_state({2})!;
+//     let ::external_post: int = __post_state_extern(0x44E1AA05940F0A9C02572FCFFC641FA7B3A8F036F07C5B87F17D276E0957CF89, {0})!;
 //     constraint (::e_old == ::external);
-//     constraint (::e_new == ::external');
+//     constraint (::e_new == ::external_post);
 //     constraint (::w == (::x + 99));
 //     constraint (::u == (::y * 3));
 //     constraint (::v == (::z * ::z));
 //     constraint (((((true && (::a[0] == (0 * 0))) && (::a[1] == (1 * 1))) && (::a[2] == (2 * 2))) && (::a[3] == (3 * 3))) && (::a[4] == (4 * 4)));
-//     constraint ((::x' - ::x) == 1);
-//     constraint (::y' == (::y + 4));
-//     constraint (((::x' + ::y') > 89) && ((::x' * ::y') > 1932));
+//     constraint ((::x_post - ::x) == 1);
+//     constraint (::y_post == (::y + 4));
+//     constraint (((::x_post + ::y_post) > 89) && ((::x_post * ::y_post) > 1932));
 //     constraint (::x < ::y);
 //     constraint (((::w + ::u) + ::v) == 2206);
-//     constraint ((::external' - ::external) == 1);
-//     constraint __eq_set(__mut_keys(), {0});
+//     constraint ((::external_post - ::external) == 1);
 // }
 // >>>

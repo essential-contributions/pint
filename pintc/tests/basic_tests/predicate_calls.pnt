@@ -166,6 +166,5 @@ predicate Foo(
 //     constraint (::foo_2.y3 == 0x0000111100001111000011110000111100001111000011110000111100001111);
 //     constraint (::foo_2.y5 == {true, 2});
 //     constraint (::foo_2.y6 == [1, 2, 3, 4, 5]);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

@@ -24,6 +24,5 @@ predicate test() {
 //     let ::a: bool = false;
 //     let ::anon@0::a: int = 11;
 //     let ::anon@1::a: int = 22;
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

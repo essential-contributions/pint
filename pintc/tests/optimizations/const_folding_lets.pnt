@@ -110,7 +110,6 @@ predicate Foo(x: int, y: bool) {
 //     constraint (::y == !(::d.1 > 2));
 //     constraint (::y == (::e ? false : !!true));
 //     constraint (::y == !::d.0);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
 
@@ -142,7 +141,6 @@ predicate Foo(x: int, y: bool) {
 //     constraint (::x == -2);
 //     constraint (::y == false);
 //     constraint (::y == true);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
 

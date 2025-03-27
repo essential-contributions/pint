@@ -171,7 +171,6 @@ predicate Bar() {
 //     let ::external_x_2: int? = __pre_state_extern(::addr2, {0});
 //     let ::external_y_2: bool? = __pre_state_extern(::addr2, {1});
 //     let ::external_map_2: b256? = __pre_state_extern(::addr2, {2, 3, 4});
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 //
 // predicate ::Bar(
@@ -191,6 +190,5 @@ predicate Bar() {
 //     let ::external_x_2: int? = __pre_state_extern(::addr2, {0});
 //     let ::external_y_2: bool? = __pre_state_extern(::addr2, {1});
 //     let ::external_map_2: b256? = __pre_state_extern(::addr2, {2, 3, 4});
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

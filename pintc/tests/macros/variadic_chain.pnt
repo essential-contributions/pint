@@ -37,6 +37,5 @@ predicate test(x: int, y: int, z: int) {
 //     constraint (::z < 100);
 //     constraint (::y > (::x + 10));
 //     constraint (::z > (::y + 10));
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

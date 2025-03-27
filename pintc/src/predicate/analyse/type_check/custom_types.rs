@@ -88,6 +88,7 @@ impl Contract {
                 | Type::Unknown(_)
                 | Type::Any(_)
                 | Type::Nil(_)
+                | Type::KeyValue(_)
                 | Type::Primitive { .. } => {}
             }
 
@@ -219,6 +220,7 @@ impl Contract {
                 | Type::Unknown(_)
                 | Type::Any(_)
                 | Type::Nil(_)
+                | Type::KeyValue(_)
                 | Type::Primitive { .. } => Ok(()),
             }
         }
@@ -284,6 +286,7 @@ impl Contract {
                 | Type::Unknown(_)
                 | Type::Any(_)
                 | Type::Nil(_)
+                | Type::KeyValue(_)
                 | Type::Primitive { .. }
                 | Type::Union { .. } => {}
             }

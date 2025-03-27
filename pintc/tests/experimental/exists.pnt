@@ -15,6 +15,5 @@ predicate test(r: real) {
 //     ::r: real,
 // ) {
 //     constraint (((false || ((1 as real / 2 as real) >= ::r)) || ((1 as real / 3 as real) >= ::r)) || ((2 as real / 3 as real) >= ::r));
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

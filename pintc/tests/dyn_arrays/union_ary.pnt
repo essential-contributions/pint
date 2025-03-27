@@ -28,6 +28,5 @@ predicate test(ary: X[]) {
 // ) {
 //     constraint ((UnTag(::ary[1]) == 0) ? true : ((UnTag(::ary[1]) == 1) ? (UnVal(::ary[1], int) < 11) : !UnVal(::ary[1], bool)));
 //     constraint (__len(::ary) > 1);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
