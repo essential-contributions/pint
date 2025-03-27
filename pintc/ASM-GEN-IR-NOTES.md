@@ -246,4 +246,24 @@ AsmBlock
 _Lowered, not compiled:_
 Error, Cast, In, Range, Generator, Match, MacroCall, LocalStorageAccess, ExternalStorageAccess
 
+# SOUP OF NODES
+
+Good option for an already defined IR format.  Focuses on dataflow and control flow as separate
+edges in the same graph.
+
+Simple, a tutorial: https://github.com/SeaOfNodes/Simple/tree/main
+
+## Notes
+
+Stuff from the tutorial which might not apply for Pint:
+
+_All the premature optimisations._
+
+_The type system._
+
+_Projections and multinodes?_
+
+Projection nodes are GEPs.  But they project into multinodes, which seem to be just a vec of indices
+to other nodes, rather than a different specific tuple data structure.
+
 %% vim:foldlevel=3
