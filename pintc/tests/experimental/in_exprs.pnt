@@ -24,6 +24,5 @@ predicate test(b: real) {
 // ) {
 //     constraint ((::b >= 1.23e1) && (::b <= 6.78e1));
 //     constraint (((::b == 2.5e1) || (::b == 2.997e1)) || (::b == 5.994e1));
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

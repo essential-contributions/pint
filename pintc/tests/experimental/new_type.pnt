@@ -63,6 +63,5 @@ predicate test() {
 //     let ::q: real = ::i as real;
 //     let ::x: real? = __pre_state({0});
 //     constraint (::r < ::p.y);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

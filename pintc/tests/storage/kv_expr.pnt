@@ -1,0 +1,67 @@
+storage {
+    x: { int , int, b256, int }
+}
+
+predicate foo(c: bool) {
+    constraint storage::x := 
+        { 41, 42, 0x0000000000000005000000000000000600000000000000070000000000000008, 43 };
+    constraint storage::x.0 := 41;
+    constraint storage::x.1 := 42;
+    constraint storage::x.2 := 0x0000000000000005000000000000000600000000000000070000000000000008;
+    constraint storage::x.3 := 43;
+
+    constraint    storage::x.0 := 41
+               ++ storage::x.1 := 42
+               ++ storage::x.2 := 0x0000000000000005000000000000000600000000000000070000000000000008;
+
+    constraint storage::x'! == 
+        { 41, 42, 0x0000000000000005000000000000000600000000000000070000000000000008, 43 };
+    constraint storage::x.0'! == 41;
+    constraint storage::x.1'! == 42;
+    constraint storage::x.2'! == 0x0000000000000005000000000000000600000000000000070000000000000008;
+    constraint storage::x.3'! == 43;
+}
+
+// parsed <<<
+// storage {
+//     x: {int, int, b256, int},
+// }
+//
+// predicate ::foo(
+//     ::c: bool,
+// ) {
+//     constraint (storage::x := {41, 42, 0x0000000000000005000000000000000600000000000000070000000000000008, 43});
+//     constraint (storage::x.0 := 41);
+//     constraint (storage::x.1 := 42);
+//     constraint (storage::x.2 := 0x0000000000000005000000000000000600000000000000070000000000000008);
+//     constraint (storage::x.3 := 43);
+//     constraint (((storage::x.0 := 41) ++ (storage::x.1 := 42)) ++ (storage::x.2 := 0x0000000000000005000000000000000600000000000000070000000000000008));
+//     constraint (storage::x'! == {41, 42, 0x0000000000000005000000000000000600000000000000070000000000000008, 43});
+//     constraint (storage::x.0'! == 41);
+//     constraint (storage::x.1'! == 42);
+//     constraint (storage::x.2'! == 0x0000000000000005000000000000000600000000000000070000000000000008);
+//     constraint (storage::x.3'! == 43);
+// }
+// >>>
+
+// flattened <<<
+// storage {
+//     x: {int, int, b256, int},
+// }
+//
+// predicate ::foo(
+//     ::c: bool,
+// ) {
+//     constraint (__pre_state({0, 0}) := {41, 42, 0x0000000000000005000000000000000600000000000000070000000000000008, 43});
+//     constraint (__pre_state({0, (0 + 0)}) := 41);
+//     constraint (__pre_state({0, (0 + 1)}) := 42);
+//     constraint (__pre_state({0, (0 + 2)}) := 0x0000000000000005000000000000000600000000000000070000000000000008);
+//     constraint (__pre_state({0, (0 + 3)}) := 43);
+//     constraint (((__pre_state({0, (0 + 0)}) := 41) ++ (__pre_state({0, (0 + 1)}) := 42)) ++ (__pre_state({0, (0 + 2)}) := 0x0000000000000005000000000000000600000000000000070000000000000008));
+//     constraint (__post_state({0, 0})! == {41, 42, 0x0000000000000005000000000000000600000000000000070000000000000008, 43});
+//     constraint (__post_state({0, (0 + 0)})! == 41);
+//     constraint (__post_state({0, (0 + 1)})! == 42);
+//     constraint (__post_state({0, (0 + 2)})! == 0x0000000000000005000000000000000600000000000000070000000000000008);
+//     constraint (__post_state({0, (0 + 3)})! == 43);
+// }
+// >>>

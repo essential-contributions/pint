@@ -25,7 +25,7 @@ impl super::Contract {
         // that we don't have to worry about `if` declarations in any of the later passes. All
         // other passes are safe to assume that `if` declarations and their content have
         // already been converted to raw constraints.
-        lower_ifs(&mut self);
+        let _ = lower_ifs(handler, &mut self);
 
         // Plug const decls in everywhere so they maybe lowered below.
         replace_const_refs(&mut self);

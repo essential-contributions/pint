@@ -23,9 +23,9 @@ constraint storage::balances[my_address] := my_bal! + 1_000_000;
 
 // ANCHOR: next_state_with_check
 if my_bal != nil {
-    constraint storage::balances[my_address] := my_bal! + 1_000_000;
+    constraint storage::balances[my_address]! == my_bal! + 1_000_000;
 } else {
-    constraint storage::balances[my_address] := 1_000_000;
+    constraint storage::balances[my_address]! == 1_000_000;
 }
 // ANCHOR_END: next_state_with_check
 }

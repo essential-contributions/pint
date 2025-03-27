@@ -680,13 +680,13 @@ pub(crate) fn lower_ins(handler: &Handler, contract: &mut Contract) -> Result<()
 /// The transformation is recursive and uses the Boolean principle:
 /// `a ==> b` is equivalent to `!a || b`.
 ///
-pub(crate) fn lower_ifs(contract: &mut Contract) {
+pub(crate) fn lower_ifs(handler: &Handler, contract: &mut Contract) -> Result<(), ErrorEmitted> {
     for pred_key in contract.preds.keys().collect::<Vec<_>>() {
         let mut all_exprs = Vec::default();
 
         // Ideally we'd refactor this to not require cloning the IfDecl.
         for if_decl in &contract.preds[pred_key].if_decls.clone() {
-            all_exprs.extend(convert_if(contract, pred_key, if_decl));
+            all_exprs.extend(convert_if(handler, contract, pred_key, if_decl)?);
         }
 
         let mut_pred = contract.preds.get_mut(pred_key).unwrap();
@@ -701,11 +701,14 @@ pub(crate) fn lower_ifs(contract: &mut Contract) {
         // Remove all `if_decls`. We don't need them anymore.
         mut_pred.if_decls.clear();
     }
+
+    Ok(())
 }
 
 // Given an `IfDecl`, convert all of its statements to Boolean expressions and return all of
 // them in a `Vec<ExprKey>`. This follows the principle that `a ==> b` is equivalent to `!a || b`.
 fn convert_if(
+    handler: &Handler,
     contract: &mut Contract,
     pred_key: PredKey,
     IfDecl {
@@ -714,7 +717,7 @@ fn convert_if(
         else_block,
         ..
     }: &IfDecl,
-) -> Vec<(ExprKey, Span)> {
+) -> Result<Vec<(ExprKey, Span)>, ErrorEmitted> {
     let condition_inverse = contract.exprs.insert(
         Expr::UnaryOp {
             op: UnaryOp::Not,
@@ -732,24 +735,25 @@ fn convert_if(
     for statement in then_block {
         // `condition => statement` i.e. `!condition || statement`
         all_exprs.extend(convert_if_block_statement(
+            handler,
             contract,
             pred_key,
             statement,
             condition_inverse,
-        ));
+        )?);
     }
 
     if let Some(else_block) = else_block {
         // `!condition => statement` i.e. `!!condition || statement`
         for statement in else_block {
             all_exprs.extend(convert_if_block_statement(
-                contract, pred_key, statement,
+                handler, contract, pred_key, statement,
                 *condition, // use condition is here since it's the inverse of the inverse,
-            ));
+            )?);
         }
     }
 
-    all_exprs
+    Ok(all_exprs)
 }
 
 // Given a if block statement and the inverse of a condition, produce a list of `ExprKey`s that
@@ -762,11 +766,12 @@ fn convert_if(
 // If `statement` is an `IfDecl`, then recurse by calling `convert_if`.
 //
 fn convert_if_block_statement(
+    handler: &Handler,
     contract: &mut Contract,
     pred_key: PredKey,
     statement: &BlockStatement,
     condition_inverse: ExprKey,
-) -> Vec<(ExprKey, Span)> {
+) -> Result<Vec<(ExprKey, Span)>, ErrorEmitted> {
     let bool_ty = Type::Primitive {
         kind: PrimitiveKind::Bool,
         span: empty_span(),
@@ -775,6 +780,12 @@ fn convert_if_block_statement(
     let mut converted_exprs = vec![];
     match statement {
         BlockStatement::Constraint(constraint_decl) => {
+            if constraint_decl.expr.get_ty(contract).is_key_value() {
+                return Err(handler.emit_internal_err(
+                    "cannot use kv exprs in if/else just yet",
+                    constraint_decl.expr.get(contract).span().clone(),
+                ));
+            }
             converted_exprs.push((
                 contract.exprs.insert(
                     Expr::BinaryOp {
@@ -790,7 +801,7 @@ fn convert_if_block_statement(
         }
 
         BlockStatement::If(if_decl) => {
-            for inner_expr in convert_if(contract, pred_key, if_decl) {
+            for inner_expr in convert_if(handler, contract, pred_key, if_decl)? {
                 converted_exprs.push((
                     contract.exprs.insert(
                         Expr::BinaryOp {
@@ -811,7 +822,7 @@ fn convert_if_block_statement(
         }
     }
 
-    converted_exprs
+    Ok(converted_exprs)
 }
 
 pub(super) fn replace_const_refs(contract: &mut Contract) {

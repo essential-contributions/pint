@@ -60,7 +60,7 @@ constraint value_2 == value_1; // always true!
 
 // ANCHOR: update_to_nil 
 if w != nil {
-    constraint storage::w := nil;
+    constraint storage::w == nil;
 }
 // ANCHOR_END: update_to_nil 
 }

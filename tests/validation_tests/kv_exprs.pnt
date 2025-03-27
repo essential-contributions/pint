@@ -2,7 +2,7 @@ storage {
     x: { int , int, b256, int }
 }
 
-predicate foo() {
+predicate foo(c: bool) {
     constraint storage::x := 
         { 41, 42, 0x0000000000000005000000000000000600000000000000070000000000000008, 43 };
     constraint storage::x.0 := 41;

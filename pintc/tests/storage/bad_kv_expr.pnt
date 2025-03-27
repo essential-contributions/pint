@@ -1,0 +1,58 @@
+storage {
+    x: int,
+    y: int,
+}
+
+predicate foo(c: bool) {
+    constraint storage::x' := 5;
+    constraint storage::x! := 5;
+    constraint 5 := 5;
+    constraint c ? (storage::x := 5) : (storage::y := 5);
+
+    constraint storage::x := 3 ++ 4;
+    constraint storage::x := 3 ++ storage::x' := 3;
+
+    constraint cond {
+        c => storage::x := 3,
+        else => storage::x := 3,
+    };
+}
+
+// parsed <<<
+// storage {
+//     x: int,
+//     y: int,
+// }
+//
+// predicate ::foo(
+//     ::c: bool,
+// ) {
+//     constraint (storage::x' := 5);
+//     constraint (storage::x! := 5);
+//     constraint (5 := 5);
+//     constraint (::c ? (storage::x := 5) : (storage::y := 5));
+//     constraint ((storage::x := 3) ++ 4);
+//     constraint ((storage::x := 3) ++ (storage::x' := 3));
+//     constraint (::c ? (storage::x := 3) : (storage::x := 3));
+// }
+// >>>
+
+// typecheck_failure <<<
+// storage key-value expression error
+// @77..88: expecting a storage access here
+// storage key-value expression error
+// @110..121: expecting a storage access here
+// storage key-value expression error
+// @143..144: expecting a storage access here
+// branches of a select expression must have the same type
+// @171..186: 'then' branch has the type `(:=)`
+// @191..206: 'else' branch has the type `(:=)`
+// binary operator type error
+// @244..245: operator `++` argument has unexpected type `int`
+// @225..245: expecting type `KeyValue`
+// storage key-value expression error
+// @281..292: expecting a storage access here
+// branches of a select expression must have the same type
+// @335..350: 'then' branch has the type `(:=)`
+// @368..383: 'else' branch has the type `(:=)`
+// >>>

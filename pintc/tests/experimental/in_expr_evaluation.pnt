@@ -37,6 +37,5 @@ predicate Test() {
 //     let ::f: bool = ((1.3e0 == 3.9e0) || (1.3e0 == 2e0));
 //     let ::g: bool = ((4e-1 >= 3e0) && (4e-1 <= 2e0));
 //     let ::h: bool = ((4e-1 >= 1e-1) && (4e-1 <= 4e-1));
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
