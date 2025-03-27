@@ -153,6 +153,24 @@ within memory shouldn't be necessary.
 
 How is this lowered to ASM?
 
+### Compiling
+
+Every value has a location:
+- immediates on the stack
+- ASM ops:
+    - on the stack except for:
+    - stores (move from stack to memory)
+    - storage reads
+    - some paths
+    - parent node results (probably a path)
+- paths to params
+
+So?
+Pass 1: Assume all values are on stack.
+Pass 2: Merge GEPS to minimise size of values.
+Pass 3: Values larger than 1 must be put into memory with STOR and LODR.
+Pass 4: Optimise memory accesses, minimise copying.
+
 ----------------------------------------------------------------------------------------------------
 
 ## Stack management
@@ -245,5 +263,25 @@ AsmBlock
 
 _Lowered, not compiled:_
 Error, Cast, In, Range, Generator, Match, MacroCall, LocalStorageAccess, ExternalStorageAccess
+
+# SOUP OF NODES
+
+Good option for an already defined IR format.  Focuses on dataflow and control flow as separate
+edges in the same graph.
+
+Simple, a tutorial: https://github.com/SeaOfNodes/Simple/tree/main
+
+## Notes
+
+Stuff from the tutorial which might not apply for Pint:
+
+_All the premature optimisations._
+
+_The type system._
+
+_Projections and multinodes?_
+
+Projection nodes are GEPs.  But they project into multinodes, which seem to be just a vec of indices
+to other nodes, rather than a different specific tuple data structure.
 
 %% vim:foldlevel=3
