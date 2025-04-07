@@ -7,9 +7,6 @@ storage {
 }
 
 predicate Initialize(value: int) {
-    let kv = storage::counter := value;
-    constraint kv;
-
     // redundant but showcases a different syntax
     constraint storage::counter := value;
 
@@ -22,9 +19,6 @@ predicate Initialize(value: int) {
 }
 
 predicate Increment(amount: int) {
-    let kv = storage::counter := counter! + amount;
-    constraint kv;
-
     // redundant but showcases a different syntax
     constraint storage::counter := storage::counter! + amount; 
 

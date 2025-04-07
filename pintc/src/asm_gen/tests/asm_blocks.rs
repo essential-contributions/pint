@@ -156,7 +156,6 @@ fn all_ops() {
                     LODS
                     LT
                     LTE
-                    MKEYS
                     MOD
                     MUL
                     NOT
@@ -223,7 +222,6 @@ fn all_ops() {
                   Stack(Load)
                   Pred(Lt)
                   Pred(Lte)
-                  Access(MutKeys)
                   Alu(Mod)
                   Alu(Mul)
                   Pred(Not)

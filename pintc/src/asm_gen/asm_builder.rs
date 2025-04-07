@@ -416,13 +416,13 @@ impl<'a> AsmBuilder<'a> {
                 {
                     if rhs.get(contract).is_nil() {
                         let sizes = rhs.get_ty(contract).sizes(handler, contract)?;
-                        asm.push(PUSH(sizes.len() as i64));
                         for (idx, _) in sizes.iter().enumerate() {
                             asm.push(PUSH(args[0].size(handler, contract, pred)? as i64));
                             self.compile_expr(handler, asm, &args[0], contract, pred)?;
                             asm.extend([PUSH(idx as i64), ADD]);
                             asm.extend([PUSH(0)]);
                         }
+                        asm.push(PUSH(sizes.len() as i64));
                     } else {
                         self.compile_expr(handler, asm, rhs, contract, pred)?;
                         asm.extend([
@@ -610,7 +610,6 @@ impl<'a> AsmBuilder<'a> {
                         "LODS" => Ok(LODS),
                         "LT" => Ok(LT),
                         "LTE" => Ok(LTE),
-                        "MKEYS" => Ok(MKEYS),
                         "MOD" => Ok(MOD),
                         "MUL" => Ok(MUL),
                         "NOT" => Ok(NOT),

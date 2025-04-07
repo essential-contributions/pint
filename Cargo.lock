@@ -576,7 +576,7 @@ dependencies = [
 
 [[package]]
 name = "essential-asm"
-version = "0.9.0"
+version = "0.11.0"
 dependencies = [
  "bitflags 2.9.0",
  "essential-asm-gen",
@@ -586,7 +586,7 @@ dependencies = [
 
 [[package]]
 name = "essential-asm-gen"
-version = "0.9.0"
+version = "0.11.0"
 dependencies = [
  "essential-asm-spec",
  "essential-types",
@@ -597,7 +597,7 @@ dependencies = [
 
 [[package]]
 name = "essential-asm-spec"
-version = "0.7.0"
+version = "0.9.0"
 dependencies = [
  "serde",
  "serde_yaml",
@@ -605,7 +605,7 @@ dependencies = [
 
 [[package]]
 name = "essential-check"
-version = "0.13.0"
+version = "0.15.0"
 dependencies = [
  "essential-sign",
  "essential-types",
@@ -616,7 +616,7 @@ dependencies = [
 
 [[package]]
 name = "essential-hash"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "essential-types",
  "postcard",
@@ -626,7 +626,7 @@ dependencies = [
 
 [[package]]
 name = "essential-sign"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "essential-hash",
  "essential-types",
@@ -635,7 +635,7 @@ dependencies = [
 
 [[package]]
 name = "essential-types"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "hex",
  "serde",
@@ -643,11 +643,12 @@ dependencies = [
 
 [[package]]
 name = "essential-vm"
-version = "0.11.0"
+version = "0.13.0"
 dependencies = [
  "ed25519-dalek",
  "essential-asm",
  "essential-types",
+ "rayon",
  "secp256k1",
  "sha2",
  "thiserror 1.0.69",

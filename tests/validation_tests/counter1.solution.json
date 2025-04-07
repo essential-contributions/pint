@@ -6,12 +6,7 @@
         "predicate": "<::Increment>"
       },
       "predicate_data": [[69]],
-      "state_mutations": [
-        {
-          "key": [0],
-          "value": [111]
-        }
-      ]
+      "state_mutations": []
     }
   ]
 }

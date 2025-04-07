@@ -6,12 +6,7 @@
         "predicate": "<::Initialize>"
       },
       "predicate_data": [[222]],
-      "state_mutations": [
-        {
-          "key": [0],
-          "value": [222]
-        }
-      ]
+      "state_mutations": []
     }
   ]
 }

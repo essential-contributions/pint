@@ -17,10 +17,6 @@ predicate foo(x: { int, { int, int } }) {
     constraint storage::counter := storage::counter! + 1;
     constraint storage::addr := 0x0000000000000001000000000000000200000000000000030000000000000004;
     constraint storage::t := { 42, { 69, 99 } };
-    constraint storage::t.0 := 42;
-    constraint storage::t.1.0 := 69;
-    constraint storage::t.1.1 := 99;
-    constraint storage::t.1.1 := 99;
 
     constraint storage::counter'! == storage::counter! + 1;
     constraint storage::addr'! == 0x0000000000000001000000000000000200000000000000030000000000000004;
@@ -36,7 +32,6 @@ predicate foo(x: { int, { int, int } }) {
     constraint x == { 1, { 2, 3 } };
 
     constraint storage::counter! == 1;
-    constraint storage::counter := 2;
     constraint storage::counter'! == 2;
 
     // constraint storage::m[42]'! == storage::m[42]! + 1;

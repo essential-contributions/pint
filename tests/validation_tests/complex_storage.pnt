@@ -14,18 +14,6 @@ const E = 0x0000000000000009000000000000000900000000000000090000000000000009;
 const F = 0x000000000000000F000000000000000F000000000000000F000000000000000F;
 
 predicate Foo() {
-    let kv1 = storage::address := C;                      
-    let kv2 = storage::address2 := D;                     
-    let kv3 = storage::imap[69] := E;                     
-    let kv4 = storage::map_in_map[9][A] := 42;            
-    let kv5 = storage::map_in_map_in_map[88][B][999] := F;
-
-    constraint kv1;
-    constraint kv2;
-    constraint kv3;
-    constraint kv4;
-    constraint kv5;
-
     constraint storage::address := C; 
     constraint storage::address2 := D;
     constraint storage::imap[69] := E;

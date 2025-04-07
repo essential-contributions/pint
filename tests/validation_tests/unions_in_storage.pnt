@@ -11,18 +11,6 @@ storage {
 }
 
 predicate Foo() {
-    let kv0 = storage::u0 := U::A(5);
-    let kv1 =  storage::u1 := U::B(0x0000000000000002000000000000000200000000000000020000000000000002);
-    let kv2 = storage::m[5] := { U::A(3), 69 };
-    let kv3 = storage::v0 := V::C({10, 12});
-    let kv4 = storage::v1 := V::D([[1, 2], [3, 4], [5, 6]]);
-
-    constraint kv0;
-    constraint kv1;
-    constraint kv2;
-    constraint kv3;
-    constraint kv4;
-
     constraint storage::u0 := U::A(5);
     constraint storage::u1 := U::B(0x0000000000000002000000000000000200000000000000020000000000000002);
     constraint storage::m[5] := { U::A(3), 69 };

@@ -113,9 +113,9 @@ async fn test_solution_foo() {
     };
 
     // Create the solution set.
-    let solution_set = Arc::new(SolutionSet {
+    let solution_set = SolutionSet {
         solutions: vec![solution],
-    });
+    };
 
     // Check the solution set is valid.
     essential_check::solution::check_set(&solution_set).unwrap();
@@ -149,8 +149,8 @@ async fn test_solution_foo() {
     let config = Default::default();
 
     // Check our proposed mutations are valid against the contract.
-    essential_check::solution::check_set_predicates(
-        &state,
+    essential_check::solution::check_and_compute_solution_set_two_pass(
+        &state.1,
         solution_set,
         get_predicate,
         get_programs,

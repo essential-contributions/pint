@@ -1,7 +1,12 @@
 mod utils;
 
-use essential_check::solution::DataOutput;
-use essential_vm::types::{solution::SolutionSet, ContentAddress};
+use essential_check::{solution, vm::asm};
+use essential_types::{
+    predicate::{Edge, Node, Predicate},
+    solution::SolutionSet,
+    ContentAddress,
+};
+use essential_vm::asm::short::*;
 use pintc::predicate::CompileOptions;
 use regex::Regex;
 use std::collections::HashMap;
@@ -157,13 +162,13 @@ async fn validation_e2e() -> anyhow::Result<()> {
         }
 
         // Predicates to check are the ones that belong to our main contract
-        let predicates_to_check = solution_set
-            .solutions
-            .iter()
-            .enumerate()
-            .filter(|&(_, data)| (data.predicate_to_solve.contract == contract_addr))
-            .map(|(idx, data)| (idx, data.predicate_to_solve.predicate.clone()))
-            .collect::<Vec<_>>();
+        /*let predicates_to_check = solution_set
+        .solutions
+        .iter()
+        .enumerate()
+        .filter(|&(_, data)| (data.predicate_to_solve.contract == contract_addr))
+        .map(|(idx, data)| (idx, data.predicate_to_solve.predicate.clone()))
+        .collect::<Vec<_>>();*/
 
         // Pre-populate the pre-state with all the db content, but first, every solved contract has
         // to be inserted.
@@ -186,21 +191,77 @@ async fn validation_e2e() -> anyhow::Result<()> {
         state.1 = state.0.clone();
         state.1.apply_mutations(&solution_set);
 
-        let get_programs = Arc::new(
-            compiled_contract
-                .programs
-                .iter()
-                .map(|program| {
-                    (
-                        essential_hash::content_addr(program),
-                        Arc::new(program.clone()),
-                    )
-                })
-                .collect::<HashMap<_, _>>(),
-        );
+        let mut map = compiled_contract
+            .programs
+            .iter()
+            .map(|program| {
+                (
+                    essential_hash::content_addr(program),
+                    Arc::new(program.clone()),
+                )
+            })
+            .collect::<HashMap<_, _>>();
+        let trivial_program =
+            essential_types::predicate::Program(asm::to_bytes([PUSH(1)]).collect());
+
+        let p_ca = essential_hash::content_addr(&trivial_program);
+        map.insert(p_ca.clone(), Arc::new(trivial_program));
+
+        let get_programs = Arc::new(map);
+
+        let node = |program_address, edge_start| Node {
+            program_address,
+            edge_start,
+        };
+        let nodes = vec![node(p_ca.clone(), Edge::MAX)];
+        let edges = vec![];
+        let predicate_0 = Predicate { nodes, edges };
+
+        let mut map = compiled_contract
+            .contract
+            .predicates
+            .iter()
+            .map(|predicate| {
+                (
+                    essential_hash::content_addr(predicate),
+                    Arc::new(predicate.clone()),
+                )
+            })
+            .collect::<HashMap<_, _>>();
+
+        for sol in &solution_set.solutions {
+            if sol.predicate_to_solve.contract != contract_addr {
+                map.insert(
+                    sol.predicate_to_solve.predicate.clone(),
+                    Arc::new(predicate_0.clone()),
+                );
+            }
+        }
+
+        let get_predicate =
+            |addr: &essential_types::PredicateAddress| map.get(&addr.predicate).unwrap().clone();
+
+        let config = Arc::new(solution::CheckPredicateConfig::default());
+        match solution::check_and_compute_solution_set_two_pass(
+            &state.0,
+            solution_set,
+            get_predicate,
+            get_programs.clone(),
+            config.clone(),
+        ) {
+            Ok(_) => {}
+            Err(err) => {
+                println!(
+                    "{}",
+                    format!("    Error submitting solution set: {err}").red()
+                );
+                failed_tests.push(path.clone());
+                continue;
+            }
+        }
 
         // Now check each predicate in `predicates_to_check`
-        for (idx, addr) in predicates_to_check {
+        /*for (idx, addr) in predicates_to_check {
             let predicate = compiled_contract
                 .contract
                 .predicates
@@ -240,7 +301,7 @@ async fn validation_e2e() -> anyhow::Result<()> {
                     break;
                 }
             }
-        }
+        }*/
     }
 
     if !failed_tests.is_empty() {
