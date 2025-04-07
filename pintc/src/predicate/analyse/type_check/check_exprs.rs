@@ -167,6 +167,7 @@ impl Contract {
             Expr::KeyValue { lhs, rhs, span } => {
                 Ok(self.infer_key_value_expr(handler, *lhs, *rhs, span))
             }
+
             Expr::Nil(span) => Ok(Inference::Type(Type::Nil(span.clone()))),
 
             Expr::Path(path, span) => Ok(self.infer_path_by_name(handler, pred, path, span)),
@@ -192,7 +193,7 @@ impl Contract {
                 op,
                 expr: op_expr_key,
                 span,
-            } => Ok(self.infer_unary_op(handler, pred, *op, *op_expr_key, span)),
+            } => Ok(self.infer_unary_op(handler, *op, *op_expr_key, span)),
 
             Expr::BinaryOp { op, lhs, rhs, span } => {
                 Ok(self.infer_binary_op(handler, *op, *lhs, *rhs, span))
@@ -424,14 +425,12 @@ impl Contract {
     fn infer_unary_op(
         &self,
         handler: &Handler,
-        pred: Option<&Predicate>,
         op: UnaryOp,
         rhs_expr_key: ExprKey,
         span: &Span,
     ) -> Inference {
         fn drill_down_to_path(
             contract: &Contract,
-            pred: Option<&Predicate>,
             expr_key: &ExprKey,
             span: &Span,
         ) -> Result<(), Error> {
@@ -451,7 +450,7 @@ impl Contract {
                 })
                 | Some(Expr::Index { expr, .. })
                 | Some(Expr::TupleFieldAccess { tuple: expr, .. }) => {
-                    drill_down_to_path(contract, pred, expr, span)
+                    drill_down_to_path(contract, expr, span)
                 }
 
                 _ => Err(Error::Compile {
@@ -469,7 +468,7 @@ impl Contract {
             UnaryOp::NextState => {
                 // Next state access must be a path that resolves to a variable.  It _may_ be
                 // via array indices or tuple fields or even other prime ops.
-                match drill_down_to_path(self, pred, &rhs_expr_key, span) {
+                match drill_down_to_path(self, &rhs_expr_key, span) {
                     Ok(()) => {
                         let ty = rhs_expr_key.get_ty(self);
                         if !ty.is_unknown() {
@@ -2033,36 +2032,34 @@ impl Contract {
             });
             // Recover anyways
             Inference::Type(Type::KeyValue(span.clone()))
-        } else {
-            if !lhs_ty.is_unknown() {
-                if !rhs_ty.is_unknown() {
-                    if let Some(lhs_inner_ty) = lhs.get_ty(self).get_optional_ty() {
-                        if !lhs_inner_ty.eq(self, rhs_ty) && !rhs_ty.is_nil() {
-                            handler.emit_err(Error::Compile {
-                                error: CompileError::KeyValueExprTypesMismatch {
-                                    lhs_ty: self.with_ctrct(lhs_inner_ty).to_string(),
-                                    rhs_ty: self.with_ctrct(rhs_ty).to_string(),
-                                    span: rhs.get(self).span().clone(),
-                                },
-                            });
-                        }
+        } else if !lhs_ty.is_unknown() {
+            if !rhs_ty.is_unknown() {
+                if let Some(lhs_inner_ty) = lhs.get_ty(self).get_optional_ty() {
+                    if !lhs_inner_ty.eq(self, rhs_ty) && !rhs_ty.is_nil() {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::KeyValueExprTypesMismatch {
+                                lhs_ty: self.with_ctrct(lhs_inner_ty).to_string(),
+                                rhs_ty: self.with_ctrct(rhs_ty).to_string(),
+                                span: rhs.get(self).span().clone(),
+                            },
+                        });
                     }
-                    if rhs_ty.is_nil() {
-                        Inference::Types {
-                            // Type of the key-value expression
-                            ty: Type::KeyValue(span.clone()),
-                            // Type of the `rhs`
-                            others: vec![(rhs, lhs_ty.clone())],
-                        }
-                    } else {
-                        Inference::Type(Type::KeyValue(span.clone()))
+                }
+                if rhs_ty.is_nil() {
+                    Inference::Types {
+                        // Type of the key-value expression
+                        ty: Type::KeyValue(span.clone()),
+                        // Type of the `rhs`
+                        others: vec![(rhs, lhs_ty.clone())],
                     }
                 } else {
-                    Inference::Dependant(rhs)
+                    Inference::Type(Type::KeyValue(span.clone()))
                 }
             } else {
-                Inference::Dependant(lhs)
+                Inference::Dependant(rhs)
             }
+        } else {
+            Inference::Dependant(lhs)
         }
     }
 }

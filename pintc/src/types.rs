@@ -1044,6 +1044,12 @@ impl Type {
         }
     }
 
+    /// Return the sizes of all the primitive types that a type is composed of in the order in
+    /// which they appear in their data layout. Example: calling sizes on `{ int[3], b256, bool }`
+    /// should return `[ 1, 1, 1, 4, 1 ]`.
+    ///
+    /// TODO: This does not support dynamic arrays. These should be handled in some other way.
+    ///
     pub fn sizes(
         &self,
         handler: &Handler,

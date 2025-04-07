@@ -118,7 +118,7 @@ fn lower_storage_accesses_in_predicate(
 
 /// Given a predicate in a contract and an `ExprKey`, produce the following:
 /// 1. An optional external predicate address, if `ExprKey` is an external storage access.
-/// 3. A `bool` indicating whether the access is a post-state access.
+/// 2. A `bool` indicating whether the access is a post-state access.
 /// 3. The key as a vector of `ExprKey`.
 fn get_base_storage_key(
     handler: &Handler,

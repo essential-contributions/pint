@@ -256,12 +256,10 @@ impl<'a> AsmBuilder<'a> {
                         } else {
                             KREX
                         }
+                    } else if is_post {
+                        PKRNG
                     } else {
-                        if is_post {
-                            PKRNG
-                        } else {
-                            KRNG
-                        }
+                        KRNG
                     }, // Read the keys and values into memory.
                     // Read the actual data
                     PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
@@ -407,7 +405,6 @@ impl<'a> AsmBuilder<'a> {
                 self.compile_union_expr(handler, asm, expr, path, value, contract, pred)
             }
             Expr::KeyValue { lhs, rhs, .. } => {
-                // WIP
                 if let Expr::IntrinsicCall {
                     kind: (IntrinsicKind::Internal(InternalIntrinsic::PreState), _),
                     args,
@@ -417,13 +414,17 @@ impl<'a> AsmBuilder<'a> {
                     if rhs.get(contract).is_nil() {
                         let sizes = rhs.get_ty(contract).sizes(handler, contract)?;
                         for (idx, _) in sizes.iter().enumerate() {
+                            // For each primitive element, output key + idx on the stack followed
+                            // by 0 indicating a `nil`
                             asm.push(PUSH(args[0].size(handler, contract, pred)? as i64));
                             self.compile_expr(handler, asm, &args[0], contract, pred)?;
                             asm.extend([PUSH(idx as i64), ADD]);
                             asm.extend([PUSH(0)]);
                         }
+                        // Total number of keys goes at the end
                         asm.push(PUSH(sizes.len() as i64));
                     } else {
+                        // Compile the rhs and store it to memory for easy access
                         self.compile_expr(handler, asm, rhs, contract, pred)?;
                         asm.extend([
                             PUSH(rhs.size(handler, contract, pred)? as i64),
@@ -440,9 +441,13 @@ impl<'a> AsmBuilder<'a> {
 
                         let mut current = 0;
                         for (idx, size) in sizes.iter().enumerate() {
+                            // For each primitive element, output key + idx on the stack followed
+                            // by the size of the data and the data itself loaded from memory where
+                            // the rhs was stored. We use `current` to keep track of which memory
+                            // index to load from for each segment.
                             asm.push(PUSH(args[0].size(handler, contract, pred)? as i64));
                             self.compile_expr(handler, asm, &args[0], contract, pred)?;
-                            asm.extend([PUSH(idx as i64), ADD]);
+                            asm.extend([PUSH(idx as i64), ADD]); // key
                             asm.extend([
                                 PUSH(*size as i64),
                                 PUSH(0),
@@ -824,12 +829,10 @@ impl<'a> AsmBuilder<'a> {
                         } else {
                             KREX
                         }
+                    } else if is_post {
+                        PKRNG
                     } else {
-                        if is_post {
-                            PKRNG
-                        } else {
-                            KRNG
-                        }
+                        KRNG
                     }, // Read the keys and values into memory.
                 ]);
 
@@ -889,8 +892,10 @@ impl<'a> AsmBuilder<'a> {
     ) -> Result<Location, ErrorEmitted> {
         if *op == BinaryOp::Concat {
             self.compile_expr(handler, asm, lhs, contract, pred)?;
+            // Stach the number of keys for the lhs
             asm.extend([PUSH(0), STOS]);
             self.compile_expr(handler, asm, rhs, contract, pred)?;
+            // Now load from the stach and add to the size of the rhs
             asm.extend([PUSH(0), LODS, ADD]);
             return Ok(Location::Stack);
         }
@@ -981,7 +986,7 @@ impl<'a> AsmBuilder<'a> {
                 // is false, then we want to remove the `true` we push on the stack above.
                 asm.insert(rhs_position + 3, POP);
             }
-            BinaryOp::Concat => unreachable!(),
+            BinaryOp::Concat => unreachable!("already handled"),
         }
         Ok(Location::Stack)
     }
@@ -1619,12 +1624,10 @@ impl<'a> AsmBuilder<'a> {
                         } else {
                             KREX
                         }
+                    } else if is_post {
+                        PKRNG
                     } else {
-                        if is_post {
-                            PKRNG
-                        } else {
-                            KRNG
-                        }
+                        KRNG
                     }, // Read the keys and values into memory.
                     PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
                     LODS,

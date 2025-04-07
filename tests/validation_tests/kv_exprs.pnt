@@ -4,7 +4,8 @@ storage {
 }
 
 predicate foo(c: bool) {
-    constraint storage::x.3 := 43;
+    let kv = storage::x.3 := 43;
+    constraint kv;
 
     constraint    storage::x.0 := 41
                ++ storage::x.1 := 42

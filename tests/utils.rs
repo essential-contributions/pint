@@ -1,5 +1,5 @@
 use essential_check::{
-    types::{solution::SolutionSet, ContentAddress, Key, Word},
+    types::{ContentAddress, Key, Word},
     vm::StateRead,
 };
 use std::collections::BTreeMap;
@@ -73,19 +73,6 @@ impl State {
             key = next_key(key).ok_or(InvalidStateRead)?;
         }
         Ok(words)
-    }
-
-    /// Apply all mutations proposed by the given solution set.
-    pub fn apply_mutations(&mut self, set: &SolutionSet) {
-        for solution in &set.solutions {
-            for mutation in solution.state_mutations.iter() {
-                self.set(
-                    solution.predicate_to_solve.contract.clone(),
-                    &mutation.key,
-                    mutation.value.clone(),
-                );
-            }
-        }
     }
 }
 

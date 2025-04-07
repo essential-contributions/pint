@@ -65,8 +65,7 @@ pub fn hex_to_four_ints(num: &str) -> [i64; 4] {
 /// Given an `&str` that represents a hexadecimal number, split it into 32 bytes (`u8`s), and
 /// return an array of the 32 `u8`s produced. Panics upon failure
 pub fn hex_to_bytes(num: &str) -> [u8; 32] {
-    num[2..]
-        .as_bytes()
+    num.as_bytes()[2..]
         .chunks(2)
         .enumerate()
         .fold([0u8; 32], |mut acc, (idx, chunk)| {

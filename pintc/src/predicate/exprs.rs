@@ -111,19 +111,20 @@ impl ExprKey {
         contract.exprs.expr_types.get(*self).unwrap()
     }
 
-    /// Returns a mutable reference to the type of key `self` given a `Contract`. Panics if the type can't be
-    /// found in the `expr_types` map.
+    /// Returns a mutable reference to the type of key `self` given a `Contract`. Panics if the
+    /// type can't be found in the `expr_types` map.
     pub fn get_ty_mut<'a>(&self, contract: &'a mut Contract) -> &'a mut Type {
         contract.exprs.expr_types.get_mut(*self).unwrap()
     }
 
-    /// Set the type of key `self` in a `Contract`. Panics if the type can't be found in
-    /// the `expr_types` map.
+    /// Set the type of key `self` in a `Contract`. Panics if the type can't be found in the
+    /// `expr_types` map.
     pub fn set_ty(&self, ty: Type, contract: &mut Contract) {
         contract.exprs.expr_types.insert(*self, ty);
     }
 
-    /// Get the size of an expression
+    /// Get the size of an expression. Usually, this is the same as the size of the type but
+    /// sometimes, the type doesn't have all the information we need.
     pub fn size(
         &self,
         handler: &Handler,
@@ -161,7 +162,10 @@ impl ExprKey {
                     .variables()
                     .find(|(_, variable)| &variable.name == path)
                 else {
-                    panic!()
+                    return Err(handler.emit_internal_err(
+                        "path expr of KeyValue type must refer to a local variable ",
+                        self.get(contract).span().clone(),
+                    ));
                 };
                 var.expr.size(handler, contract, pred)
             }
@@ -174,6 +178,7 @@ impl ExprKey {
                 Ok(lhs.size(handler, contract, pred)? + rhs.size(handler, contract, pred)? - 1)
             }
 
+            // All other cases can rely solely on the type
             _ => self.get_ty(contract).size(handler, contract),
         }
     }
