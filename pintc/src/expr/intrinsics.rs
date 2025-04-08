@@ -141,12 +141,6 @@ impl ExternalIntrinsic {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum InternalIntrinsic {
-    // Determines if two sets are equal
-    EqSet,
-
-    // Returns the set of mutable keys in a solution
-    MutKeys,
-
     // Reads local pre state.
     PreState,
 
@@ -163,8 +157,6 @@ pub enum InternalIntrinsic {
 impl Display for InternalIntrinsic {
     fn fmt(&self, f: &mut Formatter) -> Result {
         match self {
-            Self::EqSet => write!(f, "__eq_set"),
-            Self::MutKeys => write!(f, "__mut_keys"),
             Self::PreState => write!(f, "__pre_state"),
             Self::PreStateExtern => write!(f, "__pre_state_extern"),
             Self::PostState => write!(f, "__post_state"),
@@ -176,11 +168,6 @@ impl Display for InternalIntrinsic {
 impl InternalIntrinsic {
     pub fn args(&self) -> Vec<Type> {
         match self {
-            Self::EqSet => vec![
-                any(), // lhs - should be "set" if and when we have sets
-                any(), // rhs - should be "set" if and when we have sets
-            ],
-            Self::MutKeys => vec![],
             Self::PreState => vec![
                 any(), // storage key
             ],
@@ -200,8 +187,6 @@ impl InternalIntrinsic {
 
     pub fn ty(&self) -> Type {
         match self {
-            Self::EqSet => bool(),
-            Self::MutKeys => any(), // should be "set" if and when we have sets.
             Self::PreState => any(),
             Self::PreStateExtern => any(),
             Self::PostState => any(),

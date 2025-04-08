@@ -1,10 +1,16 @@
 mod utils;
 
-use essential_vm::types::{solution::SolutionSet, ContentAddress};
+use essential_check::{solution, vm::asm};
+use essential_types::{
+    predicate::{Edge, Node, Predicate, Program},
+    solution::SolutionSet,
+    ContentAddress, PredicateAddress,
+};
+use essential_vm::asm::short::*;
 use pintc::predicate::CompileOptions;
 use regex::Regex;
-use std::collections::HashMap;
 use std::{
+    collections::HashMap,
     fs::{read_dir, File},
     io::{BufRead, BufReader},
     path::PathBuf,
@@ -155,18 +161,9 @@ async fn validation_e2e() -> anyhow::Result<()> {
             )
         }
 
-        // Predicates to check are the ones that belong to our main contract
-        let predicates_to_check = solution_set
-            .solutions
-            .iter()
-            .enumerate()
-            .filter(|&(_, data)| (data.predicate_to_solve.contract == contract_addr))
-            .map(|(idx, data)| (idx, data.predicate_to_solve.predicate.clone()))
-            .collect::<Vec<_>>();
-
         // Pre-populate the pre-state with all the db content, but first, every solved contract has
         // to be inserted.
-        let mut pre_state = State::new(
+        let mut state = State::new(
             solution_set
                 .solutions
                 .iter()
@@ -174,13 +171,12 @@ async fn validation_e2e() -> anyhow::Result<()> {
                 .collect(),
         );
 
-        // Parse the db section in `pre_state`. This can include internal and external storage
+        // Parse the db section in `state`. This can include internal and external storage
         // addresses.
-        parse_db_section(&path, &mut pre_state, &contract_addr)?;
+        parse_db_section(&path, &mut state, &contract_addr)?;
 
-        // Apply the state mutations to the state to produce the post state.
-        let mut post_state = pre_state.clone();
-        post_state.apply_mutations(&solution_set);
+        let trivial_program = Program(asm::to_bytes([PUSH(1)]).collect());
+        let trivial_program_address = essential_hash::content_addr(&trivial_program);
 
         let get_programs = Arc::new(
             compiled_contract
@@ -192,38 +188,63 @@ async fn validation_e2e() -> anyhow::Result<()> {
                         Arc::new(program.clone()),
                     )
                 })
+                .chain(std::iter::once({
+                    (
+                        trivial_program_address.clone(),
+                        Arc::new(trivial_program.clone()),
+                    )
+                }))
                 .collect::<HashMap<_, _>>(),
         );
 
-        // Now check each predicate in `predicates_to_check`
-        for (idx, addr) in predicates_to_check {
-            let predicate = compiled_contract
+        let get_predicate = {
+            let map = compiled_contract
                 .contract
                 .predicates
                 .iter()
-                .find(|predicate| addr == essential_hash::content_addr(*predicate))
-                .expect("predicate must exist");
+                .map(|predicate| {
+                    (
+                        essential_hash::content_addr(predicate),
+                        Arc::new(predicate.clone()),
+                    )
+                })
+                .chain(solution_set.solutions.iter().filter_map(|sol| {
+                    if sol.predicate_to_solve.contract != contract_addr {
+                        Some((
+                            sol.predicate_to_solve.predicate.clone(),
+                            Predicate {
+                                nodes: vec![Node {
+                                    program_address: trivial_program_address.clone(),
+                                    edge_start: Edge::MAX,
+                                }],
+                                edges: vec![],
+                            }
+                            .into(),
+                        ))
+                    } else {
+                        None
+                    }
+                }))
+                .collect::<HashMap<_, _>>();
 
-            match essential_check::solution::check_predicate(
-                &pre_state,
-                &post_state,
-                Arc::new(solution_set.clone()),
-                Arc::new(predicate.clone()),
-                &get_programs,
-                idx as u16, // solution index
-                &Default::default(),
-            )
-            .await
-            {
-                Ok(_) => {}
-                Err(err) => {
-                    println!(
-                        "{}",
-                        format!("    Error submitting solution set: {err}").red()
-                    );
-                    failed_tests.push(path.clone());
-                    break;
-                }
+            move |addr: &PredicateAddress| map.get(&addr.predicate).unwrap().clone()
+        };
+
+        match solution::check_and_compute_solution_set_two_pass(
+            &state,
+            solution_set,
+            get_predicate,
+            get_programs.clone(),
+            solution::CheckPredicateConfig::default().into(),
+        ) {
+            Ok(_) => {}
+            Err(err) => {
+                println!(
+                    "{}",
+                    format!("    Error submitting solution set: {err}").red()
+                );
+                failed_tests.push(path.clone());
+                continue;
             }
         }
     }
@@ -241,7 +262,7 @@ async fn validation_e2e() -> anyhow::Result<()> {
 
 fn parse_db_section(
     path: &std::path::Path,
-    pre_state: &mut State,
+    state: &mut State,
     contract_addr: &ContentAddress,
 ) -> anyhow::Result<()> {
     // Parse the db section. This can include internal and external storage addresses.
@@ -259,7 +280,7 @@ fn parse_db_section(
                 panic!("Error parsing db section");
             };
 
-            pre_state.set(
+            state.set(
                 contract_addr,
                 &key.split_ascii_whitespace()
                     .map(|k| k.parse::<i64>().expect("value must be a i64"))

@@ -164,6 +164,10 @@ impl Contract {
                 span,
             } => Ok(self.infer_union_expr(handler, path, path_span, *value, span)),
 
+            Expr::KeyValue { lhs, rhs, span } => {
+                Ok(self.infer_key_value_expr(handler, *lhs, *rhs, span))
+            }
+
             Expr::Nil(span) => Ok(Inference::Type(Type::Nil(span.clone()))),
 
             Expr::Path(path, span) => Ok(self.infer_path_by_name(handler, pred, path, span)),
@@ -189,7 +193,7 @@ impl Contract {
                 op,
                 expr: op_expr_key,
                 span,
-            } => Ok(self.infer_unary_op(handler, pred, *op, *op_expr_key, span)),
+            } => Ok(self.infer_unary_op(handler, *op, *op_expr_key, span)),
 
             Expr::BinaryOp { op, lhs, rhs, span } => {
                 Ok(self.infer_binary_op(handler, *op, *lhs, *rhs, span))
@@ -421,31 +425,16 @@ impl Contract {
     fn infer_unary_op(
         &self,
         handler: &Handler,
-        pred: Option<&Predicate>,
         op: UnaryOp,
         rhs_expr_key: ExprKey,
         span: &Span,
     ) -> Inference {
         fn drill_down_to_path(
             contract: &Contract,
-            pred: Option<&Predicate>,
             expr_key: &ExprKey,
             span: &Span,
         ) -> Result<(), Error> {
             match expr_key.try_get(contract) {
-                Some(Expr::Path(name, span)) => {
-                    if pred
-                        .map(|pred| pred.variables().any(|(_, variable)| variable.name == *name))
-                        .unwrap_or(false)
-                    {
-                        Ok(())
-                    } else {
-                        Err(Error::Compile {
-                            error: CompileError::InvalidNextStateAccess { span: span.clone() },
-                        })
-                    }
-                }
-
                 Some(Expr::LocalStorageAccess { .. } | Expr::ExternalStorageAccess { .. }) => {
                     Ok(())
                 }
@@ -461,7 +450,7 @@ impl Contract {
                 })
                 | Some(Expr::Index { expr, .. })
                 | Some(Expr::TupleFieldAccess { tuple: expr, .. }) => {
-                    drill_down_to_path(contract, pred, expr, span)
+                    drill_down_to_path(contract, expr, span)
                 }
 
                 _ => Err(Error::Compile {
@@ -479,7 +468,7 @@ impl Contract {
             UnaryOp::NextState => {
                 // Next state access must be a path that resolves to a variable.  It _may_ be
                 // via array indices or tuple fields or even other prime ops.
-                match drill_down_to_path(self, pred, &rhs_expr_key, span) {
+                match drill_down_to_path(self, &rhs_expr_key, span) {
                     Ok(()) => {
                         let ty = rhs_expr_key.get_ty(self);
                         if !ty.is_unknown() {
@@ -746,6 +735,40 @@ impl Contract {
                             kind: PrimitiveKind::Bool,
                             span: span.clone(),
                         })
+                    }
+
+                    BinaryOp::Concat => {
+                        if !lhs_ty.is_key_value() {
+                            if !lhs_ty.is_error() {
+                                handler.emit_err(Error::Compile {
+                                    error: CompileError::OperatorTypeError {
+                                        arity: "binary",
+                                        large_err: Box::new(LargeTypeError::OperatorTypeError {
+                                            op: op.as_str(),
+                                            expected_ty: "KeyValue".to_string(),
+                                            found_ty: self.with_ctrct(lhs_ty).to_string(),
+                                            span: self.expr_key_to_span(lhs_expr_key),
+                                            expected_span: Some(span.clone()),
+                                        }),
+                                    },
+                                });
+                            }
+                        } else if !rhs_ty.is_key_value() && !rhs_ty.is_error() {
+                            handler.emit_err(Error::Compile {
+                                error: CompileError::OperatorTypeError {
+                                    arity: "binary",
+                                    large_err: Box::new(LargeTypeError::OperatorTypeError {
+                                        op: op.as_str(),
+                                        expected_ty: "KeyValue".to_string(),
+                                        found_ty: self.with_ctrct(rhs_ty).to_string(),
+                                        span: self.expr_key_to_span(rhs_expr_key),
+                                        expected_span: Some(span.clone()),
+                                    }),
+                                },
+                            });
+                        }
+
+                        Inference::Type(Type::KeyValue(span.clone()))
                     }
                 }
             } else {
@@ -1976,6 +1999,7 @@ impl Contract {
                     | Type::Unknown(_)
                     | Type::Any(_)
                     | Type::Nil(_)
+                    | Type::KeyValue(_)
                     | Type::Primitive { .. }
                     | Type::Tuple { .. }
                     | Type::Union { .. }
@@ -1989,6 +2013,53 @@ impl Contract {
                     )),
                 }
             }
+        }
+    }
+
+    fn infer_key_value_expr(
+        &self,
+        handler: &Handler,
+        lhs: ExprKey,
+        rhs: ExprKey,
+        span: &Span,
+    ) -> Inference {
+        let lhs_ty = lhs.get_ty(self);
+        let rhs_ty = rhs.get_ty(self);
+
+        if !lhs.is_pre_storage_access(self) {
+            handler.emit_err(Error::Compile {
+                error: CompileError::KeyValueExprBadLHS(lhs.get(self).span().clone()),
+            });
+            // Recover anyways
+            Inference::Type(Type::KeyValue(span.clone()))
+        } else if !lhs_ty.is_unknown() {
+            if !rhs_ty.is_unknown() {
+                if let Some(lhs_inner_ty) = lhs.get_ty(self).get_optional_ty() {
+                    if !lhs_inner_ty.eq(self, rhs_ty) && !rhs_ty.is_nil() {
+                        handler.emit_err(Error::Compile {
+                            error: CompileError::KeyValueExprTypesMismatch {
+                                lhs_ty: self.with_ctrct(lhs_inner_ty).to_string(),
+                                rhs_ty: self.with_ctrct(rhs_ty).to_string(),
+                                span: rhs.get(self).span().clone(),
+                            },
+                        });
+                    }
+                }
+                if rhs_ty.is_nil() {
+                    Inference::Types {
+                        // Type of the key-value expression
+                        ty: Type::KeyValue(span.clone()),
+                        // Type of the `rhs`
+                        others: vec![(rhs, lhs_ty.clone())],
+                    }
+                } else {
+                    Inference::Type(Type::KeyValue(span.clone()))
+                }
+            } else {
+                Inference::Dependant(rhs)
+            }
+        } else {
+            Inference::Dependant(lhs)
         }
     }
 }

@@ -13,17 +13,23 @@ const ZEROS = 0x0000000000000000000000000000000000000000000000000000000000000000
 const ONES = 0x1111111111111111111111111111111111111111111111111111111111111111;
 
 predicate foo(a: int, b: bool) {
+    constraint storage::x := 98;
+    constraint storage::y := {22, 23};
+
     constraint v4 == 2 * v1 * v2;
     constraint v5 == 88 + 12 + v4 + v6.1;
     constraint v6 == { 12, 13 };
 
-    let v6 = mut storage::y!;
-    let v5 = mut storage::x! + mut storage::y.0! + v4 + v6.1;
+    let v6 = storage::y!;
+    let v6_post = storage::y'!;
+    let v5 = storage::x! + storage::y.0! + v4 + v6.1;
+    let v5_post = storage::x'! + storage::y.0'! + v4 + v6.1;
     let v1 = a;
     let v2 = v1 + a;
     let v3 = v1 + v2;
     let v4 = 2 * v1 * v2;
-    let v7 = v6'.0 + storage::x!;
+    let v7 = v6_post.0 + storage::x!;
+    let v7_post = v6_post.0 + storage::x'!;
     let v8 = (v1 == a) ? ONES : ZEROS;
 
     constraint v1 == a; 
@@ -31,11 +37,11 @@ predicate foo(a: int, b: bool) {
     constraint v3 == 41 + v2;
     constraint v3 == v1 + v2;
 
-    constraint v5' == 98 + 22 + v4 + v6.1;
-    constraint v6' == { 22, 23 };
+    constraint v5_post == 98 + 22 + v4 + v6.1;
+    constraint v6_post == { 22, 23 };
 
     constraint v7 == { 22, 23 }.0 + 88;
-    constraint v7' == { 22, 23 }.0 + 98;
+    constraint v7_post == { 22, 23 }.0 + 98;
 
     constraint v8 == ONES;
 }

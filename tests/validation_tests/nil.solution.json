@@ -6,72 +6,7 @@
         "predicate": "<::Foo>"
       },
       "predicate_data": [],
-      "state_mutations": [
-        {
-          "key": [0],
-          "value": [42]
-        },
-        {
-          "key": [1],
-          "value": [98]
-        },
-        {
-          "key": [2],
-          "value": [44]
-        },
-        {
-          "key": [3],
-          "value": []
-        },
-        {
-          "key": [4, 0],
-          "value": [4, 5, 6, 7]
-        },
-        {
-          "key": [4, 1],
-          "value": [8]
-        },
-        {
-          "key": [5, 0],
-          "value": [0]
-        },
-        {
-          "key": [5, 1],
-          "value": [1]
-        },
-        {
-          "key": [5, 2],
-          "value": [2]
-        },
-        {
-          "key": [5, 3],
-          "value": [3]
-        },
-        {
-          "key": [5, 4],
-          "value": [4]
-        },
-        {
-          "key": [5, 5],
-          "value": [0]
-        },
-        {
-          "key": [6, 0],
-          "value": []
-        },
-        {
-          "key": [6, 1],
-          "value": []
-        },
-        {
-          "key": [6, 2],
-          "value": []
-        },
-        {
-          "key": [6, 3],
-          "value": []
-        }
-      ]
+      "state_mutations": []
     }
   ]
 }

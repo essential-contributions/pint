@@ -1,13 +1,14 @@
 use super::{Contract, PredKey, Predicate};
 use crate::{
+    error::{ErrorEmitted, Handler},
     expr::{
-        Expr, ExternalIntrinsic, InternalIntrinsic, IntrinsicKind, MatchBranch, MatchElse, UnaryOp,
+        BinaryOp, Expr, ExternalIntrinsic, InternalIntrinsic, IntrinsicKind, MatchBranch,
+        MatchElse, UnaryOp,
     },
     predicate::Immediate,
-    span::empty_span,
+    span::{empty_span, Spanned},
     types::{PrimitiveKind, Type},
 };
-use essential_types::predicate::Reads;
 use fxhash::FxHashSet;
 use std::collections::HashSet;
 
@@ -110,16 +111,76 @@ impl ExprKey {
         contract.exprs.expr_types.get(*self).unwrap()
     }
 
-    /// Returns a mutable reference to the type of key `self` given a `Contract`. Panics if the type can't be
-    /// found in the `expr_types` map.
+    /// Returns a mutable reference to the type of key `self` given a `Contract`. Panics if the
+    /// type can't be found in the `expr_types` map.
     pub fn get_ty_mut<'a>(&self, contract: &'a mut Contract) -> &'a mut Type {
         contract.exprs.expr_types.get_mut(*self).unwrap()
     }
 
-    /// Set the type of key `self` in a `Contract`. Panics if the type can't be found in
-    /// the `expr_types` map.
+    /// Set the type of key `self` in a `Contract`. Panics if the type can't be found in the
+    /// `expr_types` map.
     pub fn set_ty(&self, ty: Type, contract: &mut Contract) {
         contract.exprs.expr_types.insert(*self, ty);
+    }
+
+    /// Get the size of an expression. Usually, this is the same as the size of the type but
+    /// sometimes, the type doesn't have all the information we need.
+    pub fn size(
+        &self,
+        handler: &Handler,
+        contract: &Contract,
+        pred: &Predicate,
+    ) -> Result<usize, ErrorEmitted> {
+        match self.get(contract) {
+            Expr::KeyValue { lhs, rhs, .. } => {
+                let key_size = if let Expr::IntrinsicCall {
+                    kind: (IntrinsicKind::Internal(InternalIntrinsic::PreState), _),
+                    args,
+                    ..
+                } = lhs.get(contract)
+                {
+                    args[0].size(handler, contract, pred)?
+                } else {
+                    return Err(handler.emit_internal_err(
+                        "lhs for KeyValue has to be a __state intrinsic",
+                        lhs.get(contract).span().clone(),
+                    ));
+                };
+
+                let sizes = rhs.get_ty(contract).sizes(handler, contract)?;
+                if rhs.get(contract).is_nil() {
+                    Ok(1 + (1 + key_size) * sizes.len() + sizes.len())
+                } else {
+                    Ok(1 + (1 + key_size) * sizes.len()
+                        + sizes.len()
+                        + rhs.size(handler, contract, pred)?)
+                }
+            }
+
+            Expr::Path(path, _) if self.get_ty(contract).is_key_value() => {
+                let Some((_, var)) = pred
+                    .variables()
+                    .find(|(_, variable)| &variable.name == path)
+                else {
+                    return Err(handler.emit_internal_err(
+                        "path expr of KeyValue type must refer to a local variable ",
+                        self.get(contract).span().clone(),
+                    ));
+                };
+                var.expr.size(handler, contract, pred)
+            }
+
+            Expr::BinaryOp { op, lhs, rhs, .. }
+                if *op == BinaryOp::Concat
+                    && lhs.get_ty(contract).is_key_value()
+                    && rhs.get_ty(contract).is_key_value() =>
+            {
+                Ok(lhs.size(handler, contract, pred)? + rhs.size(handler, contract, pred)? - 1)
+            }
+
+            // All other cases can rely solely on the type
+            _ => self.get_ty(contract).size(handler, contract),
+        }
     }
 
     /// Return whether this expression can panic (typically related to storage).
@@ -147,6 +208,10 @@ impl ExprKey {
             Expr::UnionVariant { value, .. } => value
                 .map(|value| value.can_panic(contract, pred))
                 .unwrap_or(false),
+
+            Expr::KeyValue { lhs, rhs, .. } => {
+                lhs.can_panic(contract, pred) || rhs.can_panic(contract, pred)
+            }
 
             Expr::Nil(_) => false,
 
@@ -288,6 +353,11 @@ impl ExprKey {
                     if let Some(value) = value {
                         storage_accesses.extend(value.collect_storage_accesses(contract));
                     }
+                }
+
+                Expr::KeyValue { lhs, rhs, .. } => {
+                    storage_accesses.extend(lhs.collect_storage_accesses(contract));
+                    storage_accesses.extend(rhs.collect_storage_accesses(contract));
                 }
 
                 Expr::LocalStorageAccess { .. } | Expr::ExternalStorageAccess { .. } => {
@@ -443,18 +513,13 @@ impl ExprKey {
         storage_accesses
     }
 
-    /// Given an expression, collect all accesses to local variables including pre and post state.
-    /// For example: given the expression `x + y == z' + 1`, this method should return an
-    /// `FxHashSet` that contains:
-    /// - `("x", Reads::Pre)`
-    /// - `("y", Reads::Pre)`
-    /// - `("z", Reads::Post)`
+    /// Given an expression, collect all accesses to local variables
     ///
     pub fn collect_path_to_var_exprs(
         &self,
         contract: &Contract,
         pred: &Predicate,
-    ) -> FxHashSet<(String, Reads)> {
+    ) -> FxHashSet<String> {
         let mut path_to_var_exprs = FxHashSet::default();
 
         if let Some(expr) = self.try_get(contract) {
@@ -477,10 +542,15 @@ impl ExprKey {
                     }
                 }
 
+                Expr::KeyValue { lhs, rhs, .. } => {
+                    path_to_var_exprs.extend(lhs.collect_path_to_var_exprs(contract, pred));
+                    path_to_var_exprs.extend(rhs.collect_path_to_var_exprs(contract, pred));
+                }
+
                 Expr::Path(path, _) => {
                     // collect paths to variables
                     if pred.variables().any(|(_, var)| &var.name == path) {
-                        path_to_var_exprs.insert((path.clone(), Reads::Pre));
+                        path_to_var_exprs.insert(path.clone());
                     }
                 }
 
@@ -493,7 +563,7 @@ impl ExprKey {
                         // collect "next state" paths to variables
                         if let Expr::Path(path, _) = expr.get(contract) {
                             if pred.variables().any(|(_, var)| &var.name == path) {
-                                path_to_var_exprs.insert((path.to_owned(), Reads::Post));
+                                path_to_var_exprs.insert(path.to_owned());
                             }
                         }
                     } else {
@@ -626,6 +696,10 @@ impl ExprKey {
     pub fn is_storage_access(&self, contract: &Contract) -> bool {
         self.get(contract).is_storage_access(contract)
     }
+
+    pub fn is_pre_storage_access(&self, contract: &Contract) -> bool {
+        self.get(contract).is_pre_storage_access(contract)
+    }
 }
 
 /// [`ExprsIter`] is an iterator for all the _reachable_ expressions in the Predicate.
@@ -743,6 +817,11 @@ impl Iterator for ExprsIter<'_> {
                 if let Some(value) = value {
                     queue_if_new!(self, value);
                 }
+            }
+
+            Expr::KeyValue { lhs, rhs, .. } => {
+                queue_if_new!(self, lhs);
+                queue_if_new!(self, rhs);
             }
 
             Expr::ExternalStorageAccess { address, .. } => queue_if_new!(self, address),

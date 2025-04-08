@@ -10,10 +10,7 @@ use crate::{
     types::Type,
 };
 use essential_asm::short::*;
-use essential_types::{
-    predicate::{Predicate as CompiledPredicate, Reads},
-    ContentAddress,
-};
+use essential_types::{predicate::Predicate as CompiledPredicate, ContentAddress};
 
 /// This object is a context that keeps track of various helper data structures. This context
 /// evolves throughout the assembly generation process.
@@ -23,7 +20,7 @@ pub struct AsmBuilder<'a> {
     compiled_predicates: &'a fxhash::FxHashMap<String, (CompiledPredicate, ContentAddress)>,
 
     // A map from names of variables to their memory indices.
-    var_to_mem_idx: fxhash::FxHashMap<(String, Reads), i64>,
+    var_to_mem_idx: fxhash::FxHashMap<String, i64>,
 
     // A map from pre-computed expressions to their memory indices.
     precomputed_expr_to_mem_idx: fxhash::FxHashMap<ExprKey, i64>,
@@ -48,7 +45,7 @@ enum Location {
     Memory,
     PredicateData,
     Stack,
-    Storage(bool),
+    Storage(bool, bool),
 }
 
 impl<'a> AsmBuilder<'a> {
@@ -89,21 +86,21 @@ impl<'a> AsmBuilder<'a> {
             ));
         }
 
-        let expr_size = expr_ty.size(handler, contract)? as i64;
+        let expr_size = expr.size(handler, contract, pred)? as i64;
 
         // Produce a map from input variables to this nodes to their indices in the concatinated
         // memory. Also compute the total amount of memory used so far.
         let pre_initialied_memory_size =
             parents.iter().try_fold(0i64, |base, node| match node {
-                ComputeNode::Var { var, reads, .. } => {
-                    self.var_to_mem_idx.insert((var.name.clone(), *reads), base);
-                    let size = var.expr.get_ty(contract).size(handler, contract)?;
+                ComputeNode::Var { var, .. } => {
+                    self.var_to_mem_idx.insert(var.name.clone(), base);
+                    let size = var.expr.size(handler, contract, pred)?;
                     Ok(base + size as i64)
                 }
                 ComputeNode::Constraint { .. } => Ok(base),
                 ComputeNode::Expr { expr, .. } => {
                     self.precomputed_expr_to_mem_idx.insert(*expr, base);
-                    let size = expr.get_ty(contract).size(handler, contract)?;
+                    let size = expr.size(handler, contract, pred)?;
                     Ok(base + size as i64)
                 }
             })?;
@@ -113,6 +110,8 @@ impl<'a> AsmBuilder<'a> {
         if expr.get(contract).is_asm_block() {
             self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
         } else {
+            let is_key_value = expr.get_ty(contract).is_key_value();
+
             // Search this expression for nested storage accesses, and if not found search for
             // nested morphisms.
             let mut scratch_needed = !expr.collect_storage_accesses(contract).is_empty();
@@ -136,11 +135,40 @@ impl<'a> AsmBuilder<'a> {
             }
 
             if node.is_leaf() {
-                self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
+                if !is_key_value {
+                    self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
 
-                if scratch_needed {
-                    // Stash the node result and drop the remaining scratch.
-                    asm.extend([PUSH(0), STOS, POP, POP]);
+                    if scratch_needed {
+                        // Stash the node result and drop the remaining scratch.
+                        asm.extend([PUSH(0), STOS, POP, POP]);
+                    }
+                } else {
+                    // Allocate enough memory for the returned data, if needed
+                    if pre_initialied_memory_size < expr_size {
+                        asm.extend([PUSH(expr_size - pre_initialied_memory_size), ALOC, POP]);
+                    }
+
+                    // Compile result to the stack.
+                    self.compile_expr(handler, &mut asm, &expr, contract, pred)?;
+
+                    // Stach the total number of keys at the start of memory
+                    asm.extend([PUSH(0), STO]);
+
+                    // Store the rest after it
+                    asm.extend([PUSH(expr_size - 1), PUSH(1), STOR]);
+
+                    // drop the scratch space if needed
+                    if scratch_needed {
+                        asm.extend([PUSH(3), DROP]);
+                    }
+
+                    // While compiling the expr we may have allocated more buffers in memory.  We
+                    // need to shrink memory down to just the result.
+                    // TODO: have compile_expr() return whether this is necessary.
+                    asm.extend([PUSH(expr_size), FREE]);
+
+                    // Finally just push 2 on the stack to indicate the type of this node
+                    asm.push(PUSH(2));
                 }
             } else {
                 // Allocate enough memory for the returned data, if needed
@@ -181,7 +209,7 @@ impl<'a> AsmBuilder<'a> {
     ) -> Result<usize, ErrorEmitted> {
         let old_asm_len = asm.len();
         let expr_ty = expr.get_ty(contract);
-        let expr_size = expr_ty.size(handler, contract)? as i64;
+        let expr_size = expr.size(handler, contract, pred)? as i64;
 
         match self.compile_expr_pointer(handler, asm, expr, contract, pred)? {
             Location::PredicateData => {
@@ -196,7 +224,7 @@ impl<'a> AsmBuilder<'a> {
                 }
             }
 
-            Location::Storage(is_extern) => {
+            Location::Storage(is_post, is_extern) => {
                 let (num_keys, access_size) = expr_ty.get_optional_ty().map_or_else(
                     || {
                         Err(handler.emit_internal_err(
@@ -222,7 +250,17 @@ impl<'a> AsmBuilder<'a> {
                     PUSH(num_keys),
                     PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
                     LODS,
-                    if is_extern { KREX } else { KRNG },
+                    if is_extern {
+                        if is_post {
+                            PKREX
+                        } else {
+                            KREX
+                        }
+                    } else if is_post {
+                        PKRNG
+                    } else {
+                        KRNG
+                    }, // Read the keys and values into memory.
                     // Read the actual data
                     PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
                     LODS,
@@ -361,10 +399,71 @@ impl<'a> AsmBuilder<'a> {
                 }
                 Ok(Location::Stack)
             }
-            Expr::Path(path, _) => self.compile_path(handler, asm, path, Reads::Pre, pred),
+            Expr::Path(path, _) => self.compile_path(handler, asm, path, pred),
             Expr::AsmBlock { ops, .. } => self.compile_asm_block(handler, asm, ops, pred),
             Expr::UnionVariant { path, value, .. } => {
                 self.compile_union_expr(handler, asm, expr, path, value, contract, pred)
+            }
+            Expr::KeyValue { lhs, rhs, .. } => {
+                if let Expr::IntrinsicCall {
+                    kind: (IntrinsicKind::Internal(InternalIntrinsic::PreState), _),
+                    args,
+                    ..
+                } = lhs.get(contract)
+                {
+                    if rhs.get(contract).is_nil() {
+                        let sizes = rhs.get_ty(contract).sizes(handler, contract)?;
+                        for (idx, _) in sizes.iter().enumerate() {
+                            // For each primitive element, output key + idx on the stack followed
+                            // by 0 indicating a `nil`
+                            asm.push(PUSH(args[0].size(handler, contract, pred)? as i64));
+                            self.compile_expr(handler, asm, &args[0], contract, pred)?;
+                            asm.extend([PUSH(idx as i64), ADD]);
+                            asm.extend([PUSH(0)]);
+                        }
+                        // Total number of keys goes at the end
+                        asm.push(PUSH(sizes.len() as i64));
+                    } else {
+                        // Compile the rhs and store it to memory for easy access
+                        self.compile_expr(handler, asm, rhs, contract, pred)?;
+                        asm.extend([
+                            PUSH(rhs.size(handler, contract, pred)? as i64),
+                            ALOC,
+                            PUSH(0), // scratch space
+                            STOS,
+                            PUSH(rhs.size(handler, contract, pred)? as i64),
+                            PUSH(0), // scratch space
+                            LODS,
+                            STOR,
+                        ]);
+
+                        let sizes = rhs.get_ty(contract).sizes(handler, contract)?;
+
+                        let mut current = 0;
+                        for (idx, size) in sizes.iter().enumerate() {
+                            // For each primitive element, output key + idx on the stack followed
+                            // by the size of the data and the data itself loaded from memory where
+                            // the rhs was stored. We use `current` to keep track of which memory
+                            // index to load from for each segment.
+                            asm.push(PUSH(args[0].size(handler, contract, pred)? as i64));
+                            self.compile_expr(handler, asm, &args[0], contract, pred)?;
+                            asm.extend([PUSH(idx as i64), ADD]); // key
+                            asm.extend([
+                                PUSH(*size as i64),
+                                PUSH(0),
+                                LODS,
+                                PUSH(current),
+                                ADD,
+                                PUSH(*size as i64),
+                                LODR,
+                            ]);
+                            current += *size as i64;
+                        }
+                        // Lastly, push the total number of keys mutated
+                        asm.push(PUSH(sizes.len() as i64));
+                    }
+                }
+                Ok(Location::Stack)
             }
             Expr::Nil(_) => self.compile_nil_expr(handler, asm, expr, contract),
             Expr::UnaryOp { op, expr, .. } => {
@@ -433,7 +532,6 @@ impl<'a> AsmBuilder<'a> {
         handler: &Handler,
         asm: &mut Asm,
         path: &String,
-        reads: Reads,
         pred: &Predicate,
     ) -> Result<Location, ErrorEmitted> {
         if let Some((loc, sz)) = self
@@ -458,7 +556,7 @@ impl<'a> AsmBuilder<'a> {
             ]);
             Ok(Location::PredicateData)
         } else if pred.variables().any(|(_, variable)| &variable.name == path) {
-            asm.push(PUSH(self.var_to_mem_idx[&(path.clone(), reads)]));
+            asm.push(PUSH(self.var_to_mem_idx[&path.clone()]));
             Ok(Location::Memory)
         } else {
             // Must not have anything else at this point. All other path expressions should have
@@ -510,12 +608,13 @@ impl<'a> AsmBuilder<'a> {
                         "JMPIF" => Ok(JMPIF),
                         "KREX" => Ok(KREX),
                         "KRNG" => Ok(KRNG),
+                        "PKREX" => Ok(PKREX),
+                        "PKRNG" => Ok(PKRNG),
                         "LOD" => Ok(LOD),
                         "LODR" => Ok(LODR),
                         "LODS" => Ok(LODS),
                         "LT" => Ok(LT),
                         "LTE" => Ok(LTE),
-                        "MKEYS" => Ok(MKEYS),
                         "MOD" => Ok(MOD),
                         "MUL" => Ok(MUL),
                         "NOT" => Ok(NOT),
@@ -614,7 +713,7 @@ impl<'a> AsmBuilder<'a> {
 
             // NOTE: These are unreachable for now.  Maps over storage or stack will always be over a
             // copy in a memory buffer.
-            Location::Storage(_) => todo!(),
+            Location::Storage(_, _) => todo!(),
             Location::Stack => todo!(),
         }
     }
@@ -635,14 +734,7 @@ impl<'a> AsmBuilder<'a> {
                 Ok(Location::Stack)
             }
             UnaryOp::NextState => {
-                if let Expr::Path(path, _) = expr.get(contract) {
-                    self.compile_path(handler, asm, path, Reads::Post, pred)
-                } else {
-                    Err(handler.emit_internal_err(
-                        "unexpected next state op for non-path".to_string(),
-                        empty_span(),
-                    ))
-                }
+                Err(handler.emit_internal_err("unexpected next state op".to_string(), empty_span()))
             }
             UnaryOp::Neg => {
                 // Push `0` (i.e. `lhs`) before the `expr` (i.e. `rhs`) opcodes. Then subtract
@@ -705,7 +797,7 @@ impl<'a> AsmBuilder<'a> {
                 Ok(Location::Stack)
             }
 
-            Location::Storage(is_extern) => {
+            Location::Storage(is_post, is_extern) => {
                 let (num_keys, access_size) = expr.get_ty(contract).get_optional_ty().map_or_else(
                     || {
                         Err(handler.emit_internal_err(
@@ -731,7 +823,17 @@ impl<'a> AsmBuilder<'a> {
                     PUSH(num_keys),
                     PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
                     LODS,
-                    if is_extern { KREX } else { KRNG },
+                    if is_extern {
+                        if is_post {
+                            PKREX
+                        } else {
+                            KREX
+                        }
+                    } else if is_post {
+                        PKRNG
+                    } else {
+                        KRNG
+                    }, // Read the keys and values into memory.
                 ]);
 
                 // Sum the sizes of all the values read. These are laid out as follows in
@@ -788,6 +890,16 @@ impl<'a> AsmBuilder<'a> {
         contract: &Contract,
         pred: &Predicate,
     ) -> Result<Location, ErrorEmitted> {
+        if *op == BinaryOp::Concat {
+            self.compile_expr(handler, asm, lhs, contract, pred)?;
+            // Stach the number of keys for the lhs
+            asm.extend([PUSH(0), STOS]);
+            self.compile_expr(handler, asm, rhs, contract, pred)?;
+            // Now load from the stach and add to the size of the rhs
+            asm.extend([PUSH(0), LODS, ADD]);
+            return Ok(Location::Stack);
+        }
+
         let lhs_len = self.compile_expr(handler, asm, lhs, contract, pred)?;
         let rhs_len = self.compile_expr(handler, asm, rhs, contract, pred)?;
 
@@ -874,6 +986,7 @@ impl<'a> AsmBuilder<'a> {
                 // is false, then we want to remove the `true` we push on the stack above.
                 asm.insert(rhs_position + 3, POP);
             }
+            BinaryOp::Concat => unreachable!("already handled"),
         }
         Ok(Location::Stack)
     }
@@ -952,7 +1065,7 @@ impl<'a> AsmBuilder<'a> {
                     }
 
                     Location::Memory => todo!("__len() of array in memory"),
-                    Location::Storage(_) => todo!("__len() of array in stack"),
+                    Location::Storage(_, _) => todo!("__len() of array in stack"),
                     Location::Stack => todo!("__len() of array on stack"),
                 }
             }
@@ -1032,26 +1145,16 @@ impl<'a> AsmBuilder<'a> {
             //
             // The only exception is set types since they are not very well specified yet. The
             // length of a set currently lives in the set itself.
-            if !matches!(kind, InternalIntrinsic::EqSet) && kind.args()[i].is_any() {
+            if kind.args()[i].is_any() {
                 asm.push(PUSH(arg.get_ty(contract).size(handler, contract)? as i64));
             }
         }
 
         match kind {
-            InternalIntrinsic::EqSet => {
-                asm.push(EQST);
-                Ok(Location::Stack)
-            }
-            InternalIntrinsic::MutKeys => {
-                asm.push(MKEYS);
-                Ok(Location::Stack)
-            }
-            InternalIntrinsic::PreState | InternalIntrinsic::PostState => {
-                Ok(Location::Storage(false))
-            }
-            InternalIntrinsic::PreStateExtern | InternalIntrinsic::PostStateExtern => {
-                Ok(Location::Storage(true))
-            }
+            InternalIntrinsic::PreState => Ok(Location::Storage(false, false)),
+            InternalIntrinsic::PreStateExtern => Ok(Location::Storage(false, true)),
+            InternalIntrinsic::PostState => Ok(Location::Storage(true, false)),
+            InternalIntrinsic::PostStateExtern => Ok(Location::Storage(true, true)),
         }
     }
 
@@ -1193,7 +1296,7 @@ impl<'a> AsmBuilder<'a> {
     ) -> Result<Location, ErrorEmitted> {
         let location = self.compile_expr_pointer(handler, asm, expr, contract, pred)?;
 
-        if let Location::Stack | Location::Storage(_) = location {
+        if let Location::Stack | Location::Storage(_, _) = location {
             return Err(handler.emit_internal_err(
                 "unexpected index operator for `Location::Stack` or `Location::Storage`",
                 empty_span(),
@@ -1239,7 +1342,9 @@ impl<'a> AsmBuilder<'a> {
                         ]);
                     }
 
-                    Location::Storage(_) | Location::Stack => unreachable!("already checked above"),
+                    Location::Storage(_, _) | Location::Stack => {
+                        unreachable!("already checked above")
+                    }
                 }
 
                 // Dupe the array index and compare to the length.
@@ -1281,7 +1386,7 @@ impl<'a> AsmBuilder<'a> {
     ) -> Result<Location, ErrorEmitted> {
         let location = self.compile_expr_pointer(handler, asm, tuple, contract, pred)?;
 
-        if let Location::Stack | Location::Storage(_) = location {
+        if let Location::Stack | Location::Storage(_, _) = location {
             return Err(handler.emit_internal_err(
                 "unexpected tuple access for `Location::Stack` and `Location::Storage`",
                 empty_span(),
@@ -1406,7 +1511,7 @@ impl<'a> AsmBuilder<'a> {
             Location::PredicateData => asm.extend([PUSH(1), DATA]),
 
             // Are these supported?
-            Location::Memory | Location::Storage { .. } | Location::Stack => {
+            Location::Memory | Location::Storage(_, _) | Location::Stack => {
                 unimplemented!("support union matches in non- predicate data?")
             }
         }
@@ -1430,7 +1535,7 @@ impl<'a> AsmBuilder<'a> {
                 Ok(location)
             }
 
-            Location::Stack | Location::Storage { .. } => {
+            Location::Stack | Location::Storage(_, _) => {
                 unimplemented!("union value or unions in storage")
             }
         }
@@ -1487,7 +1592,7 @@ impl<'a> AsmBuilder<'a> {
                 Location::Memory
             }
 
-            Location::Storage(is_extern) => {
+            Location::Storage(is_post, is_extern) => {
                 let (num_keys, access_size) = range_ty.get_optional_ty().map_or_else(
                     || {
                         Err(handler.emit_internal_err(
@@ -1513,7 +1618,17 @@ impl<'a> AsmBuilder<'a> {
                     PUSH(num_keys),
                     PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
                     LODS,
-                    if is_extern { KREX } else { KRNG }, // Read the keys and values into memory.
+                    if is_extern {
+                        if is_post {
+                            PKREX
+                        } else {
+                            KREX
+                        }
+                    } else if is_post {
+                        PKRNG
+                    } else {
+                        KRNG
+                    }, // Read the keys and values into memory.
                     PUSH(Self::KEY_RANGE_MEM_IDX_STACK_LOC),
                     LODS,
                     PUSH(num_keys * 2),
@@ -1626,7 +1741,7 @@ impl<'a> AsmBuilder<'a> {
                 ]);
             }
 
-            Location::PredicateData | Location::Storage(_) => unreachable!(
+            Location::PredicateData | Location::Storage(_, _) => unreachable!(
                 "It isn't possible for a morphism to put results into storage or param data."
             ),
         }
@@ -1667,7 +1782,7 @@ impl<'a> AsmBuilder<'a> {
                     ]);
                 }
 
-                Location::Storage(_) => {
+                Location::Storage(_, _) => {
                     todo!("getting the element count for unsized arrays in storage")
                 }
 

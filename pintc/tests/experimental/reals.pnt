@@ -24,6 +24,5 @@ predicate test(x: real, y: real) {
 //     constraint ((::x >= 1e0) && (::x <= 4e0));
 //     constraint ((::y >= 1e0) && (::y <= 4e0));
 //     constraint ((::x + ::y) == 3.3e0);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

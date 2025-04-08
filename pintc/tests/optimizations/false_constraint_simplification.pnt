@@ -50,7 +50,6 @@ predicate Test(x: int, y: int) {
 //     constraint ((::x == ::y) && false);
 //     constraint (!true || (::y == 3));
 //     constraint (!true || (3 < 2));
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
 

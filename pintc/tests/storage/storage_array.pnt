@@ -13,51 +13,51 @@ interface Foo {
 predicate Bar() {
     let addr = 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE;
 
-    let v = storage::v!;
-    let v1 = storage::v[1]!;
-    let v10 = storage::v[1][0]!;
+    let v = storage::v'!;
+    let v1 = storage::v[1]'!;
+    let v10 = storage::v[1][0]'!;
 
-    let map_to_arrays_69 = storage::map_to_arrays[69]!;
-    let map_to_arrays_69_1 = storage::map_to_arrays[69][1]!;
+    let map_to_arrays_69 = storage::map_to_arrays[69]'!;
+    let map_to_arrays_69_1 = storage::map_to_arrays[69][1]'!;
 
-    constraint v' == [
+    constraint v == [
         [42, 43, 44],
         [52, 53, 54],
     ];
-    constraint v[1]' == [52, 53, 54];
-    constraint v[0][2]' == 44;
+    constraint v[1] == [52, 53, 54];
+    constraint v[0][2] == 44;
 
-    constraint v1' == [52, 53, 54];
-    constraint v1[2]' == 54;
+    constraint v1 == [52, 53, 54];
+    constraint v1[2] == 54;
 
-    constraint v10' == 52;
+    constraint v10 == 52;
 
-    constraint map_to_arrays_69' == [99, 100, 101];
-    constraint map_to_arrays_69[2]' == 101;
-    constraint map_to_arrays_69_1' == 100;
+    constraint map_to_arrays_69 == [99, 100, 101];
+    constraint map_to_arrays_69[2] == 101;
+    constraint map_to_arrays_69_1 == 100;
 
-    let foo_v = Foo@[addr]::storage::v!;
-    let foo_v1 = Foo@[addr]::storage::v[1]!;
-    let foo_v10 = Foo@[addr]::storage::v[1][0]!;
+    let foo_v = Foo@[addr]::storage::v'!;
+    let foo_v1 = Foo@[addr]::storage::v[1]'!;
+    let foo_v10 = Foo@[addr]::storage::v[1][0]'!;
 
-    let foo_map_to_arrays_69 = Foo@[addr]::storage::map_to_arrays[69]!;
-    let foo_map_to_arrays_69_1 = Foo@[addr]::storage::map_to_arrays[69][1]!;
+    let foo_map_to_arrays_69 = Foo@[addr]::storage::map_to_arrays[69]'!;
+    let foo_map_to_arrays_69_1 = Foo@[addr]::storage::map_to_arrays[69][1]'!;
 
-    constraint foo_v' == [
+    constraint foo_v == [
         [142, 143, 144],
         [152, 153, 154],
     ];
-    constraint foo_v[1]' == [152, 153, 154];
-    constraint foo_v[0][2]' == 144;
+    constraint foo_v[1] == [152, 153, 154];
+    constraint foo_v[0][2] == 144;
 
-    constraint foo_v1' == [152, 153, 154];
-    constraint foo_v1[2]' == 154;
+    constraint foo_v1 == [152, 153, 154];
+    constraint foo_v1[2] == 154;
 
-    constraint foo_v10' == 152;
+    constraint foo_v10 == 152;
 
-    constraint foo_map_to_arrays_69' == [199, 1100, 1101];
-    constraint foo_map_to_arrays_69[2]' == 1101;
-    constraint foo_map_to_arrays_69_1' == 1100;
+    constraint foo_map_to_arrays_69 == [199, 1100, 1101];
+    constraint foo_map_to_arrays_69[2] == 1101;
+    constraint foo_map_to_arrays_69_1 == 1100;
 }
 
 // parsed <<<
@@ -75,34 +75,34 @@ predicate Bar() {
 // predicate ::Bar(
 // ) {
 //     let ::addr = 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE;
-//     let ::v = storage::v!;
-//     let ::v1 = storage::v[1]!;
-//     let ::v10 = storage::v[1][0]!;
-//     let ::map_to_arrays_69 = storage::map_to_arrays[69]!;
-//     let ::map_to_arrays_69_1 = storage::map_to_arrays[69][1]!;
-//     let ::foo_v = ::Foo@[::addr]::storage::v!;
-//     let ::foo_v1 = ::Foo@[::addr]::storage::v[1]!;
-//     let ::foo_v10 = ::Foo@[::addr]::storage::v[1][0]!;
-//     let ::foo_map_to_arrays_69 = ::Foo@[::addr]::storage::map_to_arrays[69]!;
-//     let ::foo_map_to_arrays_69_1 = ::Foo@[::addr]::storage::map_to_arrays[69][1]!;
-//     constraint (::v' == [[42, 43, 44], [52, 53, 54]]);
-//     constraint (::v[1]' == [52, 53, 54]);
-//     constraint (::v[0][2]' == 44);
-//     constraint (::v1' == [52, 53, 54]);
-//     constraint (::v1[2]' == 54);
-//     constraint (::v10' == 52);
-//     constraint (::map_to_arrays_69' == [99, 100, 101]);
-//     constraint (::map_to_arrays_69[2]' == 101);
-//     constraint (::map_to_arrays_69_1' == 100);
-//     constraint (::foo_v' == [[142, 143, 144], [152, 153, 154]]);
-//     constraint (::foo_v[1]' == [152, 153, 154]);
-//     constraint (::foo_v[0][2]' == 144);
-//     constraint (::foo_v1' == [152, 153, 154]);
-//     constraint (::foo_v1[2]' == 154);
-//     constraint (::foo_v10' == 152);
-//     constraint (::foo_map_to_arrays_69' == [199, 1100, 1101]);
-//     constraint (::foo_map_to_arrays_69[2]' == 1101);
-//     constraint (::foo_map_to_arrays_69_1' == 1100);
+//     let ::v = storage::v'!;
+//     let ::v1 = storage::v[1]'!;
+//     let ::v10 = storage::v[1][0]'!;
+//     let ::map_to_arrays_69 = storage::map_to_arrays[69]'!;
+//     let ::map_to_arrays_69_1 = storage::map_to_arrays[69][1]'!;
+//     let ::foo_v = ::Foo@[::addr]::storage::v'!;
+//     let ::foo_v1 = ::Foo@[::addr]::storage::v[1]'!;
+//     let ::foo_v10 = ::Foo@[::addr]::storage::v[1][0]'!;
+//     let ::foo_map_to_arrays_69 = ::Foo@[::addr]::storage::map_to_arrays[69]'!;
+//     let ::foo_map_to_arrays_69_1 = ::Foo@[::addr]::storage::map_to_arrays[69][1]'!;
+//     constraint (::v == [[42, 43, 44], [52, 53, 54]]);
+//     constraint (::v[1] == [52, 53, 54]);
+//     constraint (::v[0][2] == 44);
+//     constraint (::v1 == [52, 53, 54]);
+//     constraint (::v1[2] == 54);
+//     constraint (::v10 == 52);
+//     constraint (::map_to_arrays_69 == [99, 100, 101]);
+//     constraint (::map_to_arrays_69[2] == 101);
+//     constraint (::map_to_arrays_69_1 == 100);
+//     constraint (::foo_v == [[142, 143, 144], [152, 153, 154]]);
+//     constraint (::foo_v[1] == [152, 153, 154]);
+//     constraint (::foo_v[0][2] == 144);
+//     constraint (::foo_v1 == [152, 153, 154]);
+//     constraint (::foo_v1[2] == 154);
+//     constraint (::foo_v10 == 152);
+//     constraint (::foo_map_to_arrays_69 == [199, 1100, 1101]);
+//     constraint (::foo_map_to_arrays_69[2] == 1101);
+//     constraint (::foo_map_to_arrays_69_1 == 1100);
 // }
 // >>>
 
@@ -121,34 +121,33 @@ predicate Bar() {
 // predicate ::Bar(
 // ) {
 //     let ::addr: b256 = 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE;
-//     let ::v: int[3][2] = __pre_state({0, 0})!;
-//     let ::v1: int[3] = __pre_state({0, (0 + (1 * 3))})!;
-//     let ::v10: int = __pre_state({0, ((0 + (1 * 3)) + (0 * 1))})!;
-//     let ::map_to_arrays_69: int[3] = __pre_state({1, 69, 0})!;
-//     let ::map_to_arrays_69_1: int = __pre_state({1, 69, (0 + (1 * 1))})!;
-//     let ::foo_v: int[3][2] = __pre_state_extern(::addr, {0, 0})!;
-//     let ::foo_v1: int[3] = __pre_state_extern(::addr, {0, (0 + (1 * 3))})!;
-//     let ::foo_v10: int = __pre_state_extern(::addr, {0, ((0 + (1 * 3)) + (0 * 1))})!;
-//     let ::foo_map_to_arrays_69: int[3] = __pre_state_extern(::addr, {1, 69, 0})!;
-//     let ::foo_map_to_arrays_69_1: int = __pre_state_extern(::addr, {1, 69, (0 + (1 * 1))})!;
-//     constraint (::v' == [[42, 43, 44], [52, 53, 54]]);
-//     constraint (::v'[1] == [52, 53, 54]);
-//     constraint (::v'[0][2] == 44);
-//     constraint (::v1' == [52, 53, 54]);
-//     constraint (::v1'[2] == 54);
-//     constraint (::v10' == 52);
-//     constraint (::map_to_arrays_69' == [99, 100, 101]);
-//     constraint (::map_to_arrays_69'[2] == 101);
-//     constraint (::map_to_arrays_69_1' == 100);
-//     constraint (::foo_v' == [[142, 143, 144], [152, 153, 154]]);
-//     constraint (::foo_v'[1] == [152, 153, 154]);
-//     constraint (::foo_v'[0][2] == 144);
-//     constraint (::foo_v1' == [152, 153, 154]);
-//     constraint (::foo_v1'[2] == 154);
-//     constraint (::foo_v10' == 152);
-//     constraint (::foo_map_to_arrays_69' == [199, 1100, 1101]);
-//     constraint (::foo_map_to_arrays_69'[2] == 1101);
-//     constraint (::foo_map_to_arrays_69_1' == 1100);
-//     constraint __eq_set(__mut_keys(), {0});
+//     let ::v: int[3][2] = __post_state({0, 0})!;
+//     let ::v1: int[3] = __post_state({0, (0 + (1 * 3))})!;
+//     let ::v10: int = __post_state({0, ((0 + (1 * 3)) + (0 * 1))})!;
+//     let ::map_to_arrays_69: int[3] = __post_state({1, 69, 0})!;
+//     let ::map_to_arrays_69_1: int = __post_state({1, 69, (0 + (1 * 1))})!;
+//     let ::foo_v: int[3][2] = __post_state_extern(::addr, {0, 0})!;
+//     let ::foo_v1: int[3] = __post_state_extern(::addr, {0, (0 + (1 * 3))})!;
+//     let ::foo_v10: int = __post_state_extern(::addr, {0, ((0 + (1 * 3)) + (0 * 1))})!;
+//     let ::foo_map_to_arrays_69: int[3] = __post_state_extern(::addr, {1, 69, 0})!;
+//     let ::foo_map_to_arrays_69_1: int = __post_state_extern(::addr, {1, 69, (0 + (1 * 1))})!;
+//     constraint (::v == [[42, 43, 44], [52, 53, 54]]);
+//     constraint (::v[1] == [52, 53, 54]);
+//     constraint (::v[0][2] == 44);
+//     constraint (::v1 == [52, 53, 54]);
+//     constraint (::v1[2] == 54);
+//     constraint (::v10 == 52);
+//     constraint (::map_to_arrays_69 == [99, 100, 101]);
+//     constraint (::map_to_arrays_69[2] == 101);
+//     constraint (::map_to_arrays_69_1 == 100);
+//     constraint (::foo_v == [[142, 143, 144], [152, 153, 154]]);
+//     constraint (::foo_v[1] == [152, 153, 154]);
+//     constraint (::foo_v[0][2] == 144);
+//     constraint (::foo_v1 == [152, 153, 154]);
+//     constraint (::foo_v1[2] == 154);
+//     constraint (::foo_v10 == 152);
+//     constraint (::foo_map_to_arrays_69 == [199, 1100, 1101]);
+//     constraint (::foo_map_to_arrays_69[2] == 1101);
+//     constraint (::foo_map_to_arrays_69_1 == 1100);
 // }
 // >>>

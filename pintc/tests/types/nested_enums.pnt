@@ -90,6 +90,5 @@ predicate Foo(
 //     constraint (::friends_pets == [::Animal::Dog, ::Animal::Cat, ::Animal::Cat]);
 //     constraint (::bob.pet != ::Animal::Dog);
 //     constraint ((UnTag(::barb) == 0) || (!(UnTag(::barb) == 1) || (UnVal(::barb, {child: {age: int, pet: ::Animal}, pet: ::Animal}).pet == ::Animal::Cat)));
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

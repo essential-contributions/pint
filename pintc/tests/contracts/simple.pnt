@@ -43,7 +43,6 @@ predicate Bar(x: int, y: MyType) {
 // ) {
 //     constraint (::y == ::MyUnion::A);
 //     constraint (::x == 3);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 //
 // predicate ::Bar(
@@ -52,6 +51,5 @@ predicate Bar(x: int, y: MyType) {
 // ) {
 //     constraint (::y == ::MyUnion::A);
 //     constraint (::x < 2);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

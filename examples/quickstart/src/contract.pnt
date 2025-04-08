@@ -3,7 +3,14 @@ storage {
 }
 
 predicate Increment() {
-    let counter: int? = mut storage::counter;
+    let counter: int? = storage::counter;
+    let counter_post: int? = storage::counter';
 
-    constraint (counter == nil && counter'! == 1) || counter'! == counter! + 1;
+    // Produce the next state for `storage::counter`
+    constraint storage::counter := (counter == nil) ? 1 : counter! + 1;
+
+    // Redundant, but still valid.. basically like an assert
+    constraint (counter == nil && counter_post! == 1) || counter_post! == counter! + 1;
 }
+
+

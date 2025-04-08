@@ -24,6 +24,5 @@ predicate Foo(a: myCustom) {
 //     ::a: int,
 // ) {
 //     constraint (::a == 11);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

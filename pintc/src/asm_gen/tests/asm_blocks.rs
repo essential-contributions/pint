@@ -18,12 +18,8 @@ fn empty_asm_block() {
         expect_test::expect![[r#"
             predicate ::foo {
                 --- Nodes ---
-                node 0 (pre)
-                node 1 (pre,leaf)
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                node 2 (pre,leaf)
+                node 0 ()
+                node 1 (,leaf)
                   Stack(Push(0))
                   Memory(Load)
                   Stack(Push(0))
@@ -56,7 +52,7 @@ fn with_args() {
         expect_test::expect![[r#"
             predicate ::foo {
                 --- Nodes ---
-                node 0 (pre)
+                node 0 ()
                   Stack(Push(1))
                   Memory(Alloc)
                   Stack(Pop)
@@ -69,14 +65,14 @@ fn with_args() {
                   Memory(StoreRange)
                   Stack(Push(1))
                   Memory(Free)
-                node 1 (pre)
+                node 1 ()
                   Stack(Push(69))
                   Stack(Push(1))
                   Stack(Push(0))
                   Memory(StoreRange)
                   Stack(Push(1))
                   Memory(Free)
-                node 2 (pre)
+                node 2 ()
                   Stack(Push(0))
                   Stack(Push(0))
                   Stack(Push(1))
@@ -88,7 +84,7 @@ fn with_args() {
                   Memory(StoreRange)
                   Stack(Push(1))
                   Memory(Free)
-                node 3 (pre)
+                node 3 ()
                   Stack(Push(2))
                   Memory(Alloc)
                   Stack(Pop)
@@ -109,12 +105,8 @@ fn with_args() {
                   Memory(StoreRange)
                   Stack(Push(3))
                   Memory(Free)
-                node 4 (pre)
-                node 5 (pre,leaf)
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                node 6 (pre,leaf)
+                node 4 ()
+                node 5 (,leaf)
                   Stack(Push(0))
                   Memory(Load)
                   Stack(Push(0))
@@ -164,7 +156,6 @@ fn all_ops() {
                     LODS
                     LT
                     LTE
-                    MKEYS
                     MOD
                     MUL
                     NOT
@@ -203,7 +194,7 @@ fn all_ops() {
         expect_test::expect![[r#"
             predicate ::foo {
                 --- Nodes ---
-                node 0 (pre)
+                node 0 ()
                   Alu(Add)
                   Memory(Alloc)
                   Pred(And)
@@ -231,7 +222,6 @@ fn all_ops() {
                   Stack(Load)
                   Pred(Lt)
                   Pred(Lte)
-                  Access(MutKeys)
                   Alu(Mod)
                   Alu(Mul)
                   Pred(Not)
@@ -260,11 +250,7 @@ fn all_ops() {
                   Access(ThisAddress)
                   Access(ThisContractAddress)
                   Crypto(VerifyEd25519)
-                node 1 (pre,leaf)
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                node 2 (pre,leaf)
+                node 1 (,leaf)
                   Stack(Push(0))
                   Memory(Load)
                   Stack(Push(0))

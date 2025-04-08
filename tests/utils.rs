@@ -1,15 +1,12 @@
-use essential_vm::{
-    types::{solution::SolutionSet, ContentAddress, Key, Word},
-    StateRead,
+use essential_check::{
+    types::{ContentAddress, Key, Word},
+    vm::StateRead,
 };
-use std::{
-    collections::BTreeMap,
-    future::{self, Ready},
-};
+use std::collections::BTreeMap;
 use thiserror::Error;
 
 // A test `StateRead` implementation represented using a map.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct State(BTreeMap<ContentAddress, BTreeMap<Key, Vec<Word>>>);
 
 #[derive(Debug, Error)]
@@ -20,9 +17,10 @@ pub type Kv = (Key, Vec<Word>);
 
 impl State {
     // Shorthand test state constructor.
-    pub fn new(sets: Vec<(ContentAddress, Vec<Kv>)>) -> Self {
+    pub fn new(contracts: Vec<(ContentAddress, Vec<Kv>)>) -> Self {
         State(
-            sets.into_iter()
+            contracts
+                .into_iter()
                 .map(|(addr, vec)| {
                     let map: BTreeMap<_, _> = vec.into_iter().collect();
                     (addr, map)
@@ -31,19 +29,20 @@ impl State {
         )
     }
 
-    pub fn set(&mut self, set_addr: ContentAddress, key: &Key, value: Vec<Word>) {
-        let set = self.0.entry(set_addr).or_default();
+    // Update the value at the given key within the given contract address.
+    pub fn set(&mut self, contract_addr: ContentAddress, key: &Key, value: Vec<Word>) {
+        let contract = self.0.entry(contract_addr).or_default();
         if value.is_empty() {
-            set.remove(key);
+            contract.remove(key);
         } else {
-            set.insert(key.clone(), value);
+            contract.insert(key.clone(), value);
         }
     }
 
     /// Retrieve a word range.
     pub fn key_range(
         &self,
-        set_addr: ContentAddress,
+        contract_addr: ContentAddress,
         mut key: Key,
         num_words: usize,
     ) -> Result<Vec<Vec<Word>>, InvalidStateRead> {
@@ -61,32 +60,19 @@ impl State {
             None
         }
 
+        let contract = match self.get(&contract_addr) {
+            None => return Err(InvalidStateRead),
+            Some(contract) => contract,
+        };
+
         // Collect the words.
         let mut words = vec![];
         for _ in 0..num_words {
-            let opt = self
-                .get(&set_addr)
-                .ok_or(InvalidStateRead)?
-                .get(&key)
-                .cloned()
-                .unwrap_or_else(|| Vec::with_capacity(0));
+            let opt = contract.get(&key).cloned().unwrap_or_default();
             words.push(opt);
             key = next_key(key).ok_or(InvalidStateRead)?;
         }
         Ok(words)
-    }
-
-    /// Apply all mutations proposed by the given solution.
-    pub fn apply_mutations(&mut self, set: &SolutionSet) {
-        for solution in &set.solutions {
-            for mutation in solution.state_mutations.iter() {
-                self.set(
-                    solution.predicate_to_solve.contract.clone(),
-                    &mutation.key,
-                    mutation.value.clone(),
-                );
-            }
-        }
     }
 }
 
@@ -99,8 +85,12 @@ impl core::ops::Deref for State {
 
 impl StateRead for State {
     type Error = InvalidStateRead;
-    type Future = Ready<Result<Vec<Vec<Word>>, Self::Error>>;
-    fn key_range(&self, set_addr: ContentAddress, key: Key, num_words: usize) -> Self::Future {
-        future::ready(self.key_range(set_addr, key, num_words))
+    fn key_range(
+        &self,
+        contract_addr: ContentAddress,
+        key: Key,
+        num_words: usize,
+    ) -> Result<Vec<Vec<Word>>, Self::Error> {
+        self.key_range(contract_addr, key, num_words)
     }
 }

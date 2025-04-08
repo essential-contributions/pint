@@ -49,37 +49,37 @@ predicate Foo(
     constraint v_tuple == { lib2::A::B, lib3::foo::TT::A };
 
     // Declare some local variables.
-    let u1 = mut storage::u1;
-    let u2 = mut storage::u2;
-    let u3 = mut storage::u3;
-    let w1 = mut storage::w1;
-    let pp1 = mut storage::pp1;
-    let pp2 = mut storage::pp2;
-    let aa = mut storage::aa;
-    let dd = mut storage::dd;
-    let tt = mut storage::tt;
-    let rr = mut storage::rr;
-    let oo = mut storage::oo;
-    let array = mut storage::array;
-    let tuple = mut storage::tuple;
-    let map_1 = mut
-    storage::bmap[0x2222222222222222222222222222222222222222222222222222222222222222];
-    let map_2 = mut
-    storage::bmap[0x3333333333333333333333333333333333333333333333333333333333333333];
+    let u1 = storage::u1';
+    let u2 = storage::u2';
+    let u3 = storage::u3';
+    let w1 = storage::w1';
+    let pp1 = storage::pp1';
+    let pp2 = storage::pp2';
+    let aa = storage::aa';
+    let dd = storage::dd';
+    let tt = storage::tt';
+    let rr = storage::rr';
+    let oo = storage::oo';
+    let array = storage::array';
+    let tuple = storage::tuple';
+    let map_1 = 
+    storage::bmap[0x2222222222222222222222222222222222222222222222222222222222222222]';
+    let map_2 = 
+    storage::bmap[0x3333333333333333333333333333333333333333333333333333333333333333]';
 
-    constraint u1'! == UU::A(69);
-    constraint u2'! == UU::B;
-    constraint u3'! == UU::C(0x6969696969696969696969696969696969696969696969696969696969696969);
-    constraint w1'! == WW::E(UU::A(69));
-    constraint pp1'! == lib::PP::T(lib::QQ::M);
-    constraint pp2'! == lib::PP::JJ(0x1111111111111111111111111111111111111111111111111111111111111111);
-    constraint aa'! == lib2::A::C;
-    constraint dd'! == lib2::D::E(lib3::foo::TT::B); 
-    constraint tt'! == lib3::foo::TT::B;
-    constraint rr'! == RR::A(lib::PP::T(lib::QQ::N(42)));
-    constraint oo'! == lib3::foo::OO::B({lib3::foo::TT::A, lib3::foo::TT::B});
-    constraint array'! == [ RR::B, RR::A(lib::PP::T(lib::QQ::M))];
-    constraint tuple'! == { lib2::A::B, lib3::foo::TT::A };
-    constraint map_1'! == WW::D;
-    constraint map_2'! == WW::E(UU::A(55));
+    constraint u1! == UU::A(69);
+    constraint u2! == UU::B;
+    constraint u3! == UU::C(0x6969696969696969696969696969696969696969696969696969696969696969);
+    constraint w1! == WW::E(UU::A(69));
+    constraint pp1! == lib::PP::T(lib::QQ::M);
+    constraint pp2! == lib::PP::JJ(0x1111111111111111111111111111111111111111111111111111111111111111);
+    constraint aa! == lib2::A::C;
+    constraint dd! == lib2::D::E(lib3::foo::TT::B); 
+    constraint tt! == lib3::foo::TT::B;
+    constraint rr! == RR::A(lib::PP::T(lib::QQ::N(42)));
+    constraint oo! == lib3::foo::OO::B({lib3::foo::TT::A, lib3::foo::TT::B});
+    constraint array! == [ RR::B, RR::A(lib::PP::T(lib::QQ::M))];
+    constraint tuple! == { lib2::A::B, lib3::foo::TT::A };
+    constraint map_1! == WW::D;
+    constraint map_2! == WW::E(UU::A(55));
 }

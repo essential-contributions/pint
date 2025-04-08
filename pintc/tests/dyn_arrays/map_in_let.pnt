@@ -21,6 +21,5 @@ predicate test(ary: int[]) {
 // ) {
 //     let ::dbls: int[_] = map x in ::ary { (::x + ::x) };
 //     constraint (::dbls[1] == 22);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

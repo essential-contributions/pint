@@ -14,9 +14,13 @@ storage {
 }
 
 predicate foo(x: { int, { int, int } }) {
-    constraint mut storage::counter'! == storage::counter! + 1;
-    constraint mut storage::addr'! == 0x0000000000000001000000000000000200000000000000030000000000000004;
-    constraint mut storage::t'! == { 42, { 69, 99 } };
+    constraint storage::counter := storage::counter! + 1;
+    constraint storage::addr := 0x0000000000000001000000000000000200000000000000030000000000000004;
+    constraint storage::t := { 42, { 69, 99 } };
+
+    constraint storage::counter'! == storage::counter! + 1;
+    constraint storage::addr'! == 0x0000000000000001000000000000000200000000000000030000000000000004;
+    constraint storage::t'! == { 42, { 69, 99 } };
     constraint storage::t.0'! == 42;
     constraint storage::t.1.0'! == 69;
     constraint storage::t.1.1'! == 99;
@@ -30,12 +34,14 @@ predicate foo(x: { int, { int, int } }) {
     constraint storage::counter! == 1;
     constraint storage::counter'! == 2;
 
-    // constraint mut storage::m[42]'! == storage::m[42]! + 1;
-    constraint mut storage::m[69]'! == storage::m[69]! + 1;
+    // constraint storage::m[42]'! == storage::m[42]! + 1;
+    constraint storage::m[69] := storage::m[69]! + 1;
+    constraint storage::m[69]'! == storage::m[69]! + 1;
 
-    constraint mut storage::arr! == [5, 6, 7];
+    constraint storage::arr! == [5, 6, 7];
     constraint storage::arr[0]! == 5;
     constraint storage::arr[1]! == 6;
     constraint storage::arr[2]! == 7;
+    constraint storage::arr[0] := storage::arr[0]! * 11;
     constraint storage::arr[0]'! == storage::arr[0]! * 11;
 }

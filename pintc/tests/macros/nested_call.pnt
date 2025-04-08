@@ -33,6 +33,5 @@ predicate test(x: int) {
 //     constraint (::x > ((11 * 2) + 1));
 //     constraint (::x < (((22 + 1) * 2) + ((33 * 2) + 1)));
 //     constraint (::x != ((44 + 55) + (66 + 77)));
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

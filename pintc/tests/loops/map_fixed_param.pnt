@@ -42,7 +42,6 @@ predicate test_int_array(ary: int[5][2]) {
 //     let ::zero_map: bool[10] = map y in ::ary { (::y == 0) };
 //     constraint ((::evens[4] + ::evens[0]) == 10);
 //     constraint !::zero_map[3];
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 //
 // predicate ::test_int_array(
@@ -50,6 +49,5 @@ predicate test_int_array(ary: int[5][2]) {
 // ) {
 //     let ::sums: int[5] = map x in ::ary { (::x[0] + ::x[1]) };
 //     constraint (::sums[4] == 11);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

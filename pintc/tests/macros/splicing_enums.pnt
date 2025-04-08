@@ -82,6 +82,5 @@ predicate test(counts: int[Feeling], max_feeling: int, feeling: Feeling) {
 //     constraint (::max_feeling >= ::counts[::Feeling::Queasy]);
 //     constraint (::max_feeling >= ::counts[::Feeling::Awkward]);
 //     constraint (::max_feeling >= ::counts[::Feeling::Anxious]);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

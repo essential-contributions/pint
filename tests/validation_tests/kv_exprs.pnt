@@ -1,0 +1,31 @@
+storage {
+    x: { int , int, b256, int },
+    y: { int , int, b256, int }
+}
+
+predicate foo(c: bool) {
+    let kv = storage::x.3 := 43;
+    constraint kv;
+
+    constraint    storage::x.0 := 41
+               ++ storage::x.1 := 42
+               ++ storage::x.2 := 0x0000000000000005000000000000000600000000000000070000000000000008;
+
+    constraint storage::x'! == 
+        { 41, 42, 0x0000000000000005000000000000000600000000000000070000000000000008, 43 };
+    constraint storage::x.0'! == 41;
+    constraint storage::x.1'! == 42;
+    constraint storage::x.2'! == 0x0000000000000005000000000000000600000000000000070000000000000008;
+    constraint storage::x.3'! == 43;
+
+    constraint storage::y := 
+        { 141, 142, 0x0000000000000001000000000000000200000000000000030000000000000004, 143 };
+
+    constraint storage::y'! == 
+        { 141, 142, 0x0000000000000001000000000000000200000000000000030000000000000004, 143 };
+    constraint storage::y.0'! == 141;
+    constraint storage::y.1'! == 142;
+    constraint storage::y.2'! == 0x0000000000000001000000000000000200000000000000030000000000000004;
+    constraint storage::y.3'! == 143;
+
+}

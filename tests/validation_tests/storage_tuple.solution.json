@@ -6,32 +6,7 @@
         "predicate": "<::Bar>"
       },
       "predicate_data": [],
-      "state_mutations": [
-        {
-          "key": [2, 0],
-          "value": [9, 9, 9, 9]
-        },
-        {
-          "key": [2, 1],
-          "value": [2]
-        },
-        {
-          "key": [2, 2],
-          "value": [3]
-        },
-        {
-          "key": [3, 69, 0],
-          "value": [5, 5, 5, 5]
-        },
-        {
-          "key": [3, 69, 1],
-          "value": [12345]
-        },
-        {
-          "key": [3, 69, 2],
-          "value": [54321]
-        }
-      ]
+      "state_mutations": []
     },
     {
       "predicate_to_solve": {

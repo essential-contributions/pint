@@ -21,6 +21,5 @@ predicate Foo(a: int) {
 //     ::a: int,
 // ) {
 //     constraint (::a > 3);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

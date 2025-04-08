@@ -26,14 +26,18 @@ const baz_addr = 0xDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
 
 predicate Foo() {
     let x = Bar@[bar_addr]::storage::x;
+    let x_post = Bar@[bar_addr]::storage::x';
     let y = Bar@[bar_addr]::storage::y;
+    let y_post = Bar@[bar_addr]::storage::y';
     let w = Baz@[baz_addr]::storage::w;
+    let w_post = Baz@[baz_addr]::storage::w';
     let z = Baz@[baz_addr]::storage::z;
+    let z_post = Baz@[baz_addr]::storage::z';
 
-    constraint x'! - x! == 1;
-    constraint y'! - y! == 2;
-    constraint w'! - w! == 3;
-    constraint z'! - z! == 4;
+    constraint x_post! - x! == 1;
+    constraint y_post! - y! == 2;
+    constraint w_post! - w! == 3;
+    constraint z_post! - z! == 4;
 
     constraint Bar@[bar_addr]::storage::x'! - Bar@[bar_addr]::storage::x! == 1;
     constraint Bar@[bar_addr]::storage::y'! - Bar@[bar_addr]::storage::y! == 2;

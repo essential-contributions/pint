@@ -124,19 +124,19 @@ async fn test_solution_foo() {
     };
 
     // Create the solution set.
-    let solution_set = Arc::new(SolutionSet {
+    let solution_set = SolutionSet {
         solutions: vec![solution],
-    });
+    };
 
     // Check the solution set is valid.
     essential_check::solution::check_set(&solution_set).unwrap();
 
     // Start with an empty pre-state.
-    let pre_state = State::new(vec![(unions::ADDRESS, vec![])]);
+    let mut state = State::new(vec![(unions::ADDRESS, vec![])]);
 
     // Create the post-state by applying the mutations.
-    let mut post_state = pre_state.clone();
-    post_state.apply_mutations(&solution_set);
+    // TODO: do this directly in the pint contract instead
+    state.apply_mutations(&solution_set);
 
     // Our `get_predicate` function can only return `Foo`.
     let predicate = Arc::new(pred.clone());
@@ -157,14 +157,12 @@ async fn test_solution_foo() {
     let config = Default::default();
 
     // Check our proposed mutations are valid against the contract.
-    essential_check::solution::check_set_predicates(
-        &pre_state,
-        &post_state,
+    essential_check::solution::check_and_compute_solution_set_two_pass(
+        &state,
         solution_set,
         get_predicate,
         get_programs,
         config,
     )
-    .await
     .unwrap();
 }

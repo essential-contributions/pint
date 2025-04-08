@@ -98,17 +98,15 @@ async fn test_abi_gen_example() {
     };
     // ANCHOR_END: solution
 
-    let solution_set = Arc::new(solution_set);
-
     // Check the solution is valid.
     essential_check::solution::check_set(&solution_set).unwrap();
 
     // Start with an empty pre-state.
-    let pre_state = State::new(vec![(ADDRESS, vec![])]);
+    let mut state = (State::new(vec![(ADDRESS, vec![])]), State::new(vec![]));
 
     // Create the post-state by applying the mutations.
-    let mut post_state = pre_state.clone();
-    post_state.apply_mutations(&solution_set);
+    state.1 = state.0.clone();
+    state.1.apply_mutations(&solution_set);
 
     // Our `get_predicate` function can only return `MyPredicate`.
     let predicate = Arc::new(pred.clone());
@@ -129,14 +127,12 @@ async fn test_abi_gen_example() {
     let config = Default::default();
 
     // Check our proposed mutations are valid against the contract.
-    essential_check::solution::check_set_predicates(
-        &pre_state,
-        &post_state,
+    essential_check::solution::check_and_compute_solution_set_two_pass(
+        &state.1,
         solution_set,
         get_predicate,
         get_programs,
         config,
     )
-    .await
     .unwrap();
 }

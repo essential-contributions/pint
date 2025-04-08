@@ -133,7 +133,6 @@ pub(crate) fn legalize_vector_accesses_in_predicate(
             let vector_storage_access = contract.exprs.insert(
                 Expr::LocalStorageAccess {
                     name: storage_vec_name.clone(),
-                    mutable: false,
                     span: empty_span(),
                 },
                 storage_access_ty.clone(),

@@ -5,27 +5,25 @@ storage {
 const B = 0x0000000000000001000000000000000100000000000000010000000000000001;
 
 predicate test() {
-    let a = mut storage::a!;
+    constraint storage::a := {
+        0,
+        [ false, true, true ],
+        { 
+            1, 
+            [ 
+                { 0x0000000000000001000000000000000100000000000000010000000000000001, 3 },
+                { 0x0000000000000000000000000000000000000000000000000000000000000000, 3 },
+                { 0x0000000000000000000000000000000000000000000000000000000000000000, 0 },
+            ],
+        }
+    };
 
-    constraint a.1[1]' == true;
-    constraint a.1'[1]' == true;
-    constraint a'.1[1]' == true;
-    constraint a.1'[1] == true;
+    let a = storage::a'!;
 
-    constraint a.2.0' == 1;
-    constraint a.2'.0' == 1;
-    constraint a'.2.0' == 1;
- 
-    constraint a.2.1[0]' == { B, 3 };
-    constraint a.2.1'[0]' == { B, 3 };
-    constraint a.2'.1[0]' == { B, 3 };
-    constraint a'.2'.1[0]' == { B, 3 };
-    constraint a.2'.1[0] == { B, 3 };
-
-    constraint a.2.1[0].1' == 3;
-    constraint a.2'.1'[0]'.1' == 3;
-    constraint a.2.1'[0].1 == 3;
-    constraint a.2'.1[0].1 == 3;
+    constraint a.1[1] == true;
+    constraint a.2.0 == 1;
+    constraint a.2.1[0] == { B, 3 };
+    constraint a.2.1[0].1 == 3;
 
     constraint storage::a.1[1]'! == true;
     constraint storage::a.1'[1]'! == true;

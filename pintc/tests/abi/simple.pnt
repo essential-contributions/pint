@@ -56,6 +56,5 @@ predicate Foo(
 //     ::v3: {int, int},
 //     ::v4: {int, int, {int, int}},
 // ) {
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

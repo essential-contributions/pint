@@ -98,7 +98,6 @@ predicate Test(
 //     constraint (::l == ((0e0 / ::x) - (0e0 * ::x)));
 //     constraint (::m == ((::x / 1e0) + (::x - 0e0)));
 //     constraint (::n == (0e0 - ::x));
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
 
@@ -134,6 +133,5 @@ predicate Test(
 //     constraint (::l == 0e0);
 //     constraint (::m == (::x + ::x));
 //     constraint (::n == -::x);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

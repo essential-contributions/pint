@@ -29,6 +29,5 @@ predicate test(a: int, b: int, c: int) {
 //     constraint (::b == 1000);
 //     constraint (::c == 12345);
 //     constraint ((::a / ::b) > ::c);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

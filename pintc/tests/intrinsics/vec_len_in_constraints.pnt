@@ -31,6 +31,5 @@ predicate test(v_len: int) {
 // ) {
 //     constraint (::v_len == __pre_state({0}));
 //     constraint (__pre_state({0}) == 0);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

@@ -16,11 +16,7 @@ fn this_address() {
         expect_test::expect![[r#"
             predicate ::test {
                 --- Nodes ---
-                node 0 (pre,leaf)
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                node 1 (pre,leaf)
+                node 0 (,leaf)
                   Stack(Push(0))
                   Stack(Push(0))
                   Stack(Push(4))
@@ -50,11 +46,7 @@ fn this_contract_address() {
         expect_test::expect![[r#"
             predicate ::test {
                 --- Nodes ---
-                node 0 (pre,leaf)
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                node 1 (pre,leaf)
+                node 0 (,leaf)
                   Stack(Push(0))
                   Stack(Push(0))
                   Stack(Push(4))
@@ -84,11 +76,7 @@ fn sha256() {
         expect_test::expect![[r#"
             predicate ::test {
                 --- Nodes ---
-                node 0 (pre,leaf)
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                node 1 (pre,leaf)
+                node 0 (,leaf)
                   Stack(Push(0))
                   Stack(Push(0))
                   Stack(Push(4))
@@ -119,11 +107,7 @@ fn sha256() {
         expect_test::expect![[r#"
             predicate ::test {
                 --- Nodes ---
-                node 0 (pre,leaf)
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                node 1 (pre,leaf)
+                node 0 (,leaf)
                   Stack(Push(1))
                   Stack(Push(0))
                   Stack(Push(4))
@@ -157,11 +141,7 @@ fn sha256() {
         expect_test::expect![[r#"
             predicate ::test {
                 --- Nodes ---
-                node 0 (pre,leaf)
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                node 1 (pre,leaf)
+                node 0 (,leaf)
                   Stack(Push(2))
                   Stack(Push(0))
                   Stack(Push(4))
@@ -202,11 +182,7 @@ fn sha256() {
         expect_test::expect![[r#"
             predicate ::test {
                 --- Nodes ---
-                node 0 (pre,leaf)
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                node 1 (pre,leaf)
+                node 0 (,leaf)
                   Stack(Push(1))
                   Stack(Push(0))
                   Stack(Push(4))
@@ -240,11 +216,7 @@ fn sha256() {
         expect_test::expect![[r#"
             predicate ::test {
                 --- Nodes ---
-                node 0 (pre,leaf)
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                node 1 (pre,leaf)
+                node 0 (,leaf)
                   Stack(Push(3))
                   Stack(Push(0))
                   Stack(Push(4))
@@ -289,11 +261,7 @@ fn sha256() {
         expect_test::expect![[r#"
             predicate ::test {
                 --- Nodes ---
-                node 0 (pre,leaf)
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                node 1 (pre,leaf)
+                node 0 (,leaf)
                   Stack(Push(1))
                   Stack(Push(0))
                   Stack(Push(4))
@@ -327,11 +295,7 @@ fn sha256() {
         expect_test::expect![[r#"
             predicate ::test {
                 --- Nodes ---
-                node 0 (pre,leaf)
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                node 1 (pre,leaf)
+                node 0 (,leaf)
                   Stack(Push(1))
                   Stack(Push(0))
                   Stack(Push(4))
@@ -369,11 +333,7 @@ fn sha256() {
         expect_test::expect![[r#"
             predicate ::test {
                 --- Nodes ---
-                node 0 (pre,leaf)
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                node 1 (pre,leaf)
+                node 0 (,leaf)
                   Stack(Push(0))
                   Stack(Push(0))
                   Stack(Push(4))
@@ -415,11 +375,7 @@ fn verify_ed25519() {
         expect_test::expect![[r#"
             predicate ::test {
                 --- Nodes ---
-                node 0 (pre,leaf)
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                node 1 (pre,leaf)
+                node 0 (,leaf)
                   Stack(Push(4))
                   Stack(Push(0))
                   Stack(Push(1))
@@ -436,7 +392,7 @@ fn verify_ed25519() {
                   Access(PredicateData)
                   Crypto(VerifyEd25519)
                   Pred(Eq)
-                node 2 (pre,leaf)
+                node 1 (,leaf)
                   Stack(Push(3))
                   Stack(Push(0))
                   Stack(Push(8))
@@ -479,11 +435,7 @@ fn verify_ed25519() {
         expect_test::expect![[r#"
             predicate ::test {
                 --- Nodes ---
-                node 0 (pre,leaf)
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                node 1 (pre,leaf)
+                node 0 (,leaf)
                   Stack(Push(5))
                   Stack(Push(0))
                   Stack(Push(1))
@@ -503,7 +455,7 @@ fn verify_ed25519() {
                   Access(PredicateData)
                   Crypto(VerifyEd25519)
                   Pred(Eq)
-                node 2 (pre,leaf)
+                node 1 (,leaf)
                   Stack(Push(4))
                   Stack(Push(0))
                   Stack(Push(8))
@@ -518,7 +470,7 @@ fn verify_ed25519() {
                   Access(PredicateData)
                   Stack(Push(8))
                   Pred(EqRange)
-                node 3 (pre,leaf)
+                node 2 (,leaf)
                   Stack(Push(0))
                   Stack(Push(0))
                   Stack(Push(4))
@@ -558,11 +510,7 @@ fn recover_secp256k1() {
         expect_test::expect![[r#"
             predicate ::test {
                 --- Nodes ---
-                node 0 (pre,leaf)
-                  Access(MutKeys)
-                  Stack(Push(0))
-                  Pred(EqSet)
-                node 1 (pre,leaf)
+                node 0 (,leaf)
                   Stack(Push(4))
                   Stack(Push(0))
                   Stack(Push(5))
@@ -578,7 +526,7 @@ fn recover_secp256k1() {
                   Crypto(RecoverSecp256k1)
                   Stack(Push(5))
                   Pred(EqRange)
-                node 2 (pre,leaf)
+                node 1 (,leaf)
                   Stack(Push(3))
                   Stack(Push(0))
                   Stack(Push(9))

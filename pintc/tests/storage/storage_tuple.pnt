@@ -157,6 +157,5 @@ predicate Bar() {
 //     let ::foo_map_to_tuples_69_0: b256? = __pre_state_extern(::addr, {3, 69, (0 + 0)});
 //     let ::foo_map_to_tuples_69_1_0: int? = __pre_state_extern(::addr, {3, 69, ((0 + 1) + 0)});
 //     let ::foo_map_to_tuples_69_1_1: int? = __pre_state_extern(::addr, {3, 69, ((0 + 1) + 1)});
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

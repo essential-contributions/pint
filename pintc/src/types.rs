@@ -23,6 +23,7 @@ pub enum Type {
     Unknown(Span),
     Any(Span),
     Nil(Span),
+    KeyValue(Span),
     Primitive {
         kind: PrimitiveKind,
         span: Span,
@@ -103,6 +104,10 @@ impl Type {
 
     pub fn is_nil(&self) -> bool {
         matches!(self, Type::Nil(_))
+    }
+
+    pub fn is_key_value(&self) -> bool {
+        matches!(self, Type::KeyValue(_))
     }
 
     pub fn is_unknown(&self) -> bool {
@@ -395,6 +400,7 @@ impl Type {
             | Self::Unknown(_)
             | Self::Any(_)
             | Self::Nil(_)
+            | Self::KeyValue(_)
             | Self::Primitive { .. }
             | Self::Custom { .. } => {}
         }
@@ -541,6 +547,7 @@ impl Type {
             | Type::Unknown(_)
             | Type::Any(_)
             | Type::Nil(_)
+            | Type::KeyValue(_)
             | Type::Primitive { .. }
             | Type::Custom { .. } => None,
         }
@@ -598,7 +605,7 @@ impl Type {
 
             Type::Nil(_) | Type::Primitive { .. } => true,
 
-            Type::Error(_) | Type::Unknown(_) | Type::Any(_) => false,
+            Type::KeyValue(_) | Type::Error(_) | Type::Unknown(_) | Type::Any(_) => false,
         }
     }
 
@@ -672,6 +679,7 @@ impl Type {
             | Self::Unknown(span)
             | Self::Any(span)
             | Self::Nil(span)
+            | Self::KeyValue(span)
             | Self::Custom { span, .. }
             | Self::Alias { span, .. } => {
                 Err(handler.emit_internal_err("unexpected type when getting size", span.clone()))
@@ -735,6 +743,7 @@ impl Type {
             | Self::Unknown(span)
             | Self::Any(span)
             | Self::Nil(span)
+            | Self::KeyValue(span)
             | Self::Custom { span, .. }
             | Self::Alias { span, .. } => Err(handler.emit_internal_err(
                 "unexpected type when calculating storage slots",
@@ -824,6 +833,10 @@ impl Type {
             // Type::Nil is not equal to anything!
             (Self::Nil(_), _) => false,
             (_, Self::Nil(_)) => false,
+
+            // Type::KeyValue is not equal to anything!
+            (Self::KeyValue(_), _) => false,
+            (_, Self::KeyValue(_)) => false,
 
             (Self::Alias { ty: lhs_ty, .. }, rhs) => lhs_ty.eq(contract, rhs),
             (lhs, Self::Alias { ty: rhs_ty, .. }) => lhs.eq(contract, rhs_ty.as_ref()),
@@ -1023,10 +1036,47 @@ impl Type {
             | Type::Unknown(_)
             | Type::Any(_)
             | Type::Nil(_)
+            | Type::KeyValue(_)
             | Type::Primitive { .. }
             | Type::UnsizedArray { .. }
             | Type::Custom { .. }
             | Type::Union { .. } => {}
+        }
+    }
+
+    /// Return the sizes of all the primitive types that a type is composed of in the order in
+    /// which they appear in their data layout. Example: calling sizes on `{ int[3], b256, bool }`
+    /// should return `[ 1, 1, 1, 4, 1 ]`.
+    ///
+    /// TODO: This does not support dynamic arrays. These should be handled in some other way.
+    ///
+    pub fn sizes(
+        &self,
+        handler: &Handler,
+        contract: &Contract,
+    ) -> Result<Vec<usize>, ErrorEmitted> {
+        match self {
+            Self::Tuple { fields, .. } => fields
+                .iter()
+                .map(|(_, field_ty)| field_ty.sizes(handler, contract))
+                .collect::<Result<Vec<_>, _>>()
+                .map(|sizes| sizes.into_iter().flatten().collect()),
+
+            Self::FixedArray {
+                ty, range, size, ..
+            } => {
+                let array_len = size.unwrap_or(Self::get_array_size_from_range_expr(
+                    handler,
+                    range.expect("expecting a valid range at this point"),
+                    contract,
+                )?) as usize;
+                (0..array_len)
+                    .map(|_| ty.sizes(handler, contract))
+                    .collect::<Result<Vec<_>, _>>()
+                    .map(|sizes| sizes.into_iter().flatten().collect())
+            }
+
+            _ => Ok(vec![self.size(handler, contract)?]),
         }
     }
 }
@@ -1039,6 +1089,7 @@ impl Spanned for Type {
             | Unknown(span)
             | Any(span)
             | Nil(span)
+            | KeyValue(span)
             | Primitive { span, .. }
             | FixedArray { span, .. }
             | UnsizedArray { span, .. }

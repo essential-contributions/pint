@@ -14,7 +14,7 @@ predicate test(ary: int[10 + 1]) {
 // unable to determine spliced array size
 // @128..131: unable to determine spliced array size for `::ary` while parsing
 // macro array splicing is currently limited to immediate integer sizes or enumeration unions
-// expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `const`, `constraint`, `exists`, `forall`, `if`, `interface`, `intrinsic_name`, `let`, `macro_name`, `map`, `match`, `mut`, `predicate`, `storage`, `type`, `union`, `use`, `{`, or `}`, found `ary`
-// @69..71: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `const`, `constraint`, `exists`, `forall`, `if`, `interface`, `intrinsic_name`, `let`, `macro_name`, `map`, `match`, `mut`, `predicate`, `storage`, `type`, `union`, `use`, `{`, or `}`
+// expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `const`, `constraint`, `exists`, `forall`, `if`, `interface`, `intrinsic_name`, `let`, `macro_name`, `map`, `match`, `predicate`, `storage`, `type`, `union`, `use`, `{`, or `}`, found `ary`
+// @69..71: expected `!`, `(`, `+`, `-`, `::`, `[`, `a boolean`, `a literal`, `an identifier`, `cond`, `const`, `constraint`, `exists`, `forall`, `if`, `interface`, `intrinsic_name`, `let`, `macro_name`, `map`, `match`, `predicate`, `storage`, `type`, `union`, `use`, `{`, or `}`
 // @122..132: when making macro call to '::@sum'
 // >>>

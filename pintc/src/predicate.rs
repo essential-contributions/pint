@@ -114,6 +114,11 @@ impl Contract {
                 }
             }
 
+            Expr::KeyValue { lhs, rhs, .. } => {
+                self.visitor_from_key(kind, *lhs, f);
+                self.visitor_from_key(kind, *rhs, f);
+            }
+
             Expr::AsmBlock { args, .. } => {
                 for arg in args {
                     self.visitor_from_key(kind, *arg, f);

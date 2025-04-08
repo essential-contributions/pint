@@ -25,7 +25,7 @@ impl super::Contract {
         // that we don't have to worry about `if` declarations in any of the later passes. All
         // other passes are safe to assume that `if` declarations and their content have
         // already been converted to raw constraints.
-        lower_ifs(&mut self);
+        let _ = lower_ifs(handler, &mut self);
 
         // Plug const decls in everywhere so they maybe lowered below.
         replace_const_refs(&mut self);
@@ -83,8 +83,8 @@ impl super::Contract {
         // Insert OOB checks for storage vector accesses
         let _ = legalize_vector_accesses(handler, &mut self);
 
-        // Lower all storage accesses to __storage_get and __storage_get_extern intrinsics. Also
-        // add constraints on mutable keys
+        // Lower all storage accesses to __pre_state, __post_state, __pre_state_extern, and
+        // __post_state_extern intrinsics.
         let _ = lower_storage_accesses(handler, &mut self);
 
         // Ensure that the final contract is indeed final

@@ -39,6 +39,5 @@ predicate test(debbie_skill: debbie::Skill, pedro_skill: Skill, kip_skill: kip::
 //     constraint (::debbie_skill == ::debbie::Skill::GlamourShots);
 //     constraint ((::pedro_skill == ::Skill::Nunchuck) || (::pedro_skill == ::Skill::BowHunting));
 //     constraint ((::debbie_skill == ::debbie::Skill::Handicrafts) && (::kip_skill == ::kip::Skill::CageFighting));
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

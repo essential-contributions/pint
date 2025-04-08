@@ -125,6 +125,5 @@ predicate test(h: Hooray, pt: A) {
 //     constraint (::pt == ::TheLetterA::T);
 //     constraint (::h[1] == 55);
 //     constraint (::r < ::p.y);
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>

@@ -6,52 +6,7 @@
         "predicate": "<::test>"
       },
       "predicate_data": [],
-      "state_mutations": [
-        {
-          "key": [0, 0],
-          "value": [0]
-        },
-        {
-          "key": [0, 1],
-          "value": [0]
-        },
-        {
-          "key": [0, 2],
-          "value": [1]
-        },
-        {
-          "key": [0, 3],
-          "value": [1]
-        },
-        {
-          "key": [0, 4],
-          "value": [1]
-        },
-        {
-          "key": [0, 5],
-          "value": [1, 1, 1, 1]
-        },
-        {
-          "key": [0, 6],
-          "value": [3]
-        },
-        {
-          "key": [0, 7],
-          "value": [0, 0, 0, 0]
-        },
-        {
-          "key": [0, 8],
-          "value": [3]
-        },
-        {
-          "key": [0, 9],
-          "value": [0, 0, 0, 0]
-        },
-        {
-          "key": [0, 10],
-          "value": [0]
-        }
-      ]
+      "state_mutations": []
     }
   ]
 }

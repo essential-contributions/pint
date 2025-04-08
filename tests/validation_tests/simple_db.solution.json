@@ -6,20 +6,7 @@
         "predicate": "<::Simple>"
       },
       "predicate_data": [[141], [129], [1936], [69], [70], [0, 1, 4, 9, 16]],
-      "state_mutations": [
-        {
-          "key": [0],
-          "value": [43]
-        },
-        {
-          "key": [1],
-          "value": [47]
-        },
-        {
-          "key": [2],
-          "value": [44]
-        }
-      ]
+      "state_mutations": []
     },
     {
       "predicate_to_solve": {

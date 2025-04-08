@@ -6,16 +6,7 @@
         "predicate": "<::foo>"
       },
       "predicate_data": [],
-      "state_mutations": [
-        {
-          "key": [0],
-          "value": [169]
-        },
-        {
-          "key": [1],
-          "value": [142]
-        }
-      ]
+      "state_mutations": []
     },
     {
       "predicate_to_solve": {

@@ -585,7 +585,38 @@ MapType: Type = {
 /// Expressions ///
 ///////////////////
 
-Expr: ExprKey = SelectExpr;
+Expr: ExprKey = Concat;
+
+Concat: ExprKey = {
+    <l:@L> <lhs:Concat> "++" <rhs:KeyValue> <r:@R> => {
+        let span = (context.span_from)(l, r);
+        context.contract.exprs.insert(
+            Expr::BinaryOp {
+                op: BinaryOp::Concat,
+                lhs,
+                rhs,
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        )
+    },
+    <KeyValue>,
+}
+
+KeyValue: ExprKey = {
+    <l:@L> <lhs:KeyValue> ":=" <rhs:SelectExpr> <r:@R> => {
+        let span = (context.span_from)(l, r);
+        context.contract.exprs.insert(
+            Expr::KeyValue {
+                lhs,
+                rhs,
+                span: span.clone(),
+            },
+            Type::Unknown(span),
+        )
+    },
+    <SelectExpr>,
+}
 
 SelectExpr: ExprKey = {
     <l:@L> <condition:LogicalOrOp> "?" <then_expr:SelectExpr> ":" <else_expr:SelectExpr> <r:@R> => {
@@ -1198,7 +1229,7 @@ PathWithLast<Last>: String = {
 }
 
 StoragePath: Expr = {
-    <l:@L> <mutable: "mut"?> "storage" "::" <name:Ident> <r:@R> => {
+    <l:@L> "storage" "::" <name:Ident> <r:@R> => {
         let span = (context.span_from)(l, r);
         if !context.mod_path.is_empty() {
             // `storage` blocks in sub-modules are not allowed
@@ -1209,7 +1240,6 @@ StoragePath: Expr = {
         } else {
             Expr::LocalStorageAccess {
                 name: name.to_string(),
-                mutable: mutable.is_some(),
                 span,
             }
         }
@@ -1357,6 +1387,7 @@ extern {
         "," => lexer::Token::Comma,
         "=" => lexer::Token::Eq,
         "?" => lexer::Token::QuestionMark,
+        ":=" => lexer::Token::ColonEq,
 
         "==" => lexer::Token::EqEq,
         "!=" => lexer::Token::NotEq,
@@ -1373,6 +1404,7 @@ extern {
         "%" => lexer::Token::Mod,
 
         "+" => lexer::Token::Plus,
+        "++" => lexer::Token::PlusPlus,
         "-" => lexer::Token::Minus,
         "!" => lexer::Token::Bang,
         "'" => lexer::Token::SingleQuote,
@@ -1410,7 +1442,6 @@ extern {
         "match" => lexer::Token::Match,
         "asm" => lexer::Token::Asm,
 
-        "mut" => lexer::Token::Mut,
         "use" => lexer::Token::Use,
         "self" => lexer::Token::SelfTok,
         "let" => lexer::Token::Let,

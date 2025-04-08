@@ -26,28 +26,37 @@ predicate Simple(
     e_new: int,
     a: int[5],
 ) {
-    let x: int? = mut storage::x;
-    let y: int? = mut storage::y;
-    let z: int? = mut storage::z;
+    constraint storage::x := 43; 
+    constraint storage::y := 47; 
+    constraint storage::z := 44; 
+
+    let x: int? = storage::x;
+    let x_post: int? = storage::x';
+    let y: int? = storage::y;
+    let y_post: int? = storage::y';
+    let z: int? = storage::z;
+    let z_post: int? = storage::z';
 
     let external_1 
         = Foo@[0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE]::storage::y; // 69
+    let external_1_post
+        = Foo@[0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE]::storage::y';
 
     constraint w == x! + 99; // 141
     constraint u == y! * 3;  // 129
     constraint v == z! * z!;  // 1936
     constraint e_old == external_1!;
-    constraint e_new == external_1'!;
+    constraint e_new == external_1_post!;
 
     constraint forall i in 0..4 {
         a[i] == i*i
     };
-    constraint x'! - x! == 1; // x' == 43
-    constraint y'! == y! + 4; // y' == 47
-    constraint x'! + y'! > 89 && x'! * y'! > 1932;
+    constraint x_post! - x! == 1; // x_post == 43
+    constraint y_post! == y! + 4; // y_post == 47
+    constraint x_post! + y_post! > 89 && x_post! * y_post! > 1932;
     constraint x! < y!;
     constraint w + u + v == 2206;
-    constraint external_1'! - external_1! == 1;
+    constraint external_1_post! - external_1! == 1;
 
     constraint storage::x'! - storage::x! == 1; // x' == 43
     constraint storage::y'! == storage::y! + 4; // y' == 47

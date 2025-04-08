@@ -77,6 +77,5 @@ predicate test(x: group, y: group) {
 //     constraint ((UnTag(::x) == 0) || ((UnTag(::x) == 1) || (!(UnTag(::x) == 2) || (UnVal(::x, {int, int}).0 > 0))));
 //     constraint ((UnTag(::x) == 0) || ((UnTag(::x) == 1) || (!(UnTag(::x) == 2) || (!(UnVal(::x, {int, int}).1 > 33) || (!(UnTag(::y) == 1) || (!(UnVal(::y, int) > 44) || (UnVal(::x, {int, int}).1 < 111)))))));
 //     constraint ((UnTag(::x) == 0) || ((UnTag(::x) == 1) || (!(UnTag(::x) == 2) || (!(UnVal(::x, {int, int}).1 > 33) || (!(UnTag(::y) == 1) || ((UnVal(::y, int) > 44) || (UnVal(::x, {int, int}).1 < 222)))))));
-//     constraint __eq_set(__mut_keys(), {0});
 // }
 // >>>
