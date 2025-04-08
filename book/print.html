@@ -256,10 +256,17 @@ default project kind. Alternatively, <code>kind</code> can be a <em>library</em>
 }
 
 predicate Increment() {
-    let counter: int? = mut storage::counter;
+    let counter: int? = storage::counter;
+    let counter_post: int? = storage::counter';
 
-    constraint (counter == nil &amp;&amp; counter'! == 1) || counter'! == counter! + 1;
+    // Produce the next state for `storage::counter`
+    constraint storage::counter := (counter == nil) ? 1 : counter! + 1;
+
+    // Redundant, but still valid.. basically like an assert
+    constraint (counter == nil &amp;&amp; counter_post! == 1) || counter_post! == counter! + 1;
 }
+
+
 </code></pre>
 <p>This is a contract with a single predicate and a single storage variable. The storage variable
 <code>counter</code>, of type <code>int</code> (i.e. integer), is declared in a <code>storage</code> block. The only predicate in
@@ -330,13 +337,11 @@ Guide</a>.</p>
 }
 
 predicate Initialize(value: int) {
-    let counter: int? = mut storage::counter;
-    constraint counter'! == value;
+    constraint storage::counter := value;
 }
 
 predicate Increment(amount: int) {
-    let counter: int? = mut storage::counter;
-    constraint counter'! == counter! + amount;
+    constraint storage::counter := storage::counter'! + amount;
 }
 </code></pre>
 <p>The contract starts by declaring a <code>storage</code> block which contains a single storage variable called
@@ -406,21 +411,19 @@ creation of new coins (i.e. minting) as well as sending coins from one address t
 
 // Sends an amount of newly created coins to an address
 predicate Mint(receiver: b256, amount: int) {
-    let receiver_balance = mut storage::balances[receiver]!;
-    let total_supply = mut storage::total_supply!;
 
-    constraint total_supply' == total_supply + amount;
-    constraint receiver_balance' == receiver_balance + amount;
+    constraint storage::total_supply := storage::total_supply! + amount;
+    constraint storage::balances[receiver] := storage::balances[receiver]! + amount;
 }
 
 // Sends an amount of existing coins from address `from` to address `receiver`
 predicate Send(from: b256, receiver: b256, amount: int) {
-    let from_balance = mut storage::balances[from]!;
-    let receiver_balance = mut storage::balances[receiver]!;
+    let from_balance = storage::balances[from]!;
+    let receiver_balance = storage::balances[receiver]!;
 
     constraint amount &lt; from_balance;
-    constraint from_balance' == from_balance - amount;
-    constraint receiver_balance' == receiver_balance + amount;
+    constraint storage::balances[from] := from_balance - amount;
+    constraint storage::balances[receiver] := receiver_balance + amount;
 }
 </code></pre>
 <p>This contract introduces some new concepts. Let's walk through it line by line.</p>
@@ -1461,8 +1464,9 @@ value of <code>x</code> to be equal to the <em>current</em> value of <code>x</co
 declarative language where the order of statements does not matter and there is no sequential
 execution, statements like <code>x = x + 1</code> cannot be written and are not logical. Instead, Pint offers a
 special syntax, reserved for local variables, that means &quot;the future value of&quot;. Here's an example:</p>
-<pre><code class="language-pint">let bal = mut storage::bal;
-constraint bal'! &gt;= bal! + 42;
+<pre><code class="language-pint">let bal = storage::bal;
+let bal_post = storage::bal';
+constraint bal_post! &gt;= bal! + 42;
 </code></pre>
 <p>Here, <code>bal'</code>, unlike <code>bal</code>, is actually <strong>unknown at solve-time</strong>. That is, <code>bal'</code> must be solved
 for as if it were a predicate parameter and every solution must include a proposed value for <code>bal'</code>.
@@ -1470,8 +1474,9 @@ If, for example, the value of <code>bal</code> was read to be <code>100</code> a
 the next value of <code>bal</code> should be <code>150</code> (i.e. <code>bal' = 150</code>) which would be a valid solution because
 <code>150 &gt;= 100 + 42</code> (assuming all other constraints in the predicate are also satisfied).</p>
 <p>The <code>'</code> operator can also be used for variables that have arbitrary initializers. For example:</p>
-<pre><code class="language-pint">let bal_in_dollars: int = price * mut storage::bal!;
-constraint bal_in_dollars' == price * bal'!; // always true!
+<pre><code class="language-pint">let bal_in_dollars: int = price * storage::bal!;
+let bal_in_dollars_post: int = price * storage::bal!;
+constraint bal_in_dollars_post == price * bal_post!; // always true!
 </code></pre>
 <p>Basically, when validating a solution, <code>bal_in_dollars'</code> is computed by plugging in the <em>new</em> value
 of <code>storage::bal</code> into the expression <code>price * storage::bal</code>. That is, a valid solution must satisfy
@@ -1480,7 +1485,7 @@ to be always true in this case!).</p>
 <p>As you can imagine, using the <code>'</code> operator for variables that do not depend on storage accesses is a
 no-op. For example</p>
 <pre><code class="language-pint">let z = 42;
-constraint z' == z; // always true
+constraint z == z; // always true
 </code></pre>
 <h4 id="mutable-storage-accesses"><a class="header" href="#mutable-storage-accesses">&quot;Mutable&quot; Storage Accesses</a></h4>
 <p>In the previous section, you may have noticed that we added the <code>mut</code> keyword before <code>storage::bal</code>
@@ -1492,7 +1497,7 @@ a storage access. In the example of the previous section, because <code>mut</cod
 <p>When the <code>mut</code> keyword as added before a storage access into a compound type, mutability applies
 <strong>only</strong> to the portion of the compound type that is being accessed. For example, in the example
 below:</p>
-<pre><code class="language-pint">let inner: { bool, b256 }? = mut storage::v.1;
+<pre><code class="language-pint">let inner: { bool, b256 }? = storage::v.1;
 </code></pre>
 <p><code>v.1</code> is a storage access into nested tuple <code>v</code> defined in the <code>storage</code> block declared earlier.
 Here, both <code>v.1.0</code> ( a <code>bool</code>) and <code>v.1.1</code> (a <code>b256</code>) are both allowed to be mutated, but <code>v.0</code> is
@@ -1502,7 +1507,7 @@ not allowed to be.</p>
 anyways. In this case, there is no value stored at that storage variable and nothing can be read.
 To help you reason about this, Pint provides the literal <code>nil</code> to represent the <em>absence of a
 value</em>. For example,</p>
-<pre><code class="language-pint">let w = mut storage::w;
+<pre><code class="language-pint">let w = storage::w;
 let value_1 = (w == nil ? 0 : w!);
 </code></pre>
 <p>In the example above, we first check if <code>w</code> is <code>nil</code> before attempting to read it. If it is <code>nil</code>
@@ -1511,12 +1516,12 @@ the non-empty value of <code>w</code>. Without checking if <code>w</code> is <co
 <code>w</code> has a value or not, then it is possible that the state read operation will fail causing a
 <em>panic</em> in the VM.</p>
 <p>The following is also a valid approach for handling <code>nil</code> checks:</p>
-<pre><code class="language-pint">let value_2 = (mut storage::w == nil) ? 0 : storage::w!;
+<pre><code class="language-pint">let value_2 = (storage::w == nil) ? 0 : storage::w!;
 constraint value_2 == value_1; // always true!
 </code></pre>
 <p>It is also possible to update a variable to <code>nil</code> using the &quot;next state&quot; operator:</p>
 <pre><code class="language-pint">if w != nil {
-    constraint w' == nil;
+    constraint storage::w == nil;
 }
 </code></pre>
 <p>Here, if <code>w</code> currently has a value, then we constrain the next value of <code>w</code> to be <code>nil</code>.</p>
@@ -1570,8 +1575,8 @@ storage map access expression in any other context results in a compile error.</
 operation because Pint has no sequential execution. However, as in the case with statically-sized
 storage types, we can <em>require</em> that the next value of a specific entry in a storage map satisfy
 some constraint(s):</p>
-<pre><code class="language-pint">let my_bal = mut storage::balances[my_address];
-constraint my_bal'! == my_bal! + 1_000_000;
+<pre><code class="language-pint">let my_bal = storage::balances[my_address];
+constraint storage::balances[my_address] := my_bal! + 1_000_000;
 </code></pre>
 <p>Here, we are requiring that our balance go up by 1 million, by applying the &quot;prime&quot; operator on the
 state variable that holds our current balance. Of course, requiring a change in state does not mean
@@ -1585,9 +1590,9 @@ balance of <code>my_address</code> was never actually modified in the past, then
 <code>nil</code> and therefore, the expression <code>my_bal + 1000000</code> would panic. To avoid this problem, we can
 first check if <code>my_bal</code> is <code>nil</code> before trying to use it in an arithmetic operation:</p>
 <pre><code class="language-pint">if my_bal != nil {
-    constraint my_bal'! == my_bal! + 1_000_000;
+    constraint storage::balances[my_address]! == my_bal! + 1_000_000;
 } else {
-    constraint my_bal'! == 1_000_000;
+    constraint storage::balances[my_address]! == 1_000_000;
 }
 </code></pre>
 <p>Here, if <code>my_bal</code> is not <code>nil</code>, then the constraint remains the same as before. Otherwise, we simply
@@ -3096,22 +3101,22 @@ predicate MyPredicate(
     constraint a == [{true, 1}, {false, 2}];
     constraint u == MyUnion::A(3);
 
-    let s_x = mut storage::s_x;
-    let s_y = mut storage::s_y;
-    let s_z = mut storage::s_z;
-    let s_a = mut storage::s_a;
-    let s_u = mut storage::s_u;
-    let m1_42 = mut storage::m1[42];
-    let m2_5_6 = mut storage::m2[5][6];
+    let s_x = storage::s_x';
+    let s_y = storage::s_y';
+    let s_z = storage::s_z';
+    let s_a = storage::s_a';
+    let s_u = storage::s_u';
+    let m1_42 = storage::m1[42]';
+    let m2_5_6 = storage::m2[5][6]';
 
     // Update state
-    constraint s_x'! == 7;
-    constraint s_y'! == true;
-    constraint s_z'! == {8, 0x2222222200000000222222220000000022222222000000002222222200000000};
-    constraint s_a'! == [{false, 3}, {true, 4}];
-    constraint s_u'! == MyUnion::B;
-    constraint m1_42'! == 0x3333333300000000333333330000000033333333000000003333333300000000;
-    constraint m2_5_6'! == {true, 69};
+    constraint s_x! == 7;
+    constraint s_y! == true;
+    constraint s_z! == {8, 0x2222222200000000222222220000000022222222000000002222222200000000};
+    constraint s_a! == [{false, 3}, {true, 4}];
+    constraint s_u! == MyUnion::B;
+    constraint m1_42! == 0x3333333300000000333333330000000033333333000000003333333300000000;
+    constraint m2_5_6! == {true, 69};
 }
 </code></pre>
 <p>If you have <code>pint-abi</code> added as dependency in your Rust project, you'll have access to the

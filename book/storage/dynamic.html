@@ -195,8 +195,8 @@ storage map access expression in any other context results in a compile error.</
 operation because Pint has no sequential execution. However, as in the case with statically-sized
 storage types, we can <em>require</em> that the next value of a specific entry in a storage map satisfy
 some constraint(s):</p>
-<pre><code class="language-pint">let my_bal = mut storage::balances[my_address];
-constraint my_bal'! == my_bal! + 1_000_000;
+<pre><code class="language-pint">let my_bal = storage::balances[my_address];
+constraint storage::balances[my_address] := my_bal! + 1_000_000;
 </code></pre>
 <p>Here, we are requiring that our balance go up by 1 million, by applying the &quot;prime&quot; operator on the
 state variable that holds our current balance. Of course, requiring a change in state does not mean
@@ -210,9 +210,9 @@ balance of <code>my_address</code> was never actually modified in the past, then
 <code>nil</code> and therefore, the expression <code>my_bal + 1000000</code> would panic. To avoid this problem, we can
 first check if <code>my_bal</code> is <code>nil</code> before trying to use it in an arithmetic operation:</p>
 <pre><code class="language-pint">if my_bal != nil {
-    constraint my_bal'! == my_bal! + 1_000_000;
+    constraint storage::balances[my_address]! == my_bal! + 1_000_000;
 } else {
-    constraint my_bal'! == 1_000_000;
+    constraint storage::balances[my_address]! == 1_000_000;
 }
 </code></pre>
 <p>Here, if <code>my_bal</code> is not <code>nil</code>, then the constraint remains the same as before. Otherwise, we simply

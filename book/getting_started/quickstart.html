@@ -193,10 +193,17 @@ default project kind. Alternatively, <code>kind</code> can be a <em>library</em>
 }
 
 predicate Increment() {
-    let counter: int? = mut storage::counter;
+    let counter: int? = storage::counter;
+    let counter_post: int? = storage::counter';
 
-    constraint (counter == nil &amp;&amp; counter'! == 1) || counter'! == counter! + 1;
+    // Produce the next state for `storage::counter`
+    constraint storage::counter := (counter == nil) ? 1 : counter! + 1;
+
+    // Redundant, but still valid.. basically like an assert
+    constraint (counter == nil &amp;&amp; counter_post! == 1) || counter_post! == counter! + 1;
 }
+
+
 </code></pre>
 <p>This is a contract with a single predicate and a single storage variable. The storage variable
 <code>counter</code>, of type <code>int</code> (i.e. integer), is declared in a <code>storage</code> block. The only predicate in
