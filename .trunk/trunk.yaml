@@ -12,7 +12,7 @@ lint:
     - osv-scanner@2.0.1
     - oxipng@9.1.4
     - trivy@0.61.0
-    - trufflehog@3.88.22
+    - trufflehog@3.88.23
     - actionlint@1.7.7
     - git-diff-check
     - markdownlint@0.44.0
