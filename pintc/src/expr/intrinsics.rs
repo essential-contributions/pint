@@ -1,6 +1,4 @@
-use crate::types::{
-    any, b256, dyn_array, error, int, optional, r#bool, string, tuple, vector, Type,
-};
+use crate::types::{any, b256, dyn_array, error, int, r#bool, string, tuple, Type};
 use std::fmt::{Display, Formatter, Result};
 
 ///////////////////
@@ -54,6 +52,8 @@ pub enum ExternalIntrinsic {
     // Determines the length of an array.
     ArrayLen,
 
+    PanicIf,
+
     // Recovers the public key from a secp256k1 signature.
     RecoverSECP256k1,
 
@@ -69,9 +69,6 @@ pub enum ExternalIntrinsic {
     // Returns the content hash of the contract that this predicate belongs to.
     ThisContractAddress,
 
-    // Returns the length of a storage vector.
-    VecLen,
-
     // Validates an Ed25519 signature against a public key.
     VerifyEd25519,
 }
@@ -81,12 +78,12 @@ impl Display for ExternalIntrinsic {
         match self {
             Self::AddressOf => write!(f, "__address_of"),
             Self::ArrayLen => write!(f, "__len"),
+            Self::PanicIf => write!(f, "__panic_if"),
             Self::RecoverSECP256k1 => write!(f, "__recover_secp256k1"),
             Self::Sha256 => write!(f, "__sha256"),
             Self::SizeOf => write!(f, "__size_of"),
             Self::ThisAddress => write!(f, "__this_address"),
             Self::ThisContractAddress => write!(f, "__this_contract_address"),
-            Self::VecLen => write!(f, "__vec_len"),
             Self::VerifyEd25519 => write!(f, "__verify_ed25519"),
         }
     }
@@ -99,6 +96,9 @@ impl ExternalIntrinsic {
                 string(), // path to a predicate in the contract
             ],
             Self::ArrayLen => vec![dyn_array(any())],
+            Self::PanicIf => vec![
+                r#bool(), // panic condition
+            ],
             Self::RecoverSECP256k1 => vec![
                 b256(),                             // data hash
                 tuple(vec![b256(), b256(), int()]), // signature
@@ -109,9 +109,6 @@ impl ExternalIntrinsic {
             Self::SizeOf => vec![any()],
             Self::ThisAddress => vec![],
             Self::ThisContractAddress => vec![],
-            Self::VecLen => vec![
-                optional(vector(any())), // storage vector to find the length of
-            ],
             Self::VerifyEd25519 => vec![
                 any(),                       // data
                 tuple(vec![b256(), b256()]), // signature
@@ -124,12 +121,12 @@ impl ExternalIntrinsic {
         match self {
             Self::AddressOf => b256(),
             Self::ArrayLen => int(),
+            Self::PanicIf => any(),
             Self::RecoverSECP256k1 => tuple(vec![b256(), int()]),
             Self::Sha256 => b256(),
             Self::SizeOf => int(),
             Self::ThisAddress => b256(),
             Self::ThisContractAddress => b256(),
-            Self::VecLen => optional(int()),
             Self::VerifyEd25519 => r#bool(),
         }
     }

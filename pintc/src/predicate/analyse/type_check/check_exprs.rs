@@ -7,7 +7,7 @@ use crate::{
     },
     predicate::{Contract, Expr, ExprKey, Ident, PredKey, Predicate},
     span::{empty_span, Span, Spanned},
-    types::{b256, r#bool, PrimitiveKind, Type, UnionVariant},
+    types::{b256, optional, r#bool, PrimitiveKind, Type, UnionVariant},
     warning::Warning,
 };
 use fxhash::FxHashSet;
@@ -795,10 +795,18 @@ impl Contract {
 
         if deps.is_empty() {
             let expected_args = kind.args();
+            let mut is_optional_len = false;
             // Check the type of each argument. The type of arguments must match what
             // `kind.args()` produces.
             for (expected, arg) in expected_args.iter().zip(args.iter()) {
-                let found = arg.get_ty(self);
+                let mut found = arg.get_ty(self);
+                if let IntrinsicKind::External(ExternalIntrinsic::ArrayLen) = kind {
+                    if arg.is_storage_access(self) {
+                        found = found.get_optional_ty().unwrap();
+                        is_optional_len = true;
+                    }
+                }
+
                 if !expected.eq(self, found) {
                     handler.emit_err(Error::Compile {
                         error: CompileError::MismatchedIntrinsicArgType {
@@ -856,7 +864,11 @@ impl Contract {
                 }
             }
 
-            Ok(Inference::Type(kind.ty()))
+            if is_optional_len {
+                Ok(Inference::Type(optional(kind.ty())))
+            } else {
+                Ok(Inference::Type(kind.ty()))
+            }
         } else {
             Ok(Inference::Dependencies(deps))
         }
@@ -1587,21 +1599,6 @@ impl Contract {
 
                 Inference::Type(Type::Error(span.clone()))
             }
-        } else if let Some(el_ty) = ary_ty.get_vector_element_ty() {
-            if !index_ty.is_int() {
-                handler.emit_err(Error::Compile {
-                    error: CompileError::ArrayAccessWithWrongType {
-                        found_ty: self.with_ctrct(index_ty).to_string(),
-                        expected_ty: "int".to_string(),
-                        span: self.expr_key_to_span(index_expr_key),
-                    },
-                });
-            }
-
-            Inference::Type(Type::Optional {
-                ty: Box::new(el_ty.clone()),
-                span: el_ty.span().clone(),
-            })
         } else {
             handler.emit_err(Error::Compile {
                 error: CompileError::IndexExprNonIndexable {
@@ -2006,8 +2003,7 @@ impl Contract {
                     | Type::Optional { .. }
                     | Type::Custom { .. }
                     | Type::Alias { .. }
-                    | Type::Map { .. }
-                    | Type::Vector { .. } => Err(handler.emit_internal_err(
+                    | Type::Map { .. } => Err(handler.emit_internal_err(
                         "unsupported type still found for mapped range",
                         span.clone(),
                     )),
@@ -2026,13 +2022,7 @@ impl Contract {
         let lhs_ty = lhs.get_ty(self);
         let rhs_ty = rhs.get_ty(self);
 
-        if !lhs.is_pre_storage_access(self) {
-            handler.emit_err(Error::Compile {
-                error: CompileError::KeyValueExprBadLHS(lhs.get(self).span().clone()),
-            });
-            // Recover anyways
-            Inference::Type(Type::KeyValue(span.clone()))
-        } else if !lhs_ty.is_unknown() {
+        if !lhs_ty.is_unknown() {
             if !rhs_ty.is_unknown() {
                 if let Some(lhs_inner_ty) = lhs.get_ty(self).get_optional_ty() {
                     if !lhs_inner_ty.eq(self, rhs_ty) && !rhs_ty.is_nil() {
@@ -2045,7 +2035,13 @@ impl Contract {
                         });
                     }
                 }
-                if rhs_ty.is_nil() {
+                if !lhs.is_pre_storage_access(self) {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::KeyValueExprBadLHS(lhs.get(self).span().clone()),
+                    });
+                    // Recover anyways
+                    Inference::Type(Type::KeyValue(span.clone()))
+                } else if rhs_ty.is_nil() {
                     Inference::Types {
                         // Type of the key-value expression
                         ty: Type::KeyValue(span.clone()),

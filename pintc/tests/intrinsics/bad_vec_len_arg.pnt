@@ -6,13 +6,13 @@ storage {
 }
 
 predicate test(p: int) {
-    let x_len = __vec_len(storage::x);
-    let y_len = __vec_len(storage::y);
-    let z_len = __vec_len(storage::z);
-    let w_len = __vec_len(storage::w);
+    let x_len = __len(storage::x);
+    let y_len = __len(storage::y);
+    let z_len = __len(storage::z);
+    let w_len = __len(storage::w);
 
-    let p_len = __vec_len(p);
-    let imm_len = __vec_len(0);
+    let p_len = __len(p);
+    let imm_len = __len(0);
 }
 
 // parsed <<<
@@ -26,32 +26,32 @@ predicate test(p: int) {
 // predicate ::test(
 //     ::p: int,
 // ) {
-//     let ::x_len = __vec_len(storage::x);
-//     let ::y_len = __vec_len(storage::y);
-//     let ::z_len = __vec_len(storage::z);
-//     let ::w_len = __vec_len(storage::w);
-//     let ::p_len = __vec_len(::p);
-//     let ::imm_len = __vec_len(0);
+//     let ::x_len = __len(storage::x);
+//     let ::y_len = __len(storage::y);
+//     let ::z_len = __len(storage::z);
+//     let ::w_len = __len(storage::w);
+//     let ::p_len = __len(::p);
+//     let ::imm_len = __len(0);
 // }
 // >>>
 
 // typecheck_failure <<<
 // incorrect intrinsic argument
-// @133..143: expected `_[]?`, found `int?`
-// @123..132: arguments to this intrinsic are incorrect`
+// @129..139: expected `_[_]`, found `int`
+// @123..128: arguments to this intrinsic are incorrect`
 // incorrect intrinsic argument
-// @172..182: expected `_[]?`, found `b256?`
-// @162..171: arguments to this intrinsic are incorrect`
+// @164..174: expected `_[_]`, found `b256`
+// @158..163: arguments to this intrinsic are incorrect`
 // incorrect intrinsic argument
-// @211..221: expected `_[]?`, found `( int => int )?`
-// @201..210: arguments to this intrinsic are incorrect`
+// @199..209: expected `_[_]`, found `( int => int )`
+// @193..198: arguments to this intrinsic are incorrect`
 // incorrect intrinsic argument
-// @250..260: expected `_[]?`, found `{int, int}?`
-// @240..249: arguments to this intrinsic are incorrect`
+// @234..244: expected `_[_]`, found `{int, int}`
+// @228..233: arguments to this intrinsic are incorrect`
 // incorrect intrinsic argument
-// @290..291: expected `_[]?`, found `int`
-// @280..289: arguments to this intrinsic are incorrect`
+// @270..271: expected `_[_]`, found `int`
+// @264..269: arguments to this intrinsic are incorrect`
 // incorrect intrinsic argument
-// @322..323: expected `_[]?`, found `int`
-// @312..321: arguments to this intrinsic are incorrect`
+// @298..299: expected `_[_]`, found `int`
+// @292..297: arguments to this intrinsic are incorrect`
 // >>>

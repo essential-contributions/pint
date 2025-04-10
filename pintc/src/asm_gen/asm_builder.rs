@@ -114,7 +114,7 @@ impl<'a> AsmBuilder<'a> {
 
             // Search this expression for nested storage accesses, and if not found search for
             // nested morphisms.
-            let mut scratch_needed = !expr.collect_storage_accesses(contract).is_empty();
+            let mut scratch_needed = !expr.collect_storage_accesses(contract).0.is_empty();
             if !scratch_needed {
                 contract.visitor_from_key(
                     VisitorKind::DepthFirstParentsBeforeChildren,
@@ -1098,6 +1098,8 @@ impl<'a> AsmBuilder<'a> {
                 }
 
                 match kind {
+                    ExternalIntrinsic::PanicIf => asm.push(PNCIF),
+
                     ExternalIntrinsic::RecoverSECP256k1 => asm.push(RSECP),
 
                     ExternalIntrinsic::Sha256 => asm.extend([PUSH(3), SHL, SHA2]),
@@ -1112,13 +1114,6 @@ impl<'a> AsmBuilder<'a> {
                     | ExternalIntrinsic::VerifyEd25519 => {
                         return Err(handler.emit_internal_err(
                             "SizeOf and AddressOf have already been handled!",
-                            empty_span(),
-                        ))
-                    }
-
-                    ExternalIntrinsic::VecLen => {
-                        return Err(handler.emit_internal_err(
-                            "__vec_len should have been lowered to something else by now",
                             empty_span(),
                         ))
                     }
