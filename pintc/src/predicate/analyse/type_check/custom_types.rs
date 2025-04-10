@@ -76,10 +76,6 @@ impl Contract {
                         || replace_alias_target(alias_map, ty_to);
                 }
 
-                Type::Vector { ty, .. } => {
-                    modified = replace_alias_target(alias_map, ty);
-                }
-
                 // We handle unions separately.
                 Type::Union { .. } => {}
 
@@ -214,8 +210,6 @@ impl Contract {
                     inspect_type_names(handler, contract, seen_names, ty_to)
                 }
 
-                Type::Vector { ty, .. } => inspect_type_names(handler, contract, seen_names, ty),
-
                 Type::Error(_)
                 | Type::Unknown(_)
                 | Type::Any(_)
@@ -279,8 +273,6 @@ impl Contract {
                     replace_custom_type(new_types, union_keys, ty_from);
                     replace_custom_type(new_types, union_keys, ty_to);
                 }
-
-                Type::Vector { ty, .. } => replace_custom_type(new_types, union_keys, ty),
 
                 Type::Error(_)
                 | Type::Unknown(_)

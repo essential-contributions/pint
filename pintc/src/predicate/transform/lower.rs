@@ -88,8 +88,6 @@ pub(crate) fn lower_aliases(contract: &mut Contract) {
                 replace_alias(new_types_map, ty_to);
             }
 
-            Type::Vector { ty, .. } => replace_alias(new_types_map, ty),
-
             Type::Error(_)
             | Type::Nil(_)
             | Type::KeyValue(_)

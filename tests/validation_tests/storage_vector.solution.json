@@ -6,52 +6,7 @@
         "predicate": "<::Bar>"
       },
       "predicate_data": [],
-      "state_mutations": [
-        {
-          "key": [1],
-          "value": [3]
-        },
-        {
-          "key": [1, 0],
-          "value": [42]
-        },
-        {
-          "key": [1, 1],
-          "value": [43]
-        },
-        {
-          "key": [1, 2],
-          "value": [44]
-        },
-        {
-          "key": [2],
-          "value": [5]
-        },
-        {
-          "key": [2, 3],
-          "value": [16]
-        },
-        {
-          "key": [2, 4],
-          "value": [17]
-        },
-        {
-          "key": [3],
-          "value": [3]
-        },
-        {
-          "key": [3, 0],
-          "value": [1, 2, 3, 4]
-        },
-        {
-          "key": [3, 1],
-          "value": []
-        },
-        {
-          "key": [3, 2],
-          "value": [9, 10, 11, 12]
-        }
-      ]
+      "state_mutations": []
     },
     {
       "predicate_to_solve": {

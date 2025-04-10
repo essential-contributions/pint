@@ -7,7 +7,7 @@ use crate::{
     },
     predicate::{Contract, Expr, ExprKey, Ident, PredKey, Predicate},
     span::{empty_span, Span, Spanned},
-    types::{b256, r#bool, PrimitiveKind, Type, UnionVariant},
+    types::{b256, optional, r#bool, PrimitiveKind, Type, UnionVariant},
     warning::Warning,
 };
 use fxhash::FxHashSet;
@@ -795,21 +795,6 @@ impl Contract {
 
         if deps.is_empty() {
             let expected_args = kind.args();
-            // Check the type of each argument. The type of arguments must match what
-            // `kind.args()` produces.
-            for (expected, arg) in expected_args.iter().zip(args.iter()) {
-                let found = arg.get_ty(self);
-                if !expected.eq(self, found) {
-                    handler.emit_err(Error::Compile {
-                        error: CompileError::MismatchedIntrinsicArgType {
-                            expected: format!("{}", self.with_ctrct(expected)),
-                            found: format!("{}", self.with_ctrct(found)),
-                            intrinsic_span: name_span.clone(),
-                            arg_span: arg.get(self).span().clone(),
-                        },
-                    });
-                }
-            }
 
             // Also, ensure that the number of arguments is correct
             if args.len() != expected_args.len() {
@@ -822,41 +807,106 @@ impl Contract {
                 });
             }
 
-            // Some intrinsic needs additional semantic checks
-            if let IntrinsicKind::External(ExternalIntrinsic::AddressOf) = kind {
-                if let Some(arg) = args.first() {
-                    if let Some(Expr::Immediate {
-                        value: Immediate::String(name),
-                        ..
-                    }) = arg.try_get(self)
-                    {
-                        // Ensure that we're not referring to the same predicate that the intrinsic
-                        // is used in
-                        if let Some(pred) = pred {
-                            if pred.name.name == *name {
+            // Helper to emit a mismatched argument type error
+            let emit_type_mismatch = |expected: &Type, found: &Type, arg: &ExprKey| {
+                handler.emit_err(Error::Compile {
+                    error: CompileError::MismatchedIntrinsicArgType {
+                        expected: format!("{}", self.with_ctrct(expected)),
+                        found: format!("{}", self.with_ctrct(found)),
+                        intrinsic_span: name_span.clone(),
+                        arg_span: arg.get(self).span().clone(),
+                    },
+                });
+            };
+
+            // Special case: __len
+            if let IntrinsicKind::External(ExternalIntrinsic::ArrayLen) = kind {
+                match (expected_args.first(), args.first()) {
+                    (Some(expected), Some(arg)) => {
+                        let is_storage = arg.is_storage_access(self);
+                        let found = if is_storage {
+                            if let Some(ty) = arg.get_ty(self).get_optional_ty() {
+                                ty
+                            } else {
+                                handler.emit_internal_err(
+                                    "storage accesses must be of type optional",
+                                    span.clone(),
+                                );
+                                return Ok(Inference::Type(Type::Error(span.clone())));
+                            }
+                        } else {
+                            arg.get_ty(self)
+                        };
+
+                        if !expected.eq(self, found) {
+                            handler.emit_err(Error::Compile {
+                                error: CompileError::MismatchedIntrinsicArgType {
+                                    expected: format!("{}", self.with_ctrct(expected)),
+                                    found: format!("{}", self.with_ctrct(found)),
+                                    intrinsic_span: name_span.clone(),
+                                    arg_span: arg.get(self).span().clone(),
+                                },
+                            });
+                        }
+
+                        Ok(Inference::Type(if is_storage {
+                            optional(kind.ty())
+                        } else {
+                            kind.ty()
+                        }))
+                    }
+                    _ => {
+                        handler.emit_internal_err(
+                            "Must have one arg for __len. This should have been checked above",
+                            span.clone(),
+                        );
+                        Ok(Inference::Type(Type::Error(span.clone())))
+                    }
+                }
+            } else {
+                // General case: check all expected arguments
+                for (expected, arg) in expected_args.iter().zip(args.iter()) {
+                    let found = arg.get_ty(self);
+                    if !expected.eq(self, found) {
+                        emit_type_mismatch(expected, found, arg);
+                    }
+                }
+
+                // Additional semantic checks for __address_of
+                if let IntrinsicKind::External(ExternalIntrinsic::AddressOf) = kind {
+                    if let Some(arg) = args.first() {
+                        if let Some(Expr::Immediate {
+                            value: Immediate::String(name),
+                            ..
+                        }) = arg.try_get(self)
+                        {
+                            // Ensure it doesn't reference the same predicate
+                            if let Some(pred) = pred {
+                                if pred.name.name == *name {
+                                    handler.emit_err(Error::Compile {
+                                        error: CompileError::AddressOfSelf {
+                                            name: name.to_string(),
+                                            span: arg.get(self).span().clone(),
+                                        },
+                                    });
+                                }
+                            }
+
+                            // Ensure it refers to a valid predicate
+                            if self.preds.iter().all(|(_, p)| p.name.name != *name) {
                                 handler.emit_err(Error::Compile {
-                                    error: CompileError::AddressOfSelf {
+                                    error: CompileError::PredicateNameNotFound {
                                         name: name.to_string(),
                                         span: arg.get(self).span().clone(),
                                     },
                                 });
                             }
                         }
-
-                        // Ensure that the intrinsic refers to a predicate in the same contract
-                        if self.preds.iter().all(|(_, pred)| pred.name.name != *name) {
-                            handler.emit_err(Error::Compile {
-                                error: CompileError::PredicateNameNotFound {
-                                    name: name.to_string(),
-                                    span: arg.get(self).span().clone(),
-                                },
-                            });
-                        }
                     }
                 }
-            }
 
-            Ok(Inference::Type(kind.ty()))
+                Ok(Inference::Type(kind.ty()))
+            }
         } else {
             Ok(Inference::Dependencies(deps))
         }
@@ -1587,21 +1637,6 @@ impl Contract {
 
                 Inference::Type(Type::Error(span.clone()))
             }
-        } else if let Some(el_ty) = ary_ty.get_vector_element_ty() {
-            if !index_ty.is_int() {
-                handler.emit_err(Error::Compile {
-                    error: CompileError::ArrayAccessWithWrongType {
-                        found_ty: self.with_ctrct(index_ty).to_string(),
-                        expected_ty: "int".to_string(),
-                        span: self.expr_key_to_span(index_expr_key),
-                    },
-                });
-            }
-
-            Inference::Type(Type::Optional {
-                ty: Box::new(el_ty.clone()),
-                span: el_ty.span().clone(),
-            })
         } else {
             handler.emit_err(Error::Compile {
                 error: CompileError::IndexExprNonIndexable {
@@ -2006,8 +2041,7 @@ impl Contract {
                     | Type::Optional { .. }
                     | Type::Custom { .. }
                     | Type::Alias { .. }
-                    | Type::Map { .. }
-                    | Type::Vector { .. } => Err(handler.emit_internal_err(
+                    | Type::Map { .. } => Err(handler.emit_internal_err(
                         "unsupported type still found for mapped range",
                         span.clone(),
                     )),
@@ -2026,13 +2060,7 @@ impl Contract {
         let lhs_ty = lhs.get_ty(self);
         let rhs_ty = rhs.get_ty(self);
 
-        if !lhs.is_pre_storage_access(self) {
-            handler.emit_err(Error::Compile {
-                error: CompileError::KeyValueExprBadLHS(lhs.get(self).span().clone()),
-            });
-            // Recover anyways
-            Inference::Type(Type::KeyValue(span.clone()))
-        } else if !lhs_ty.is_unknown() {
+        if !lhs_ty.is_unknown() {
             if !rhs_ty.is_unknown() {
                 if let Some(lhs_inner_ty) = lhs.get_ty(self).get_optional_ty() {
                     if !lhs_inner_ty.eq(self, rhs_ty) && !rhs_ty.is_nil() {
@@ -2045,7 +2073,13 @@ impl Contract {
                         });
                     }
                 }
-                if rhs_ty.is_nil() {
+                if !lhs.is_pre_storage_access(self) {
+                    handler.emit_err(Error::Compile {
+                        error: CompileError::KeyValueExprBadLHS(lhs.get(self).span().clone()),
+                    });
+                    // Recover anyways
+                    Inference::Type(Type::KeyValue(span.clone()))
+                } else if rhs_ty.is_nil() {
                     Inference::Types {
                         // Type of the key-value expression
                         ty: Type::KeyValue(span.clone()),

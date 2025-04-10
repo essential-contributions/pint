@@ -374,22 +374,50 @@ impl Expr {
         matches!(self, Expr::Nil(_))
     }
 
-    pub fn is_storage_access_intrinsic(&self) -> bool {
-        matches!(
-            self,
-            Expr::IntrinsicCall {
-                kind: (
-                    IntrinsicKind::Internal(
-                        InternalIntrinsic::PostState
-                            | InternalIntrinsic::PreState
-                            | InternalIntrinsic::PostStateExtern
-                            | InternalIntrinsic::PreStateExtern
-                    ),
-                    _
-                ),
-                ..
+    /// Returns true if `self` is a `__len(_)` intrinsic with the argument being a pre-state
+    /// storage vector access
+    pub fn is_pre_storage_vector_len(&self, contract: &Contract) -> bool {
+        if let Expr::IntrinsicCall {
+            kind: (IntrinsicKind::External(ExternalIntrinsic::ArrayLen), _),
+            args,
+            ..
+        } = self
+        {
+            if let Some(arg) = args.first() {
+                if arg.is_pre_storage_access(contract) {
+                    if let Some(ty) = arg.get_ty(contract).get_optional_ty() {
+                        return ty.is_unsized_array();
+                    }
+                }
             }
-        )
+        }
+
+        false
+    }
+
+    /// Returns true if `self` is a `__len(_)` intrinsic with the argument being a post-state
+    /// storage vector access
+    pub fn is_post_storage_vector_len(&self, contract: &Contract) -> bool {
+        if let Expr::IntrinsicCall {
+            kind: (IntrinsicKind::External(ExternalIntrinsic::ArrayLen), _),
+            args,
+            ..
+        } = self
+        {
+            if let Some(arg) = args.first() {
+                if arg.is_post_storage_access(contract) {
+                    if let Some(ty) = arg.get_ty(contract).get_optional_ty() {
+                        return ty.is_unsized_array();
+                    }
+                }
+            }
+        }
+
+        false
+    }
+
+    pub fn is_storage_vec_len(&self, contract: &Contract) -> bool {
+        self.is_pre_storage_vector_len(contract) || self.is_post_storage_vector_len(contract)
     }
 
     pub fn is_pre_storage_access_intrinsic(&self) -> bool {
@@ -422,12 +450,25 @@ impl Expr {
         )
     }
 
-    pub fn is_storage_access(&self, contract: &Contract) -> bool {
-        self.is_storage_access_intrinsic()
+    pub fn is_storage_access_intrinsic(&self) -> bool {
+        self.is_pre_storage_access_intrinsic() || self.is_post_storage_access_intrinsic()
+    }
+
+    pub fn is_pre_storage_access(&self, contract: &Contract) -> bool {
+        self.is_pre_storage_access_intrinsic()
+            || self.is_pre_storage_vector_len(contract)
             || match self {
                 Expr::LocalStorageAccess { .. } | Expr::ExternalStorageAccess { .. } => true,
                 Expr::TupleFieldAccess { tuple, .. } => tuple.is_storage_access(contract),
                 Expr::Index { expr, .. } => expr.is_storage_access(contract),
+                _ => false,
+            }
+    }
+
+    pub fn is_post_storage_access(&self, contract: &Contract) -> bool {
+        self.is_post_storage_access_intrinsic()
+            || self.is_post_storage_vector_len(contract)
+            || match self {
                 Expr::UnaryOp {
                     op: UnaryOp::NextState,
                     expr,
@@ -437,14 +478,8 @@ impl Expr {
             }
     }
 
-    pub fn is_pre_storage_access(&self, contract: &Contract) -> bool {
-        self.is_pre_storage_access_intrinsic()
-            || match self {
-                Expr::LocalStorageAccess { .. } | Expr::ExternalStorageAccess { .. } => true,
-                Expr::TupleFieldAccess { tuple, .. } => tuple.is_storage_access(contract),
-                Expr::Index { expr, .. } => expr.is_storage_access(contract),
-                _ => false,
-            }
+    pub fn is_storage_access(&self, contract: &Contract) -> bool {
+        self.is_pre_storage_access(contract) || self.is_post_storage_access(contract)
     }
 
     pub fn eq(&self, contract: &Contract, other: &Self) -> bool {

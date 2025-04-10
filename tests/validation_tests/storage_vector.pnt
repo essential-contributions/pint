@@ -1,5 +1,4 @@
-// <disabled>
-// TODO: Enable when vectors are revamped
+
 // db <<<
 // 2, 3
 // 2 0, 13
@@ -30,158 +29,166 @@ interface Foo {
 predicate Bar() {
     let addr = 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE;
 
-    // Test external storage vectors
-
-    constraint __vec_len(storage::v0) := 3;
+    // storage::v0 starts empty and expands to 3 elements
+    constraint __len(storage::v0) := 3;
     constraint storage::v0[0] := 42;
     constraint storage::v0[1] := 43;
     constraint storage::v0[2] := 44;
 
-    // v0 starts empty
-    let v0_0 = storage::v0[0];
-    let v0_1 = storage::v0[1];
-    let v0_2 = storage::v0[2];
-    let v0_len = __vec_len(storage::v0);
+    let v0_0_post = storage::v0[0]';
+    let v0_1_post = storage::v0[1]';
+    let v0_2_post = storage::v0[2]';
+    let v0_len = __len(storage::v0);
+    let v0_len_post = __len(storage::v0');
 
     constraint v0_len == nil || v0_len! == 0;
-    constraint v0_len'! == 3;
-    constraint v0_0'! == 42;
-    constraint v0_1'! == 43;
-    constraint v0_2'! == 44;
+    constraint v0_len_post! == 3;
+    constraint v0_0_post! == 42;
+    constraint v0_1_post! == 43;
+    constraint v0_2_post! == 44;
 
-    constraint __vec_len(storage::v0) == nil || __vec_len(storage::v0)! == 0;
-    // TODO: constraint __vec_len(storage::v0') == 3;
+    constraint __len(storage::v0) == nil || __len(storage::v0)! == 0;
+    constraint __len(storage::v0')! == 3;
     constraint storage::v0[0]'! == 42;
     constraint storage::v0[1]'! == 43;
     constraint storage::v0[2]'! == 44;
 
-    // v1 starts with 3 elements and then expands to 5
-    constraint __vec_len(storage::v1) := 5;
-    constraint storage::v1[3] := 16; // newly added
-    constraint storage::v1[4] := 17; // newly added
+    // storage::v1 starts with 3 elements and then expands to 5
+    constraint __len(storage::v1) := 5;
+    constraint storage::v1[3] := 16;
+    constraint storage::v1[4] := 17;
 
     let v1_0 = storage::v1[0];
+    let v1_0_post = storage::v1[0]';
     let v1_1 = storage::v1[1];
+    let v1_1_post = storage::v1[1]';
     let v1_2 = storage::v1[2];
-    let v1_len = __vec_len(storage::v1);
+    let v1_2_post = storage::v1[2]';
+    let v1_len = __len(storage::v1);
+    let v1_len_post = __len(storage::v1');
 
     constraint v1_len! == 3;
     constraint v1_0! == 13;
     constraint v1_1! == 14;
     constraint v1_2! == 15;
 
-    constraint __vec_len(storage::v1)! == 3;
+    constraint __len(storage::v1)! == 3;
+    constraint __len(storage::v1')! == 5;
     constraint storage::v1[0]! == 13;
     constraint storage::v1[1]! == 14;
     constraint storage::v1[2]! == 15;
 
-    let v1_3 = storage::v1[3];
-    let v1_4 = storage::v1[4];
+    let v1_3_post = storage::v1[3]';
+    let v1_4_post = storage::v1[4]';
 
-    constraint v1_len'! == 5;
-    constraint v1_0'! == 13; // did not change
-    constraint v1_1'! == 14; // did not change
-    constraint v1_2'! == 15; // did not change
-    constraint v1_3'! == 16; // newly added
-    constraint v1_4'! == 17; // newly added
+    constraint v1_len_post! == 5;
+    constraint v1_0_post! == 13; // did not change
+    constraint v1_1_post! == 14; // did not change
+    constraint v1_2_post! == 15; // did not change
+    constraint v1_3_post! == 16; // newly added
+    constraint v1_4_post! == 17; // newly added
 
-    // TODO: constraint __vec_len(storage::v1') == 5;
     constraint storage::v1[0]'! == 13; // did not change
     constraint storage::v1[1]'! == 14; // did not change
     constraint storage::v1[2]'! == 15; // did not change
     constraint storage::v1[3]'! == 16; // newly added
     constraint storage::v1[4]'! == 17; // newly added
 
-    // v2 starts empty
-    constraint  __vec_len(storage::v2) := 3;
+    // storage::v2 starts empty
+    constraint __len(storage::v2) := 3;
     constraint storage::v2[0] := 0x0000000000000001000000000000000200000000000000030000000000000004;
     constraint storage::v2[1] := nil;
     constraint storage::v2[2] := 0x0000000000000009000000000000000A000000000000000B000000000000000C;
-
-    let v2_0 = storage::v2[0];
-    let v2_1 = storage::v2[1];
-    let v2_2 = storage::v2[2];
-    let v2_len = __vec_len(storage::v2);
+   
+    let v2_0_post = storage::v2[0]';
+    let v2_1_post = storage::v2[1]';
+    let v2_2_post = storage::v2[2]';
+    let v2_len = __len(storage::v2);
+    let v2_len_post = __len(storage::v2');
    
     constraint v2_len == nil || v2_len! == 0;
-    constraint v2_len'! == 3;
-    constraint v2_0'! == 0x0000000000000001000000000000000200000000000000030000000000000004;
-    constraint v2_1' == nil;
-    constraint v2_2'! == 0x0000000000000009000000000000000A000000000000000B000000000000000C;
+    constraint v2_len_post! == 3;
+    constraint v2_0_post! == 0x0000000000000001000000000000000200000000000000030000000000000004;
+    constraint v2_1_post == nil;
+    constraint v2_2_post! == 0x0000000000000009000000000000000A000000000000000B000000000000000C;
 
-    constraint __vec_len(storage::v2) == nil || __vec_len(storage::v2)! == 0;
-    // TODO: constraint __vec_len(storage::v2') == 3;
+    constraint __len(storage::v2) == nil || __len(storage::v2)! == 0;
+    constraint __len(storage::v2')! == 3;
     constraint storage::v2[0]'! == 0x0000000000000001000000000000000200000000000000030000000000000004;
     constraint storage::v2[1]' == nil;
     constraint storage::v2[2]'! == 0x0000000000000009000000000000000A000000000000000B000000000000000C;
 
-    // Test external storage vectors
-
-    // v0 starts empty
-    let foo_v0_0 = Foo@[addr]::storage::v0[0];
-    let foo_v0_1 = Foo@[addr]::storage::v0[1];
-    let foo_v0_2 = Foo@[addr]::storage::v0[2];
-    let foo_v0_len = __vec_len(Foo@[addr]::storage::v0);
+    // Foo::storage::v0 starts empty and expands to 3 elements
+    let foo_v0_0_post = Foo@[addr]::storage::v0[0]';
+    let foo_v0_1_post = Foo@[addr]::storage::v0[1]';
+    let foo_v0_2_post = Foo@[addr]::storage::v0[2]';
+    let foo_v0_len = __len(Foo@[addr]::storage::v0);
+    let foo_v0_len_post = __len(Foo@[addr]::storage::v0');
 
     constraint foo_v0_len == nil || foo_v0_len! == 0;
-    constraint foo_v0_len'! == 3;
-    constraint foo_v0_0'! == 42;
-    constraint foo_v0_1'! == 43;
-    constraint foo_v0_2'! == 44;
+    constraint foo_v0_len_post! == 3;
+    constraint foo_v0_0_post! == 42;
+    constraint foo_v0_1_post! == 43;
+    constraint foo_v0_2_post! == 44;
 
-    constraint __vec_len(Foo@[addr]::storage::v0) == nil || __vec_len(Foo@[addr]::storage::v0)! == 0;
-    // TODO: constraint __vec_len(Foo@[addr]::storage::v0') == 3;
+    constraint __len(Foo@[addr]::storage::v0) == nil || __len(Foo@[addr]::storage::v0)! == 0;
+    constraint __len(Foo@[addr]::storage::v0')! == 3;
     constraint Foo@[addr]::storage::v0[0]'! == 42;
     constraint Foo@[addr]::storage::v0[1]'! == 43;
     constraint Foo@[addr]::storage::v0[2]'! == 44;
 
-    // v1 starts with 3 elements and then expands to 5
+    // Foo::storage::v1 starts with 3 elements and then expands to 5
     let foo_v1_0 = Foo@[addr]::storage::v1[0];
+    let foo_v1_0_post = Foo@[addr]::storage::v1[0]';
     let foo_v1_1 = Foo@[addr]::storage::v1[1];
+    let foo_v1_1_post = Foo@[addr]::storage::v1[1]';
     let foo_v1_2 = Foo@[addr]::storage::v1[2];
-    let foo_v1_len = __vec_len(Foo@[addr]::storage::v1);
+    let foo_v1_2_post = Foo@[addr]::storage::v1[2]';
+    let foo_v1_len = __len(Foo@[addr]::storage::v1);
+    let foo_v1_len_post = __len(Foo@[addr]::storage::v1');
 
     constraint foo_v1_len! == 3;
     constraint foo_v1_0! == 13;
     constraint foo_v1_1! == 14;
     constraint foo_v1_2! == 15;
 
-    constraint  __vec_len(Foo@[addr]::storage::v1)! == 3;
+    constraint  __len(Foo@[addr]::storage::v1)! == 3;
     constraint Foo@[addr]::storage::v1[0]! == 13;
     constraint Foo@[addr]::storage::v1[1]! == 14;
     constraint Foo@[addr]::storage::v1[2]! == 15;
 
-    let foo_v1_3 = Foo@[addr]::storage::v1[3];
-    let foo_v1_4 = Foo@[addr]::storage::v1[4];
+    let foo_v1_3_post = Foo@[addr]::storage::v1[3]';
+    let foo_v1_4_post = Foo@[addr]::storage::v1[4]';
 
-    constraint foo_v1_len'! == 5;
-    constraint foo_v1_0'! == 13; // did not change
-    constraint foo_v1_1'! == 14; // did not change
-    constraint foo_v1_2'! == 15; // did not change
-    constraint foo_v1_3'! == 16; // newly added
-    constraint foo_v1_4'! == 17; // newly added
+    constraint foo_v1_len_post! == 5;
+    constraint foo_v1_0_post! == 13; // did not change
+    constraint foo_v1_1_post! == 14; // did not change
+    constraint foo_v1_2_post! == 15; // did not change
+    constraint foo_v1_3_post! == 16; // newly added
+    constraint foo_v1_4_post! == 17; // newly added
 
-    // TODO: constraint  __vec_len(Foo@[addr]::storage::v1') == 5;
+    constraint __len(Foo@[addr]::storage::v1')! == 5;
     constraint Foo@[addr]::storage::v1[0]'! == 13; // did not change
     constraint Foo@[addr]::storage::v1[1]'! == 14; // did not change
     constraint Foo@[addr]::storage::v1[2]'! == 15; // did not change
     constraint Foo@[addr]::storage::v1[3]'! == 16; // newly added
     constraint Foo@[addr]::storage::v1[4]'! == 17; // newly added
 
-    // v2 starts empty
-    let foo_v2_0 = Foo@[addr]::storage::v2[0];
-    let foo_v2_1 = Foo@[addr]::storage::v2[1];
-    let foo_v2_2 = Foo@[addr]::storage::v2[2];
-    let foo_v2_len = __vec_len(Foo@[addr]::storage::v2);
+    // Foo::storage::v2 starts empty and expands to 3 elements
+    let foo_v2_0_post = Foo@[addr]::storage::v2[0]';
+    let foo_v2_1_post = Foo@[addr]::storage::v2[1]';
+    let foo_v2_2_post = Foo@[addr]::storage::v2[2]';
+    let foo_v2_len = __len(Foo@[addr]::storage::v2);
+    let foo_v2_len_post = __len(Foo@[addr]::storage::v2');
    
     constraint foo_v2_len == nil || foo_v2_len! == 0;
-    constraint foo_v2_len'! == 3;
-    constraint foo_v2_0'! == 0x0000000000000001000000000000000200000000000000030000000000000004;
-    constraint foo_v2_1' == nil;
-    constraint foo_v2_2'! == 0x0000000000000009000000000000000A000000000000000B000000000000000C;
+    constraint foo_v2_len_post! == 3;
+    constraint foo_v2_0_post! == 0x0000000000000001000000000000000200000000000000030000000000000004;
+    constraint foo_v2_1_post == nil;
+    constraint foo_v2_2_post! == 0x0000000000000009000000000000000A000000000000000B000000000000000C;
 
-    constraint __vec_len(Foo@[addr]::storage::v2) == nil || __vec_len(Foo@[addr]::storage::v2)! == 0;
-    // TODO: constraint __vec_len(Foo@[addr]::storage::v2)' == 3;
+    constraint __len(Foo@[addr]::storage::v2) == nil || __len(Foo@[addr]::storage::v2)! == 0;
+    constraint __len(Foo@[addr]::storage::v2')! == 3;
     constraint Foo@[addr]::storage::v2[0]'! == 0x0000000000000001000000000000000200000000000000030000000000000004;
     constraint Foo@[addr]::storage::v2[1]' == nil;
     constraint Foo@[addr]::storage::v2[2]'! == 0x0000000000000009000000000000000A000000000000000B000000000000000C;
