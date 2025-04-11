@@ -39,23 +39,23 @@ storage {
 // }
 // >>>
 
-// typecheck_failure <<<
-// type not allowed in storage
-// @186..198: found type {int, int}[] in storage
-// type not allowed in storage
-// @207..221: found type ( int => int )[] in storage
-// type not allowed in storage
-// @230..245: found type ( int[_] => int ) in storage
-// type not allowed in storage
-// @254..278: found type ( {int[_], b256} => int ) in storage
-// type not allowed in storage
-// @287..320: found type ( {( bool => b256 ), int} => bool ) in storage
-// type not allowed in storage
-// @329..350: found type ( ( int => int ) => int ) in storage
-// type not allowed in storage
-// @359..378: found type ( ::MyMapAlias (( int => bool )) => int ) in storage
-// type not allowed in storage
-// @387..406: found type ( ::MyVecAlias (int[_]) => int ) in storage
-// type not allowed in storage
-// @415..440: found type ( ::MyBadMapKeyUnion => int ) in storage
+// flattened <<<
+// union ::MyUnion = A | B;
+// union ::MyBadMapKeyUnion = a({( int => bool ), int[_]}) | b(int[_]);
+// type ::MyAlias = ::MyUnion;
+// type ::MyMapAlias = ( int => bool );
+// type ::MyVecAlias = int[_];
+// storage {
+//     a: {int, int}[_],
+//     b: ( int => int )[_],
+//     c: ( int[_] => int ),
+//     d: ( {int[_], b256} => int ),
+//     e: ( {( bool => b256 ), int} => bool ),
+//     f: ( ( int => int ) => int ),
+//     g: ( ( int => bool ) => int ),
+//     h: ( int[_] => int ),
+//     i: ( ::MyBadMapKeyUnion => int ),
+//     j: ::MyUnion,
+//     k: ::MyUnion,
+// }
 // >>>

@@ -5,7 +5,7 @@ use crate::{
     },
     predicate::{ConstraintDecl, Contract, ExprKey, PredKey},
     span::empty_span,
-    types::{int, Type},
+    types::{int, optional, r#bool, Type},
 };
 use fxhash::FxHashSet;
 
@@ -29,7 +29,7 @@ fn lower_storage_accesses_in_predicate(
     contract: &mut Contract,
     pred_key: PredKey,
 ) -> Result<(), ErrorEmitted> {
-    let storage_accesses: FxHashSet<_> = contract
+    let (storage_accesses, write_only_storage_accesses): (FxHashSet<_>, FxHashSet<_>) = contract
         .preds
         .get(pred_key)
         .map(|pred| {
@@ -40,14 +40,21 @@ fn lower_storage_accesses_in_predicate(
                         .iter()
                         .map(|ConstraintDecl { expr, .. }| *expr),
                 )
-                .flat_map(|expr| expr.collect_storage_accesses(contract))
-                .collect::<FxHashSet<_>>()
+                .map(|expr| expr.collect_storage_accesses(contract))
+                .fold(
+                    (FxHashSet::default(), FxHashSet::default()),
+                    |(mut acc_sa, mut acc_tw), (sa, tw)| {
+                        acc_sa.extend(sa);
+                        acc_tw.extend(tw);
+                        (acc_sa, acc_tw)
+                    },
+                )
         })
         .unwrap_or_default();
 
     for expr in storage_accesses {
         let expr_ty = expr.get_ty(contract).clone();
-        let (addr, next_state, key) = get_base_storage_key(handler, &expr, contract)?;
+        let (addr, next_state, key, len_keys) = get_base_storage_key(handler, &expr, contract)?;
 
         // Type of this key is a tuple of all the elements of this key
         let key_ty = Type::Tuple {
@@ -68,7 +75,7 @@ fn lower_storage_accesses_in_predicate(
         );
 
         // This is the storage intrinsic we're lowering the storage access to
-        let storage_get_intrinsic = contract.exprs.insert(
+        let storage_intrinsic = contract.exprs.insert(
             if !next_state {
                 if let Some(addr) = addr {
                     Expr::IntrinsicCall {
@@ -110,7 +117,128 @@ fn lower_storage_accesses_in_predicate(
             },
             expr_ty.clone(),
         );
-        contract.replace_exprs(Some(pred_key), expr, storage_get_intrinsic);
+
+        if !len_keys.is_empty() && !write_only_storage_accesses.contains(&expr) {
+            let bool_true_expr = contract.exprs.insert_bool(true);
+            let mut condition = bool_true_expr;
+            for (index, len_key) in len_keys {
+                // Type of this key is a tuple of all the elements of this key
+                let len_key_ty = Type::Tuple {
+                    fields: len_key
+                        .iter()
+                        .map(|k| (None, k.get_ty(contract).clone()))
+                        .collect::<Vec<_>>(),
+                    span: empty_span(),
+                };
+
+                // Insert a tuple expr containing all the key elements
+                let len_key_expr = contract.exprs.insert(
+                    Expr::Tuple {
+                        fields: len_key.iter().map(|k| (None, *k)).collect::<Vec<_>>(),
+                        span: empty_span(),
+                    },
+                    len_key_ty.clone(),
+                );
+
+                let len_expr = contract.exprs.insert(
+                    if !next_state {
+                        if let Some(addr) = addr {
+                            Expr::IntrinsicCall {
+                                kind: (
+                                    IntrinsicKind::Internal(InternalIntrinsic::PreStateExtern),
+                                    empty_span(),
+                                ),
+                                args: vec![addr, len_key_expr],
+                                span: empty_span(),
+                            }
+                        } else {
+                            Expr::IntrinsicCall {
+                                kind: (
+                                    IntrinsicKind::Internal(InternalIntrinsic::PreState),
+                                    empty_span(),
+                                ),
+                                args: vec![len_key_expr],
+                                span: empty_span(),
+                            }
+                        }
+                    } else if let Some(addr) = addr {
+                        Expr::IntrinsicCall {
+                            kind: (
+                                IntrinsicKind::Internal(InternalIntrinsic::PostStateExtern),
+                                empty_span(),
+                            ),
+                            args: vec![addr, len_key_expr],
+                            span: empty_span(),
+                        }
+                    } else {
+                        Expr::IntrinsicCall {
+                            kind: (
+                                IntrinsicKind::Internal(InternalIntrinsic::PostState),
+                                empty_span(),
+                            ),
+                            args: vec![len_key_expr],
+                            span: empty_span(),
+                        }
+                    },
+                    optional(int()),
+                );
+
+                let unwrapped_len = contract.exprs.insert(
+                    Expr::UnaryOp {
+                        op: UnaryOp::Unwrap,
+                        expr: len_expr,
+                        span: empty_span(),
+                    },
+                    int(),
+                );
+
+                let index_less_than_vec_len = contract.exprs.insert(
+                    Expr::BinaryOp {
+                        op: BinaryOp::LessThan,
+                        lhs: index,
+                        rhs: unwrapped_len,
+                        span: empty_span(),
+                    },
+                    r#bool(),
+                );
+
+                condition = contract.exprs.insert(
+                    Expr::BinaryOp {
+                        op: BinaryOp::LogicalAnd,
+                        lhs: condition,
+                        rhs: index_less_than_vec_len,
+                        span: empty_span(),
+                    },
+                    r#bool(),
+                );
+            }
+
+            let bool_true_expr = contract.exprs.insert_bool(true);
+            let panic_if_expr = contract.exprs.insert(
+                Expr::IntrinsicCall {
+                    kind: (
+                        IntrinsicKind::External(ExternalIntrinsic::PanicIf),
+                        empty_span(),
+                    ),
+                    args: vec![bool_true_expr],
+                    span: empty_span(),
+                },
+                expr_ty.clone(),
+            );
+
+            let select_expr = contract.exprs.insert(
+                Expr::Select {
+                    condition,
+                    then_expr: storage_intrinsic,
+                    else_expr: panic_if_expr,
+                    span: empty_span(),
+                },
+                expr_ty.clone(),
+            );
+            contract.replace_exprs(Some(pred_key), expr, select_expr);
+        } else {
+            contract.replace_exprs(Some(pred_key), expr, storage_intrinsic);
+        }
     }
 
     Ok(())
@@ -120,11 +248,20 @@ fn lower_storage_accesses_in_predicate(
 /// 1. An optional external predicate address, if `ExprKey` is an external storage access.
 /// 2. A `bool` indicating whether the access is a post-state access.
 /// 3. The key as a vector of `ExprKey`.
+#[allow(clippy::type_complexity)]
 fn get_base_storage_key(
     handler: &Handler,
     expr: &ExprKey,
     contract: &mut Contract,
-) -> Result<(Option<ExprKey>, bool, Vec<ExprKey>), ErrorEmitted> {
+) -> Result<
+    (
+        Option<ExprKey>,
+        bool,
+        Vec<ExprKey>,
+        Vec<(ExprKey, Vec<ExprKey>)>,
+    ),
+    ErrorEmitted,
+> {
     let expr_ty = expr.get_ty(contract).clone();
     match &expr.get(contract).clone() {
         Expr::UnaryOp {
@@ -132,43 +269,11 @@ fn get_base_storage_key(
             expr,
             ..
         } => get_base_storage_key(handler, expr, contract)
-            .map(|(addr, _, key)| (addr, true /* post-state */, key)),
+            .map(|(addr, _, key, len_keys)| (addr, true /* post-state */, key, len_keys)),
 
         Expr::IntrinsicCall { kind, args, .. } => {
-            if let (IntrinsicKind::External(ExternalIntrinsic::VecLen), _) = kind {
-                assert_eq!(args.len(), 1);
-                match args[0].try_get(contract) {
-                    Some(Expr::LocalStorageAccess { name, .. }) => {
-                        if !contract.storage_var(name).1.ty.is_vector() {
-                            return Err(handler.emit_internal_err(
-                                "argument to __vec_len must be of type storage vector",
-                                empty_span(),
-                            ));
-                        }
-                    }
-                    Some(Expr::ExternalStorageAccess {
-                        interface, name, ..
-                    }) => {
-                        if !contract
-                            .external_storage_var(interface, name)
-                            .1
-                            .ty
-                            .is_vector()
-                        {
-                            return Err(handler.emit_internal_err(
-                                "argument to __vec_len must be of type storage vector",
-                                empty_span(),
-                            ));
-                        }
-                    }
-                    _ => {
-                        return Err(handler.emit_internal_err(
-                            "argument to __vec_len must be storage access",
-                            empty_span(),
-                        ));
-                    }
-                };
-
+            if let (IntrinsicKind::External(ExternalIntrinsic::ArrayLen), _) = kind {
+                // TODO: add checks an stuff
                 get_base_storage_key(handler, &args[0], contract)
             } else {
                 Err(handler.emit_internal_err("Invalid storage intrinsic", empty_span()))
@@ -184,7 +289,7 @@ fn get_base_storage_key(
                     || storage_var.ty.is_optional()
                     || storage_var.ty.is_union()
                     || storage_var.ty.is_map()
-                    || storage_var.ty.is_vector()
+                    || storage_var.ty.is_unsized_array()
                 {
                     vec![contract.exprs.insert_int(storage_index as i64)]
                 } else {
@@ -193,6 +298,7 @@ fn get_base_storage_key(
                         contract.exprs.insert_int(0), // placeholder for offsets
                     ]
                 },
+                vec![],
             ))
         }
 
@@ -216,7 +322,7 @@ fn get_base_storage_key(
                     || storage_var.ty.is_optional()
                     || storage_var.ty.is_union()
                     || storage_var.ty.is_map()
-                    || storage_var.ty.is_vector()
+                    || storage_var.ty.is_unsized_array()
                 {
                     vec![contract.exprs.insert_int(storage_index as i64)]
                 } else {
@@ -225,11 +331,13 @@ fn get_base_storage_key(
                         contract.exprs.insert_int(0), // placeholder for offsets
                     ]
                 },
+                vec![],
             ))
         }
 
         Expr::Index { expr, index, .. } => {
-            let (addr, next_state, mut key) = get_base_storage_key(handler, expr, contract)?;
+            let (addr, next_state, mut key, mut len_keys) =
+                get_base_storage_key(handler, expr, contract)?;
 
             // Extract the wrapped type
             let Some(inner_expr_ty) = expr.get_ty(contract).get_optional_ty() else {
@@ -237,7 +345,7 @@ fn get_base_storage_key(
                     .emit_internal_err("storage accesses must be of type optional", empty_span()));
             };
 
-            if inner_expr_ty.is_map() || inner_expr_ty.is_vector() {
+            if inner_expr_ty.is_map() {
                 // next key element is the index itself
                 key.push(*index);
 
@@ -253,7 +361,28 @@ fn get_base_storage_key(
                     || expr_ty.is_optional()
                     || expr_ty.is_union()
                     || expr_ty.is_map()
-                    || expr_ty.is_vector())
+                    || expr_ty.is_unsized_array())
+                {
+                    key.push(contract.exprs.insert_int(0)); // placeholder for offsets
+                }
+            } else if inner_expr_ty.is_unsized_array() {
+                // next key element is the index itself
+                len_keys.push((*index, key.clone()));
+                key.push(*index);
+
+                // Extract the wrapped type
+                let Some(expr_ty) = expr_ty.get_optional_ty() else {
+                    return Err(handler.emit_internal_err(
+                        "3. storage accesses must be of type optional",
+                        empty_span(),
+                    ));
+                };
+
+                if !(expr_ty.is_any_primitive()
+                    || expr_ty.is_optional()
+                    || expr_ty.is_union()
+                    || expr_ty.is_map()
+                    || expr_ty.is_unsized_array())
                 {
                     key.push(contract.exprs.insert_int(0)); // placeholder for offsets
                 }
@@ -288,11 +417,12 @@ fn get_base_storage_key(
                     *last = add;
                 }
             }
-            Ok((addr, next_state, key))
+            Ok((addr, next_state, key, len_keys))
         }
 
         Expr::TupleFieldAccess { tuple, field, .. } => {
-            let (addr, next_state, mut key) = get_base_storage_key(handler, tuple, contract)?;
+            let (addr, next_state, mut key, len_keys) =
+                get_base_storage_key(handler, tuple, contract)?;
 
             // Extract the wrapped type
             let Some(inner_expr_ty) = tuple.get_ty(contract).get_optional_ty() else {
@@ -344,7 +474,7 @@ fn get_base_storage_key(
                 );
                 *last = add;
             }
-            Ok((addr, next_state, key))
+            Ok((addr, next_state, key, len_keys))
         }
 
         _ => Err(handler.emit_internal_err(

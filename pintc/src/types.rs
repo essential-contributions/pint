@@ -64,10 +64,6 @@ pub enum Type {
         ty_to: Box<Self>,
         span: Span,
     },
-    Vector {
-        ty: Box<Self>,
-        span: Span,
-    },
 }
 
 macro_rules! is_primitive {
@@ -156,10 +152,6 @@ impl Type {
 
     pub fn is_map(&self) -> bool {
         check_alias!(self, is_map, matches!(self, Type::Map { .. }))
-    }
-
-    pub fn is_vector(&self) -> bool {
-        check_alias!(self, is_vector, matches!(self, Type::Vector { .. }))
     }
 
     pub fn is_any_primitive(&self) -> bool {
@@ -391,10 +383,9 @@ impl Type {
                 }
             }
 
-            Self::UnsizedArray { ty, .. }
-            | Self::Alias { ty, .. }
-            | Self::Optional { ty, .. }
-            | Self::Vector { ty, .. } => range_exprs.extend(ty.get_all_array_range_exprs(contract)),
+            Self::UnsizedArray { ty, .. } | Self::Alias { ty, .. } | Self::Optional { ty, .. } => {
+                range_exprs.extend(ty.get_all_array_range_exprs(contract))
+            }
 
             Self::Error(_)
             | Self::Unknown(_)
@@ -476,16 +467,6 @@ impl Type {
         })
     }
 
-    pub fn get_vector_element_ty(&self) -> Option<&Type> {
-        check_alias!(self, get_vector_element_ty, {
-            if let Type::Vector { ty, .. } = self {
-                Some(ty)
-            } else {
-                None
-            }
-        })
-    }
-
     pub fn get_tuple_fields(&self) -> Option<&[(Option<Ident>, Self)]> {
         check_alias!(self, get_tuple_fields, {
             if let Type::Tuple { fields, .. } = self {
@@ -523,7 +504,7 @@ impl Type {
     // If `self` contains a storage only type `ty`, return `Some(ty)`. Otherwise, return `None`
     pub fn get_storage_only_ty(&self, contract: &Contract) -> Option<Self> {
         match self {
-            Type::Map { .. } | Type::Vector { .. } => Some(self.clone()),
+            Type::Map { .. } => Some(self.clone()),
 
             Type::Tuple { fields, .. } => fields
                 .iter()
@@ -550,62 +531,6 @@ impl Type {
             | Type::KeyValue(_)
             | Type::Primitive { .. }
             | Type::Custom { .. } => None,
-        }
-    }
-
-    // Checks if type `self` is allowed in storage. For now, all types are allowed except for:
-    // - Storage maps where the "from" type is not bool, int, nor b256
-    // - Storage vectors where the element type is not bool, int, nor b256
-    pub fn is_allowed_in_storage(&self, contract: &Contract) -> bool {
-        match self {
-            Type::Vector { ty, .. } => {
-                // We only support vectors of these types for now
-                ty.is_bool() || ty.is_int() || ty.is_b256()
-            }
-
-            Type::Custom { .. } => {
-                // Disallow custom types since they're ambiguous. Hopefully, by the time we need
-                // this method, all custom types are gone.
-                false
-            }
-
-            Type::UnsizedArray { .. } => {
-                // Disallow unsized arrays.  The top level unsized arrays should be converted to
-                // `Type::Vector` already, and so any embedded unsized arrays are then disallowed.
-                false
-            }
-
-            Type::Map { ty_from, ty_to, .. } => {
-                ty_from.get_storage_only_ty(contract).is_none()
-                    && ty_from.is_allowed_in_storage(contract)
-                    && ty_to.is_allowed_in_storage(contract)
-            }
-
-            Type::Tuple { fields, .. } => fields
-                .iter()
-                .all(|(_, field)| field.is_allowed_in_storage(contract)),
-
-            Type::Union { decl, .. } => contract
-                .unions
-                .get(*decl)
-                .map(|union_decl| {
-                    union_decl.variants.iter().all(|variant| {
-                        variant
-                            .ty
-                            .as_ref()
-                            .map(|ty| ty.is_allowed_in_storage(contract))
-                            .unwrap_or(true)
-                    })
-                })
-                .unwrap_or(true),
-
-            Type::FixedArray { ty, .. } | Type::Alias { ty, .. } | Type::Optional { ty, .. } => {
-                ty.is_allowed_in_storage(contract)
-            }
-
-            Type::Nil(_) | Type::Primitive { .. } => true,
-
-            Type::KeyValue(_) | Type::Error(_) | Type::Unknown(_) | Type::Any(_) => false,
         }
     }
 
@@ -655,9 +580,6 @@ impl Type {
             // actually store anything in it. The `Map` type is not really allowed anywhere else,
             // so we can't have a predicate parameter of type `Map` for example.
             Self::Map { .. } => Ok(1),
-
-            // `Vector` also takes up a single storage slot that stores the length of the vector
-            Self::Vector { .. } => Ok(1),
 
             // For now unsized arrays aren't supported in places where we'd need to know the size
             // of the type.  In the future we should special case them out into different ASM gen
@@ -728,9 +650,6 @@ impl Type {
             // actually store anything in it. The `Map` type is not really allowed anywhere else,
             // so we can't have a predicate parameter of type `Map` for example.
             Self::Map { .. } => Ok(1),
-
-            // `Vector` also takes up a single storage slot that stores the length of the vector
-            Self::Vector { .. } => Ok(1),
 
             // Not expecting any of these types at this stage. These are either unsupported types
             // (like `String` and `Real`) or types that should have been resolved by the time we
@@ -814,8 +733,8 @@ impl Type {
             }),
 
             // This, of course, is incorrect. It's just a placeholder until we can support ABI gen
-            // for vectors, which is non-trivial.
-            Type::UnsizedArray { .. } | Type::Vector { .. } => Ok(TypeABI::Int),
+            // for unsized arrays, which is non-trivial.
+            Type::UnsizedArray { .. } => Ok(TypeABI::Int),
 
             _ => unimplemented!("other types are not yet supported"),
         }
@@ -915,10 +834,6 @@ impl Type {
                     ..
                 },
             ) => lhs_ty_from.eq(contract, rhs_ty_from) && lhs_ty_to.eq(contract, rhs_ty_to),
-
-            (Self::Vector { ty: lhs_ty, .. }, Self::Vector { ty: rhs_ty, .. }) => {
-                lhs_ty.eq(contract, rhs_ty)
-            }
 
             (Self::Union { decl: lhs_decl, .. }, Self::Union { decl: rhs_decl, .. }) => {
                 lhs_decl == rhs_decl
@@ -1030,8 +945,6 @@ impl Type {
                 ty_to.replace_type_expr(old_expr, new_expr);
             }
 
-            Type::Vector { ty, .. } => ty.replace_type_expr(old_expr, new_expr),
-
             Type::Error(_)
             | Type::Unknown(_)
             | Type::Any(_)
@@ -1098,8 +1011,7 @@ impl Spanned for Type {
             | Optional { span, .. }
             | Custom { span, .. }
             | Alias { span, .. }
-            | Map { span, .. }
-            | Vector { span, .. } => span,
+            | Map { span, .. } => span,
         }
     }
 }
@@ -1203,23 +1115,16 @@ pub fn dyn_array(ty: Type) -> Type {
     }
 }
 
-pub fn tuple(fields: Vec<Type>) -> Type {
-    Type::Tuple {
-        fields: fields.into_iter().map(|ty| (None, ty)).collect::<Vec<_>>(),
-        span: empty_span(),
-    }
-}
-
-pub fn vector(ty: Type) -> Type {
-    Type::Vector {
-        ty: Box::new(ty),
-        span: empty_span(),
-    }
-}
-
 pub fn optional(ty: Type) -> Type {
     Type::Optional {
         ty: Box::new(ty),
+        span: empty_span(),
+    }
+}
+
+pub fn tuple(fields: Vec<Type>) -> Type {
+    Type::Tuple {
+        fields: fields.into_iter().map(|ty| (None, ty)).collect::<Vec<_>>(),
         span: empty_span(),
     }
 }

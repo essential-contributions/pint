@@ -496,6 +496,7 @@ impl<'a> ParserContext<'a> {
                 match &name.name[..] {
                     "__address_of" => IntrinsicKind::External(ExternalIntrinsic::AddressOf),
                     "__len" => IntrinsicKind::External(ExternalIntrinsic::ArrayLen),
+                    "__panic_if" => IntrinsicKind::External(ExternalIntrinsic::PanicIf),
                     "__recover_secp256k1" => {
                         IntrinsicKind::External(ExternalIntrinsic::RecoverSECP256k1)
                     }
@@ -505,7 +506,6 @@ impl<'a> ParserContext<'a> {
                     "__this_contract_address" => {
                         IntrinsicKind::External(ExternalIntrinsic::ThisContractAddress)
                     }
-                    "__vec_len" => IntrinsicKind::External(ExternalIntrinsic::VecLen),
                     "__verify_ed25519" => IntrinsicKind::External(ExternalIntrinsic::VerifyEd25519),
                     _ => {
                         handler.emit_err(Error::Parse {
