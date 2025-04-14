@@ -1,7 +1,5 @@
 use clap::{builder::styling::Style, Parser};
-use pintc::{
-    asm_gen::compile_contract, cli::Args, error, parser, predicate::CompileOptions, warning,
-};
+use pintc::{asm_gen, cli::Args, error, ir, parser, predicate::CompileOptions, warning};
 use std::{
     fs::{create_dir_all, File},
     path::{Path, PathBuf},
@@ -59,9 +57,26 @@ fn main() -> anyhow::Result<()> {
         }
     };
 
-    match handler
-        .scope(|handler| compile_contract(handler, args.salt.unwrap_or_default(), &contract))
-    {
+    let _ = match handler.scope(|handler| ir::compile_contract(&handler, &contract)) {
+        Ok(ir) => {
+            println!("{ir}");
+
+            ir
+        }
+        Err(_) => {
+            let (errors, warnings) = handler.consume();
+            let errors_len = errors.len();
+            if !cfg!(test) {
+                error::print_errors(&error::Errors(errors));
+                warning::print_warnings(&warning::Warnings(warnings));
+            }
+            pintc::pintc_bail!(errors_len, filepath)
+        }
+    };
+
+    match handler.scope(|handler| {
+        asm_gen::compile_contract(handler, args.salt.unwrap_or_default(), &contract)
+    }) {
         Ok(compiled_contract) => {
             if args.print_asm {
                 println!("{compiled_contract}");
