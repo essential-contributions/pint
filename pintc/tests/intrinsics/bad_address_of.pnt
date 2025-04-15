@@ -45,9 +45,9 @@ predicate Bar(
 // @229..236: this argument refers to prediate `::Bar` in which this intrinsic is used
 // predicate `::Missing` not found
 // @298..309: argument to `__address_of` must be a valid predicate name
+// this intrinsic takes 1 argument but 2 arguments were supplied
+// @462..485: unexpected number of arguments here
 // incorrect intrinsic argument
 // @475..480: expected `string`, found `bool`
 // @462..474: arguments to this intrinsic are incorrect`
-// this intrinsic takes 1 argument but 2 arguments were supplied
-// @462..485: unexpected number of arguments here
 // >>>

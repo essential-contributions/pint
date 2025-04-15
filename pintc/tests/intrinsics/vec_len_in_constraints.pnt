@@ -1,35 +1,34 @@
-// <disabled>
 storage {
     v: int[],
 }
 
 predicate test(v_len: int) {
-    constraint v_len == __vec_len(storage::v)!;
-    constraint __vec_len(storage::v)! == 0;
+    constraint v_len == __len(storage::v)!;
+    constraint __len(storage::v)! == 0;
 }
 
 // parsed <<<
 // storage {
-//     v: int[],
+//     v: int[_],
 // }
 //
 // predicate ::test(
 //     ::v_len: int,
 // ) {
-//     constraint (::v_len == __vec_len(storage::v));
-//     constraint (__vec_len(storage::v) == 0);
+//     constraint (::v_len == __len(storage::v)!);
+//     constraint (__len(storage::v)! == 0);
 // }
 // >>>
 
 // flattened <<<
 // storage {
-//     v: int[],
+//     v: int[_],
 // }
 //
 // predicate ::test(
 //     ::v_len: int,
 // ) {
-//     constraint (::v_len == __pre_state({0}));
-//     constraint (__pre_state({0}) == 0);
+//     constraint (::v_len == __pre_state({0})!);
+//     constraint (__pre_state({0})! == 0);
 // }
 // >>>

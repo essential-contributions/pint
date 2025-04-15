@@ -11,7 +11,7 @@ type E = b256;
 predicate test(E: int) {
     constraint E == 4;
 
-    let E = __vec_len();
+    let E = __len();
 }
 
 // parse_failure <<<

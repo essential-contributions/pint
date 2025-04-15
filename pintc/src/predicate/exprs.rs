@@ -1,10 +1,7 @@
 use super::{Contract, PredKey, Predicate};
 use crate::{
     error::{ErrorEmitted, Handler},
-    expr::{
-        BinaryOp, Expr, ExternalIntrinsic, InternalIntrinsic, IntrinsicKind, MatchBranch,
-        MatchElse, UnaryOp,
-    },
+    expr::{BinaryOp, Expr, InternalIntrinsic, IntrinsicKind, MatchBranch, MatchElse, UnaryOp},
     predicate::Immediate,
     span::{empty_span, Spanned},
     types::{PrimitiveKind, Type},
@@ -123,7 +120,7 @@ impl ExprKey {
         contract.exprs.expr_types.insert(*self, ty);
     }
 
-    /// Get the size of an expression. Usually, this is the same as the size of the type but
+    /// Get the size of an expression. Usually, this is the accessesme as the size of the type but
     /// sometimes, the type doesn't have all the information we need.
     pub fn size(
         &self,
@@ -221,16 +218,10 @@ impl ExprKey {
                 lhs.can_panic(contract, pred) || rhs.can_panic(contract, pred)
             }
 
-            Expr::IntrinsicCall { kind, args, .. } => {
-                matches!(
-                    kind.0,
-                    IntrinsicKind::Internal(
-                        InternalIntrinsic::PreState
-                            | InternalIntrinsic::PostState
-                            | InternalIntrinsic::PreStateExtern
-                            | InternalIntrinsic::PostStateExtern
-                    ) | IntrinsicKind::External(ExternalIntrinsic::VecLen)
-                ) || args.iter().any(|arg| arg.can_panic(contract, pred))
+            Expr::IntrinsicCall { args, .. } => {
+                self.is_storage_access_intrinsic(contract)
+                    || self.is_storage_vec_len(contract)
+                    || args.iter().any(|arg| arg.can_panic(contract, pred))
             }
 
             Expr::LocalPredicateCall { args, .. } => {
@@ -332,32 +323,50 @@ impl ExprKey {
     /// - `storage::y`
     /// - `storage::z.2`
     ///
-    pub fn collect_storage_accesses(&self, contract: &Contract) -> FxHashSet<ExprKey> {
+    /// This function also returns the storage accesses on the LHS of `KeyValue` expressions.
+    /// Those are "write-only" storage accesses. Note that the first set collected is a *superset*
+    /// of the second set. That is, the first set also contains the "write-only" accesses.
+    pub fn collect_storage_accesses(
+        &self,
+        contract: &Contract,
+    ) -> (FxHashSet<ExprKey>, FxHashSet<ExprKey>) {
         let mut storage_accesses = FxHashSet::default();
+        let mut write_only_storage_accesses = FxHashSet::default();
 
         if let Some(expr) = self.try_get(contract) {
             match expr {
                 Expr::Array { elements, .. } => {
-                    elements.iter().for_each(|e| {
-                        storage_accesses.extend(e.collect_storage_accesses(contract));
-                    });
+                    for e in elements {
+                        let (accesses, write_only) = e.collect_storage_accesses(contract);
+                        storage_accesses.extend(accesses);
+                        write_only_storage_accesses.extend(write_only);
+                    }
                 }
 
                 Expr::Tuple { fields, .. } => {
-                    fields.iter().for_each(|(_, f)| {
-                        storage_accesses.extend(f.collect_storage_accesses(contract));
-                    });
+                    for (_, f) in fields {
+                        let (accesses, write_only) = f.collect_storage_accesses(contract);
+                        storage_accesses.extend(accesses);
+                        write_only_storage_accesses.extend(write_only);
+                    }
                 }
 
                 Expr::UnionVariant { value, .. } => {
                     if let Some(value) = value {
-                        storage_accesses.extend(value.collect_storage_accesses(contract));
+                        let (accesses, write_only) = value.collect_storage_accesses(contract);
+                        storage_accesses.extend(accesses);
+                        write_only_storage_accesses.extend(write_only);
                     }
                 }
 
                 Expr::KeyValue { lhs, rhs, .. } => {
-                    storage_accesses.extend(lhs.collect_storage_accesses(contract));
-                    storage_accesses.extend(rhs.collect_storage_accesses(contract));
+                    write_only_storage_accesses.insert(*lhs);
+                    let (lhs_accesses, lhs_write_only) = lhs.collect_storage_accesses(contract);
+                    let (rhs_accesses, rhs_write_only) = rhs.collect_storage_accesses(contract);
+                    storage_accesses.extend(lhs_accesses);
+                    storage_accesses.extend(rhs_accesses);
+                    write_only_storage_accesses.extend(lhs_write_only);
+                    write_only_storage_accesses.extend(rhs_write_only);
                 }
 
                 Expr::LocalStorageAccess { .. } | Expr::ExternalStorageAccess { .. } => {
@@ -372,43 +381,47 @@ impl ExprKey {
                     if expr.is_storage_access(contract) {
                         storage_accesses.insert(*self);
                     } else {
-                        storage_accesses.extend(expr.collect_storage_accesses(contract));
+                        let (accesses, write_only) = expr.collect_storage_accesses(contract);
+                        storage_accesses.extend(accesses);
+                        write_only_storage_accesses.extend(write_only);
                     }
                 }
 
                 Expr::UnaryOp { expr, .. } => {
-                    storage_accesses.extend(expr.collect_storage_accesses(contract));
+                    let (accesses, write_only) = expr.collect_storage_accesses(contract);
+                    storage_accesses.extend(accesses);
+                    write_only_storage_accesses.extend(write_only);
                 }
 
                 Expr::BinaryOp { lhs, rhs, .. } => {
-                    storage_accesses.extend(lhs.collect_storage_accesses(contract));
-                    storage_accesses.extend(rhs.collect_storage_accesses(contract));
+                    let (lhs_accesses, lhs_write_only) = lhs.collect_storage_accesses(contract);
+                    let (rhs_accesses, rhs_write_only) = rhs.collect_storage_accesses(contract);
+                    storage_accesses.extend(lhs_accesses);
+                    storage_accesses.extend(rhs_accesses);
+                    write_only_storage_accesses.extend(lhs_write_only);
+                    write_only_storage_accesses.extend(rhs_write_only);
                 }
 
-                Expr::IntrinsicCall { kind, args, .. } => {
-                    if let (
-                        IntrinsicKind::External(ExternalIntrinsic::VecLen)
-                        | IntrinsicKind::Internal(
-                            InternalIntrinsic::PostState
-                            | InternalIntrinsic::PreState
-                            | InternalIntrinsic::PostStateExtern
-                            | InternalIntrinsic::PreStateExtern,
-                        ),
-                        _,
-                    ) = kind
+                Expr::IntrinsicCall { args, .. } => {
+                    if self.is_storage_access_intrinsic(contract)
+                        || self.is_storage_vec_len(contract)
                     {
                         storage_accesses.insert(*self);
                     } else {
-                        args.iter().for_each(|arg| {
-                            storage_accesses.extend(arg.collect_storage_accesses(contract));
-                        });
+                        for arg in args {
+                            let (accesses, write_only) = arg.collect_storage_accesses(contract);
+                            storage_accesses.extend(accesses);
+                            write_only_storage_accesses.extend(write_only);
+                        }
                     }
                 }
 
                 Expr::AsmBlock { args, .. } => {
-                    args.iter().for_each(|arg| {
-                        storage_accesses.extend(arg.collect_storage_accesses(contract));
-                    });
+                    for arg in args {
+                        let (accesses, write_only) = arg.collect_storage_accesses(contract);
+                        storage_accesses.extend(accesses);
+                        write_only_storage_accesses.extend(write_only);
+                    }
                 }
 
                 Expr::ExternalPredicateCall {
@@ -417,17 +430,25 @@ impl ExprKey {
                     args,
                     ..
                 } => {
-                    storage_accesses.extend(c_addr.collect_storage_accesses(contract));
-                    storage_accesses.extend(p_addr.collect_storage_accesses(contract));
-                    args.iter().for_each(|arg| {
-                        storage_accesses.extend(arg.collect_storage_accesses(contract));
-                    });
+                    let (c_accesses, c_write_only) = c_addr.collect_storage_accesses(contract);
+                    let (p_accesses, p_write_only) = p_addr.collect_storage_accesses(contract);
+                    storage_accesses.extend(c_accesses);
+                    storage_accesses.extend(p_accesses);
+                    write_only_storage_accesses.extend(c_write_only);
+                    write_only_storage_accesses.extend(p_write_only);
+                    for arg in args {
+                        let (accesses, write_only) = arg.collect_storage_accesses(contract);
+                        storage_accesses.extend(accesses);
+                        write_only_storage_accesses.extend(write_only);
+                    }
                 }
 
                 Expr::LocalPredicateCall { args, .. } => {
-                    args.iter().for_each(|arg| {
-                        storage_accesses.extend(arg.collect_storage_accesses(contract));
-                    });
+                    for arg in args {
+                        let (accesses, write_only) = arg.collect_storage_accesses(contract);
+                        storage_accesses.extend(accesses);
+                        write_only_storage_accesses.extend(write_only);
+                    }
                 }
 
                 Expr::Select {
@@ -436,41 +457,67 @@ impl ExprKey {
                     else_expr,
                     ..
                 } => {
-                    storage_accesses.extend(condition.collect_storage_accesses(contract));
-                    storage_accesses.extend(then_expr.collect_storage_accesses(contract));
-                    storage_accesses.extend(else_expr.collect_storage_accesses(contract));
+                    let (cond_accesses, cond_write_only) =
+                        condition.collect_storage_accesses(contract);
+                    let (then_accesses, then_write_only) =
+                        then_expr.collect_storage_accesses(contract);
+                    let (else_accesses, else_write_only) =
+                        else_expr.collect_storage_accesses(contract);
+                    storage_accesses.extend(cond_accesses);
+                    storage_accesses.extend(then_accesses);
+                    storage_accesses.extend(else_accesses);
+                    write_only_storage_accesses.extend(cond_write_only);
+                    write_only_storage_accesses.extend(then_write_only);
+                    write_only_storage_accesses.extend(else_write_only);
                 }
 
                 Expr::Index {
                     expr: expr_inner, ..
                 } => {
-                    storage_accesses.extend(expr_inner.collect_storage_accesses(contract));
+                    let (inner_accesses, inner_write_only) =
+                        expr_inner.collect_storage_accesses(contract);
+                    storage_accesses.extend(&inner_accesses);
+                    write_only_storage_accesses.extend(inner_write_only);
                     if storage_accesses.remove(expr_inner) {
                         storage_accesses.insert(*self);
                     }
                 }
 
                 Expr::TupleFieldAccess { tuple, .. } => {
-                    storage_accesses.extend(tuple.collect_storage_accesses(contract));
+                    let (tuple_accesses, tuple_write_only) =
+                        tuple.collect_storage_accesses(contract);
+                    storage_accesses.extend(&tuple_accesses);
+                    write_only_storage_accesses.extend(tuple_write_only);
                     if storage_accesses.remove(tuple) {
                         storage_accesses.insert(*self);
                     }
                 }
 
                 Expr::Cast { value, .. } => {
-                    storage_accesses.extend(value.collect_storage_accesses(contract));
+                    let (accesses, write_only) = value.collect_storage_accesses(contract);
+                    storage_accesses.extend(accesses);
+                    write_only_storage_accesses.extend(write_only);
                 }
 
                 Expr::In {
                     value, collection, ..
                 } => {
-                    storage_accesses.extend(value.collect_storage_accesses(contract));
-                    storage_accesses.extend(collection.collect_storage_accesses(contract));
+                    let (val_accesses, val_write_only) = value.collect_storage_accesses(contract);
+                    let (col_accesses, col_write_only) =
+                        collection.collect_storage_accesses(contract);
+                    storage_accesses.extend(val_accesses);
+                    storage_accesses.extend(col_accesses);
+                    write_only_storage_accesses.extend(val_write_only);
+                    write_only_storage_accesses.extend(col_write_only);
                 }
 
                 Expr::Range { lb, ub, .. } => {
-                    storage_accesses.extend(lb.collect_storage_accesses(contract));
-                    storage_accesses.extend(ub.collect_storage_accesses(contract));
+                    let (lb_accesses, lb_write_only) = lb.collect_storage_accesses(contract);
+                    let (ub_accesses, ub_write_only) = ub.collect_storage_accesses(contract);
+                    storage_accesses.extend(lb_accesses);
+                    storage_accesses.extend(ub_accesses);
+                    write_only_storage_accesses.extend(lb_write_only);
+                    write_only_storage_accesses.extend(ub_write_only);
                 }
 
                 Expr::Generator {
@@ -479,26 +526,41 @@ impl ExprKey {
                     body,
                     ..
                 } => {
-                    gen_ranges.iter().for_each(|(_, range)| {
-                        storage_accesses.extend(range.collect_storage_accesses(contract));
-                    });
-                    conditions.iter().for_each(|condition| {
-                        storage_accesses.extend(condition.collect_storage_accesses(contract));
-                    });
-                    storage_accesses.extend(body.collect_storage_accesses(contract));
+                    for (_, range) in gen_ranges {
+                        let (accesses, write_only) = range.collect_storage_accesses(contract);
+                        storage_accesses.extend(accesses);
+                        write_only_storage_accesses.extend(write_only);
+                    }
+                    for cond in conditions {
+                        let (accesses, write_only) = cond.collect_storage_accesses(contract);
+                        storage_accesses.extend(accesses);
+                        write_only_storage_accesses.extend(write_only);
+                    }
+                    let (body_accesses, body_write_only) = body.collect_storage_accesses(contract);
+                    storage_accesses.extend(body_accesses);
+                    write_only_storage_accesses.extend(body_write_only);
                 }
 
                 Expr::Map { range, body, .. } => {
-                    storage_accesses.extend(range.collect_storage_accesses(contract));
-                    storage_accesses.extend(body.collect_storage_accesses(contract));
+                    let (range_accesses, range_write_only) =
+                        range.collect_storage_accesses(contract);
+                    let (body_accesses, body_write_only) = body.collect_storage_accesses(contract);
+                    storage_accesses.extend(range_accesses);
+                    storage_accesses.extend(body_accesses);
+                    write_only_storage_accesses.extend(range_write_only);
+                    write_only_storage_accesses.extend(body_write_only);
                 }
 
                 Expr::UnionTag { union_expr, .. } => {
-                    storage_accesses.extend(union_expr.collect_storage_accesses(contract));
+                    let (accesses, write_only) = union_expr.collect_storage_accesses(contract);
+                    storage_accesses.extend(accesses);
+                    write_only_storage_accesses.extend(write_only);
                 }
 
                 Expr::UnionValue { union_expr, .. } => {
-                    storage_accesses.extend(union_expr.collect_storage_accesses(contract));
+                    let (accesses, write_only) = union_expr.collect_storage_accesses(contract);
+                    storage_accesses.extend(accesses);
+                    write_only_storage_accesses.extend(write_only);
                 }
 
                 Expr::Error(_)
@@ -510,7 +572,7 @@ impl ExprKey {
             }
         }
 
-        storage_accesses
+        (storage_accesses, write_only_storage_accesses)
     }
 
     /// Given an expression, collect all accesses to local variables
@@ -685,20 +747,32 @@ impl ExprKey {
         path_to_var_exprs
     }
 
+    pub fn is_storage_vec_len(&self, contract: &Contract) -> bool {
+        self.get(contract).is_storage_vec_len(contract)
+    }
+
     pub fn is_storage_access_intrinsic(&self, contract: &Contract) -> bool {
         self.get(contract).is_storage_access_intrinsic()
+    }
+
+    pub fn is_pre_storage_access_intrinsic(&self, contract: &Contract) -> bool {
+        self.get(contract).is_pre_storage_access_intrinsic()
     }
 
     pub fn is_post_storage_access_intrinsic(&self, contract: &Contract) -> bool {
         self.get(contract).is_post_storage_access_intrinsic()
     }
 
-    pub fn is_storage_access(&self, contract: &Contract) -> bool {
-        self.get(contract).is_storage_access(contract)
-    }
-
     pub fn is_pre_storage_access(&self, contract: &Contract) -> bool {
         self.get(contract).is_pre_storage_access(contract)
+    }
+
+    pub fn is_post_storage_access(&self, contract: &Contract) -> bool {
+        self.get(contract).is_post_storage_access(contract)
+    }
+
+    pub fn is_storage_access(&self, contract: &Contract) -> bool {
+        self.get(contract).is_storage_access(contract)
     }
 }
 

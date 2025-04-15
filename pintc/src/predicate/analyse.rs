@@ -51,7 +51,6 @@ impl Contract {
 
         // TODO: remove the following, merge into lower_custom_types()?
         let _ = handler.scope(|handler| self.check_undefined_types(handler));
-        let _ = handler.scope(|handler| self.check_storage_types(handler));
         let _ = handler.scope(|handler| self.type_check_asm_blocks(handler));
         let _ = handler.scope(|handler| self.type_check_all(handler));
         let _ = handler.scope(|handler| self.check_uninferrable_types(handler));

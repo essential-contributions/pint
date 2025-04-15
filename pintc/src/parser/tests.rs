@@ -1156,12 +1156,12 @@ fn variable_decls() {
             }"#]],
     );
     check(
-        &run_parser!(pint, "predicate test() { let y = __vec_len(); }"),
+        &run_parser!(pint, "predicate test() { let y = __len(); }"),
         expect_test::expect![[r#"
 
             predicate ::test(
             ) {
-                let ::y = __vec_len();
+                let ::y = __len();
             }"#]],
     );
 }
@@ -2402,7 +2402,7 @@ fn union_expression() {
     );
 
     check(
-        &run_parser!(expr, r#"foo(1, 2, { 3, x }.1, [y, __vec_len()])"#),
+        &run_parser!(expr, r#"foo(1, 2, { 3, x }.1, [y, __len()])"#),
         expect_test::expect![[r#"
             expected `)`, found `,`
             @16..17: expected `)`
